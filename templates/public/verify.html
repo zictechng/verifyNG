@@ -1,9 +1,181 @@
 {% extends "public/base.html" %}
-{% block title %}Verify - VerifyNG{% endblock %}
+{% load static %}
+
+{% block title %}Submit a Verification Request — VerifyNG{% endblock %}
+
 {% block content %}
-<div class="container py-5 text-center">
-    <h1 class="display-4 text-muted mt-5">Coming Soon</h1>
-    <p class="lead">The professional identity verification feature is currently in development.</p>
-    <a href="{% url 'home' %}" class="btn btn-outline-primary mt-3">Return Home</a>
+<div class="container py-4 py-md-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-7 col-md-9">
+
+            <!-- Page Header -->
+            <div class="text-center mb-4">
+                <span class="vng-badge-trust mb-2">Identity Verification</span>
+                <h1 class="h3 fw-bold">Submit a Verification Request</h1>
+                <p class="small text-muted mb-0">
+                    Request an official identity, employment, address, or credential verification.
+                    A VerifyNG officer will review and complete the request.
+                </p>
+            </div>
+
+            <!-- Non-field errors -->
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger rounded-3 mb-4" role="alert">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2">
+                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                <strong>Please correct the following:</strong>
+                <ul class="mb-0 mt-1 ps-3">
+                    {% for error in form.non_field_errors %}
+                    <li class="small">{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <!-- Django flash messages -->
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }} rounded-3 mb-4" role="alert">
+                {{ message }}
+            </div>
+            {% endfor %}
+
+            <!-- Info callout -->
+            <div class="vng-callout-notice py-3 px-4 mb-4 small">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1">
+                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+                </svg>
+                <strong>Turnaround time:</strong> Verification requests are typically processed within 2–5 business days.
+                You will receive an email notification once the review is complete.
+                All requests are tracked in your <a href="{% url 'dashboard:index' %}" class="text-decoration-none fw-semibold">member dashboard</a>.
+            </div>
+
+            <form method="post" novalidate
+                  x-data="{
+                      idType: '{{ form.identifier_type.value|default:'' }}',
+                      showIdentifier() { return this.idType !== '' && this.idType !== null; }
+                  }">
+                {% csrf_token %}
+
+                <!-- ── Section 1: Subject Details ── -->
+                <div class="vng-card p-4 mb-4">
+                    <h6 class="fw-bold text-uppercase small text-muted mb-3 border-bottom pb-2">
+                        Subject Information
+                    </h6>
+
+                    <div class="row g-3">
+                        <!-- Subject Name -->
+                        <div class="col-md-8">
+                            <label for="{{ form.subject_name.id_for_label }}" class="form-label small fw-semibold">
+                                Full Name / Business Name <span class="text-danger">*</span>
+                            </label>
+                            {{ form.subject_name }}
+                            {% if form.subject_name.errors %}
+                            <div class="invalid-feedback d-block">{{ form.subject_name.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Subject Type -->
+                        <div class="col-md-4">
+                            <label for="{{ form.subject_type.id_for_label }}" class="form-label small fw-semibold">
+                                Entity Type <span class="text-danger">*</span>
+                            </label>
+                            {{ form.subject_type }}
+                            {% if form.subject_type.errors %}
+                            <div class="invalid-feedback d-block">{{ form.subject_type.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Verification Type -->
+                        <div class="col-12">
+                            <label for="{{ form.verification_type.id_for_label }}" class="form-label small fw-semibold">
+                                Verification Type <span class="text-danger">*</span>
+                            </label>
+                            {{ form.verification_type }}
+                            <div class="form-text">
+                                <em>Full Check</em> runs all available verification types in a single request.
+                            </div>
+                            {% if form.verification_type.errors %}
+                            <div class="invalid-feedback d-block">{{ form.verification_type.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ── Section 2: Identifier (Optional) ── -->
+                <div class="vng-card p-4 mb-4">
+                    <h6 class="fw-bold text-uppercase small text-muted mb-3 border-bottom pb-2">
+                        Known Identifier <span class="fw-normal text-muted">(Optional but recommended)</span>
+                    </h6>
+                    <p class="small text-muted mb-3">
+                        Providing a known identifier (phone number, email, or CAC registration) allows
+                        VerifyNG to link this verification to existing records and improves lookup accuracy.
+                        NIN and BVN are never stored in plain text — only an irreversible cryptographic hash is kept.
+                    </p>
+
+                    <div class="row g-3">
+                        <!-- Identifier Type -->
+                        <div class="col-md-5">
+                            <label for="{{ form.identifier_type.id_for_label }}" class="form-label small fw-semibold">
+                                Identifier Type
+                            </label>
+                            <select id="{{ form.identifier_type.id_for_label }}"
+                                    name="{{ form.identifier_type.html_name }}"
+                                    class="form-select{% if form.identifier_type.errors %} is-invalid{% endif %}"
+                                    x-model="idType">
+                                {% for val, label in form.identifier_type.field.choices %}
+                                <option value="{{ val }}"{% if form.identifier_type.value == val %} selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                            {% if form.identifier_type.errors %}
+                            <div class="invalid-feedback">{{ form.identifier_type.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Identifier Value — visible only when a type is chosen -->
+                        <div class="col-md-7" x-show="showIdentifier()" x-cloak>
+                            <label for="{{ form.identifier_value.id_for_label }}" class="form-label small fw-semibold">
+                                Identifier Value
+                            </label>
+                            {{ form.identifier_value }}
+                            {% if form.identifier_value.errors %}
+                            <div class="invalid-feedback d-block">{{ form.identifier_value.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ── Section 3: Notes ── -->
+                <div class="vng-card p-4 mb-4">
+                    <h6 class="fw-bold text-uppercase small text-muted mb-3 border-bottom pb-2">
+                        Additional Notes <span class="fw-normal text-muted">(Optional)</span>
+                    </h6>
+
+                    <label for="{{ form.notes.id_for_label }}" class="form-label small fw-semibold">
+                        Background / Requirements
+                    </label>
+                    {{ form.notes }}
+                    <div class="form-text">
+                        Provide context — e.g. the purpose of the check, specific areas of concern, or
+                        additional information that may assist the verification officer.
+                    </div>
+                    {% if form.notes.errors %}
+                    <div class="invalid-feedback d-block">{{ form.notes.errors|join:", " }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- Submit -->
+                <div class="d-flex gap-3 justify-content-between align-items-center">
+                    <a href="{% url 'home' %}" class="btn btn-outline-secondary px-4">
+                        &larr; Cancel
+                    </a>
+                    <button type="submit" class="btn btn-vng-primary px-5 py-2">
+                        Submit Verification Request &rarr;
+                    </button>
+                </div>
+            </form>
+
+        </div>
+    </div>
 </div>
 {% endblock %}

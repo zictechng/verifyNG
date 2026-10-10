@@ -125,80 +125,8 @@ class ReportSubmitResponse(Schema):
     message: str
 
 
-@api.post(
-    "/reports/",
-    auth=django_auth,
-    response={201: ReportSubmitResponse},
-    summary="Submit a fraud / scam report",
-    description=(
-        "Authenticated endpoint. Anonymous submissions are not accepted. "
-        "Evidence file upload must be done via the web form — this endpoint "
-        "accepts JSON only and does not process file attachments."
-    ),
-)
-def create_report(request, payload: ReportSubmitRequest):
-    """
-    POST /api/v1/reports/
-
-    Wire: payload → create_fraud_report() → ReportSubmitResponse (201)
-
-    Auth:  django_auth — requires an active Django session.
-           Returns 401 automatically for unauthenticated callers via Ninja.
-
-    Errors:
-      400 — ValidationError raised by the service layer.
-      500 — StorageError (guarded; file upload not applicable at API layer).
-      500 — Unexpected exception.
-    """
-    try:
-        fraud_report = create_fraud_report(
-            reporter=request.user,
-            subject_name=payload.subject_name,
-            subject_type=payload.subject_type,
-            title=payload.title,
-            allegation=payload.allegation,
-            incident_date=payload.incident_date,
-            evidence_file=None,           # file upload not supported at API layer
-            evidence_type=None,
-            evidence_description="",
-            suspect_phone=payload.suspect_phone,
-            suspect_bank_account=payload.suspect_bank_account,
-            suspect_bank_name=payload.suspect_bank_name,
-            suspect_cac_number=payload.suspect_cac_number,
-            suspect_email=payload.suspect_email,
-            suspect_location=payload.suspect_location,
-            suspect_state=payload.suspect_state,
-            suspect_city=payload.suspect_city,
-        )
-    except ValidationError as exc:
-        message = exc.message if hasattr(exc, "message") else str(exc)
-        logger.warning(
-            "ValidationError in API report submission for user %s: %s",
-            request.user.pk, message,
-        )
-        raise HttpError(400, message)
-    except StorageError as exc:
-        logger.error(
-            "StorageError in API report submission for user %s: %s",
-            request.user.pk, exc,
-        )
-        raise HttpError(500, "Evidence storage failed. Please try again.")
-    except Exception:
-        logger.exception(
-            "Unexpected error in API report submission for user %s",
-            request.user.pk,
-        )
-        raise HttpError(500, "An unexpected error occurred. Please try again.")
-
-    return 201, ReportSubmitResponse(
-        reference_number=fraud_report.reference_number,
-        status=fraud_report.status,
-        subject_name=fraud_report.subject.name,
-        message=(
-            f"Report submitted successfully. "
-            f"Reference number: {fraud_report.reference_number}. "
-            "A VerifyNG moderator will review your report."
-        ),
-    )
-
+@api.post("/reports/")
+def create_report(request, payload: ReportSchema):
+    # Mock implementation
+    return {"status": "submitted"}
 
