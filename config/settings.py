@@ -30,7 +30,6 @@ INSTALLED_APPS = [
     'identities',
     'reports',
     'verification',
-    'integrations',
     'core',
 ]
 
