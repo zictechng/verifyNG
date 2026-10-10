@@ -5,272 +5,409 @@
 
 {% block content %}
 <div class="container py-4 py-md-5">
-    <!-- Welcome Header -->
+
+    {# ── Welcome Header ──────────────────────────────────────────────────── #}
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
         <div>
             <span class="vng-badge-trust mb-2">Member Portal</span>
             <h1 class="h3 fw-bold mb-1">
                 Welcome, {{ request.user.get_full_name|default:request.user.username }}
             </h1>
-            <p class="small text-muted mb-0">Manage your verified searches, track submitted reports, and access services.</p>
+            <p class="small text-muted mb-0">
+                Manage your reports, track verifications, and access VerifyNG services.
+            </p>
         </div>
         <div class="d-flex gap-2 flex-wrap">
-            <a href="{% url 'verification:create' %}" class="btn btn-primary btn-sm">
-                + New Verification
-            </a>
-            <a href="{% url 'reports:create' %}" class="btn btn-vng-primary btn-sm">
-                + Submit Report
-            </a>
-            <a href="{% url 'users:profile' %}" class="btn btn-vng-outline btn-sm">
-                My Profile
-            </a>
+            <a href="{% url 'verification:create' %}" class="btn btn-primary btn-sm">+ New Verification</a>
+            <a href="{% url 'reports:create' %}" class="btn btn-vng-primary btn-sm">+ Submit Report</a>
+            <a href="{% url 'users:profile' %}" class="btn btn-vng-outline btn-sm">My Profile</a>
         </div>
     </div>
 
-    <!-- Quick Status Cards -->
+    {# ── Stat Strip ──────────────────────────────────────────────────────── #}
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="vng-card p-3 text-center h-100">
+                <div class="fw-bold fs-3 text-primary mb-1">{{ total_reports }}</div>
+                <div class="small text-muted">Reports Submitted</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="vng-card p-3 text-center h-100">
+                <div class="fw-bold fs-3 text-primary mb-1">{{ total_verifications }}</div>
+                <div class="small text-muted">Verification Requests</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="vng-card p-3 text-center h-100">
+                <div class="fw-bold fs-3 mb-1" style="color: var(--vng-success);">{{ completed_verifications }}</div>
+                <div class="small text-muted">Verifications Completed</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="vng-card p-3 text-center h-100">
+                <div class="fw-bold fs-3 mb-1" style="color: var(--vng-warning);">{{ total_disputes }}</div>
+                <div class="small text-muted">Disputes Filed</div>
+            </div>
+        </div>
+    </div>
+
+    {# ── Role Widgets Row ─────────────────────────────────────────────────── #}
     <div class="row g-3 g-md-4 mb-4">
-        <!-- Account Status Card -->
+        {# Account card #}
         <div class="col-md-4">
             <div class="vng-card p-4 h-100">
                 <div class="d-flex align-items-center justify-content-between mb-3">
-                    <span class="small fw-semibold text-muted">Account Role</span>
-                    <span class="badge bg-primary text-uppercase">{{ request.user.get_role_display }}</span>
-                </div>
-                <h4 class="fw-bold mb-1">{{ request.user.username }}</h4>
-                <p class="small text-muted mb-3">{{ request.user.email }}</p>
-                <div class="pt-2 border-top">
+                    <span class="small fw-semibold text-muted">Account</span>
                     {% if request.user.is_verified %}
-                        <span class="badge bg-success">Verified Member</span>
+                        <span class="badge bg-success">Verified</span>
                     {% else %}
-                        <span class="badge bg-secondary">Unverified Member</span>
+                        <span class="badge bg-secondary">Unverified</span>
                     {% endif %}
                 </div>
+                <h6 class="fw-bold mb-0">{{ request.user.username }}</h6>
+                <p class="small text-muted mb-3">{{ request.user.email }}</p>
+                {% if request.user.get_role_display %}
+                    <span class="badge bg-primary text-uppercase">{{ request.user.get_role_display }}</span>
+                {% endif %}
             </div>
         </div>
 
-        <!-- Quick Search Lookup Card -->
+        {# Quick Search card #}
         <div class="col-md-4">
             <div class="vng-card p-4 h-100">
                 <div class="d-flex align-items-center justify-content-between mb-3">
                     <span class="small fw-semibold text-muted">Quick Search</span>
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-primary">
-                        <circle cx="11" cy="11" r="8"/>
-                        <path d="M21 21L16.65 16.65"/>
+                        <circle cx="11" cy="11" r="8"/><path d="M21 21L16.65 16.65"/>
                     </svg>
                 </div>
-                <h5 class="fw-bold mb-2">Check a Record</h5>
-                <p class="small text-muted mb-3">Verify phone numbers, CAC records, or identities against reports.</p>
-                <a href="{% url 'check' %}" class="btn btn-vng-outline btn-sm w-100 mt-auto">
+                <h6 class="fw-bold mb-2">Check a Record</h6>
+                <p class="small text-muted mb-3">
+                    Verify phone numbers, CAC records, or identities against the VerifyNG database.
+                </p>
+                <a href="{% url 'check' %}" class="btn btn-vng-outline btn-sm w-100">
                     Launch Lookup &rarr;
                 </a>
             </div>
         </div>
 
-        <!-- Officer Desk Widget (Only for Verification Officers / Superusers) -->
+        {# Officer Desk — officers/superusers only #}
         {% if is_officer %}
-            <div class="col-md-4">
-                <div class="vng-card p-4 h-100 border-success">
-                    <div class="d-flex align-items-center justify-content-between mb-3">
-                        <span class="small fw-bold text-success">Officer Desk</span>
-                        <span class="badge bg-success">Verification Queue</span>
-                    </div>
-                    <div class="d-flex justify-content-between py-1 mb-3">
-                        <span class="small text-muted">Active Queue:</span>
-                        <span class="small fw-bold text-dark">{{ pending_verification_count|default:0 }}</span>
-                    </div>
-                    <a href="{% url 'verification:officer_queue' %}" class="btn btn-success btn-sm w-100 mt-auto">
-                        Open Officer Queue &rarr;
-                    </a>
+        <div class="col-md-4">
+            <div class="vng-card p-4 h-100" style="border-left: 3px solid var(--vng-success);">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <span class="small fw-bold" style="color: var(--vng-success);">Officer Desk</span>
+                    <span class="badge bg-success">Verification Queue</span>
                 </div>
+                <div class="d-flex justify-content-between py-1 mb-3">
+                    <span class="small text-muted">Active Queue:</span>
+                    <span class="small fw-bold">{{ pending_verification_count|default:0 }}</span>
+                </div>
+                <a href="{% url 'verification:officer_queue' %}" class="btn btn-success btn-sm w-100">
+                    Open Officer Queue &rarr;
+                </a>
             </div>
+        </div>
         {% endif %}
 
-        <!-- Moderator Desk Widget (Only for Staff / Moderators) -->
+        {# Moderator Desk — moderators only #}
         {% if is_moderator %}
-            <div class="col-md-4">
-                <div class="vng-card p-4 h-100 border-primary">
-                    <div class="d-flex align-items-center justify-content-between mb-3">
-                        <span class="small fw-bold text-primary">Moderator Desk</span>
-                        <span class="badge bg-primary">Staff Operations</span>
-                    </div>
-                    <div class="d-flex justify-content-between py-1 border-bottom">
-                        <span class="small text-muted">Pending Reports:</span>
-                        <span class="small fw-bold text-dark">{{ pending_moderation_count }}</span>
-                    </div>
-                    <div class="d-flex justify-content-between py-1 mb-3">
-                        <span class="small text-muted">Open Disputes:</span>
-                        <span class="small fw-bold text-danger">{{ open_disputes_count }}</span>
-                    </div>
-                    <a href="{% url 'reports:moderation_queue' %}" class="btn btn-primary btn-sm w-100 mt-auto">
-                        Open Moderation Queue &rarr;
-                    </a>
+        <div class="col-md-4">
+            <div class="vng-card p-4 h-100" style="border-left: 3px solid var(--vng-primary);">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <span class="small fw-bold text-primary">Moderator Desk</span>
+                    <span class="badge bg-primary">Staff Operations</span>
                 </div>
-            </div>
-        {% else %}
-            <!-- Safety Tips Card for Regular Users -->
-            <div class="col-md-4">
-                <div class="vng-card p-4 h-100">
-                    <div class="d-flex align-items-center justify-content-between mb-3">
-                        <span class="small fw-semibold text-muted">Safety Tips</span>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-warning">
-                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                        </svg>
-                    </div>
-                    <h5 class="fw-bold mb-2">Stay Vigilant</h5>
-                    <p class="small text-muted mb-3">Always verify bank account names before transferring funds online.</p>
-                    <a href="{% url 'home' %}#faqSection" class="btn btn-sm btn-link text-primary text-decoration-none p-0 mt-auto">
-                        Read Safety FAQs &rarr;
-                    </a>
+                <div class="d-flex justify-content-between py-1 border-bottom mb-1">
+                    <span class="small text-muted">Pending Reports:</span>
+                    <span class="small fw-bold">{{ pending_moderation_count }}</span>
                 </div>
+                <div class="d-flex justify-content-between py-1 mb-3">
+                    <span class="small text-muted">Open Disputes:</span>
+                    <span class="small fw-bold text-danger">{{ open_disputes_count }}</span>
+                </div>
+                <a href="{% url 'reports:moderation_queue' %}" class="btn btn-primary btn-sm w-100">
+                    Open Moderation Queue &rarr;
+                </a>
             </div>
+        </div>
+        {% endif %}
+
+        {# Safety tip — regular users only #}
+        {% if not is_moderator and not is_officer %}
+        <div class="col-md-4">
+            <div class="vng-card p-4 h-100">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <span class="small fw-semibold text-muted">Safety Tip</span>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-warning">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    </svg>
+                </div>
+                <h6 class="fw-bold mb-2">Stay Vigilant</h6>
+                <p class="small text-muted mb-3">
+                    Always verify bank account names before transferring funds online.
+                </p>
+                <a href="{% url 'home' %}#faqSection" class="btn btn-sm btn-link text-primary text-decoration-none p-0">
+                    Read Safety FAQs &rarr;
+                </a>
+            </div>
+        </div>
         {% endif %}
     </div>
 
-    <!-- 1. My Submitted Reports Table -->
+    {# ── My Submitted Fraud Reports ───────────────────────────────────────── #}
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
             <h5 class="mb-0 fw-bold">My Submitted Fraud Reports</h5>
             <a href="{% url 'reports:create' %}" class="btn btn-sm btn-outline-primary">+ New Report</a>
         </div>
         <div class="card-body p-0">
+            {% if user_reports.object_list %}
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
                             <th>Reference</th>
-                            <th>Target Subject</th>
-                            <th>Title</th>
-                            <th>State</th>
-                            <th>Date</th>
-                            <th>Action</th>
+                            <th>Subject</th>
+                            <th class="d-none d-md-table-cell">Title</th>
+                            <th>Status</th>
+                            <th class="d-none d-md-table-cell">Date</th>
+                            <th></th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for r in user_reports %}
                         <tr>
-                            <td class="font-monospace fw-semibold">{{ r.reference_number }}</td>
+                            <td class="font-monospace fw-semibold small">{{ r.reference_number }}</td>
                             <td>{{ r.target_subject.name }}</td>
-                            <td>{{ r.title }}</td>
-                            <td><span class="badge bg-secondary text-uppercase">{{ r.get_state_display }}</span></td>
-                            <td class="small text-muted">{{ r.created_at|date:"M j, Y" }}</td>
+                            <td class="d-none d-md-table-cell small text-muted">{{ r.title|truncatechars:40 }}</td>
+                            <td>
+                                {% with s=r.state %}
+                                {% if s == 'published' %}
+                                    <span class="badge bg-success">Published</span>
+                                {% elif s == 'under_review' %}
+                                    <span class="badge bg-warning text-dark">Under Review</span>
+                                {% elif s == 'submitted' %}
+                                    <span class="badge bg-primary">Submitted</span>
+                                {% elif s == 'rejected' %}
+                                    <span class="badge bg-danger">Rejected</span>
+                                {% elif s == 'disputed' %}
+                                    <span class="badge" style="background:#7C3AED;">Disputed</span>
+                                {% elif s == 'restricted' %}
+                                    <span class="badge bg-warning text-dark">Restricted</span>
+                                {% elif s == 'resolved' %}
+                                    <span class="badge bg-secondary">Resolved</span>
+                                {% elif s == 'archived' %}
+                                    <span class="badge bg-secondary">Archived</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ r.get_state_display }}</span>
+                                {% endif %}
+                                {% endwith %}
+                            </td>
+                            <td class="d-none d-md-table-cell small text-muted">{{ r.created_at|date:"M j, Y" }}</td>
                             <td>
                                 <a href="{% url 'reports:detail' r.reference_number %}" class="btn btn-sm btn-outline-secondary">
                                     View
                                 </a>
                             </td>
                         </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="6" class="text-center py-4 text-muted">You have not submitted any fraud reports.</td>
-                        </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
+            {# Pagination #}
+            {% if user_reports.has_other_pages %}
+            <div class="d-flex justify-content-center py-3 border-top">
+                <nav aria-label="Reports pagination">
+                    <ul class="pagination pagination-sm mb-0">
+                        {% if user_reports.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?rpage={{ user_reports.previous_page_number }}&vpage={{ user_verifications.number }}&dpage={{ user_disputes.number }}">&laquo;</a>
+                        </li>
+                        {% endif %}
+                        {% for num in user_reports.paginator.page_range %}
+                        <li class="page-item {% if user_reports.number == num %}active{% endif %}">
+                            <a class="page-link" href="?rpage={{ num }}&vpage={{ user_verifications.number }}&dpage={{ user_disputes.number }}">{{ num }}</a>
+                        </li>
+                        {% endfor %}
+                        {% if user_reports.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?rpage={{ user_reports.next_page_number }}&vpage={{ user_verifications.number }}&dpage={{ user_disputes.number }}">&raquo;</a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+            {% else %}
+            {# Empty state #}
+            <div class="text-center py-5 px-3">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" stroke-width="1.5" class="mb-3">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                    <polyline points="10 9 9 9 8 9"/>
+                </svg>
+                <p class="text-muted small mb-3">You have not submitted any fraud reports yet.</p>
+                <a href="{% url 'reports:create' %}" class="btn btn-sm btn-vng-primary">Submit Your First Report</a>
+            </div>
+            {% endif %}
         </div>
     </div>
 
-        <!-- 2. My Verification Requests Table -->
+    {# ── My Verification Requests ─────────────────────────────────────────── #}
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
             <h5 class="mb-0 fw-bold">My Verification Requests</h5>
             <a href="{% url 'verification:create' %}" class="btn btn-sm btn-outline-primary">+ New Verification</a>
         </div>
         <div class="card-body p-0">
+            {% if user_verifications.object_list %}
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
                             <th>Reference</th>
-                            <th>Target Subject</th>
-                            <th>Scope</th>
+                            <th>Subject</th>
+                            <th class="d-none d-md-table-cell">Type</th>
                             <th>Status</th>
-                            <th>Date</th>
-                            <th>Action</th>
+                            <th class="d-none d-md-table-cell">Date</th>
+                            <th></th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for v in user_verifications %}
                         <tr>
-                            <td class="font-monospace fw-semibold">{{ v.reference_number }}</td>
+                            <td class="font-monospace fw-semibold small">{{ v.reference_number }}</td>
                             <td>{{ v.target_subject.name }}</td>
-                            <td>{{ v.get_verification_type_display }}</td>
+                            <td class="d-none d-md-table-cell small text-muted">{{ v.get_verification_type_display }}</td>
                             <td>
                                 {% if v.status == 'completed' %}
-                                    <span class="badge bg-success">COMPLETED</span>
+                                    <span class="badge bg-success">Completed</span>
                                 {% elif v.status == 'in_progress' %}
-                                    <span class="badge bg-warning text-dark">IN PROGRESS</span>
+                                    <span class="badge bg-warning text-dark">In Progress</span>
                                 {% elif v.status == 'rejected' %}
-                                    <span class="badge bg-danger">DECLINED</span>
+                                    <span class="badge bg-danger">Declined</span>
                                 {% else %}
-                                    <span class="badge bg-secondary">PENDING</span>
+                                    <span class="badge bg-primary">Pending</span>
                                 {% endif %}
                             </td>
-                            <td class="small text-muted">{{ v.created_at|date:"M j, Y" }}</td>
-                                                       <td>
+                            <td class="d-none d-md-table-cell small text-muted">{{ v.created_at|date:"M j, Y" }}</td>
+                            <td>
                                 <div class="d-flex gap-1">
-                                    <a href="{% url 'verification:detail' v.reference_number %}" class="btn btn-sm btn-outline-secondary">
-                                        View
-                                    </a>
+                                    <a href="{% url 'verification:detail' v.reference_number %}" class="btn btn-sm btn-outline-secondary">View</a>
                                     {% if v.status == 'completed' %}
-                                        <a href="{% url 'verification:report' v.reference_number %}" class="btn btn-sm btn-outline-success">
-                                            Report
-                                        </a>
+                                    <a href="{% url 'verification:report' v.reference_number %}" class="btn btn-sm btn-outline-success">Report</a>
                                     {% endif %}
                                 </div>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="6" class="text-center py-4 text-muted">
-                                No verification requests on file.
                             </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
+            {# Pagination #}
+            {% if user_verifications.has_other_pages %}
+            <div class="d-flex justify-content-center py-3 border-top">
+                <nav aria-label="Verifications pagination">
+                    <ul class="pagination pagination-sm mb-0">
+                        {% if user_verifications.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?rpage={{ user_reports.number }}&vpage={{ user_verifications.previous_page_number }}&dpage={{ user_disputes.number }}">&laquo;</a>
+                        </li>
+                        {% endif %}
+                        {% for num in user_verifications.paginator.page_range %}
+                        <li class="page-item {% if user_verifications.number == num %}active{% endif %}">
+                            <a class="page-link" href="?rpage={{ user_reports.number }}&vpage={{ num }}&dpage={{ user_disputes.number }}">{{ num }}</a>
+                        </li>
+                        {% endfor %}
+                        {% if user_verifications.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?rpage={{ user_reports.number }}&vpage={{ user_verifications.next_page_number }}&dpage={{ user_disputes.number }}">&raquo;</a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+            {% else %}
+            <div class="text-center py-5 px-3">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" stroke-width="1.5" class="mb-3">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                    <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+                <p class="text-muted small mb-3">No verification requests on file.</p>
+                <a href="{% url 'verification:create' %}" class="btn btn-sm btn-primary">Submit a Verification Request</a>
+            </div>
+            {% endif %}
         </div>
     </div>
 
-    <!-- 2. My Filed Disputes Table -->
-    {% if user_disputes %}
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white py-3 border-bottom">
-                <h5 class="mb-0 fw-bold">My Filed Disputes</h5>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Report Reference</th>
-                                <th>Subject</th>
-                                <th>Dispute Status</th>
-                                <th>Date Filed</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for d in user_disputes %}
-                            <tr>
-                                <td class="font-monospace fw-semibold">{{ d.report.reference_number }}</td>
-                                <td>{{ d.report.target_subject.name }}</td>
-                                <td><span class="badge bg-warning text-dark text-uppercase">{{ d.get_status_display }}</span></td>
-                                <td class="small text-muted">{{ d.created_at|date:"M j, Y" }}</td>
-                                <td>
-                                    <a href="{% url 'reports:detail' d.report.reference_number %}" class="btn btn-sm btn-outline-secondary">
-                                        View Report
-                                    </a>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+    {# ── My Filed Disputes ────────────────────────────────────────────────── #}
+    {% if user_disputes.object_list or user_disputes.paginator.count > 0 %}
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white py-3 border-bottom">
+            <h5 class="mb-0 fw-bold">My Filed Disputes</h5>
         </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Report Reference</th>
+                            <th>Subject</th>
+                            <th>Dispute Status</th>
+                            <th class="d-none d-md-table-cell">Date Filed</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for d in user_disputes %}
+                        <tr>
+                            <td class="font-monospace fw-semibold small">{{ d.report.reference_number }}</td>
+                            <td>{{ d.report.target_subject.name }}</td>
+                            <td><span class="badge bg-warning text-dark text-uppercase">{{ d.get_status_display }}</span></td>
+                            <td class="d-none d-md-table-cell small text-muted">{{ d.created_at|date:"M j, Y" }}</td>
+                            <td>
+                                <a href="{% url 'reports:detail' d.report.reference_number %}" class="btn btn-sm btn-outline-secondary">
+                                    View Report
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {# Pagination #}
+            {% if user_disputes.has_other_pages %}
+            <div class="d-flex justify-content-center py-3 border-top">
+                <nav aria-label="Disputes pagination">
+                    <ul class="pagination pagination-sm mb-0">
+                        {% if user_disputes.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?rpage={{ user_reports.number }}&vpage={{ user_verifications.number }}&dpage={{ user_disputes.previous_page_number }}">&laquo;</a>
+                        </li>
+                        {% endif %}
+                        {% for num in user_disputes.paginator.page_range %}
+                        <li class="page-item {% if user_disputes.number == num %}active{% endif %}">
+                            <a class="page-link" href="?rpage={{ user_reports.number }}&vpage={{ user_verifications.number }}&dpage={{ num }}">{{ num }}</a>
+                        </li>
+                        {% endfor %}
+                        {% if user_disputes.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?rpage={{ user_reports.number }}&vpage={{ user_verifications.number }}&dpage={{ user_disputes.next_page_number }}">&raquo;</a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+        </div>
+    </div>
     {% endif %}
+
 </div>
 {% endblock %}
 
