@@ -1,4 +1,3 @@
-
 {% extends 'public/base.html' %}
 {% load static %}
 
@@ -6,15 +5,18 @@
 
 {% block content %}
 <div class="container py-4 py-md-5">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+
+    {# ── Header ── #}
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
         <div>
-            <span class="badge bg-primary text-uppercase mb-2">Officer Desk</span>
+            <span class="vng-badge-trust mb-2">Officer Desk</span>
             <h1 class="h3 fw-bold mb-1">Active Verification Queue</h1>
-            <p class="small text-muted mb-0">Pending and in-progress verification requests requiring assessment.</p>
+            <p class="small text-muted mb-0">Pending and in-progress verification requests awaiting assessment.</p>
         </div>
-        <a href="{% url 'dashboard:index' %}" class="btn btn-outline-secondary btn-sm">&larr; Back to Dashboard</a>
+        <a href="{% url 'dashboard:index' %}" class="btn btn-vng-outline btn-vng-sm">&larr; Back to Dashboard</a>
     </div>
 
+    {# ── Django messages ── #}
     {% if messages %}
         {% for message in messages %}
             <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
@@ -24,52 +26,109 @@
         {% endfor %}
     {% endif %}
 
-    <div class="vng-card p-0">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th>Reference</th>
-                        <th>Target Subject</th>
-                        <th>Type</th>
-                        <th>Status</th>
-                        <th>Requester</th>
-                        <th>Submitted</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for req in requests %}
+    {# ── Stat strip ── #}
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="vng-card p-3 text-center">
+                <div class="fw-bold fs-3 text-primary mb-1">{{ paginator.count|default:0 }}</div>
+                <div class="small text-muted">Total in Queue</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="vng-card p-3 text-center">
+                <div class="fw-bold fs-3 mb-1" style="color:var(--vng-warning);">
+                    {{ requests|length }}
+                </div>
+                <div class="small text-muted">This Page</div>
+            </div>
+        </div>
+    </div>
+
+    {# ── Queue table ── #}
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            {% if requests %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
                         <tr>
-                            <td class="font-monospace fw-semibold">{{ req.reference_number }}</td>
-                            <td>{{ req.target_subject.name }} <span class="badge bg-light text-dark">{{ req.target_subject.type }}</span></td>
-                            <td>{{ req.get_verification_type_display }}</td>
+                            <th>Reference</th>
+                            <th>Subject</th>
+                            <th class="d-none d-md-table-cell">Type</th>
+                            <th>Status</th>
+                            <th class="d-none d-md-table-cell">Requester</th>
+                            <th class="d-none d-md-table-cell">Submitted</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for req in requests %}
+                        <tr>
+                            <td class="font-monospace fw-semibold small">{{ req.reference_number }}</td>
+                            <td>
+                                {{ req.target_subject.name }}
+                                <span class="badge bg-light text-dark ms-1" style="font-size:0.7rem;">{{ req.target_subject.type }}</span>
+                            </td>
+                            <td class="d-none d-md-table-cell small text-muted">{{ req.get_verification_type_display }}</td>
                             <td>
                                 {% if req.status == 'in_progress' %}
-                                    <span class="badge bg-warning text-dark">IN PROGRESS</span>
+                                    <span class="badge bg-warning text-dark">In Progress</span>
                                 {% else %}
-                                    <span class="badge bg-secondary">PENDING</span>
+                                    <span class="badge bg-primary">Pending</span>
                                 {% endif %}
                             </td>
-                            <td class="small text-muted">{{ req.requester.username|default:"Anonymous" }}</td>
-                            <td class="small text-muted">{{ req.created_at|date:"M j, Y H:i" }}</td>
+                            <td class="d-none d-md-table-cell small text-muted">{{ req.requester.username|default:"—" }}</td>
+                            <td class="d-none d-md-table-cell small text-muted">{{ req.created_at|date:"M j, Y" }}</td>
                             <td>
                                 <a href="{% url 'verification:detail' req.reference_number %}" class="btn btn-sm btn-primary">
                                     Review &rarr;
                                 </a>
                             </td>
                         </tr>
-                    {% empty %}
-                        <tr>
-                            <td colspan="7" class="text-center py-5 text-muted">
-                                Queue is clear. No pending or in-progress verification requests.
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {# ── Pagination ── #}
+            {% if is_paginated %}
+            <div class="d-flex justify-content-center py-3 border-top">
+                <nav aria-label="Queue pagination">
+                    <ul class="pagination pagination-sm mb-0">
+                        {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}">&laquo;</a>
+                        </li>
+                        {% endif %}
+                        {% for num in paginator.page_range %}
+                        <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+                            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                        </li>
+                        {% endfor %}
+                        {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}">&raquo;</a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+
+            {% else %}
+            {# ── Empty state ── #}
+            <div class="text-center py-5 px-3">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" stroke-width="1.5" class="mb-3">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                    <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+                <p class="fw-semibold mb-1">Queue is clear</p>
+                <p class="small text-muted mb-0">No pending or in-progress verification requests at this time.</p>
+            </div>
+            {% endif %}
         </div>
     </div>
+
 </div>
 {% endblock %}
 
