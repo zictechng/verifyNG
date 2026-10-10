@@ -1,0 +1,424 @@
+{% extends 'public/base.html' %}
+{% load static %}
+
+{% block title %}Report Suspicious Activity | VerifyNG{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-md-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-md-10">
+
+            <!-- Header -->
+            <div class="text-center mb-4">
+                <span class="vng-badge-trust mb-2">Community Protection Engine</span>
+                <h1 class="h3 fw-bold">Report Fraudulent or Suspicious Activity</h1>
+                <p class="small text-muted mb-0">Help protect Nigerians from bad actors by documenting unfulfilled transactions, scams, or fraudulent businesses.</p>
+            </div>
+
+            <!-- Stepper Container -->
+            <div class="vng-card p-4 p-md-5" x-data="{
+                step: {% if form.errors and form.title.errors or form.allegation.errors %}2{% elif form.errors and form.evidence_file.errors %}3{% else %}1{% endif %},
+                maxStep: 4,
+                submitting: false,
+                fileName: '',
+                fileSize: '',
+                isImage: false,
+                imagePreview: null,
+                subjectName: '{{ form.subject_name.value|default:''|escapejs }}',
+                subjectType: '{{ form.subject_type.value|default:'person'|escapejs }}',
+                phone: '{{ form.suspect_phone.value|default:''|escapejs }}',
+                bankAccount: '{{ form.suspect_bank_account.value|default:''|escapejs }}',
+                bankName: '{{ form.suspect_bank_name.value|default:''|escapejs }}',
+                cac: '{{ form.suspect_cac_number.value|default:''|escapejs }}',
+                email: '{{ form.suspect_email.value|default:''|escapejs }}',
+                title: '{{ form.title.value|default:''|escapejs }}',
+                state: '{{ form.suspect_state.value|default:''|escapejs }}',
+                city: '{{ form.suspect_city.value|default:''|escapejs }}',
+                location: '{{ form.suspect_location.value|default:''|escapejs }}',
+                allegation: `{{ form.allegation.value|default:''|escapejs }}`,
+                declared: false,
+                handleFileSelect(event) {
+                    const file = event.target.files[0];
+                    if (file) {
+                        this.fileName = file.name;
+                        this.fileSize = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+                        if (file.type.startsWith('image/')) {
+                            this.isImage = true;
+                            const reader = new FileReader();
+                            reader.onload = (e) => { this.imagePreview = e.target.result; };
+                            reader.readAsDataURL(file);
+                        } else {
+                            this.isImage = false;
+                            this.imagePreview = null;
+                        }
+                    }
+                }
+            }">
+
+                <!-- Wizard Progress Indicator -->
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between align-items-center position-relative mb-2">
+                        <!-- Progress line behind pills -->
+                        <div class="position-absolute top-50 start-0 w-100" style="height: 3px; background-color: var(--vng-border); z-index: 1;"></div>
+                        <div class="position-absolute top-50 start-0" :style="'height: 3px; background-color: var(--vng-primary); z-index: 1; transition: width 0.3s; width: ' + ((step - 1) / 3 * 100) + '%;'"></div>
+
+                        <!-- Step 1 Indicator -->
+                        <button type="button" @click="step = 1" class="btn btn-sm rounded-circle d-flex align-items-center justify-content-center p-0 position-relative" style="width: 38px; height: 38px; z-index: 2;" :class="step >= 1 ? 'btn-primary' : 'btn-light border'">
+                            <span class="fw-bold">1</span>
+                        </button>
+                        <!-- Step 2 Indicator -->
+                        <button type="button" @click="if (subjectName.trim()) step = 2" class="btn btn-sm rounded-circle d-flex align-items-center justify-content-center p-0 position-relative" style="width: 38px; height: 38px; z-index: 2;" :class="step >= 2 ? 'btn-primary' : 'btn-light border'">
+                            <span class="fw-bold">2</span>
+                        </button>
+                        <!-- Step 3 Indicator -->
+                        <button type="button" @click="if (subjectName.trim() && title.trim() && allegation.trim()) step = 3" class="btn btn-sm rounded-circle d-flex align-items-center justify-content-center p-0 position-relative" style="width: 38px; height: 38px; z-index: 2;" :class="step >= 3 ? 'btn-primary' : 'btn-light border'">
+                            <span class="fw-bold">3</span>
+                        </button>
+                        <!-- Step 4 Indicator -->
+                        <button type="button" @click="if (subjectName.trim() && title.trim() && allegation.trim()) step = 4" class="btn btn-sm rounded-circle d-flex align-items-center justify-content-center p-0 position-relative" style="width: 38px; height: 38px; z-index: 2;" :class="step === 4 ? 'btn-primary' : 'btn-light border'">
+                            <span class="fw-bold">4</span>
+                        </button>
+                    </div>
+                    <div class="d-flex justify-content-between text-muted small px-1">
+                        <span :class="step === 1 ? 'fw-bold text-primary' : ''">1. Suspect Info</span>
+                        <span :class="step === 2 ? 'fw-bold text-primary' : ''">2. Incident Details</span>
+                        <span :class="step === 3 ? 'fw-bold text-primary' : ''">3. Evidence</span>
+                        <span :class="step === 4 ? 'fw-bold text-primary' : ''">4. Review & Submit</span>
+                    </div>
+                </div>
+
+                <!-- Global Form Errors Alert -->
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger mb-4" role="alert">
+                        {% for error in form.non_field_errors %}
+                            <p class="small mb-0">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <!-- Datalist for Nigerian Banks -->
+                <datalist id="nigerian_banks_list">
+                    <option value="Access Bank">
+                    <option value="Citibank Nigeria">
+                    <option value="Ecobank Nigeria">
+                    <option value="Fidelity Bank">
+                    <option value="First Bank of Nigeria">
+                    <option value="First City Monument Bank (FCMB)">
+                    <option value="Guaranty Trust Bank (GTBank)">
+                    <option value="Heritage Bank">
+                    <option value="Jaiz Bank">
+                    <option value="Keystone Bank">
+                    <option value="Kuda Bank">
+                    <option value="Moniepoint MFB">
+                    <option value="OPay">
+                    <option value="PalmPay">
+                    <option value="Polaris Bank">
+                    <option value="Providus Bank">
+                    <option value="Stanbic IBTC Bank">
+                    <option value="Standard Chartered Bank">
+                    <option value="Sterling Bank">
+                    <option value="Taj Bank">
+                    <option value="Titan Trust Bank">
+                    <option value="Union Bank of Nigeria">
+                    <option value="United Bank for Africa (UBA)">
+                    <option value="Unity Bank">
+                    <option value="Wema Bank">
+                    <option value="Zenith Bank">
+                </datalist>
+
+                <form method="post" enctype="multipart/form-data" novalidate @submit="submitting = true">
+                    {% csrf_token %}
+
+                    <!-- ========================================== -->
+                    <!-- STEP 1: Suspect & Known Identifiers       -->
+                    <!-- ========================================== -->
+                    <div x-show="step === 1" x-transition>
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <span class="badge bg-primary px-2 py-1">Step 1 of 4</span>
+                            <h5 class="fw-bold mb-0">Suspect Identity & Known Identifiers</h5>
+                        </div>
+                        <p class="small text-muted mb-4">
+                            Provide known details regarding the alleged person or company. Providing phone numbers, account numbers, or CAC details allows other citizens to immediately detect this entity during verification checks.
+                        </p>
+
+                        <!-- Subject Name (Required) -->
+                        <div class="mb-3">
+                            <label for="{{ form.subject_name.id_for_label }}" class="form-label small fw-semibold">Subject Name (Individual or Business) *</label>
+                            <input type="text" name="subject_name" id="{{ form.subject_name.id_for_label }}" class="form-control" placeholder="Full name of person or business" x-model="subjectName" required value="{{ form.subject_name.value|default:'' }}">
+                            {% if form.subject_name.errors %}
+                                <div class="text-danger small mt-1">{{ form.subject_name.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Entity Type -->
+                        <div class="mb-3">
+                            <label for="{{ form.subject_type.id_for_label }}" class="form-label small fw-semibold">Entity Type *</label>
+                            <select name="subject_type" id="{{ form.subject_type.id_for_label }}" class="form-select" x-model="subjectType">
+                                {% for val, label in form.subject_type.field.choices %}
+                                    <option value="{{ val }}" {% if form.subject_type.value == val %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="p-3 bg-light rounded border mb-4">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-primary"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                                <span class="fw-semibold small text-primary">Public Registry Matching Identifiers (Optional)</span>
+                            </div>
+                            <p class="text-muted small mb-3">All identifiers entered below are cryptographically peppered & hashed (HMAC-SHA256). Any citizen querying these exact details will be alerted to this record once published.</p>
+
+                            <!-- Suspect Phone -->
+                            <div class="mb-3">
+                                <label for="{{ form.suspect_phone.id_for_label }}" class="form-label small fw-semibold">Suspect Phone Number</label>
+                                <input type="text" name="suspect_phone" id="{{ form.suspect_phone.id_for_label }}" class="form-control" placeholder="e.g. 08012345678 or +234..." x-model="phone" value="{{ form.suspect_phone.value|default:'' }}">
+                                <div class="form-text small">Nigerian 11-digit mobile or international +234 format.</div>
+                                {% if form.suspect_phone.errors %}
+                                    <div class="text-danger small mt-1">{{ form.suspect_phone.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Bank Account & Bank Name -->
+                            <div class="row g-2 mb-3">
+                                <div class="col-sm-6">
+                                    <label for="{{ form.suspect_bank_account.id_for_label }}" class="form-label small fw-semibold">Bank Account Number (NUBAN)</label>
+                                    <input type="text" name="suspect_bank_account" id="{{ form.suspect_bank_account.id_for_label }}" class="form-control font-monospace" placeholder="10-digit NUBAN" maxlength="10" x-model="bankAccount" value="{{ form.suspect_bank_account.value|default:'' }}">
+                                    {% if form.suspect_bank_account.errors %}
+                                        <div class="text-danger small mt-1">{{ form.suspect_bank_account.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-sm-6">
+                                    <label for="{{ form.suspect_bank_name.id_for_label }}" class="form-label small fw-semibold">Bank / Fintech Name</label>
+                                    <input type="text" name="suspect_bank_name" id="{{ form.suspect_bank_name.id_for_label }}" class="form-control" placeholder="e.g. OPay, GTBank, Kuda, Zenith" list="nigerian_banks_list" x-model="bankName" value="{{ form.suspect_bank_name.value|default:'' }}">
+                                </div>
+                            </div>
+
+                            <!-- CAC Number & Email -->
+                            <div class="row g-2">
+                                <div class="col-sm-6">
+                                    <label for="{{ form.suspect_cac_number.id_for_label }}" class="form-label small fw-semibold">CAC Registration / RC Number</label>
+                                    <input type="text" name="suspect_cac_number" id="{{ form.suspect_cac_number.id_for_label }}" class="form-control" placeholder="e.g. RC123456 or BN987654" x-model="cac" value="{{ form.suspect_cac_number.value|default:'' }}">
+                                    {% if form.suspect_cac_number.errors %}
+                                        <div class="text-danger small mt-1">{{ form.suspect_cac_number.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-sm-6">
+                                    <label for="{{ form.suspect_email.id_for_label }}" class="form-label small fw-semibold">Suspect Email Address</label>
+                                    <input type="email" name="suspect_email" id="{{ form.suspect_email.id_for_label }}" class="form-control" placeholder="e.g. suspect@domain.com" x-model="email" value="{{ form.suspect_email.value|default:'' }}">
+                                    {% if form.suspect_email.errors %}
+                                        <div class="text-danger small mt-1">{{ form.suspect_email.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 1 Navigation -->
+                        <div class="d-flex justify-content-end">
+                            <button type="button" class="btn btn-vng-primary px-4" @click="if (!subjectName.trim()) { alert('Please specify the subject or business name before continuing.'); } else { step = 2; }">
+                                Continue to Incident Details &rarr;
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- ========================================== -->
+                    <!-- STEP 2: Incident, Location & Allegation   -->
+                    <!-- ========================================== -->
+                    <div x-show="step === 2" x-transition x-cloak>
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <span class="badge bg-primary px-2 py-1">Step 2 of 4</span>
+                            <h5 class="fw-bold mb-0">Incident Details, Location & Narrative</h5>
+                        </div>
+                        <p class="small text-muted mb-4">Describe the encounter objectively. Include relevant transaction dates, operating locations, and specific claims.</p>
+
+                        <!-- Title -->
+                        <div class="mb-3">
+                            <label for="{{ form.title.id_for_label }}" class="form-label small fw-semibold">Report Title / Summary *</label>
+                            <input type="text" name="title" id="{{ form.title.id_for_label }}" class="form-control" placeholder="Summary title (e.g. Unfulfilled electronics purchase after full transfer)" x-model="title" required value="{{ form.title.value|default:'' }}">
+                            {% if form.title.errors %}
+                                <div class="text-danger small mt-1">{{ form.title.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Incident Date -->
+                        <div class="mb-3">
+                            <label for="{{ form.incident_date.id_for_label }}" class="form-label small fw-semibold">Date of Incident (Optional)</label>
+                            <input type="date" name="incident_date" id="{{ form.incident_date.id_for_label }}" class="form-control" value="{{ form.incident_date.value|date:'Y-m-d'|default:'' }}">
+                        </div>
+
+                        <!-- Location, State, City -->
+                        <div class="p-3 bg-light rounded border mb-3">
+                            <h6 class="fw-bold small text-secondary mb-2">Location & Jurisdiction Context (Optional)</h6>
+                            <div class="row g-2 mb-2">
+                                <div class="col-sm-6">
+                                    <label for="{{ form.suspect_state.id_for_label }}" class="form-label small fw-semibold">State</label>
+                                    <select name="suspect_state" id="{{ form.suspect_state.id_for_label }}" class="form-select" x-model="state">
+                                        {% for val, label in form.suspect_state.field.choices %}
+                                            <option value="{{ val }}" {% if form.suspect_state.value == val %}selected{% endif %}>{{ label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-sm-6">
+                                    <label for="{{ form.suspect_city.id_for_label }}" class="form-label small fw-semibold">City / LGA / Area</label>
+                                    <input type="text" name="suspect_city" id="{{ form.suspect_city.id_for_label }}" class="form-control" placeholder="e.g. Ikeja, Lekki, Wuse 2" x-model="city" value="{{ form.suspect_city.value|default:'' }}">
+                                </div>
+                            </div>
+                            <div class="mb-0">
+                                <label for="{{ form.suspect_location.id_for_label }}" class="form-label small fw-semibold">Physical / Operating Address</label>
+                                <input type="text" name="suspect_location" id="{{ form.suspect_location.id_for_label }}" class="form-control" placeholder="e.g. Shop 24 Alaba Market, or office address" x-model="location" value="{{ form.suspect_location.value|default:'' }}">
+                            </div>
+                        </div>
+
+                        <!-- Allegation Narrative -->
+                        <div class="mb-4">
+                            <label for="{{ form.allegation.id_for_label }}" class="form-label small fw-semibold">Detailed Allegation Narrative *</label>
+                            <textarea name="allegation" id="{{ form.allegation.id_for_label }}" rows="5" class="form-control" placeholder="Explain what happened clearly and chronologically..." x-model="allegation" required>{{ form.allegation.value|default:'' }}</textarea>
+                            <div class="form-text small">Provide factual statements without abusive or threatening language.</div>
+                            {% if form.allegation.errors %}
+                                <div class="text-danger small mt-1">{{ form.allegation.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Step 2 Navigation -->
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-outline-secondary px-3" @click="step = 1">&larr; Back</button>
+                            <button type="button" class="btn btn-vng-primary px-4" @click="if (!title.trim() || !allegation.trim()) { alert('Please enter both the report title and detailed allegation.'); } else { step = 3; }">
+                                Continue to Evidence &rarr;
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- ========================================== -->
+                    <!-- STEP 3: Supporting Evidence Upload        -->
+                    <!-- ========================================== -->
+                    <div x-show="step === 3" x-transition x-cloak>
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <span class="badge bg-primary px-2 py-1">Step 3 of 4</span>
+                            <h5 class="fw-bold mb-0">Supporting Evidence (Optional)</h5>
+                        </div>
+                        <p class="small text-muted mb-4">Attach receipts, bank transfer confirmation screenshots, WhatsApp / chat exports, or invoices. Confidentiality protocols restrict access exclusively to authorized moderators.</p>
+
+                        <!-- Evidence Category -->
+                        <div class="mb-3">
+                            <label for="{{ form.evidence_type.id_for_label }}" class="form-label small fw-semibold">Evidence Category</label>
+                            <select name="evidence_type" id="{{ form.evidence_type.id_for_label }}" class="form-select">
+                                {% for val, label in form.evidence_type.field.choices %}
+                                    <option value="{{ val }}" {% if form.evidence_type.value == val %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- File Upload Drop Zone -->
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Upload File (Max 10 MB)</label>
+                            <div class="border rounded p-4 text-center bg-light position-relative" style="border-style: dashed !important; border-color: var(--vng-border) !important;">
+                                <input type="file" name="evidence_file" id="{{ form.evidence_file.id_for_label }}" class="position-absolute top-0 start-0 w-100 h-100 opacity-0 cursor-pointer" @change="handleFileSelect($event)" accept=".png,.jpg,.jpeg,.pdf,.doc,.docx">
+                                
+                                <template x-if="!fileName">
+                                    <div>
+                                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-muted mb-2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                        <div class="fw-semibold small">Drag & drop or click to choose file</div>
+                                        <div class="text-muted small">PDF, PNG, JPG, DOCX (up to 10 MB)</div>
+                                    </div>
+                                </template>
+
+                                <template x-if="fileName">
+                                    <div class="d-flex align-items-center justify-content-center gap-3">
+                                        <template x-if="isImage && imagePreview">
+                                            <img :src="imagePreview" alt="Preview" style="max-height: 60px; max-width: 80px;" class="rounded border shadow-sm">
+                                        </template>
+                                        <div class="text-start">
+                                            <div class="fw-bold text-primary small" x-text="fileName"></div>
+                                            <div class="text-muted small" x-text="fileSize"></div>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                            {% if form.evidence_file.errors %}
+                                <div class="text-danger small mt-1">{{ form.evidence_file.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Evidence Description -->
+                        <div class="mb-4">
+                            <label for="{{ form.evidence_description.id_for_label }}" class="form-label small fw-semibold">Evidence Description (Optional)</label>
+                            <input type="text" name="evidence_description" id="{{ form.evidence_description.id_for_label }}" class="form-control" placeholder="e.g. Bank app transaction receipt showing debit" value="{{ form.evidence_description.value|default:'' }}">
+                        </div>
+
+                        <!-- Step 3 Navigation -->
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-outline-secondary px-3" @click="step = 2">&larr; Back</button>
+                            <button type="button" class="btn btn-vng-primary px-4" @click="step = 4">
+                                Review Summary &rarr;
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- ========================================== -->
+                    <!-- STEP 4: Review & Final Submission         -->
+                    <!-- ========================================== -->
+                    <div x-show="step === 4" x-transition x-cloak>
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <span class="badge bg-primary px-2 py-1">Step 4 of 4</span>
+                            <h5 class="fw-bold mb-0">Review Summary & Submit Report</h5>
+                        </div>
+                        <p class="small text-muted mb-4">Please review the details below before formal dispatch to moderation desk.</p>
+
+                        <!-- Review Summary Card -->
+                        <div class="card bg-light border-0 p-3 mb-4">
+                            <h6 class="fw-bold text-dark small text-uppercase mb-3">Report Overview</h6>
+                            <dl class="row small mb-0">
+                                <dt class="col-sm-4 text-muted">Suspect / Subject:</dt>
+                                <dd class="col-sm-8 fw-semibold" x-text="subjectName + ' (' + subjectType + ')'"></dd>
+
+                                <dt class="col-sm-4 text-muted">Suspect Identifiers:</dt>
+                                <dd class="col-sm-8">
+                                    <template x-if="phone"><span class="badge bg-secondary me-1" x-text="'Phone: ' + phone"></span></template>
+                                    <template x-if="bankAccount"><span class="badge bg-secondary me-1" x-text="'Acct: ' + bankAccount + (bankName ? ' (' + bankName + ')' : '')"></span></template>
+                                    <template x-if="cac"><span class="badge bg-secondary me-1" x-text="'CAC: ' + cac"></span></template>
+                                    <template x-if="email"><span class="badge bg-secondary me-1" x-text="'Email: ' + email"></span></template>
+                                    <template x-if="!phone && !bankAccount && !cac && !email"><span class="text-muted">None specified</span></template>
+                                </dd>
+
+                                <dt class="col-sm-4 text-muted">Title:</dt>
+                                <dd class="col-sm-8 fw-semibold" x-text="title"></dd>
+
+                                <dt class="col-sm-4 text-muted">Location:</dt>
+                                <dd class="col-sm-8">
+                                    <span x-text="[location, city, state].filter(Boolean).join(', ') || 'Not specified'"></span>
+                                </dd>
+
+                                <dt class="col-sm-4 text-muted">Allegation Preview:</dt>
+                                <dd class="col-sm-8 text-muted" x-text="allegation.length > 120 ? allegation.substring(0, 120) + '...' : allegation"></dd>
+
+                                <dt class="col-sm-4 text-muted">Evidence Attached:</dt>
+                                <dd class="col-sm-8">
+                                    <span x-text="fileName ? fileName + ' (' + fileSize + ')' : 'None provided'"></span>
+                                </dd>
+                            </dl>
+                        </div>
+
+                        <!-- Good Faith Declaration Checkbox -->
+                        <div class="form-check mb-4">
+                            <input class="form-check-input" type="checkbox" id="declarationCheck" x-model="declared" required>
+                            <label class="form-check-label small" for="declarationCheck">
+                                <strong>Good-faith declaration:</strong> I declare under penalty of platform suspension and legal liability that the information provided in this report represents a factual account of my experience and is not filed maliciously.
+                            </label>
+                        </div>
+
+                        <!-- Step 4 Navigation & Submit -->
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-outline-secondary px-3" @click="step = 3" :disabled="submitting">&larr; Back</button>
+                            <button type="submit" class="btn btn-vng-primary px-4 py-2" :disabled="!declared || submitting">
+                                <span x-show="!submitting">Submit Report to Moderation Desk &rarr;</span>
+                                <span x-show="submitting" x-cloak class="spinner-border spinner-border-sm me-1"></span>
+                                <span x-show="submitting" x-cloak>Submitting Report...</span>
+                            </button>
+                        </div>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

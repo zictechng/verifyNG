@@ -1,0 +1,147 @@
+
+{% extends 'public/base.html' %}
+{% load static %}
+
+{% block title %}Moderation Desk | VerifyNG{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-md-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <span class="vng-badge-trust mb-2">Staff Operations</span>
+            <h1 class="h3 fw-bold mb-0">Moderation Desk</h1>
+        </div>
+        <a href="{% url 'dashboard:index' %}" class="btn btn-vng-outline btn-sm">
+            &larr; Back to Dashboard
+        </a>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show mb-4" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- 1. Open Disputes Section -->
+    <div class="card border-0 shadow-sm mb-5">
+        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 fw-bold text-danger">Open Disputes Queue ({{ open_disputes|length }})</h5>
+            <span class="badge bg-danger">Priority Action</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Report Ref</th>
+                            <th>Disputant</th>
+                            <th>Dispute Statement</th>
+                            <th>Date</th>
+                            <th>Adjudicate Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for dispute in open_disputes %}
+                        <tr>
+                            <td class="font-monospace fw-semibold">
+                                <a href="{% url 'reports:detail' dispute.report.reference_number %}">
+                                    {{ dispute.report.reference_number }}
+                                </a>
+                            </td>
+                            <td>{{ dispute.disputant.username|default:"Anonymous" }}</td>
+                            <td class="small" style="max-width: 320px;">
+                                {{ dispute.reason|truncatewords:20 }}
+                                {% if dispute.counter_evidence %}
+                                    <div class="mt-1">
+                                        <a href="{{ dispute.counter_evidence.url }}" target="_blank" class="badge bg-primary text-decoration-none">
+                                            View Counter Evidence
+                                        </a>
+                                    </div>
+                                {% endif %}
+                            </td>
+                            <td class="small text-muted">{{ dispute.created_at|date:"M j, H:i" }}</td>
+                            <td style="min-width: 240px;">
+                                <form method="post" action="{% url 'reports:resolve_dispute' dispute.id %}">
+                                    {% csrf_token %}
+                                    <div class="input-group input-group-sm mb-1">
+                                        <select name="resolution" class="form-select form-select-sm">
+                                            <option value="accepted">Accept (Quarantine)</option>
+                                            <option value="rejected">Reject (Keep Public)</option>
+                                        </select>
+                                        <button type="submit" class="btn btn-primary btn-sm">Resolve</button>
+                                    </div>
+                                    <input type="text" name="resolution_notes" required placeholder="Resolution reason..." class="form-control form-control-sm">
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center py-4 text-muted">No open disputes requiring review.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Pending Reports Triage Section -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 fw-bold text-primary">Pending Fraud Reports ({{ pending_reports|length }})</h5>
+            <span class="badge bg-primary">Triage Queue</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Reference</th>
+                            <th>Target Subject</th>
+                            <th>Allegation Title</th>
+                            <th>State</th>
+                            <th>Date</th>
+                            <th>Triage Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in pending_reports %}
+                        <tr>
+                            <td class="font-monospace fw-semibold">
+                                <a href="{% url 'reports:detail' r.reference_number %}">{{ r.reference_number }}</a>
+                            </td>
+                            <td>{{ r.target_subject.name }} ({{ r.target_subject.get_type_display }})</td>
+                            <td>{{ r.title }}</td>
+                            <td><span class="badge bg-warning text-dark text-uppercase">{{ r.get_state_display }}</span></td>
+                            <td class="small text-muted">{{ r.created_at|date:"M j, H:i" }}</td>
+                            <td style="min-width: 280px;">
+                                <form method="post" action="{% url 'reports:moderation_transition' r.reference_number %}">
+                                    {% csrf_token %}
+                                    <div class="input-group input-group-sm mb-1">
+                                        <select name="action" class="form-select form-select-sm">
+                                            <option value="under_review">Mark Under Review</option>
+                                            <option value="published">Approve &amp; Publish</option>
+                                            <option value="rejected">Reject</option>
+                                            <option value="restricted">Restrict</option>
+                                        </select>
+                                        <button type="submit" class="btn btn-outline-primary btn-sm">Apply</button>
+                                    </div>
+                                    <input type="text" name="moderation_notes" placeholder="Notes (required on reject)..." class="form-control form-control-sm">
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-muted">All submitted reports have been triaged.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

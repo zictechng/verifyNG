@@ -1,0 +1,75 @@
+
+{% extends 'public/base.html' %}
+{% load static %}
+
+{% block title %}Officer Verification Queue | {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-md-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <span class="badge bg-primary text-uppercase mb-2">Officer Desk</span>
+            <h1 class="h3 fw-bold mb-1">Active Verification Queue</h1>
+            <p class="small text-muted mb-0">Pending and in-progress verification requests requiring assessment.</p>
+        </div>
+        <a href="{% url 'dashboard:index' %}" class="btn btn-outline-secondary btn-sm">&larr; Back to Dashboard</a>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="vng-card p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Reference</th>
+                        <th>Target Subject</th>
+                        <th>Type</th>
+                        <th>Status</th>
+                        <th>Requester</th>
+                        <th>Submitted</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for req in requests %}
+                        <tr>
+                            <td class="font-monospace fw-semibold">{{ req.reference_number }}</td>
+                            <td>{{ req.target_subject.name }} <span class="badge bg-light text-dark">{{ req.target_subject.type }}</span></td>
+                            <td>{{ req.get_verification_type_display }}</td>
+                            <td>
+                                {% if req.status == 'in_progress' %}
+                                    <span class="badge bg-warning text-dark">IN PROGRESS</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">PENDING</span>
+                                {% endif %}
+                            </td>
+                            <td class="small text-muted">{{ req.requester.username|default:"Anonymous" }}</td>
+                            <td class="small text-muted">{{ req.created_at|date:"M j, Y H:i" }}</td>
+                            <td>
+                                <a href="{% url 'verification:detail' req.reference_number %}" class="btn btn-sm btn-primary">
+                                    Review &rarr;
+                                </a>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-muted">
+                                Queue is clear. No pending or in-progress verification requests.
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

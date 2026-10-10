@@ -1,0 +1,187 @@
+{% extends "public/base.html" %}
+{% load static %}
+
+{% block title %}Public Record Lookup — VerifyNG{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-md-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-7 col-md-9">
+            <!-- Header Card -->
+            <div class="text-center mb-4">
+                <span class="vng-badge-trust mb-2">Public Directory</span>
+                <h1 class="h3 fw-bold">Verification & Record Lookup</h1>
+                <p class="small text-muted mb-0">Check official verification status and active community reports for Nigerian entities.</p>
+            </div>
+
+            <!-- Search Card Container -->
+            <div class="vng-card p-4 mb-4" x-data="{ 
+                idType: 'phone',
+                identifier: new URLSearchParams(window.location.search).get('q') || '', 
+                result: null, 
+                loading: false, 
+                searched: false,
+                error: null,
+                performSearch() {
+                    if (!this.identifier.trim()) return;
+                    this.loading = true;
+                    this.error = null;
+                    this.searched = true;
+
+                    if (this.idType === 'hash') {
+                        // Direct hash lookup
+                        fetch('/api/v1/check/' + encodeURIComponent(this.identifier.trim()))
+                            .then(res => {
+                                if (!res.ok) throw new Error('No record found for this identifier hash.');
+                                return res.json();
+                            })
+                            .then(data => {
+                                this.result = data;
+                                this.loading = false;
+                            })
+                            .catch(err => {
+                                this.result = null;
+                                this.error = err.message;
+                                this.loading = false;
+                            });
+                    } else {
+                        // In-memory hashed query
+                        fetch('/api/v1/check/lookup', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                identifier_type: this.idType,
+                                identifier_value: this.identifier.trim()
+                            })
+                        })
+                        .then(res => {
+                            if (!res.ok) {
+                                return res.json().then(j => { throw new Error(j.detail || 'Record not found.'); });
+                            }
+                            return res.json();
+                        })
+                        .then(data => {
+                            this.result = data;
+                            this.loading = false;
+                        })
+                        .catch(err => {
+                            this.result = null;
+                            this.error = err.message;
+                            this.loading = false;
+                        });
+                    }
+                }
+            }" x-init="if (identifier) performSearch()">
+                
+                <div class="row g-2 mb-3">
+                    <div class="col-sm-5">
+                        <label for="idTypeSelect" class="form-label small fw-semibold text-muted">Identifier Type</label>
+                        <select id="idTypeSelect" class="form-select py-2" x-model="idType" style="border-color: var(--vng-border);">
+                            <option value="phone">Phone Number</option>
+                            <option value="account">Bank Account (10 Digits)</option>
+                            <option value="cac">CAC / RC Number</option>
+                            <option value="email">Email Address</option>
+                            <option value="nin">NIN (11 Digits)</option>
+                            <option value="hash">Direct Record Hash</option>
+                        </select>
+                    </div>
+                    <div class="col-sm-7">
+                        <label for="checkInput" class="form-label small fw-semibold text-muted">Identifier Value</label>
+                        <div class="input-group">
+                            <input type="text" 
+                                   id="checkInput"
+                                   class="form-control py-2" 
+                                   style="border-color: var(--vng-border);"
+                                   :placeholder="idType === 'phone' ? 'e.g. 08012345678' : (idType === 'cac' ? 'e.g. RC123456' : (idType === 'email' ? 'e.g. user@domain.com' : 'Enter value...'))"
+                                   x-model="identifier"
+                                   @keydown.enter="performSearch()">
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn btn-vng-primary w-100 py-2" 
+                        @click="performSearch()" 
+                        :disabled="loading || !identifier.trim()">
+                    <span x-show="!loading">Search Verification Records &rarr;</span>
+                    <span x-show="loading" x-cloak class="spinner-border spinner-border-sm me-1"></span>
+                    <span x-show="loading" x-cloak>Searching database...</span>
+                </button>
+
+                <!-- Loading Indicator -->
+                <div class="text-center py-4" x-show="loading" x-cloak>
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="small text-muted mt-2 mb-0">Computing privacy hash and querying records...</p>
+                </div>
+
+                <!-- Found Result Display -->
+                <div class="mt-4 pt-3 border-top" x-show="result && !loading" x-cloak>
+                    
+                    <!-- 1. Verification Outcome Card -->
+                    <div class="p-3 rounded-3 mb-3 border" :class="result.is_verified ? 'border-success bg-light' : 'border-secondary bg-light'">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="small text-muted fw-bold text-uppercase">Official Status</span>
+                            <span class="badge" :class="result.is_verified ? 'bg-success' : 'bg-secondary'" x-text="result.verification_label"></span>
+                        </div>
+                        <div class="d-flex justify-content-between py-1 border-bottom">
+                            <span class="small text-muted">Entity Name:</span>
+                            <span class="small fw-semibold text-dark" x-text="result.official_business_name || result.subject_name"></span>
+                        </div>
+                        <div class="d-flex justify-content-between py-1">
+                            <span class="small text-muted">Entity Type:</span>
+                            <span class="small fw-semibold text-capitalize text-dark" x-text="result.entity_type"></span>
+                        </div>
+                    </div>
+
+                    <!-- 2. Community Allegations Card (Strictly Separated) -->
+                    <div class="p-3 rounded-3 mb-3 border" :class="result.has_active_flags ? 'border-danger bg-light' : 'border-success bg-light'">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="small text-muted fw-bold text-uppercase">Community Reports</span>
+                            <span class="badge" :class="result.has_active_flags ? 'bg-danger' : 'bg-success'" 
+                                  x-text="result.has_active_flags ? (result.published_reports_count + ' Published Report(s)') : 'Clean Record (0 Reports)'"></span>
+                        </div>
+                        <div class="d-flex justify-content-between py-1 border-bottom" x-show="result.disputed_reports_count > 0">
+                            <span class="small text-muted">Reports Under Dispute:</span>
+                            <span class="small fw-semibold text-warning" x-text="result.disputed_reports_count + ' disputed'"></span>
+                        </div>
+                        <p class="small text-muted mb-0 mt-1" x-show="!result.has_active_flags">
+                            No active community fraud allegations are published on record for this entity.
+                        </p>
+                        <p class="small text-danger mb-0 mt-1" x-show="result.has_active_flags">
+                            This entity is associated with published community reports.
+                        </p>
+                    </div>
+
+                    <!-- 3. Statutory Non-Defamation Disclaimer -->
+                    <div class="vng-callout-notice py-2 px-3 small text-muted">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1 inline-block">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" y1="16" x2="12" y2="12"/>
+                            <line x1="12" y1="8" x2="12.01" y2="8"/>
+                        </svg>
+                        <span x-text="result.allegation_notice"></span>
+                    </div>
+                </div>
+
+                <!-- Not Found / Error Display -->
+                <div class="mt-4 pt-3 border-top text-center" x-show="error && searched && !loading" x-cloak>
+                    <div class="rounded-circle bg-light d-inline-flex align-items-center justify-content-center p-3 mb-2 text-muted">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" y1="8" x2="12" y2="12"/>
+                            <line x1="12" y1="16" x2="12.01" y2="16"/>
+                        </svg>
+                    </div>
+                    <h6 class="fw-bold mb-1">No Public Records Found</h6>
+                    <p class="small text-muted mb-3" x-text="error"></p>
+                    <a href="{% url 'reports:create' %}" class="btn btn-sm btn-outline-primary">
+                        Report Suspicious Activity Instead
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

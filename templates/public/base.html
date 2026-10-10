@@ -1,0 +1,427 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>{% block title %}{{ site_config.site_name|default:"VerifyNG" }} — {{ site_config.site_tagline|default:"Public Trust & Safety Platform" }}{% endblock %}</title>
+    <meta name="description" content="{% block meta_description %}{{ site_config.site_tagline|default:'Verify information, check potential fraud risks, and report suspicious experiences across Nigeria.' }}{% endblock %}">
+
+    <!-- Favicon -->
+    {% if site_config and site_config.favicon %}
+        <link rel="icon" type="image/x-icon" href="{{ site_config.favicon.url }}">
+    {% else %}
+        <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='%232457D6' d='M12 2L3 7V12C3 17.52 6.84 22.74 12 24C17.16 22.74 21 17.52 21 12V7L12 2Z'/></svg>">
+    {% endif %}
+
+    <!-- Bootstrap 5.3.0 CSS CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Self-Contained Design System Styles matching Mockup 5.jpg -->
+    <style>
+        :root {
+            --vng-primary: #2457D6;
+            --vng-primary-hover: #1a44ab;
+            --vng-primary-light: #EAF1FF;
+            --vng-ink: #17233B;
+            --vng-teal: #0F766E;
+            --vng-teal-light: #F0FDFA;
+            --vng-page-bg: #F6F8FC;
+            --vng-card-bg: #FFFFFF;
+            --vng-muted: #64748B;
+            --vng-border: #E3E9F2;
+            --vng-warning: #B45309;
+            --vng-warning-light: #FEF3C7;
+            --vng-success: #16A34A;
+            --vng-success-light: #DCFCE7;
+            --vng-radius-md: 12px;
+            --vng-radius-lg: 16px;
+            --vng-radius-pill: 9999px;
+            --vng-shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.05), 0 1px 2px rgba(15, 23, 42, 0.03);
+            --vng-shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.06), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
+            --vng-shadow-lg: 0 10px 25px -5px rgba(36, 87, 214, 0.08), 0 8px 10px -6px rgba(36, 87, 214, 0.04);
+            --vng-bottom-nav-height: 60px;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--vng-page-bg) !important;
+            color: #334155;
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        main { flex: 1 0 auto; }
+
+        @media (max-width: 767.98px) {
+            body.has-bottom-nav {
+                padding-bottom: calc(var(--vng-bottom-nav-height) + env(safe-area-inset-bottom, 0px));
+            }
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            color: var(--vng-ink);
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        /* Top Navbar */
+        .vng-navbar {
+            background-color: #FFFFFF !important;
+            border-bottom: 1px solid var(--vng-border) !important;
+            padding: 0.85rem 0 !important;
+        }
+
+        .vng-brand {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: var(--vng-ink) !important;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+        }
+
+        .vng-brand-accent { color: var(--vng-primary); }
+
+        .vng-nav-link {
+            color: var(--vng-muted) !important;
+            font-weight: 500;
+            font-size: 0.9375rem;
+            padding: 0.5rem 0.875rem !important;
+            border-radius: 8px;
+            text-decoration: none;
+            transition: all 0.15s ease;
+        }
+
+        .vng-nav-link:hover, .vng-nav-link.active {
+            color: var(--vng-primary) !important;
+            background-color: var(--vng-primary-light);
+        }
+
+        /* Buttons */
+        .btn-vng-primary {
+            background-color: var(--vng-primary) !important;
+            border: 1px solid var(--vng-primary) !important;
+            color: #FFFFFF !important;
+            font-weight: 600;
+            font-size: 0.9375rem;
+            padding: 0.65rem 1.25rem !important;
+            border-radius: var(--vng-radius-md) !important;
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            text-decoration: none;
+            transition: all 0.15s ease;
+        }
+
+        .btn-vng-primary:hover {
+            background-color: var(--vng-primary-hover) !important;
+            box-shadow: var(--vng-shadow-md);
+        }
+
+        .btn-vng-outline {
+            background-color: transparent !important;
+            border: 1px solid var(--vng-border) !important;
+            color: var(--vng-ink) !important;
+            font-weight: 600;
+            font-size: 0.9375rem;
+            padding: 0.65rem 1.25rem !important;
+            border-radius: var(--vng-radius-md) !important;
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            transition: all 0.15s ease;
+        }
+
+        .btn-vng-outline:hover {
+            background-color: var(--vng-primary-light) !important;
+            border-color: var(--vng-primary) !important;
+            color: var(--vng-primary) !important;
+        }
+
+        /* Cards */
+        .vng-card {
+            background-color: #FFFFFF !important;
+            border: 1px solid var(--vng-border) !important;
+            border-radius: var(--vng-radius-lg) !important;
+            box-shadow: var(--vng-shadow-sm) !important;
+            transition: all 0.2s ease;
+        }
+
+        .vng-card:hover {
+            box-shadow: var(--vng-shadow-lg) !important;
+            border-color: #CBD5E1 !important;
+        }
+
+        /* Badge Pill */
+        .vng-badge-trust {
+            background-color: var(--vng-primary-light);
+            color: var(--vng-primary);
+            font-weight: 700;
+            font-size: 0.75rem;
+            padding: 0.35rem 0.85rem;
+            border-radius: var(--vng-radius-pill);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Notice Box */
+        .vng-callout-notice {
+            background-color: var(--vng-teal-light) !important;
+            border: 1px solid #CCFBF1 !important;
+            border-radius: var(--vng-radius-md) !important;
+            padding: 1rem 1.25rem !important;
+            color: var(--vng-teal) !important;
+        }
+
+        /* Footer */
+        .vng-footer {
+            background-color: var(--vng-ink) !important;
+            color: #E2E8F0 !important;
+            padding: 3.5rem 0 2.5rem 0 !important;
+            margin-top: auto;
+            border-top: 1px solid #1E293B;
+            font-size: 0.875rem;
+        }
+
+        .vng-footer-muted { color: #94A3B8 !important; }
+
+        .vng-footer a {
+            color: #CBD5E1 !important;
+            text-decoration: none;
+            transition: color 0.15s ease;
+        }
+
+        .vng-footer a:hover { color: #FFFFFF !important; }
+
+        .vng-footer-brand {
+            color: #FFFFFF;
+            font-weight: 800;
+            font-size: 1.125rem;
+        }
+
+        /* Mobile Bottom App Navigation */
+        .vng-bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: calc(var(--vng-bottom-nav-height) + env(safe-area-inset-bottom, 0px));
+            background-color: #FFFFFF;
+            border-top: 1px solid var(--vng-border);
+            z-index: 1040;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-around;
+            padding-top: 6px;
+            padding-bottom: env(safe-area-inset-bottom, 0px);
+            box-shadow: 0 -2px 10px rgba(15, 23, 42, 0.06);
+        }
+
+        .vng-bottom-tab {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--vng-muted);
+            text-decoration: none;
+            font-size: 0.6875rem;
+            font-weight: 600;
+            height: 48px;
+            min-height: 44px;
+            gap: 2px;
+            transition: color 0.15s ease;
+        }
+
+        .vng-bottom-tab svg { width: 20px; height: 20px; stroke-width: 2; }
+        .vng-bottom-tab.active, .vng-bottom-tab:hover { color: var(--vng-primary); }
+    </style>
+    
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% if request.resolver_match.url_name != 'login' and request.resolver_match.url_name != 'register' and request.resolver_match.url_name != 'create' and request.resolver_match.url_name != 'password_reset' %}has-bottom-nav{% endif %}{% endblock %}">
+
+    <!-- Top Navigation Header -->
+    <header>
+        <nav class="navbar navbar-expand-md vng-navbar sticky-top">
+            <div class="container">
+                <!-- Brand Logo & Name -->
+                <a class="vng-brand" href="{% url 'home' %}">
+                    {% if site_config and site_config.logo %}
+                        <img src="{{ site_config.logo.url }}" alt="{{ site_config.site_name|default:'VerifyNG' }}" height="32" class="me-1">
+                    {% else %}
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 2L3 7V12C3 17.52 6.84 22.74 12 24C17.16 22.74 21 17.52 21 12V7L12 2Z" fill="#2457D6"/>
+                            <path d="M10 15.5L6.5 12L7.91 10.59L10 12.67L16.09 6.59L17.5 8L10 15.5Z" fill="#FFFFFF"/>
+                        </svg>
+                    {% endif %}
+                    <span>{{ site_config.site_name|default:"VerifyNG" }}</span>
+                </a>
+
+                    <!-- Desktop / Tablet Navigation Links (Shifted Left next to Logo) -->
+                <div class="collapse navbar-collapse d-none d-md-flex" id="desktopNav">
+                    <ul class="navbar-nav me-auto ms-md-4 ms-lg-5 ps-lg-3 mb-2 mb-md-0 gap-1">
+                        <li class="nav-item">
+                            <a class="nav-link vng-nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}" href="{% url 'home' %}">Home</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link vng-nav-link {% if request.resolver_match.url_name == 'check' %}active{% endif %}" href="{% url 'check' %}">Verify</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link vng-nav-link {% if request.resolver_match.url_name == 'create' or request.resolver_match.url_name == 'report' %}active{% endif %}" href="{% url 'reports:create' %}">Report</a>
+                        </li>
+                    </ul>
+                    <!-- Auth Actions -->
+                    <div class="d-flex align-items-center gap-2">
+                        {% if user.is_authenticated %}
+                            <a href="{% url 'dashboard:index' %}" class="btn btn-vng-outline btn-sm">Account</a>
+                            <form method="post" action="{% url 'users:logout' %}" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-link text-muted text-decoration-none p-2">Logout</button>
+                            </form>
+                        {% else %}
+                            <a href="{% url 'users:login' %}" class="btn btn-vng-outline btn-sm">Login</a>
+                            <a href="{% url 'users:register' %}" class="btn btn-vng-primary btn-sm">Sign Up</a>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Mobile Header Right Quick Action Pill -->
+                <div class="d-flex d-md-none align-items-center gap-2">
+                    {% if user.is_authenticated %}
+                        <a href="{% url 'dashboard:index' %}" class="btn btn-vng-outline btn-sm py-1 px-2">Account</a>
+                    {% else %}
+                        <a href="{% url 'users:login' %}" class="btn btn-vng-primary btn-sm py-1 px-3">Login</a>
+                    {% endif %}
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main id="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Desktop & Tablet Footer (Matching Mockup 5.jpg Dark Navy) -->
+    <footer class="vng-footer">
+        <div class="container">
+            <div class="row g-4 mb-4">
+                <div class="col-lg-4 col-md-6">
+                    <div class="vng-footer-brand d-flex align-items-center gap-2 mb-3">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 2L3 7V12C3 17.52 6.84 22.74 12 24C17.16 22.74 21 17.52 21 12V7L12 2Z" fill="#2457D6"/>
+                            <path d="M10 15.5L6.5 12L7.91 10.59L10 12.67L16.09 6.59L17.5 8L10 15.5Z" fill="#FFFFFF"/>
+                        </svg>
+                        <span>{{ site_config.site_name|default:"VerifyNG" }}</span>
+                    </div>
+                    <p class="small vng-footer-muted mb-0">
+                        Nigeria's trust and safety platform. Helping individuals and businesses check information, assess risk indicators, and report suspicious activity.
+                    </p>
+                </div>
+                <div class="col-lg-2 col-md-3 col-6">
+                    <h6 class="text-white fw-bold mb-3">Platform</h6>
+                    <ul class="list-unstyled small mb-0 d-flex flex-column gap-2">
+                        <li><a href="{% url 'home' %}">Home</a></li>
+                        <li><a href="{% url 'check' %}">Verify Record</a></li>
+                        <li><a href="{% url 'reports:create' %}">Submit Report</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-2 col-md-3 col-6">
+                    <h6 class="text-white fw-bold mb-3">Account</h6>
+                    <ul class="list-unstyled small mb-0 d-flex flex-column gap-2">
+                        {% if user.is_authenticated %}
+                            <li><a href="{% url 'dashboard:index' %}">My Dashboard</a></li>
+                            <li><a href="{% url 'users:profile' %}">Profile Settings</a></li>
+                        {% else %}
+                            <li><a href="{% url 'users:login' %}">Sign In</a></li>
+                            <li><a href="{% url 'users:register' %}">Create Account</a></li>
+                        {% endif %}
+                    </ul>
+                </div>
+                <div class="col-lg-4 col-md-12">
+                    <h6 class="text-white fw-bold mb-3">Important Notice</h6>
+                    <p class="small vng-footer-muted mb-0">
+                        {{ site_config.site_name|default:"VerifyNG" }} provides risk indicators and reported records based on verified user submissions. We do not replace formal law enforcement or judicial bodies.
+                    </p>
+                </div>
+            </div>
+            <div class="pt-3 border-top border-secondary d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2 small">
+                <div>&copy; 2026 {{ site_config.site_name|default:"VerifyNG" }}. All rights reserved.</div>
+                <div class="vng-footer-muted">{{ site_config.footer_text|default:"Built for a safer Nigerian digital ecosystem." }}</div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Mobile-First Sticky App Bottom Navigation -->
+    {% block mobile_bottom_nav %}
+    {% if request.resolver_match.url_name != 'login' and request.resolver_match.url_name != 'register' and request.resolver_match.url_name != 'create' and request.resolver_match.url_name != 'password_reset' %}
+    <nav class="vng-bottom-nav d-md-none" aria-label="Mobile Navigation">
+        <!-- Tab 1: Home -->
+        <a href="{% url 'home' %}" class="vng-bottom-tab {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M3 9.5L12 3L21 9.5V20C21 20.5523 20.5523 21 20 21H4C3.44772 21 3 20.5523 3 20V9.5Z"/>
+                <path d="M9 21V12H15V21"/>
+            </svg>
+            <span>Home</span>
+        </a>
+
+        <!-- Tab 2: Verify -->
+        <a href="{% url 'check' %}" class="vng-bottom-tab {% if request.resolver_match.url_name == 'check' %}active{% endif %}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <circle cx="11" cy="11" r="8"/>
+                <path d="M21 21L16.65 16.65"/>
+            </svg>
+            <span>Verify</span>
+        </a>
+
+        <!-- Tab 3: Report -->
+        <a href="{% url 'reports:create' %}" class="vng-bottom-tab {% if request.resolver_match.url_name == 'create' or request.resolver_match.url_name == 'report' %}active{% endif %}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                <path d="M12 8v4M12 16h.01"/>
+            </svg>
+            <span>Report</span>
+        </a>
+
+        <!-- Tab 4: Account -->
+        {% if user.is_authenticated %}
+            <a href="{% url 'dashboard:index' %}" class="vng-bottom-tab {% if request.resolver_match.app_name == 'dashboard' or request.resolver_match.url_name == 'profile' %}active{% endif %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                    <circle cx="12" cy="7" r="4"/>
+                </svg>
+                <span>Account</span>
+            </a>
+        {% else %}
+            <a href="{% url 'users:login' %}" class="vng-bottom-tab {% if request.resolver_match.url_name == 'login' %}active{% endif %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                    <polyline points="10 17 15 12 10 7"/>
+                    <line x1="15" y1="12" x2="3" y2="12"/>
+                </svg>
+                <span>Login</span>
+            </a>
+        {% endif %}
+    </nav>
+    {% endif %}
+    {% endblock %}
+
+    <!-- Bootstrap JS & Alpine.js -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

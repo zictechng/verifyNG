@@ -1,0 +1,333 @@
+{% extends "public/base.html" %}
+{% load static %}
+
+{% block title %}VerifyNG — Check First. Trust with Confidence.{% endblock %}
+
+{% block content %}
+<!-- 1. Hero Section -->
+<section class="py-5">
+    <div class="container">
+        <div class="row align-items-center g-4 g-lg-5">
+            <!-- Left Hero Content & Interactive Search Card -->
+            <div class="col-lg-6">
+                <div class="mb-3">
+                    <span class="vng-badge-trust">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2L3 7V12C3 17.52 6.84 22.74 12 24C17.16 22.74 21 17.52 21 12V7L12 2Z"/>
+                        </svg>
+                        A Safer Nigeria
+                    </span>
+                </div>
+                
+                <h1 class="display-5 fw-bold mb-3" style="color: var(--vng-ink); line-height: 1.15;">
+                    Check first.<br>
+                    Trust with <span style="color: var(--vng-primary);">confidence.</span>
+                </h1>
+                
+                <p class="lead text-muted mb-4 fs-6">
+                    Verify information, identify potential fraud risks, and report suspicious activity. A safer Nigeria starts with you.
+                </p>
+
+                <!-- Interactive Tabbed Action Card -->
+                <div class="vng-card p-4 mb-4" x-data="{ activeTab: 'verify' }">
+                    <!-- Tab Switcher -->
+                    <div class="d-flex border-bottom mb-3 pb-2 gap-3">
+                        <button type="button" 
+                                class="btn btn-sm px-0 py-1 fw-semibold border-0 bg-transparent"
+                                :class="activeTab === 'verify' ? 'text-primary border-bottom border-primary border-2' : 'text-muted'"
+                                @click="activeTab = 'verify'">
+                            Verify Information
+                        </button>
+                        <button type="button" 
+                                class="btn btn-sm px-0 py-1 fw-semibold border-0 bg-transparent"
+                                :class="activeTab === 'report' ? 'text-primary border-bottom border-primary border-2' : 'text-muted'"
+                                @click="activeTab = 'report'">
+                            Report Suspicious Activity
+                        </button>
+                    </div>
+
+                    <!-- Tab 1: Fast Lookup Search -->
+                    <div x-show="activeTab === 'verify'">
+                        <form method="get" action="{% url 'check' %}">
+                            <div class="mb-3">
+                                <label for="heroSearchInput" class="form-label small fw-semibold text-muted">Lookup Identifier</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white border-end-0" style="border-color: var(--vng-border);">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <circle cx="11" cy="11" r="8"/>
+                                            <path d="M21 21L16.65 16.65"/>
+                                        </svg>
+                                    </span>
+                                    <input type="text" 
+                                           id="heroSearchInput"
+                                           name="q" 
+                                           class="form-control border-start-0 py-2 fs-6" 
+                                           style="border-color: var(--vng-border);"
+                                           placeholder="Enter phone, NIN, BVN or account number"
+                                           required>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-vng-primary w-100 py-2 fs-6">
+                                Check Now &rarr;
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Tab 2: Fast Report Action -->
+                    <div x-show="activeTab === 'report'" style="display: none;">
+                        <p class="small text-muted mb-3">
+                            Encountered a scam, unfulfilled payment, or fraudulent identity? Submit a structured allegation report to protect the public.
+                        </p>
+                        <a href="{% url 'reports:create' %}" class="btn btn-vng-primary w-100 py-2 fs-6">
+                            Report Suspicious Activity &rarr;
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Hero Graphic / Mock Phone Display (Matching 5.jpg) -->
+                        <!-- Right Hero Graphic with Real Concept Illustration -->
+            <div class="col-lg-6 d-none d-lg-block text-center">
+                <div class="position-relative mx-auto d-flex flex-column align-items-center justify-content-center">
+                    <img src="{% static 'img/hero-illustration.png' %}" 
+                         alt="VerifyNG Security and Nigeria Verification" 
+                         class="img-fluid rounded-4 shadow-sm" 
+                         style="max-width: 420px; object-fit: contain;">
+                    <div class="mt-3">
+                        <span class="badge bg-white text-dark shadow-sm py-2 px-3 rounded-pill fw-semibold border">
+                            <span class="text-success me-1">&bull;</span> Community-Verified Security
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- 2. Quick Access Cards Grid (Matching Mockup 5.jpg Cards) -->
+<section class="py-4">
+    <div class="container">
+        <div class="row g-3 g-md-4">
+            <!-- Card 1: Verify Information -->
+            <div class="col-6 col-md-3">
+                <a href="{% url 'check' %}" class="vng-card p-3 p-md-4 h-100 d-flex flex-column text-decoration-none">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center mb-3" 
+                         style="width: 44px; height: 44px; background-color: var(--vng-primary-light); color: var(--vng-primary);">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"/>
+                            <path d="M21 21L16.65 16.65"/>
+                        </svg>
+                    </div>
+                    <h5 class="fw-bold mb-1 fs-6">Verify Information</h5>
+                    <p class="small text-muted mb-3 d-none d-md-block flex-grow-1">Check details like phone, NIN, BVN or account.</p>
+                    <span class="small fw-semibold text-primary mt-auto">Learn more &rarr;</span>
+                </a>
+            </div>
+
+            <!-- Card 2: Report Fraud -->
+            <div class="col-6 col-md-3">
+                <a href="{% url 'reports:create' %}" class="vng-card p-3 p-md-4 h-100 d-flex flex-column text-decoration-none">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center mb-3" 
+                         style="width: 44px; height: 44px; background-color: var(--vng-teal-light); color: var(--vng-teal);">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                            <path d="M12 8v4M12 16h.01"/>
+                        </svg>
+                    </div>
+                    <h5 class="fw-bold mb-1 fs-6">Report Fraud</h5>
+                    <p class="small text-muted mb-3 d-none d-md-block flex-grow-1">Report suspicious activity or scams.</p>
+                    <span class="small fw-semibold text-primary mt-auto">Report now &rarr;</span>
+                </a>
+            </div>
+
+            <!-- Card 3: My Reports -->
+            <div class="col-6 col-md-3">
+                <a href="{% if user.is_authenticated %}{% url 'dashboard:index' %}{% else %}{% url 'users:login' %}{% endif %}" 
+                   class="vng-card p-3 p-md-4 h-100 d-flex flex-column text-decoration-none">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center mb-3" 
+                         style="width: 44px; height: 44px; background-color: var(--vng-primary-light); color: var(--vng-primary);">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                            <line x1="16" y1="13" x2="8" y2="13"/>
+                            <line x1="16" y1="17" x2="8" y2="17"/>
+                        </svg>
+                    </div>
+                    <h5 class="fw-bold mb-1 fs-6">My Reports</h5>
+                    <p class="small text-muted mb-3 d-none d-md-block flex-grow-1">Track the status of your submitted reports.</p>
+                    <span class="small fw-semibold text-primary mt-auto">View reports &rarr;</span>
+                </a>
+            </div>
+
+            <!-- Card 4: Learn & Get Help -->
+            <div class="col-6 col-md-3">
+                <a href="#faqSection" class="vng-card p-3 p-md-4 h-100 d-flex flex-column text-decoration-none">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center mb-3" 
+                         style="width: 44px; height: 44px; background-color: var(--vng-primary-light); color: var(--vng-primary);">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                        </svg>
+                    </div>
+                    <h5 class="fw-bold mb-1 fs-6">Learn & Help</h5>
+                    <p class="small text-muted mb-3 d-none d-md-block flex-grow-1">Tips, guides and resources to stay safe.</p>
+                    <span class="small fw-semibold text-primary mt-auto">Visit help center &rarr;</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- 3. Important Trust & Safety Notice -->
+<section class="py-3">
+    <div class="container">
+        <div class="vng-callout-notice d-flex align-items-start justify-content-between gap-3">
+            <div class="d-flex align-items-start gap-3">
+                <div class="rounded-circle bg-white p-2 d-flex align-items-center justify-content-center flex-shrink-0" style="color: var(--vng-teal);">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        <line x1="12" y1="8" x2="12" y2="12"/>
+                        <line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                </div>
+                <div>
+                    <strong class="d-block mb-1" style="color: var(--vng-ink);">Important to know</strong>
+                    <p class="small mb-0" style="color: var(--vng-muted);">
+                        VerifyNG provides information and risk indicators based on available data. It does not guarantee that an individual or entity is genuine or that a report will result in action.
+                    </p>
+                </div>
+            </div>
+            <a href="#faqSection" class="small fw-semibold text-primary text-decoration-none d-none d-md-block flex-shrink-0 align-self-center">
+                Learn more &rarr;
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- 4. How It Works -->
+<section class="py-5">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="h3 fw-bold">How it works</h2>
+            <p class="text-muted small">Three simple steps to verify records and protect yourself.</p>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="vng-card p-4 h-100 text-center">
+                    <div class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center fw-bold mb-3" style="width: 36px; height: 36px;">
+                        1
+                    </div>
+                    <h5 class="fw-bold mb-2 fs-6">Enter details</h5>
+                    <p class="small text-muted mb-0">Provide the information you want to verify (e.g. phone, NIN, BVN or account number).</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="vng-card p-4 h-100 text-center">
+                    <div class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center fw-bold mb-3" style="width: 36px; height: 36px;">
+                        2
+                    </div>
+                    <h5 class="fw-bold mb-2 fs-6">Review records</h5>
+                    <p class="small text-muted mb-0">Review verified risk alerts, past incident reports, and moderation statuses.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="vng-card p-4 h-100 text-center">
+                    <div class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center fw-bold mb-3" style="width: 36px; height: 36px;">
+                        3
+                    </div>
+                    <h5 class="fw-bold mb-2 fs-6">Transact safely</h5>
+                    <p class="small text-muted mb-0">Make informed financial and business decisions with documented peace of mind.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- 5. Frequently Asked Questions (FAQ Accordion matching Mockup 5.jpg) -->
+<section id="faqSection" class="py-5" style="background-color: #FFFFFF; border-top: 1px solid var(--vng-border);">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="text-center mb-5">
+                    <h2 class="h3 fw-bold">Frequently Asked Questions</h2>
+                    <p class="text-muted small">Learn how VerifyNG handles data, reporting, and privacy.</p>
+                </div>
+
+                <div class="accordion accordion-flush" id="faqAccordion">
+                    <!-- FAQ 1 -->
+                    <div class="vng-card mb-3 overflow-hidden">
+                        <h2 class="accordion-header" id="faqHeading1">
+                            <button class="accordion-button collapsed fw-semibold text-dark bg-white" type="button" data-bs-toggle="collapse" data-bs-target="#faqCollapse1">
+                                What information can I verify?
+                            </button>
+                        </h2>
+                        <div id="faqCollapse1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body small text-muted border-top">
+                                You can check phone numbers and accounts against our database of verified fraud reports and identity records.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- FAQ 2 -->
+                    <div class="vng-card mb-3 overflow-hidden">
+                        <h2 class="accordion-header" id="faqHeading2">
+                            <button class="accordion-button collapsed fw-semibold text-dark bg-white" type="button" data-bs-toggle="collapse" data-bs-target="#faqCollapse2">
+                                Is my personal information safe?
+                            </button>
+                        </h2>
+                        <div id="faqCollapse2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body small text-muted border-top">
+                                Yes. Sensitive identifiers are never stored in plaintext. They are protected by cryptographic peppered HMAC-SHA256 hashing.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- FAQ 3 -->
+                    <div class="vng-card mb-3 overflow-hidden">
+                        <h2 class="accordion-header" id="faqHeading3">
+                            <button class="accordion-button collapsed fw-semibold text-dark bg-white" type="button" data-bs-toggle="collapse" data-bs-target="#faqCollapse3">
+                                How do I report fraud?
+                            </button>
+                        </h2>
+                        <div id="faqCollapse3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body small text-muted border-top">
+                                Click "Report Fraud" in the navigation or on the homepage. You can submit details of the allegation and securely upload evidence.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- FAQ 4 -->
+                    <div class="vng-card mb-3 overflow-hidden">
+                        <h2 class="accordion-header" id="faqHeading4">
+                            <button class="accordion-button collapsed fw-semibold text-dark bg-white" type="button" data-bs-toggle="collapse" data-bs-target="#faqCollapse4">
+                                What happens after I submit a report?
+                            </button>
+                        </h2>
+                        <div id="faqCollapse4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body small text-muted border-top">
+                                Reports undergo moderation before publication. Confidential evidence is protected and accessible only to moderators and the original reporter.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- FAQ 5 -->
+                    <div class="vng-card mb-3 overflow-hidden">
+                        <h2 class="accordion-header" id="faqHeading5">
+                            <button class="accordion-button collapsed fw-semibold text-dark bg-white" type="button" data-bs-toggle="collapse" data-bs-target="#faqCollapse5">
+                                Does VerifyNG guarantee the accuracy of results?
+                            </button>
+                        </h2>
+                        <div id="faqCollapse5" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body small text-muted border-top">
+                                VerifyNG provides information and risk indicators based on verified submissions, but does not replace formal law enforcement investigations.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+

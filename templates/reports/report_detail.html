@@ -1,0 +1,126 @@
+{% extends 'public/base.html' %}
+{% block title %}Report {{ report.reference_number }} | VerifyNG{% endblock %}
+{% block content %}
+<div class="container py-5">
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show mb-4" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Disputed Notice Banner -->
+    {% if report.state == 'disputed' %}
+        <div class="alert alert-warning border-warning d-flex align-items-center gap-2 mb-4" role="alert">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            <div>
+                <strong>Active Dispute on Record:</strong> A formal right-of-response dispute has been lodged against this allegation. The matter is currently under review by platform moderators.
+            </div>
+        </div>
+    {% endif %}
+
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+            <h4 class="mb-0 text-primary font-monospace">[{{ report.reference_number }}]</h4>
+            <div class="d-flex align-items-center gap-2">
+                {% if can_dispute %}
+                    <a href="{% url 'reports:create_dispute' report.reference_number %}" class="btn btn-sm btn-outline-danger">
+                        Dispute This Report &rarr;
+                    </a>
+                {% endif %}
+                <span class="badge bg-warning text-dark px-3 py-2 text-uppercase">{{ report.get_state_display }}</span>
+            </div>
+        </div>
+        <div class="card-body p-4">
+            <h3 class="fw-bold mb-3">{{ report.title }}</h3>
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <p class="mb-1 text-muted">Target Subject:</p>
+                    <p class="fw-semibold fs-5">{{ report.target_subject.name }} ({{ report.target_subject.get_type_display }})</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <p class="mb-1 text-muted">Date Submitted:</p>
+                    <p class="fw-semibold">{{ report.created_at|date:"F j, Y, g:i a" }}</p>
+                </div>
+            </div>
+                        {% if suspect_context.bank_name or suspect_context.location or suspect_context.state or suspect_context.city %}
+            <div class="card bg-light border-0 p-3 mb-4">
+                <h6 class="fw-bold text-dark small text-uppercase mb-2">Reported Suspect Context</h6>
+                <div class="row g-2 small">
+                    {% if suspect_context.bank_name %}
+                    <div class="col-sm-6">
+                        <span class="text-muted">Associated Bank:</span> 
+                        <span class="fw-semibold">{{ suspect_context.bank_name }}</span>
+                    </div>
+                    {% endif %}
+                    {% if suspect_context.state or suspect_context.city or suspect_context.location %}
+                    <div class="col-sm-6">
+                        <span class="text-muted">Reported Location:</span> 
+                        <span class="fw-semibold">
+                            {{ suspect_context.location }}{% if suspect_context.location and suspect_context.city %}, {% endif %}
+                            {{ suspect_context.city }}{% if suspect_context.city and suspect_context.state %}, {% endif %}
+                            {{ suspect_context.state }}
+                        </span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+            <h5 class="fw-bold text-secondary">Allegation Details</h5>
+            <p class="bg-light p-3 rounded border">{{ report.allegation|linebreaks }}</p>
+
+            <h5 class="fw-bold text-secondary mt-4 mb-3">Attached Evidence</h5>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle border">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Type</th>
+                            <th>Description</th>
+                            <th>Confidentiality</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in report.evidence_files.all %}
+                        <tr>
+                            <td><span class="badge bg-secondary">{{ item.get_file_type_display }}</span></td>
+                            <td>{{ item.description|default:"No description" }}</td>
+                            <td>
+                                {% if item.is_confidential %}
+                                    <span class="badge bg-danger">Confidential</span>
+                                {% else %}
+                                    <span class="badge bg-success">Public</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'reports:evidence_download' item.id %}" class="btn btn-sm btn-outline-primary">
+                                    Secure Download
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4" class="text-center text-muted py-3">No evidence files attached.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Moderation Desk Quick Link for Staff -->
+            {% if is_moderator %}
+                <div class="mt-4 pt-3 border-top d-flex justify-content-between align-items-center">
+                    <span class="small text-muted">Moderator View:</span>
+                    <a href="{% url 'reports:moderation_queue' %}" class="btn btn-sm btn-primary">
+                        Open in Moderation Desk &rarr;
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

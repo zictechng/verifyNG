@@ -1,0 +1,22 @@
+{% extends "public/base.html" %}
+{% block title %}Report - VerifyNG{% endblock %}
+{% block content %}
+<div class="container py-5">
+    <h2 class="mb-4">Submit a Report</h2>
+    <div class="alert alert-info">
+        <strong>Note:</strong> Reports undergo a neutral moderation lifecycle (Submitted &rarr; Under Review &rarr; Published).
+        Allegations are user-submitted claims and are subject to the right of response.
+    </div>
+    <form class="card shadow-sm p-4">
+        <div class="mb-3">
+            <label class="form-label">Target Identifier (Mock Hash)</label>
+            <input type="text" class="form-control" placeholder="Target hash...">
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Allegation</label>
+            <textarea class="form-control" rows="4"></textarea>
+        </div>
+        <button type="submit" class="btn btn-warning">Submit Allegation</button>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,276 @@
+{% extends 'public/base.html' %}
+{% load static %}
+
+{% block title %}Dashboard | {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-md-5">
+    <!-- Welcome Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <span class="vng-badge-trust mb-2">Member Portal</span>
+            <h1 class="h3 fw-bold mb-1">
+                Welcome, {{ request.user.get_full_name|default:request.user.username }}
+            </h1>
+            <p class="small text-muted mb-0">Manage your verified searches, track submitted reports, and access services.</p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{% url 'verification:create' %}" class="btn btn-primary btn-sm">
+                + New Verification
+            </a>
+            <a href="{% url 'reports:create' %}" class="btn btn-vng-primary btn-sm">
+                + Submit Report
+            </a>
+            <a href="{% url 'users:profile' %}" class="btn btn-vng-outline btn-sm">
+                My Profile
+            </a>
+        </div>
+    </div>
+
+    <!-- Quick Status Cards -->
+    <div class="row g-3 g-md-4 mb-4">
+        <!-- Account Status Card -->
+        <div class="col-md-4">
+            <div class="vng-card p-4 h-100">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <span class="small fw-semibold text-muted">Account Role</span>
+                    <span class="badge bg-primary text-uppercase">{{ request.user.get_role_display }}</span>
+                </div>
+                <h4 class="fw-bold mb-1">{{ request.user.username }}</h4>
+                <p class="small text-muted mb-3">{{ request.user.email }}</p>
+                <div class="pt-2 border-top">
+                    {% if request.user.is_verified %}
+                        <span class="badge bg-success">Verified Member</span>
+                    {% else %}
+                        <span class="badge bg-secondary">Unverified Member</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Search Lookup Card -->
+        <div class="col-md-4">
+            <div class="vng-card p-4 h-100">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <span class="small fw-semibold text-muted">Quick Search</span>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-primary">
+                        <circle cx="11" cy="11" r="8"/>
+                        <path d="M21 21L16.65 16.65"/>
+                    </svg>
+                </div>
+                <h5 class="fw-bold mb-2">Check a Record</h5>
+                <p class="small text-muted mb-3">Verify phone numbers, CAC records, or identities against reports.</p>
+                <a href="{% url 'check' %}" class="btn btn-vng-outline btn-sm w-100 mt-auto">
+                    Launch Lookup &rarr;
+                </a>
+            </div>
+        </div>
+
+        <!-- Officer Desk Widget (Only for Verification Officers / Superusers) -->
+        {% if is_officer %}
+            <div class="col-md-4">
+                <div class="vng-card p-4 h-100 border-success">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <span class="small fw-bold text-success">Officer Desk</span>
+                        <span class="badge bg-success">Verification Queue</span>
+                    </div>
+                    <div class="d-flex justify-content-between py-1 mb-3">
+                        <span class="small text-muted">Active Queue:</span>
+                        <span class="small fw-bold text-dark">{{ pending_verification_count|default:0 }}</span>
+                    </div>
+                    <a href="{% url 'verification:officer_queue' %}" class="btn btn-success btn-sm w-100 mt-auto">
+                        Open Officer Queue &rarr;
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- Moderator Desk Widget (Only for Staff / Moderators) -->
+        {% if is_moderator %}
+            <div class="col-md-4">
+                <div class="vng-card p-4 h-100 border-primary">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <span class="small fw-bold text-primary">Moderator Desk</span>
+                        <span class="badge bg-primary">Staff Operations</span>
+                    </div>
+                    <div class="d-flex justify-content-between py-1 border-bottom">
+                        <span class="small text-muted">Pending Reports:</span>
+                        <span class="small fw-bold text-dark">{{ pending_moderation_count }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between py-1 mb-3">
+                        <span class="small text-muted">Open Disputes:</span>
+                        <span class="small fw-bold text-danger">{{ open_disputes_count }}</span>
+                    </div>
+                    <a href="{% url 'reports:moderation_queue' %}" class="btn btn-primary btn-sm w-100 mt-auto">
+                        Open Moderation Queue &rarr;
+                    </a>
+                </div>
+            </div>
+        {% else %}
+            <!-- Safety Tips Card for Regular Users -->
+            <div class="col-md-4">
+                <div class="vng-card p-4 h-100">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <span class="small fw-semibold text-muted">Safety Tips</span>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-warning">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        </svg>
+                    </div>
+                    <h5 class="fw-bold mb-2">Stay Vigilant</h5>
+                    <p class="small text-muted mb-3">Always verify bank account names before transferring funds online.</p>
+                    <a href="{% url 'home' %}#faqSection" class="btn btn-sm btn-link text-primary text-decoration-none p-0 mt-auto">
+                        Read Safety FAQs &rarr;
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- 1. My Submitted Reports Table -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 fw-bold">My Submitted Fraud Reports</h5>
+            <a href="{% url 'reports:create' %}" class="btn btn-sm btn-outline-primary">+ New Report</a>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Reference</th>
+                            <th>Target Subject</th>
+                            <th>Title</th>
+                            <th>State</th>
+                            <th>Date</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in user_reports %}
+                        <tr>
+                            <td class="font-monospace fw-semibold">{{ r.reference_number }}</td>
+                            <td>{{ r.target_subject.name }}</td>
+                            <td>{{ r.title }}</td>
+                            <td><span class="badge bg-secondary text-uppercase">{{ r.get_state_display }}</span></td>
+                            <td class="small text-muted">{{ r.created_at|date:"M j, Y" }}</td>
+                            <td>
+                                <a href="{% url 'reports:detail' r.reference_number %}" class="btn btn-sm btn-outline-secondary">
+                                    View
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-muted">You have not submitted any fraud reports.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+        <!-- 2. My Verification Requests Table -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 fw-bold">My Verification Requests</h5>
+            <a href="{% url 'verification:create' %}" class="btn btn-sm btn-outline-primary">+ New Verification</a>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Reference</th>
+                            <th>Target Subject</th>
+                            <th>Scope</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for v in user_verifications %}
+                        <tr>
+                            <td class="font-monospace fw-semibold">{{ v.reference_number }}</td>
+                            <td>{{ v.target_subject.name }}</td>
+                            <td>{{ v.get_verification_type_display }}</td>
+                            <td>
+                                {% if v.status == 'completed' %}
+                                    <span class="badge bg-success">COMPLETED</span>
+                                {% elif v.status == 'in_progress' %}
+                                    <span class="badge bg-warning text-dark">IN PROGRESS</span>
+                                {% elif v.status == 'rejected' %}
+                                    <span class="badge bg-danger">DECLINED</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">PENDING</span>
+                                {% endif %}
+                            </td>
+                            <td class="small text-muted">{{ v.created_at|date:"M j, Y" }}</td>
+                                                       <td>
+                                <div class="d-flex gap-1">
+                                    <a href="{% url 'verification:detail' v.reference_number %}" class="btn btn-sm btn-outline-secondary">
+                                        View
+                                    </a>
+                                    {% if v.status == 'completed' %}
+                                        <a href="{% url 'verification:report' v.reference_number %}" class="btn btn-sm btn-outline-success">
+                                            Report
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-muted">
+                                No verification requests on file.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. My Filed Disputes Table -->
+    {% if user_disputes %}
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white py-3 border-bottom">
+                <h5 class="mb-0 fw-bold">My Filed Disputes</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Report Reference</th>
+                                <th>Subject</th>
+                                <th>Dispute Status</th>
+                                <th>Date Filed</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for d in user_disputes %}
+                            <tr>
+                                <td class="font-monospace fw-semibold">{{ d.report.reference_number }}</td>
+                                <td>{{ d.report.target_subject.name }}</td>
+                                <td><span class="badge bg-warning text-dark text-uppercase">{{ d.get_status_display }}</span></td>
+                                <td class="small text-muted">{{ d.created_at|date:"M j, Y" }}</td>
+                                <td>
+                                    <a href="{% url 'reports:detail' d.report.reference_number %}" class="btn btn-sm btn-outline-secondary">
+                                        View Report
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+

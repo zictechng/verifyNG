@@ -1,0 +1,152 @@
+
+{% extends 'admin_portal/base_admin.html' %}
+
+{% block title %}Overview | VerifyNG Admin Portal{% endblock %}
+
+{% block admin_body %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="h4 fw-bold mb-1">Executive Application Overview</h2>
+        <p class="text-muted small mb-0">Live operations, platform telemetry, and system audit indicators.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <span class="badge {% if db_healthy %}bg-success{% else %}bg-danger{% endif %} p-2">DB: {% if db_healthy %}Connected{% else %}Error{% endif %}</span>
+        <span class="badge {% if redis_healthy %}bg-success{% else %}bg-warning text-dark{% endif %} p-2">Redis: {% if redis_healthy %}Active{% else %}Bypassed{% endif %}</span>
+    </div>
+</div>
+
+<!-- KPI Summary Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="kpi-card">
+            <span class="text-muted small text-uppercase fw-bold">Total Users</span>
+            <h3 class="fw-bold mt-2 mb-1">{{ total_users }}</h3>
+            <span class="small text-success">{{ active_users }} Active</span> &bull;
+            <span class="small text-danger">{{ suspended_users }} Suspended</span>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="kpi-card">
+            <span class="text-muted small text-uppercase fw-bold">Fraud Reports</span>
+            <h3 class="fw-bold mt-2 mb-1">{{ total_reports }}</h3>
+            <span class="small text-primary">{{ published_reports }} Published</span> &bull;
+            <span class="small text-warning">{{ pending_reports }} In Review</span>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="kpi-card">
+            <span class="text-muted small text-uppercase fw-bold">Verifications</span>
+            <h3 class="fw-bold mt-2 mb-1">{{ total_verifications }}</h3>
+            <span class="small text-warning">{{ pending_verifications }} Pending</span> &bull;
+            <span class="small text-danger">{{ open_disputes }} Disputes</span>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="kpi-card">
+            <span class="text-muted small text-uppercase fw-bold">Peppered Identifiers</span>
+            <h3 class="fw-bold mt-2 mb-1">{{ total_identifiers }}</h3>
+            <span class="small text-muted">Phone, CAC, Account, Email</span>
+        </div>
+    </div>
+</div>
+
+<!-- 7-Day Interactive Activity Trend Graph -->
+<div class="card border-0 shadow-sm rounded-3 p-4 mb-4">
+    <h5 class="fw-bold mb-3">7-Day Platform Activity Trends</h5>
+    <div style="height: 300px;">
+        <canvas id="activityChart"></canvas>
+    </div>
+</div>
+
+<!-- Recent Security & Login Events Table -->
+<div class="card border-0 shadow-sm rounded-3 p-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold mb-0">Recent User Logins & Security Events</h5>
+        <a href="{% url 'admin_portal:audit_logs' %}" class="btn btn-sm btn-outline-primary">View Full Audit Log &rarr;</a>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>User</th>
+                    <th>Status</th>
+                    <th>IP Address</th>
+                    <th>System / OS</th>
+                    <th>Browser</th>
+                    <th>Location</th>
+                    <th>Timestamp</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in recent_logins %}
+                <tr>
+                    <td>
+                        <span class="fw-semibold">{{ item.username_attempted }}</span>
+                        {% if item.user %}<span class="badge bg-light text-dark ms-1">{{ item.user.get_role_display }}</span>{% endif %}
+                    </td>
+                    <td>
+                        {% if item.status == 'success' %}
+                            <span class="badge bg-success">Success</span>
+                        {% elif item.status == 'blocked' %}
+                            <span class="badge bg-warning text-dark">Suspended</span>
+                        {% else %}
+                            <span class="badge bg-danger">Failed</span>
+                        {% endif %}
+                    </td>
+                    <td class="font-monospace small">{{ item.ip_address|default:"127.0.0.1" }}</td>
+                    <td>{{ item.os }}</td>
+                    <td>{{ item.browser }}</td>
+                    <td>{{ item.location_city }}, {{ item.location_country }}</td>
+                    <td class="small text-muted">{{ item.timestamp|date:"M d, H:i" }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" class="text-center text-muted py-3">No login events recorded yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block admin_scripts %}
+<script>
+    const ctx = document.getElementById('activityChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: {{ chart_labels_json|safe }},
+            datasets: [
+                {
+                    label: 'New Registrations',
+                    data: {{ chart_users_json|safe }},
+                    borderColor: '#2457D6',
+                    backgroundColor: 'rgba(36, 87, 214, 0.1)',
+                    tension: 0.3,
+                    fill: true
+                },
+                {
+                    label: 'Fraud Reports Filed',
+                    data: {{ chart_reports_json|safe }},
+                    borderColor: '#DC2626',
+                    backgroundColor: 'rgba(220, 38, 38, 0.1)',
+                    tension: 0.3,
+                    fill: true
+                },
+                {
+                    label: 'Verifications Requested',
+                    data: {{ chart_verifications_json|safe }},
+                    borderColor: '#0F766E',
+                    backgroundColor: 'rgba(15, 118, 110, 0.1)',
+                    tension: 0.3,
+                    fill: true
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'top' } }
+        }
+    });
+</script>
+{% endblock %}

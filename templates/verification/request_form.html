@@ -1,0 +1,112 @@
+
+{% extends 'public/base.html' %}
+{% load static %}
+
+{% block title %}Submit Verification Request | {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-md-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="mb-4">
+                <a href="{% url 'dashboard:index' %}" class="text-decoration-none small text-muted">
+                    &larr; Back to Member Portal
+                </a>
+                <h1 class="h3 fw-bold mt-2">Request Independent Verification</h1>
+                <p class="text-muted small">
+                    Submit a verification request to check identity credentials, corporate registration, or background information against reliable public sources.
+                </p>
+            </div>
+
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <div class="vng-card p-4 p-md-5">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {{ form.non_field_errors }}
+                        </div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label for="{{ form.subject_name.id_for_label }}" class="form-label fw-semibold">
+                            Subject Legal / Registered Name <span class="text-danger">*</span>
+                        </label>
+                        {{ form.subject_name }}
+                        {% if form.subject_name.errors %}
+                            <div class="text-danger small mt-1">{{ form.subject_name.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="{{ form.subject_type.id_for_label }}" class="form-label fw-semibold">
+                                Subject Entity Type <span class="text-danger">*</span>
+                            </label>
+                            {{ form.subject_type }}
+                            {% if form.subject_type.errors %}
+                                <div class="text-danger small mt-1">{{ form.subject_type.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="{{ form.verification_type.id_for_label }}" class="form-label fw-semibold">
+                                Verification Scope <span class="text-danger">*</span>
+                            </label>
+                            {{ form.verification_type }}
+                            {% if form.verification_type.errors %}
+                                <div class="text-danger small mt-1">{{ form.verification_type.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="p-3 bg-light rounded-3 mb-3 border">
+                        <h6 class="fw-semibold mb-2">Optional Identifier for Exact Registry Matching</h6>
+                        <p class="small text-muted mb-2">Providing a phone, CAC RC/BN number, or email allows exact cryptographic lookup without disclosing raw data.</p>
+                        <div class="row g-2">
+                            <div class="col-md-4">
+                                {{ form.identifier_type }}
+                                {% if form.identifier_type.errors %}
+                                    <div class="text-danger small mt-1">{{ form.identifier_type.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-8">
+                                {{ form.identifier_value }}
+                                {% if form.identifier_value.errors %}
+                                    <div class="text-danger small mt-1">{{ form.identifier_value.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="{{ form.notes.id_for_label }}" class="form-label fw-semibold">
+                            Context & Specific Requirements
+                        </label>
+                        {{ form.notes }}
+                        {% if form.notes.errors %}
+                            <div class="text-danger small mt-1">{{ form.notes.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a href="{% url 'dashboard:index' %}" class="btn btn-outline-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-vng-primary">
+                            Submit Verification Request &rarr;
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

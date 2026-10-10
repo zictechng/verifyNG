@@ -1,0 +1,67 @@
+{% extends 'public/base.html' %}
+{% load static %}
+
+{% block title %}My Profile | {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-md-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-6 col-md-8">
+            <div class="text-center mb-4">
+                <span class="vng-badge-trust mb-2">User Profile</span>
+                <h1 class="h3 fw-bold">Account Settings</h1>
+                <p class="small text-muted mb-0">Review your personal details and account credentials.</p>
+            </div>
+
+            <div class="vng-card p-4 p-md-5">
+                <div class="d-flex align-items-center gap-3 mb-4 pb-3 border-bottom">
+                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold fs-4" style="width: 56px; height: 56px;">
+                        {{ user_profile.username|slice:":1"|upper }}
+                    </div>
+                    <div>
+                        <h5 class="fw-bold mb-0">{{ user_profile.get_full_name|default:user_profile.username }}</h5>
+                        <span class="badge bg-primary text-uppercase">{{ user_profile.get_role_display }}</span>
+                        {% if user_profile.is_verified %}
+                            <span class="badge bg-success ms-1">Verified</span>
+                        {% else %}
+                            <span class="badge bg-secondary ms-1">Unverified</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="bg-light p-3 rounded-3 mb-4 border">
+                    <div class="d-flex justify-content-between py-2 border-bottom">
+                        <span class="small text-muted">Username</span>
+                        <span class="small fw-semibold text-dark">{{ user_profile.username }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between py-2 border-bottom">
+                        <span class="small text-muted">Email Address</span>
+                        <span class="small fw-semibold text-dark">{{ user_profile.email }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between py-2 border-bottom">
+                        <span class="small text-muted">Account Role</span>
+                        <span class="small fw-semibold text-dark">{{ user_profile.get_role_display }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between py-2">
+                        <span class="small text-muted">Date Joined</span>
+                        <span class="small fw-semibold text-dark">{{ user_profile.date_joined|date:"F j, Y" }}</span>
+                    </div>
+                </div>
+
+                <div class="d-flex flex-column flex-sm-row gap-2">
+                    <a href="{% url 'dashboard:index' %}" class="btn btn-vng-outline flex-grow-1">
+                        &larr; Back to Dashboard
+                    </a>
+                    <form method="post" action="{% url 'users:logout' %}" class="d-inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline-danger w-100">
+                            Sign Out
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

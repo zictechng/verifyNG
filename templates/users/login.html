@@ -1,0 +1,77 @@
+{% extends 'public/base.html' %}
+{% load static %}
+
+{% block title %}Login — VerifyNG{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-md-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-5 col-md-7">
+            <!-- Header (Matching Mockup Card 4) -->
+            <div class="text-center mb-4">
+                <span class="vng-badge-trust mb-2">Member Portal</span>
+                <h1 class="h3 fw-bold">Welcome Back</h1>
+                <p class="small text-muted mb-0">Login to manage your submitted reports, tracking, and dashboard.</p>
+            </div>
+
+            <div class="vng-card p-4 p-md-5">
+                {% if form.errors and not form.non_field_errors %}
+                    <div class="alert alert-danger py-2 small mb-3">
+                        Please correct the errors below.
+                    </div>
+                {% endif %}
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger py-2 small mb-3">
+                        {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+                    </div>
+                {% endif %}
+
+                <form method="post" novalidate>
+                    {% csrf_token %}
+
+                    <div class="mb-3">
+                        <label for="{{ form.username.id_for_label }}" class="form-label small fw-semibold">Username *</label>
+                        {{ form.username }}
+                        {% if form.username.errors %}
+                            <div class="text-danger small mt-1">{{ form.username.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3" x-data="{ showPass: false }">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label for="{{ form.password.id_for_label }}" class="form-label small fw-semibold mb-0">Password *</label>
+                            <a href="{% url 'users:password_reset' %}" class="small text-primary text-decoration-none">Forgot password?</a>
+                        </div>
+                        <div class="input-group">
+                            <input :type="showPass ? 'text' : 'password'" 
+                                   name="{{ form.password.name }}" 
+                                   id="{{ form.password.id_for_label }}" 
+                                   class="form-control" 
+                                   placeholder="Enter your password" 
+                                   required>
+                            <button type="button" class="btn btn-outline-secondary" @click="showPass = !showPass" tabindex="-1">
+                                <span x-show="!showPass" class="small">Show</span>
+                                <span x-show="showPass" x-cloak class="small">Hide</span>
+                            </button>
+                        </div>
+                        {% if form.password.errors %}
+                            <div class="text-danger small mt-1">{{ form.password.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <button type="submit" class="btn btn-vng-primary w-100 py-2 mt-2">
+                        Sign In &rarr;
+                    </button>
+                </form>
+
+                <div class="text-center mt-4 pt-3 border-top">
+                    <p class="small text-muted mb-0">
+                        Don't have an account? <a href="{% url 'users:register' %}" class="fw-semibold text-primary text-decoration-none">Create one</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

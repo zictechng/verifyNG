@@ -1,0 +1,85 @@
+
+{% extends 'admin_portal/base_admin.html' %}
+
+{% block title %}Communications Center | VerifyNG Admin Portal{% endblock %}
+
+{% block admin_body %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="h4 fw-bold mb-1">Communications & Notification Dispatch</h2>
+        <p class="text-muted small mb-0">Dispatch transactional notifications and announcements asynchronously via Celery workers.</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm rounded-3 p-4">
+            <form method="post">
+                {% csrf_token %}
+                <h5 class="fw-bold mb-3">Compose Broadcast Message</h5>
+
+                <!-- Target Group -->
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold">Target Audience *</label>
+                    <select name="target_type" class="form-select" id="targetTypeSelect" onchange="handleTargetChange(this.value)">
+                        <option value="all">All Active Users Across Platform</option>
+                        <option value="role">Users by Role (Moderators, Officers, Businesses...)</option>
+                        <option value="single">Single Specific User Email</option>
+                    </select>
+                </div>
+
+                <!-- Role Selector (Conditional) -->
+                <div class="mb-3 d-none" id="roleSelectorGroup">
+                    <label class="form-label small fw-semibold">Select User Role</label>
+                    <select name="target_role" class="form-select">
+                        {% for r_val, r_label in roles %}
+                            <option value="{{ r_val }}">{{ r_label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Single Email Input (Conditional) -->
+                <div class="mb-3 d-none" id="singleEmailGroup">
+                    <label class="form-label small fw-semibold">Recipient Email Address</label>
+                    <input type="email" name="target_email" class="form-control" placeholder="user@example.com">
+                </div>
+
+                <!-- Subject -->
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold">Email Subject Line *</label>
+                    <input type="text" name="subject" class="form-control" placeholder="VerifyNG Platform Update: ..." required>
+                </div>
+
+                <!-- Message Body -->
+                <div class="mb-4">
+                    <label class="form-label small fw-semibold">Message Body *</label>
+                    <textarea name="message_body" rows="6" class="form-control" placeholder="Enter message text..." required></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary px-4">Dispatch Messages via Celery &rarr;</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm rounded-3 p-4 bg-light">
+            <h6 class="fw-bold mb-2">Delivery Engine Safeguards</h6>
+            <ul class="small text-muted ps-3 mb-0">
+                <li class="mb-2">Dispatched asynchronously using <code>core.tasks.send_email_notification_task</code>.</li>
+                <li class="mb-2">Rate-limiting protection applies automatically across external SMTP relays.</li>
+                <li class="mb-2">All dispatch runs record an immutable <code>AuditLog</code> with actor attribution.</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block admin_scripts %}
+<script>
+    function handleTargetChange(val) {
+        document.getElementById('roleSelectorGroup').classList.toggle('d-none', val !== 'role');
+        document.getElementById('singleEmailGroup').classList.toggle('d-none', val !== 'single');
+    }
+</script>
+{% endblock %}
+

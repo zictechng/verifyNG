@@ -1,0 +1,77 @@
+
+{% extends 'admin_portal/base_admin.html' %}
+
+{% block title %}Security & Audit Logs | VerifyNG Admin Portal{% endblock %}
+
+{% block admin_body %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="h4 fw-bold mb-1">Security & Login Audit Logs</h2>
+        <p class="text-muted small mb-0">Forensic trail of all login attempts, authentication outcomes, client IP addresses, and systems used.</p>
+    </div>
+</div>
+
+<!-- Filter Bar -->
+<div class="card border-0 shadow-sm rounded-3 p-3 mb-4">
+    <form method="get" class="row g-2 align-items-center">
+        <div class="col-md-6">
+            <input type="text" name="q" class="form-control" placeholder="Search by username or IP address..." value="{{ search_query }}">
+        </div>
+        <div class="col-md-3">
+            <select name="status" class="form-select">
+                <option value="">-- All Outcomes --</option>
+                <option value="success" {% if selected_status == 'success' %}selected{% endif %}>Success</option>
+                <option value="failed" {% if selected_status == 'failed' %}selected{% endif %}>Failed</option>
+                <option value="blocked" {% if selected_status == 'blocked' %}selected{% endif %}>Blocked / Suspended</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <button type="submit" class="btn btn-primary w-100">Filter Audits</button>
+        </div>
+    </form>
+</div>
+
+<!-- Audit Log Table -->
+<div class="card border-0 shadow-sm rounded-3 p-4">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Username Attempted</th>
+                    <th>Status</th>
+                    <th>IP Address</th>
+                    <th>Device & OS</th>
+                    <th>Browser</th>
+                    <th>Location</th>
+                    <th>Timestamp</th>
+                    <th>Reason / Details</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td class="fw-semibold">{{ log.username_attempted }}</td>
+                    <td>
+                        {% if log.status == 'success' %}
+                            <span class="badge bg-success">Success</span>
+                        {% elif log.status == 'blocked' %}
+                            <span class="badge bg-warning text-dark">Suspended</span>
+                        {% else %}
+                            <span class="badge bg-danger">Failed</span>
+                        {% endif %}
+                    </td>
+                    <td class="font-monospace small">{{ log.ip_address|default:"127.0.0.1" }}</td>
+                    <td>{{ log.device_type }} &bull; {{ log.os }}</td>
+                    <td>{{ log.browser }}</td>
+                    <td>{{ log.location_city }}, {{ log.location_country }}</td>
+                    <td class="small text-muted">{{ log.timestamp|date:"M d, Y H:i:s" }}</td>
+                    <td class="small text-muted">{{ log.failure_reason|default:"Authenticated successfully" }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8" class="text-center text-muted py-3">No security audit logs found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
