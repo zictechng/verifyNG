@@ -1,4 +1,3 @@
-
 {% extends 'public/base.html' %}
 {% load static %}
 
@@ -6,163 +5,182 @@
 
 {% block content %}
 <div class="container py-4 py-md-5">
-    <div class="mb-4">
-        <a href="{% url 'dashboard:index' %}" class="text-decoration-none small text-muted">
-            &larr; Back to Member Portal
-        </a>
-        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mt-2">
-            <div>
-                <span class="badge bg-secondary font-monospace">{{ verification_request.reference_number }}</span>
-                <h1 class="h3 fw-bold mt-1 mb-0">{{ verification_request.target_subject.name }}</h1>
-                <p class="small text-muted mb-0">Type: {{ verification_request.target_subject.get_type_display }} &bull; Scope: {{ verification_request.get_verification_type_display }}</p>
-            </div>
-            <div>
-                {% if verification_request.status == 'completed' %}
-                    <span class="badge bg-success fs-6 px-3 py-2">COMPLETED</span>
-                {% elif verification_request.status == 'in_progress' %}
-                    <span class="badge bg-warning text-dark fs-6 px-3 py-2">IN PROGRESS</span>
-                {% elif verification_request.status == 'rejected' %}
-                    <span class="badge bg-danger fs-6 px-3 py-2">DECLINED</span>
-                {% else %}
-                    <span class="badge bg-secondary fs-6 px-3 py-2">PENDING REVIEW</span>
-                {% endif %}
-            </div>
-        </div>
-    </div>
 
+    {# ── Messages ── #}
     {% if messages %}
         {% for message in messages %}
-            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show mb-3" role="alert">
                 {{ message }}
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         {% endfor %}
     {% endif %}
 
+    {# ── Header ── #}
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-3 mb-4">
+        <div>
+            <a href="{% url 'dashboard:index' %}" class="text-decoration-none small text-muted">&larr; Member Portal</a>
+            <div class="d-flex align-items-center gap-2 mt-2 flex-wrap">
+                <span class="font-monospace small fw-semibold text-muted">{{ verification_request.reference_number }}</span>
+                <span class="text-muted">·</span>
+                <span class="small text-muted">{{ verification_request.created_at|date:"M j, Y" }}</span>
+            </div>
+            <h1 class="h3 fw-bold mt-1 mb-0">{{ verification_request.target_subject.name }}</h1>
+            <p class="small text-muted mb-0">{{ verification_request.target_subject.get_type_display }} · {{ verification_request.get_verification_type_display }}</p>
+        </div>
+        <div>
+            {% if verification_request.status == 'completed' %}
+                <span class="badge bg-success fs-6 px-3 py-2">Completed</span>
+            {% elif verification_request.status == 'in_progress' %}
+                <span class="badge bg-warning text-dark fs-6 px-3 py-2">In Progress</span>
+            {% elif verification_request.status == 'rejected' %}
+                <span class="badge bg-danger fs-6 px-3 py-2">Declined</span>
+            {% else %}
+                <span class="badge bg-primary fs-6 px-3 py-2">Pending Review</span>
+            {% endif %}
+        </div>
+    </div>
+
     <div class="row g-4">
-        <!-- Request Status Card -->
+
+        {# ── Main column ── #}
         <div class="col-lg-8">
-            <div class="vng-card p-4 mb-4">
-                <h5 class="fw-bold mb-3 border-bottom pb-2">Request Details</h5>
-                <dl class="row mb-0">
-                    <dt class="col-sm-4 text-muted">Reference:</dt>
-                    <dd class="col-sm-8 font-monospace fw-semibold">{{ verification_request.reference_number }}</dd>
 
-                    <dt class="col-sm-4 text-muted">Target Entity:</dt>
-                    <dd class="col-sm-8">{{ verification_request.target_subject.name }}</dd>
-
-                    <dt class="col-sm-4 text-muted">Verification Scope:</dt>
-                    <dd class="col-sm-8">{{ verification_request.get_verification_type_display }}</dd>
-
-                    <dt class="col-sm-4 text-muted">Submitted On:</dt>
-                    <dd class="col-sm-8">{{ verification_request.created_at|date:"M j, Y, H:i" }}</dd>
-
-                    <dt class="col-sm-4 text-muted">Requester Notes:</dt>
-                    <dd class="col-sm-8">{{ verification_request.notes|default:"None provided"|linebreaks }}</dd>
-                </dl>
+            {# Request details card #}
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-bottom py-3">
+                    <span class="small fw-semibold text-muted text-uppercase">Request Details</span>
+                </div>
+                <div class="card-body p-4">
+                    <dl class="row small mb-0">
+                        <dt class="col-sm-4 text-muted">Reference:</dt>
+                        <dd class="col-sm-8 font-monospace fw-semibold">{{ verification_request.reference_number }}</dd>
+                        <dt class="col-sm-4 text-muted">Target Entity:</dt>
+                        <dd class="col-sm-8 fw-semibold">{{ verification_request.target_subject.name }}</dd>
+                        <dt class="col-sm-4 text-muted">Entity Type:</dt>
+                        <dd class="col-sm-8">{{ verification_request.target_subject.get_type_display }}</dd>
+                        <dt class="col-sm-4 text-muted">Verification Scope:</dt>
+                        <dd class="col-sm-8">{{ verification_request.get_verification_type_display }}</dd>
+                        <dt class="col-sm-4 text-muted">Submitted:</dt>
+                        <dd class="col-sm-8">{{ verification_request.created_at|date:"M j, Y, H:i" }}</dd>
+                        {% if verification_request.notes %}
+                        <dt class="col-sm-4 text-muted">Notes:</dt>
+                        <dd class="col-sm-8">{{ verification_request.notes|linebreaks }}</dd>
+                        {% endif %}
+                    </dl>
+                </div>
             </div>
 
-            <!-- Findings Card (If Completed) -->
+            {# Findings card — completed only #}
             {% if verification_request.result %}
-                <div class="vng-card p-4 mb-4 border-success">
-                    <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
-                        <div>
-                            <h5 class="fw-bold mb-0 text-success">Verification Finding</h5>
-                            <span class="badge bg-success fs-6 text-uppercase mt-1">{{ verification_request.result.get_outcome_display }}</span>
-                        </div>
-                        <a href="{% url 'verification:report' verification_request.reference_number %}" class="btn btn-outline-success btn-sm">
-                            View Verification Report &rarr;
-                        </a>
+            <div class="card border-0 shadow-sm mb-4" style="border-left:3px solid var(--vng-success) !important;">
+                <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="small fw-semibold text-muted text-uppercase">Verification Finding</span>
+                        <span class="badge bg-success ms-2">{{ verification_request.result.get_outcome_display }}</span>
                     </div>
-                    <div class="mb-3">
-                        <label class="small text-muted fw-semibold d-block">Findings Summary:</label>
-                        <p class="mb-0">{{ verification_request.result.summary|linebreaks }}</p>
+                    <a href="{% url 'verification:report' verification_request.reference_number %}" class="btn btn-sm btn-outline-success">
+                        View Full Report &rarr;
+                    </a>
+                </div>
+                <div class="card-body p-4">
+                    <div class="p-3 rounded mb-3" style="background:#F0FDF4;border-left:3px solid var(--vng-success);">
+                        {{ verification_request.result.summary|linebreaks }}
                     </div>
                     {% if verification_request.result.details %}
-                        <div class="p-3 bg-light rounded border">
-                            <label class="small text-muted fw-semibold d-block mb-1">Structured Verification Indicators:</label>
-                            <pre class="mb-0 small font-monospace"><code>{{ verification_request.result.details }}</code></pre>
-                        </div>
+                    <p class="small text-muted fw-semibold mb-1">Structured Indicators:</p>
+                    <pre class="p-3 rounded small mb-0" style="background:#F8FAFC;border:1px solid var(--vng-border);"><code>{{ verification_request.result.details }}</code></pre>
                     {% endif %}
-                    <div class="mt-3 text-end text-muted small">
-                        Verified at: {{ verification_request.result.verified_at|date:"M j, Y, H:i" }}
-                    </div>
-                </div>
-            {% endif %}
-
-            <!-- Officer Action Panel (Only for authorized officers) -->
-            {% if is_officer %}
-                <div class="vng-card p-4 border-primary">
-                    <h5 class="fw-bold text-primary mb-3">Officer Review Workspace</h5>
-
-                    {% if verification_request.status == 'pending' %}
-                        <p class="text-muted small">This request is currently waiting to be claimed.</p>
-                        <form method="post" action="{% url 'verification:officer_claim' verification_request.reference_number %}">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-primary btn-sm">
-                                Claim This Request &rarr;
-                            </button>
-                        </form>
-
-                    {% elif verification_request.status == 'in_progress' %}
-                        <div class="row g-3">
-                            <div class="col-md-7">
-                                <h6 class="fw-bold text-success mb-2">Record Completion Finding</h6>
-                                <form method="post" action="{% url 'verification:officer_resolve' verification_request.reference_number %}">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="action" value="complete">
-                                    <div class="mb-2">
-                                        <label class="form-label small fw-semibold">Outcome</label>
-                                        {{ resolution_form.outcome }}
-                                    </div>
-                                    <div class="mb-2">
-                                        <label class="form-label small fw-semibold">Summary</label>
-                                        {{ resolution_form.summary }}
-                                    </div>
-                                    <div class="mb-2">
-                                        <label class="form-label small fw-semibold">Structured Findings (JSON)</label>
-                                        {{ resolution_form.details_json }}
-                                    </div>
-                                    <button type="submit" class="btn btn-success btn-sm w-100">
-                                        Save Findings & Mark Completed
-                                    </button>
-                                </form>
-                            </div>
-
-                            <div class="col-md-5 border-start">
-                                <h6 class="fw-bold text-danger mb-2">Decline / Reject</h6>
-                                <form method="post" action="{% url 'verification:officer_resolve' verification_request.reference_number %}">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="action" value="reject">
-                                    <div class="mb-2">
-                                        <label class="form-label small fw-semibold">Audit Rejection Reason</label>
-                                        {{ rejection_form.reason }}
-                                    </div>
-                                    <button type="submit" class="btn btn-outline-danger btn-sm w-100" onclick="return confirm('Confirm rejection of this verification request?');">
-                                        Decline Request
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
-                    {% else %}
-                        <p class="text-muted small mb-0">This request is in terminal state ({{ verification_request.status }}).</p>
-                    {% endif %}
-                </div>
-            {% endif %}
-        </div>
-
-        <!-- Sidebar Info -->
-        <div class="col-lg-4">
-            <div class="vng-card p-4">
-                <h6 class="fw-bold mb-3">Notice & Standards</h6>
-                <p class="small text-muted mb-2">
-                    VerifyNG independent verifications follow public registry inspection and cryptographic identity cross-checks.
-                </p>
-                <div class="alert alert-light border small text-muted mb-0">
-                    <strong>Disclaimer:</strong> This is an independent verification assessment conducted by VerifyNG. It does NOT constitute a statutory government clearance or DBS certificate.
+                    <p class="small text-muted mt-3 mb-0 text-end">Verified: {{ verification_request.result.verified_at|date:"M j, Y, H:i" }}</p>
                 </div>
             </div>
+            {% endif %}
+
+            {# Officer Action Panel #}
+            {% if is_officer %}
+            <div class="card border-0 shadow-sm mb-4" style="border-left:3px solid var(--vng-primary) !important;">
+                <div class="card-header bg-white border-bottom py-3">
+                    <span class="small fw-semibold text-uppercase" style="color:var(--vng-primary);">Officer Review Workspace</span>
+                </div>
+                <div class="card-body p-4">
+
+                    {% if verification_request.status == 'pending' %}
+                    <p class="text-muted small mb-3">This request is awaiting assignment. Claiming it marks it <strong>In Progress</strong> and assigns it to you.</p>
+                    <form method="post" action="{% url 'verification:officer_claim' verification_request.reference_number %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-primary btn-sm">Claim This Request &rarr;</button>
+                    </form>
+
+                    {% elif verification_request.status == 'in_progress' %}
+                    <div class="row g-4">
+                        <div class="col-md-7">
+                            <p class="small fw-semibold text-success mb-2">Record Completion Finding</p>
+                            <form method="post" action="{% url 'verification:officer_resolve' verification_request.reference_number %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="complete">
+                                <div class="mb-2">
+                                    <label class="form-label small fw-semibold mb-1">Outcome</label>
+                                    {{ resolution_form.outcome }}
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small fw-semibold mb-1">Summary</label>
+                                    {{ resolution_form.summary }}
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-semibold mb-1">Structured Findings (JSON)</label>
+                                    {{ resolution_form.details_json }}
+                                </div>
+                                <button type="submit" class="btn btn-success btn-sm w-100">Save &amp; Mark Completed</button>
+                            </form>
+                        </div>
+                        <div class="col-md-5">
+                            <p class="small fw-semibold text-danger mb-2">Decline Request</p>
+                            <form method="post" action="{% url 'verification:officer_resolve' verification_request.reference_number %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="reject">
+                                <div class="mb-3">
+                                    <label class="form-label small fw-semibold mb-1">Rejection Reason</label>
+                                    {{ rejection_form.reason }}
+                                </div>
+                                <button type="submit" class="btn btn-outline-danger btn-sm w-100"
+                                    onclick="return confirm('Confirm rejection of this request?');">
+                                    Decline Request
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    {% else %}
+                    <p class="text-muted small mb-0">This request is in a terminal state (<strong>{{ verification_request.status }}</strong>) and requires no further action.</p>
+                    {% endif %}
+
+                </div>
+            </div>
+            {% endif %}
+
         </div>
+
+        {# ── Sidebar ── #}
+        <div class="col-lg-4">
+            <div class="vng-card p-4 mb-3">
+                <p class="small fw-semibold text-muted text-uppercase mb-3">Summary</p>
+                <dl class="row small mb-0">
+                    <dt class="col-5 text-muted">Reference:</dt>
+                    <dd class="col-7 font-monospace fw-semibold small">{{ verification_request.reference_number }}</dd>
+                    <dt class="col-5 text-muted">Status:</dt>
+                    <dd class="col-7">{{ verification_request.get_status_display|default:verification_request.status }}</dd>
+                    <dt class="col-5 text-muted">Submitted:</dt>
+                    <dd class="col-7">{{ verification_request.created_at|date:"M j, Y" }}</dd>
+                </dl>
+            </div>
+            <div class="vng-card p-4">
+                <p class="small fw-semibold text-muted text-uppercase mb-2">Platform Notice</p>
+                <p class="small text-muted mb-0">
+                    This is an independent VerifyNG verification assessment. It does not constitute a statutory government clearance, DBS certificate, or Police Clearance Certificate.
+                </p>
+            </div>
+        </div>
+
     </div>
 </div>
 {% endblock %}
