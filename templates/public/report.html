@@ -1,22 +1,316 @@
 {% extends "public/base.html" %}
-{% block title %}Report - VerifyNG{% endblock %}
+{% load static %}
+
+{% block title %}Submit a Fraud Report — VerifyNG{% endblock %}
+
 {% block content %}
-<div class="container py-5">
-    <h2 class="mb-4">Submit a Report</h2>
-    <div class="alert alert-info">
-        <strong>Note:</strong> Reports undergo a neutral moderation lifecycle (Submitted &rarr; Under Review &rarr; Published).
-        Allegations are user-submitted claims and are subject to the right of response.
+<div class="container py-4 py-md-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-md-10">
+
+            <!-- Page Header -->
+            <div class="text-center mb-4">
+                <span class="vng-badge-trust mb-2">Community Safety</span>
+                <h1 class="h3 fw-bold">Submit a Fraud or Scam Report</h1>
+                <p class="small text-muted mb-0">
+                    Reports undergo a neutral moderation review before publication.
+                    Allegations are user-submitted claims and are not treated as established facts.
+                </p>
+            </div>
+
+            <!-- Non-field / form-wide errors -->
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger rounded-3 mb-4" role="alert">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2">
+                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                <strong>Please correct the following:</strong>
+                <ul class="mb-0 mt-1 ps-3">
+                    {% for error in form.non_field_errors %}
+                    <li class="small">{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <!-- Django messages (success / flash) -->
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }} rounded-3 mb-4" role="alert">
+                {{ message }}
+            </div>
+            {% endfor %}
+
+            <!-- Statutory disclaimer -->
+            <div class="vng-callout-notice py-3 px-4 mb-4 small">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+                <strong>Important:</strong> Submitting a false, defamatory, or malicious report may result in
+                suspension of your account and potential legal liability. Every report is traceable to your
+                verified identity. Reports are subject to moderation — publication is not automatic.
+            </div>
+
+            <form method="post" enctype="multipart/form-data" novalidate>
+                {% csrf_token %}
+
+                <!-- ── Section 1: Subject Identity ── -->
+                <div class="vng-card p-4 mb-4">
+                    <h6 class="fw-bold text-uppercase small text-muted mb-3 border-bottom pb-2">
+                        Section 1 — Subject Identification
+                    </h6>
+                    <p class="small text-muted mb-3">
+                        Identify the person or business you are reporting. Provide as many identifiers as you
+                        know to improve lookup accuracy.
+                    </p>
+
+                    <div class="row g-3">
+                        <!-- Subject Name -->
+                        <div class="col-md-8">
+                            <label for="{{ form.subject_name.id_for_label }}" class="form-label small fw-semibold">
+                                Full Name / Business Name <span class="text-danger">*</span>
+                            </label>
+                            {{ form.subject_name }}
+                            {% if form.subject_name.errors %}
+                            <div class="invalid-feedback d-block">{{ form.subject_name.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Subject Type -->
+                        <div class="col-md-4">
+                            <label for="{{ form.subject_type.id_for_label }}" class="form-label small fw-semibold">
+                                Entity Type <span class="text-danger">*</span>
+                            </label>
+                            {{ form.subject_type }}
+                            {% if form.subject_type.errors %}
+                            <div class="invalid-feedback d-block">{{ form.subject_type.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Phone -->
+                        <div class="col-md-6">
+                            <label for="{{ form.suspect_phone.id_for_label }}" class="form-label small fw-semibold">
+                                Phone Number
+                            </label>
+                            {{ form.suspect_phone }}
+                            <div class="form-text">{{ form.suspect_phone.help_text }}</div>
+                            {% if form.suspect_phone.errors %}
+                            <div class="invalid-feedback d-block">{{ form.suspect_phone.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Email -->
+                        <div class="col-md-6">
+                            <label for="{{ form.suspect_email.id_for_label }}" class="form-label small fw-semibold">
+                                Email Address
+                            </label>
+                            {{ form.suspect_email }}
+                            <div class="form-text">{{ form.suspect_email.help_text }}</div>
+                            {% if form.suspect_email.errors %}
+                            <div class="invalid-feedback d-block">{{ form.suspect_email.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Bank Account -->
+                        <div class="col-md-6">
+                            <label for="{{ form.suspect_bank_account.id_for_label }}" class="form-label small fw-semibold">
+                                Bank Account Number
+                            </label>
+                            {{ form.suspect_bank_account }}
+                            <div class="form-text">{{ form.suspect_bank_account.help_text }}</div>
+                            {% if form.suspect_bank_account.errors %}
+                            <div class="invalid-feedback d-block">{{ form.suspect_bank_account.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Bank Name -->
+                        <div class="col-md-6">
+                            <label for="{{ form.suspect_bank_name.id_for_label }}" class="form-label small fw-semibold">
+                                Bank / Fintech Institution
+                            </label>
+                            {{ form.suspect_bank_name }}
+                            <datalist id="nigerian_banks_list">
+                                <option value="Access Bank">
+                                <option value="Fidelity Bank">
+                                <option value="First Bank">
+                                <option value="GTBank">
+                                <option value="Kuda Bank">
+                                <option value="Moniepoint">
+                                <option value="OPay">
+                                <option value="PalmPay">
+                                <option value="Polaris Bank">
+                                <option value="Stanbic IBTC">
+                                <option value="Sterling Bank">
+                                <option value="UBA">
+                                <option value="Union Bank">
+                                <option value="Unity Bank">
+                                <option value="VFD Microfinance Bank">
+                                <option value="Wema Bank">
+                                <option value="Zenith Bank">
+                            </datalist>
+                            <div class="form-text">{{ form.suspect_bank_name.help_text }}</div>
+                            {% if form.suspect_bank_name.errors %}
+                            <div class="invalid-feedback d-block">{{ form.suspect_bank_name.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- CAC Number -->
+                        <div class="col-md-6">
+                            <label for="{{ form.suspect_cac_number.id_for_label }}" class="form-label small fw-semibold">
+                                CAC / RC Number
+                            </label>
+                            {{ form.suspect_cac_number }}
+                            <div class="form-text">{{ form.suspect_cac_number.help_text }}</div>
+                            {% if form.suspect_cac_number.errors %}
+                            <div class="invalid-feedback d-block">{{ form.suspect_cac_number.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ── Section 2: Incident Details ── -->
+                <div class="vng-card p-4 mb-4">
+                    <h6 class="fw-bold text-uppercase small text-muted mb-3 border-bottom pb-2">
+                        Section 2 — Incident Details
+                    </h6>
+
+                    <div class="row g-3">
+                        <!-- Report Title -->
+                        <div class="col-12">
+                            <label for="{{ form.title.id_for_label }}" class="form-label small fw-semibold">
+                                Report Title / Summary <span class="text-danger">*</span>
+                            </label>
+                            {{ form.title }}
+                            {% if form.title.errors %}
+                            <div class="invalid-feedback d-block">{{ form.title.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Incident Date -->
+                        <div class="col-md-4">
+                            <label for="{{ form.incident_date.id_for_label }}" class="form-label small fw-semibold">
+                                Incident Date
+                            </label>
+                            {{ form.incident_date }}
+                            {% if form.incident_date.errors %}
+                            <div class="invalid-feedback d-block">{{ form.incident_date.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- State -->
+                        <div class="col-md-4">
+                            <label for="{{ form.suspect_state.id_for_label }}" class="form-label small fw-semibold">
+                                State
+                            </label>
+                            {{ form.suspect_state }}
+                            {% if form.suspect_state.errors %}
+                            <div class="invalid-feedback d-block">{{ form.suspect_state.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- City -->
+                        <div class="col-md-4">
+                            <label for="{{ form.suspect_city.id_for_label }}" class="form-label small fw-semibold">
+                                City / LGA
+                            </label>
+                            {{ form.suspect_city }}
+                            <div class="form-text">{{ form.suspect_city.help_text }}</div>
+                            {% if form.suspect_city.errors %}
+                            <div class="invalid-feedback d-block">{{ form.suspect_city.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Operating Location -->
+                        <div class="col-12">
+                            <label for="{{ form.suspect_location.id_for_label }}" class="form-label small fw-semibold">
+                                Operating / Physical Address
+                            </label>
+                            {{ form.suspect_location }}
+                            <div class="form-text">{{ form.suspect_location.help_text }}</div>
+                            {% if form.suspect_location.errors %}
+                            <div class="invalid-feedback d-block">{{ form.suspect_location.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Allegation -->
+                        <div class="col-12">
+                            <label for="{{ form.allegation.id_for_label }}" class="form-label small fw-semibold">
+                                Detailed Allegation <span class="text-danger">*</span>
+                            </label>
+                            {{ form.allegation }}
+                            <div class="form-text">
+                                Provide a clear, factual, chronological account. Include transaction references,
+                                dates, amounts, and any other verifiable details.
+                            </div>
+                            {% if form.allegation.errors %}
+                            <div class="invalid-feedback d-block">{{ form.allegation.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ── Section 3: Supporting Evidence ── -->
+                <div class="vng-card p-4 mb-4">
+                    <h6 class="fw-bold text-uppercase small text-muted mb-3 border-bottom pb-2">
+                        Section 3 — Supporting Evidence <span class="fw-normal text-muted">(Optional)</span>
+                    </h6>
+                    <p class="small text-muted mb-3">
+                        Attach one file to support your allegation. Accepted formats: PNG, JPG, PDF, DOC, DOCX
+                        (maximum 10 MB). Evidence is stored privately and shared only with VerifyNG moderators.
+                    </p>
+
+                    <div class="row g-3">
+                        <!-- Evidence File -->
+                        <div class="col-12">
+                            <label for="{{ form.evidence_file.id_for_label }}" class="form-label small fw-semibold">
+                                Upload Evidence File
+                            </label>
+                            <input type="file"
+                                   id="{{ form.evidence_file.id_for_label }}"
+                                   name="{{ form.evidence_file.html_name }}"
+                                   class="form-control{% if form.evidence_file.errors %} is-invalid{% endif %}"
+                                   accept=".png,.jpg,.jpeg,.pdf,.doc,.docx">
+                            <div class="form-text">{{ form.evidence_file.help_text }}</div>
+                            {% if form.evidence_file.errors %}
+                            <div class="invalid-feedback d-block">{{ form.evidence_file.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Evidence Type -->
+                        <div class="col-md-5">
+                            <label for="{{ form.evidence_type.id_for_label }}" class="form-label small fw-semibold">
+                                Evidence Type
+                            </label>
+                            {{ form.evidence_type }}
+                            {% if form.evidence_type.errors %}
+                            <div class="invalid-feedback d-block">{{ form.evidence_type.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Evidence Description -->
+                        <div class="col-md-7">
+                            <label for="{{ form.evidence_description.id_for_label }}" class="form-label small fw-semibold">
+                                Evidence Description
+                            </label>
+                            {{ form.evidence_description }}
+                            {% if form.evidence_description.errors %}
+                            <div class="invalid-feedback d-block">{{ form.evidence_description.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit -->
+                <div class="d-flex gap-3 justify-content-between align-items-center">
+                    <a href="{% url 'home' %}" class="btn btn-outline-secondary px-4">
+                        &larr; Cancel
+                    </a>
+                    <button type="submit" class="btn btn-vng-primary px-5 py-2">
+                        Submit Report for Review &rarr;
+                    </button>
+                </div>
+            </form>
+
+        </div>
     </div>
-    <form class="card shadow-sm p-4">
-        <div class="mb-3">
-            <label class="form-label">Target Identifier (Mock Hash)</label>
-            <input type="text" class="form-control" placeholder="Target hash...">
-        </div>
-        <div class="mb-3">
-            <label class="form-label">Allegation</label>
-            <textarea class="form-control" rows="4"></textarea>
-        </div>
-        <button type="submit" class="btn btn-warning">Submit Allegation</button>
-    </form>
 </div>
 {% endblock %}
