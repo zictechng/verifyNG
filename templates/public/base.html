@@ -145,6 +145,23 @@
             border-color: var(--vng-primary) !important;
             color: var(--vng-primary) !important;
         }
+        /* Table action buttons — tighter on mobile */
+        @media (max-width: 767.98px) {
+            .table .btn-sm {
+                font-size: 0.75rem !important;
+                padding: 0.2rem 0.5rem !important;
+                min-height: 28px;
+                line-height: 1.4;
+            }
+        }
+        .btn-vng-primary.btn-vng-sm,
+        .btn-vng-outline.btn-vng-sm {
+            font-size: 0.8125rem !important;
+            padding: 0.35rem 0.75rem !important;
+            min-height: 32px;
+            border-radius: 8px !important;
+            gap: 0.35rem;
+        }
 
         /* Cards */
         .vng-card {
