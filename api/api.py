@@ -13,6 +13,7 @@ from identities.utils import hash_identifier_value
 from identities.services import lookup_public_record
 from core.rate_limiting import check_rate_limit, get_client_ip
 from reports.services import create_fraud_report
+from verification.services import create_verification_request
 from reports.storage_services import StorageError
 
 logger = logging.getLogger(__name__)
@@ -200,3 +201,92 @@ def create_report(request, payload: ReportSubmitRequest):
         ),
     )
 
+
+class VerificationSubmitRequest(Schema):
+    """
+    Request body for POST /api/v1/verification/
+
+    Mirrors create_verification_request() in verification/services.py.
+    All fields are text only — no file upload at the API layer.
+    """
+    # Required
+    subject_name: str
+    subject_type: str
+    verification_type: str
+
+    # Optional identifier — both must be provided together or neither
+    identifier_type: Optional[str] = None
+    identifier_value: Optional[str] = None
+
+    # Optional notes
+    notes: Optional[str] = None
+
+
+class VerificationSubmitResponse(Schema):
+    """Structured response returned after a successful verification request submission."""
+    reference_number: str
+    status: str
+    subject_name: str
+    message: str
+
+
+@api.post(
+    "/verification/",
+    auth=django_auth,
+    response={201: VerificationSubmitResponse},
+    summary="Submit a verification request",
+    description=(
+        "Authenticated endpoint. Anonymous submissions are not accepted. "
+        "Provide identifier_type and identifier_value together or omit both. "
+        "The requester's IP address is captured for audit logging."
+    ),
+)
+def create_verification(request, payload: VerificationSubmitRequest):
+    """
+    POST /api/v1/verification/
+
+    Wire: payload → create_verification_request() → VerificationSubmitResponse (201)
+
+    Auth:  django_auth — requires an active Django session.
+           Returns 401 automatically for unauthenticated callers via Ninja.
+
+    Errors:
+      400 — ValidationError raised by the service layer (invalid type,
+             mismatched identifier pair, unsupported identifier type, etc.).
+      500 — Unexpected exception.
+    """
+    try:
+        verification_request = create_verification_request(
+            requester=request.user,
+            subject_name=payload.subject_name,
+            subject_type=payload.subject_type,
+            verification_type=payload.verification_type,
+            notes=payload.notes or "",
+            identifier_type=payload.identifier_type or None,
+            identifier_value=payload.identifier_value or None,
+            ip_address=get_client_ip(request),
+        )
+    except ValidationError as exc:
+        message = exc.message if hasattr(exc, "message") else str(exc)
+        logger.warning(
+            "ValidationError in API verification submission for user %s: %s",
+            request.user.pk, message,
+        )
+        raise HttpError(400, message)
+    except Exception:
+        logger.exception(
+            "Unexpected error in API verification submission for user %s",
+            request.user.pk,
+        )
+        raise HttpError(500, "An unexpected error occurred. Please try again.")
+
+    return 201, VerificationSubmitResponse(
+        reference_number=verification_request.reference_number,
+        status=verification_request.status,
+        subject_name=verification_request.target_subject.name,
+        message=(
+            f"Verification request submitted successfully. "
+            f"Reference number: {verification_request.reference_number}. "
+            "A VerifyNG officer will review your request within 2–5 business days."
+        ),
+    )
