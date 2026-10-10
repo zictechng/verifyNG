@@ -116,8 +116,51 @@
                 </div>
 
                 <!-- Found Result Display -->
+                        
                 <div class="mt-4 pt-3 border-top" x-show="result && !loading" x-cloak>
-                    
+
+                    <!-- 0. Trust Score Banner — shown when score is available -->
+                    <div x-show="result.trust_score !== null && result.trust_score !== undefined" class="mb-3 p-3 rounded-3 border text-center"
+                         :style="`border-color: var(--vng-border); background: var(--vng-page-bg);`">
+                        <p class="small text-muted fw-bold text-uppercase mb-1">Trust Score</p>
+                        <div class="d-flex align-items-center justify-content-center gap-3 flex-wrap">
+                            <!-- Numeric score -->
+                            <span class="display-6 fw-black" x-text="result.trust_score + ' / 1000'"
+                                  :class="{
+                                    'text-success':  result.trust_score >= 800,
+                                    'text-primary':  result.trust_score >= 600 && result.trust_score < 800,
+                                    'text-warning':  result.trust_score >= 400 && result.trust_score < 600,
+                                    'text-danger':   result.trust_score < 400
+                                  }">
+                            </span>
+                            <!-- Label badge -->
+                            <span class="badge fs-6 px-3 py-2"
+                                  :class="{
+                                    'bg-success':   result.trust_label === 'High Trust',
+                                    'bg-primary':   result.trust_label === 'Moderate Trust',
+                                    'bg-warning text-dark': result.trust_label === 'Low Trust',
+                                    'bg-danger':    result.trust_label === 'At Risk' || result.trust_label === 'High Risk'
+                                  }"
+                                  x-text="result.trust_label">
+                            </span>
+                        </div>
+                        <!-- Progress bar -->
+                        <div class="progress mt-2" style="height: 6px; border-radius: 3px;">
+                            <div class="progress-bar"
+                                 :style="`width: ${result.trust_score / 10}%; transition: width 0.8s ease;`"
+                                 :class="{
+                                    'bg-success':  result.trust_score >= 800,
+                                    'bg-primary':  result.trust_score >= 600 && result.trust_score < 800,
+                                    'bg-warning':  result.trust_score >= 400 && result.trust_score < 600,
+                                    'bg-danger':   result.trust_score < 400
+                                 }">
+                            </div>
+                        </div>
+                        <p class="small text-muted mt-1 mb-0">
+                            Computed from verification history, community reports, and platform longevity.
+                        </p>
+                    </div>
+
                     <!-- 1. Verification Outcome Card -->
                     <div class="p-3 rounded-3 mb-3 border" :class="result.is_verified ? 'border-success bg-light' : 'border-secondary bg-light'">
                         <div class="d-flex align-items-center justify-content-between mb-2">
@@ -128,9 +171,15 @@
                             <span class="small text-muted">Entity Name:</span>
                             <span class="small fw-semibold text-dark" x-text="result.official_business_name || result.subject_name"></span>
                         </div>
-                        <div class="d-flex justify-content-between py-1">
+                        <div class="d-flex justify-content-between py-1 border-bottom">
                             <span class="small text-muted">Entity Type:</span>
                             <span class="small fw-semibold text-capitalize text-dark" x-text="result.entity_type"></span>
+                        </div>
+                        <div class="d-flex justify-content-between py-1">
+                            <span class="small text-muted">Identity Verified:</span>
+                            <span class="small fw-semibold" :class="result.identity_verified ? 'text-success' : 'text-muted'"
+                                  x-text="result.identity_verified ? '✓ Confirmed' : 'Not yet verified'">
+                            </span>
                         </div>
                     </div>
 
