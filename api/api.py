@@ -23,6 +23,10 @@ class CheckResponse(Schema):
     disputed_reports_count: int
     official_business_name: str | None = None
     allegation_notice: str
+    trust_score:        int | None = None
+    trust_label:        str = 'Unknown'
+    trust_label_colour: str = 'secondary'
+    identity_verified:  bool = False
 
 
 class CheckLookupRequest(Schema):

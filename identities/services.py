@@ -23,7 +23,7 @@ def lookup_public_record(identifier_hash: str) -> dict | None:
     """
     try:
         identifier = (
-            Identifier.objects.select_related('subject', 'subject__business_profile')
+                        Identifier.objects.select_related('subject', 'subject__business_profile', 'subject__trust_score')
             .prefetch_related(
                 'subject__reports',
                 'subject__verification_requests__result',
@@ -71,7 +71,8 @@ def lookup_public_record(identifier_hash: str) -> dict | None:
         "Fraud reports represent unverified community allegations published for public awareness. "
         "They do not constitute formal judicial findings, court convictions, or regulatory adjudications."
     )
-
+    # Fetch pre-computed trust score (None if not yet calculated)
+    ts = getattr(subject, 'trust_score', None)
     return {
         "subject_name": subject_name,
         "entity_type": entity_type,
@@ -83,4 +84,9 @@ def lookup_public_record(identifier_hash: str) -> dict | None:
         "disputed_reports_count": disputed_count,
         "official_business_name": official_business_name,
         "allegation_notice": allegation_notice,
+        # Trust Score (None if not yet calculated)
+        'trust_score':       getattr(ts, 'score', None),
+        'trust_label':       getattr(ts, 'label', 'Unknown'),
+        'trust_label_colour': getattr(ts, 'label_colour', 'secondary'),
+        'identity_verified': getattr(ts, 'is_identity_verified', False),
     }

@@ -60,3 +60,73 @@ class BusinessProfile(models.Model):
 
     def __str__(self):
         return self.official_name
+    
+# ─── ADD AT BOTTOM OF identities/models.py
+
+class TrustScore(models.Model):
+    """
+    Computed trust score for a SubjectEntity.
+    OneToOne — one score record per subject.
+    Never computed inline on request; always pre-computed and stored.
+    Recalculated by identities.trust_score.recalculate_trust_score() when:
+      - A FraudReport transitions to 'published' or 'restricted'
+      - A Dispute is resolved
+      - A VerificationResult is created
+    """
+
+    subject = models.OneToOneField(
+        'identities.SubjectEntity',
+        on_delete=models.CASCADE,
+        related_name='trust_score',
+    )
+
+    # Composite score 0–1000
+    score = models.PositiveSmallIntegerField(default=500)
+
+    # Component breakdowns (stored for transparency / audit)
+    identity_score      = models.PositiveSmallIntegerField(default=0)   # max 300
+    conduct_score       = models.PositiveSmallIntegerField(default=0)   # max 300
+    reports_score       = models.PositiveSmallIntegerField(default=0)   # max 250
+    longevity_score     = models.PositiveSmallIntegerField(default=0)   # max 150
+
+    # Metadata
+    published_reports_count  = models.PositiveSmallIntegerField(default=0)
+    disputed_reports_count   = models.PositiveSmallIntegerField(default=0)
+    restricted_reports_count = models.PositiveSmallIntegerField(default=0)
+    is_identity_verified     = models.BooleanField(default=False)
+    completed_verifications  = models.PositiveSmallIntegerField(default=0)
+
+    calculated_at = models.DateTimeField(auto_now=True)
+    created_at    = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name      = 'Trust Score'
+        verbose_name_plural = 'Trust Scores'
+
+    def __str__(self):
+        return f"TrustScore({self.subject.name}: {self.score}/1000)"
+
+    @property
+    def label(self):
+        """Human-readable trust band for public display."""
+        if self.score >= 800:
+            return 'High Trust'
+        elif self.score >= 600:
+            return 'Moderate Trust'
+        elif self.score >= 400:
+            return 'Low Trust'
+        elif self.score >= 200:
+            return 'At Risk'
+        return 'High Risk'
+
+    @property
+    def label_colour(self):
+        """Bootstrap colour class for the trust band badge."""
+        mapping = {
+            'High Trust':     'success',
+            'Moderate Trust': 'primary',
+            'Low Trust':      'warning',
+            'At Risk':        'orange',
+            'High Risk':      'danger',
+        }
+        return mapping.get(self.label, 'secondary')
