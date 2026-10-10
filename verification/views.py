@@ -59,6 +59,13 @@ class VerificationListView(LoginRequiredMixin, ListView):
             .select_related('target_subject')
             .order_by('-created_at')
         )
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        base_qs = VerificationRequest.objects.filter(requester=self.request.user)
+        ctx['completed_count'] = base_qs.filter(status='completed').count()
+        ctx['in_progress_count'] = base_qs.filter(status='in_progress').count()
+        ctx['pending_count'] = base_qs.filter(status='pending').count()
+        return ctx
 
 
 class VerificationCreateView(LoginRequiredMixin, FormView):

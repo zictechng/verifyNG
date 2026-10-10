@@ -1,4 +1,3 @@
-
 {% extends 'public/base.html' %}
 {% load static %}
 
@@ -7,79 +6,102 @@
 {% block content %}
 <div class="container py-4 py-md-5">
     <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <div class="mb-4">
-                <a href="{% url 'dashboard:index' %}" class="text-decoration-none small text-muted">
-                    &larr; Back to Member Portal
-                </a>
-                <h1 class="h3 fw-bold mt-2">Request Independent Verification</h1>
-                <p class="text-muted small">
-                    Submit a verification request to check identity credentials, corporate registration, or background information against reliable public sources.
+        <div class="col-lg-8 col-md-10">
+
+            <!-- Header -->
+            <div class="mb-4 text-center">
+                <span class="vng-badge-trust mb-2">Independent Verification</span>
+                <h1 class="h3 fw-bold">Submit a Verification Request</h1>
+                <p class="small text-muted mb-0">
+                    Check identity credentials, company registration, or background information against verified public registry sources.
                 </p>
             </div>
 
             {% if messages %}
                 {% for message in messages %}
-                    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+                    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show mb-3" role="alert">
                         {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                 {% endfor %}
             {% endif %}
 
+            <!-- What You Get Callout -->
+            <div class="d-flex gap-3 align-items-start p-3 bg-light rounded-3 border mb-4 small">
+                <div style="color: var(--vng-primary); flex-shrink:0; margin-top:2px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                </div>
+                <div class="text-muted">
+                    Verified results are delivered as an official <strong>VerifyNG Verification Report</strong> — accessible from your dashboard after review. This is an independent assessment, not a government-issued DBS certificate.
+                </div>
+            </div>
+
             <div class="vng-card p-4 p-md-5">
+
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger mb-4" role="alert">
+                        {% for error in form.non_field_errors %}
+                            <p class="small mb-0">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
                 <form method="post" novalidate>
                     {% csrf_token %}
 
-                    {% if form.non_field_errors %}
-                        <div class="alert alert-danger">
-                            {{ form.non_field_errors }}
-                        </div>
-                    {% endif %}
+                    <!-- Section 1: Subject Identity -->
+                    <div class="mb-4 pb-3 border-bottom">
+                        <h6 class="fw-bold text-uppercase small text-muted letter-spacing-1 mb-3">1 — Subject Identity</h6>
 
-                    <div class="mb-3">
-                        <label for="{{ form.subject_name.id_for_label }}" class="form-label fw-semibold">
-                            Subject Legal / Registered Name <span class="text-danger">*</span>
-                        </label>
-                        {{ form.subject_name }}
-                        {% if form.subject_name.errors %}
-                            <div class="text-danger small mt-1">{{ form.subject_name.errors.0 }}</div>
-                        {% endif %}
-                    </div>
-
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-6">
-                            <label for="{{ form.subject_type.id_for_label }}" class="form-label fw-semibold">
-                                Subject Entity Type <span class="text-danger">*</span>
+                        <div class="mb-3">
+                            <label for="{{ form.subject_name.id_for_label }}" class="form-label small fw-semibold">
+                                Subject Legal / Registered Name <span class="text-danger">*</span>
                             </label>
-                            {{ form.subject_type }}
-                            {% if form.subject_type.errors %}
-                                <div class="text-danger small mt-1">{{ form.subject_type.errors.0 }}</div>
+                            {{ form.subject_name }}
+                            {% if form.subject_name.errors %}
+                                <div class="text-danger small mt-1">{{ form.subject_name.errors.0 }}</div>
                             {% endif %}
                         </div>
 
-                        <div class="col-md-6">
-                            <label for="{{ form.verification_type.id_for_label }}" class="form-label fw-semibold">
-                                Verification Scope <span class="text-danger">*</span>
-                            </label>
-                            {{ form.verification_type }}
-                            {% if form.verification_type.errors %}
-                                <div class="text-danger small mt-1">{{ form.verification_type.errors.0 }}</div>
-                            {% endif %}
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.subject_type.id_for_label }}" class="form-label small fw-semibold">
+                                    Entity Type <span class="text-danger">*</span>
+                                </label>
+                                {{ form.subject_type }}
+                                {% if form.subject_type.errors %}
+                                    <div class="text-danger small mt-1">{{ form.subject_type.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.verification_type.id_for_label }}" class="form-label small fw-semibold">
+                                    Verification Scope <span class="text-danger">*</span>
+                                </label>
+                                {{ form.verification_type }}
+                                {% if form.verification_type.errors %}
+                                    <div class="text-danger small mt-1">{{ form.verification_type.errors.0 }}</div>
+                                {% endif %}
+                            </div>
                         </div>
                     </div>
 
-                    <div class="p-3 bg-light rounded-3 mb-3 border">
-                        <h6 class="fw-semibold mb-2">Optional Identifier for Exact Registry Matching</h6>
-                        <p class="small text-muted mb-2">Providing a phone, CAC RC/BN number, or email allows exact cryptographic lookup without disclosing raw data.</p>
-                        <div class="row g-2">
+                    <!-- Section 2: Optional Identifier -->
+                    <div class="mb-4 pb-3 border-bottom">
+                        <h6 class="fw-bold text-uppercase small text-muted mb-1">2 — Registry Identifier <span class="text-muted fw-normal">(Optional)</span></h6>
+                        <p class="small text-muted mb-3">
+                            Providing a phone number, CAC RC/BN number, or email enables cryptographic exact-match lookup without exposing raw data.
+                        </p>
+
+                        <div class="row g-3">
                             <div class="col-md-4">
+                                <label class="form-label small fw-semibold">Identifier Type</label>
                                 {{ form.identifier_type }}
                                 {% if form.identifier_type.errors %}
                                     <div class="text-danger small mt-1">{{ form.identifier_type.errors.0 }}</div>
                                 {% endif %}
                             </div>
                             <div class="col-md-8">
+                                <label class="form-label small fw-semibold">Identifier Value</label>
                                 {{ form.identifier_value }}
                                 {% if form.identifier_value.errors %}
                                     <div class="text-danger small mt-1">{{ form.identifier_value.errors.0 }}</div>
@@ -88,25 +110,36 @@
                         </div>
                     </div>
 
-                    <div class="mb-4">
-                        <label for="{{ form.notes.id_for_label }}" class="form-label fw-semibold">
-                            Context & Specific Requirements
-                        </label>
+                    <!-- Section 3: Context Notes -->
+                    <div class="mb-4 pb-3 border-bottom">
+                        <h6 class="fw-bold text-uppercase small text-muted mb-1">3 — Context & Requirements <span class="text-muted fw-normal">(Optional)</span></h6>
+                        <p class="small text-muted mb-3">
+                            Describe the specific purpose of this verification — e.g. pre-employment background check, landlord due diligence, contractor vetting.
+                        </p>
                         {{ form.notes }}
                         {% if form.notes.errors %}
                             <div class="text-danger small mt-1">{{ form.notes.errors.0 }}</div>
                         {% endif %}
                     </div>
 
-                    <div class="d-flex justify-content-between align-items-center">
-                        <a href="{% url 'dashboard:index' %}" class="btn btn-outline-secondary">Cancel</a>
+                    <!-- Disclaimer + Actions -->
+                    <div class="alert alert-light border small text-muted mb-4">
+                        <strong>Notice:</strong> Your request will be reviewed by an authorized VerifyNG Verification Officer. Typical turnaround is 2–5 business days. You will be notified on completion.
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center gap-2">
+                        <a href="{% url 'dashboard:index' %}" class="btn btn-vng-outline">
+                            Cancel
+                        </a>
                         <button type="submit" class="btn btn-vng-primary">
                             Submit Verification Request &rarr;
                         </button>
                     </div>
                 </form>
             </div>
+
         </div>
     </div>
 </div>
 {% endblock %}
+

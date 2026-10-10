@@ -1,4 +1,3 @@
-
 {% extends 'public/base.html' %}
 {% load static %}
 
@@ -6,14 +5,57 @@
 
 {% block content %}
 <div class="container py-4 py-md-5">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+
+    <!-- Page Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-4">
         <div>
-            <h1 class="h3 fw-bold mb-1">My Verification Requests</h1>
-            <p class="small text-muted mb-0">Track all background and identity verifications submitted under your account.</p>
+            <a href="{% url 'dashboard:index' %}" class="text-decoration-none small text-muted">&larr; Back to Member Portal</a>
+            <h1 class="h3 fw-bold mt-1 mb-0">My Verification Requests</h1>
+            <p class="small text-muted mb-0">Background and identity verifications submitted under your account.</p>
         </div>
-        <a href="{% url 'verification:create' %}" class="btn btn-vng-primary btn-sm">+ New Request</a>
+        <a href="{% url 'verification:create' %}" class="btn btn-vng-primary btn-vng-sm align-self-start align-self-md-center">
+            + New Request
+        </a>
     </div>
 
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show mb-3" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Stat Strip -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="vng-card p-3 text-center">
+                <div class="h4 fw-bold mb-0 text-primary">{{ paginator.count }}</div>
+                <div class="small text-muted">Total Requests</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="vng-card p-3 text-center">
+                <div class="h4 fw-bold mb-0 text-success">{{ completed_count }}</div>
+                <div class="small text-muted">Completed</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="vng-card p-3 text-center">
+                <div class="h4 fw-bold mb-0 text-warning">{{ in_progress_count }}</div>
+                <div class="small text-muted">In Progress</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="vng-card p-3 text-center">
+                <div class="h4 fw-bold mb-0 text-secondary">{{ pending_count }}</div>
+                <div class="small text-muted">Pending</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Verification Requests Table -->
     <div class="vng-card p-0">
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
@@ -21,46 +63,84 @@
                     <tr>
                         <th>Reference</th>
                         <th>Target Subject</th>
-                        <th>Type</th>
+                        <th class="d-none d-md-table-cell">Scope</th>
                         <th>Status</th>
-                        <th>Date</th>
-                        <th>Action</th>
+                        <th class="d-none d-md-table-cell">Submitted</th>
+                        <th class="text-end">Action</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for r in requests %}
                         <tr>
-                            <td class="font-monospace fw-semibold">{{ r.reference_number }}</td>
-                            <td>{{ r.target_subject.name }}</td>
-                            <td>{{ r.get_verification_type_display }}</td>
+                            <td class="font-monospace fw-semibold small">{{ r.reference_number }}</td>
                             <td>
-                                {% if r.status == 'completed' %}
-                                    <span class="badge bg-success">COMPLETED</span>
-                                {% elif r.status == 'in_progress' %}
-                                    <span class="badge bg-warning text-dark">IN PROGRESS</span>
-                                {% elif r.status == 'rejected' %}
-                                    <span class="badge bg-danger">DECLINED</span>
-                                {% else %}
-                                    <span class="badge bg-secondary">PENDING</span>
-                                {% endif %}
+                                <div class="fw-semibold small">{{ r.target_subject.name }}</div>
+                                <div class="text-muted" style="font-size:0.75rem;">{{ r.target_subject.get_type_display }}</div>
                             </td>
-                            <td class="small text-muted">{{ r.created_at|date:"M j, Y" }}</td>
+                            <td class="d-none d-md-table-cell small text-muted">{{ r.get_verification_type_display }}</td>
                             <td>
-                                <a href="{% url 'verification:detail' r.reference_number %}" class="btn btn-sm btn-outline-secondary">
-                                    View
+                                {% with s=r.status %}
+                                    {% if s == 'completed' %}
+                                        <span class="badge bg-success">Completed</span>
+                                    {% elif s == 'in_progress' %}
+                                        <span class="badge bg-warning text-dark">In Progress</span>
+                                    {% elif s == 'rejected' %}
+                                        <span class="badge bg-danger">Declined</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Pending</span>
+                                    {% endif %}
+                                {% endwith %}
+                            </td>
+                            <td class="d-none d-md-table-cell small text-muted">{{ r.created_at|date:"M j, Y" }}</td>
+                            <td class="text-end">
+                                <a href="{% url 'verification:detail' r.reference_number %}" class="btn btn-vng-outline btn-vng-sm">
+                                    View &rarr;
                                 </a>
                             </td>
                         </tr>
                     {% empty %}
                         <tr>
-                            <td colspan="6" class="text-center py-4 text-muted">
-                                No verification requests submitted yet.
+                            <td colspan="6" class="text-center py-5">
+                                <div class="text-muted mb-2">No verification requests submitted yet.</div>
+                                <a href="{% url 'verification:create' %}" class="btn btn-vng-primary btn-vng-sm">Submit Your First Request</a>
                             </td>
                         </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
+
+        {% if is_paginated %}
+        <div class="d-flex justify-content-center py-3 border-top">
+            <nav aria-label="Verification pagination">
+                <ul class="pagination pagination-sm mb-0">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}">&laquo;</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+                    {% endif %}
+
+                    {% for num in paginator.page_range %}
+                    <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                    </li>
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}">&raquo;</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
     </div>
+
 </div>
 {% endblock %}
+
