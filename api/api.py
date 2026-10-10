@@ -1,10 +1,21 @@
 import json
+import logging
+from typing import Optional
+from datetime import date
+
 from ninja import NinjaAPI, Schema
 from ninja.errors import HttpError
+from ninja.security import django_auth
+from django.core.exceptions import ValidationError
 from django.http import HttpResponse, Http404
+
 from identities.utils import hash_identifier_value
 from identities.services import lookup_public_record
-from core.rate_limiting import check_rate_limit
+from core.rate_limiting import check_rate_limit, get_client_ip
+from reports.services import create_fraud_report
+from reports.storage_services import StorageError
+
+logger = logging.getLogger(__name__)
 
 api = NinjaAPI()
 
@@ -78,13 +89,116 @@ def check_identifier(request, identifier_hash: str):
     return record
 
 
-class ReportSchema(Schema):
-    target_hash: str
+class ReportSubmitRequest(Schema):
+    """
+    Request body for POST /api/v1/reports/
+
+    File upload (evidence) is NOT supported at the JSON API layer —
+    evidence must be submitted via the web form (multipart/form-data).
+    All fields mirror create_fraud_report() in reports/services.py.
+    """
+    # Required
+    subject_name: str
+    subject_type: str
+    title: str
     allegation: str
 
+    # Optional suspect identifiers
+    suspect_phone: Optional[str] = None
+    suspect_email: Optional[str] = None
+    suspect_bank_account: Optional[str] = None
+    suspect_bank_name: Optional[str] = None
+    suspect_cac_number: Optional[str] = None
 
-@api.post("/reports/")
-def create_report(request, payload: ReportSchema):
-    # Mock implementation
-    return {"status": "submitted"}
+    # Optional location fields
+    incident_date: Optional[date] = None
+    suspect_location: Optional[str] = None
+    suspect_state: Optional[str] = None
+    suspect_city: Optional[str] = None
+
+
+class ReportSubmitResponse(Schema):
+    """Structured response returned after a successful report submission."""
+    reference_number: str
+    status: str
+    subject_name: str
+    message: str
+
+
+@api.post(
+    "/reports/",
+    auth=django_auth,
+    response={201: ReportSubmitResponse},
+    summary="Submit a fraud / scam report",
+    description=(
+        "Authenticated endpoint. Anonymous submissions are not accepted. "
+        "Evidence file upload must be done via the web form — this endpoint "
+        "accepts JSON only and does not process file attachments."
+    ),
+)
+def create_report(request, payload: ReportSubmitRequest):
+    """
+    POST /api/v1/reports/
+
+    Wire: payload → create_fraud_report() → ReportSubmitResponse (201)
+
+    Auth:  django_auth — requires an active Django session (or session token).
+           Returns 401 automatically for unauthenticated callers via Ninja.
+
+    Errors:
+      400 — ValidationError raised by the service layer (business rule violation).
+      500 — StorageError (evidence upload failure; not triggered here since
+             file upload is not supported at the API layer, but guarded anyway).
+      500 — Unexpected exception.
+    """
+    try:
+        fraud_report = create_fraud_report(
+            reporter=request.user,
+            subject_name=payload.subject_name,
+            subject_type=payload.subject_type,
+            title=payload.title,
+            allegation=payload.allegation,
+            incident_date=payload.incident_date,
+            evidence_file=None,           # file upload not supported at API layer
+            evidence_type=None,
+            evidence_description="",
+            suspect_phone=payload.suspect_phone,
+            suspect_bank_account=payload.suspect_bank_account,
+            suspect_bank_name=payload.suspect_bank_name,
+            suspect_cac_number=payload.suspect_cac_number,
+            suspect_email=payload.suspect_email,
+            suspect_location=payload.suspect_location,
+            suspect_state=payload.suspect_state,
+            suspect_city=payload.suspect_city,
+        )
+    except ValidationError as exc:
+        message = exc.message if hasattr(exc, "message") else str(exc)
+        logger.warning(
+            "ValidationError in API report submission for user %s: %s",
+            request.user.pk, message,
+        )
+        raise HttpError(400, message)
+    except StorageError as exc:
+        logger.error(
+            "StorageError in API report submission for user %s: %s",
+            request.user.pk, exc,
+        )
+        raise HttpError(500, "Evidence storage failed. Please try again.")
+    except Exception:
+        logger.exception(
+            "Unexpected error in API report submission for user %s",
+            request.user.pk,
+        )
+        raise HttpError(500, "An unexpected error occurred. Please try again.")
+
+    return 201, ReportSubmitResponse(
+        reference_number=fraud_report.reference_number,
+        status=fraud_report.status,
+        subject_name=fraud_report.subject.name,
+        message=(
+            f"Report submitted successfully. "
+            f"Reference number: {fraud_report.reference_number}. "
+            "A VerifyNG moderator will review your report."
+        ),
+    )
 
