@@ -59,7 +59,9 @@ class CustomAuthenticationForm(AuthenticationForm):
 
 class CustomPasswordResetForm(PasswordResetForm):
     """
-    Password reset form with Bootstrap styling applied to the email widget.
+    Password reset form with Bootstrap styling.
+    Overrides send_mail so password-reset emails go through render_email()
+    and the Celery three-gate mailer instead of Django's default EmailMessage.
     """
     email = forms.EmailField(
         widget=forms.EmailInput(attrs={
@@ -68,6 +70,36 @@ class CustomPasswordResetForm(PasswordResetForm):
             'autocomplete': 'email',
         })
     )
+
+    def send_mail(self, subject_template_name, email_template_name, context,
+                  from_email, to_email, html_email_template_name=None):
+        from core.email_utils import render_email
+        from core.models import SiteConfiguration
+        from notifications.tasks import send_broadcast_email_task
+
+        config = SiteConfiguration.get_solo()
+        uid = context.get('uid', '')
+        token = context.get('token', '')
+        protocol = context.get('protocol', 'https')
+        domain = context.get('domain', '')
+        reset_url = f"{protocol}://{domain}/users/password-reset/confirm/{uid}/{token}/"
+
+        user_obj = context.get('user')
+        user_name = ''
+        if user_obj:
+            user_name = user_obj.first_name or user_obj.username
+
+        html_body, text_body = render_email('password_reset', {
+            'user_name': user_name,
+            'reset_url': reset_url,
+        })
+
+        send_broadcast_email_task.delay(
+            to_email=to_email,
+            subject=f'Reset your {config.site_name} password',
+            html_body=html_body,
+            text_body=text_body,
+        )
 
 
 class CustomSetPasswordForm(SetPasswordForm):
