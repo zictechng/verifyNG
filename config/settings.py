@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     'reports',
     'verification',
     'core',
+    'notifications',
 ]
 
 MIDDLEWARE = [
@@ -57,6 +58,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'core.context_processors.site_configuration',
+                'notifications.context_processors.unread_notification_count',
             ],
         },
     },
@@ -140,6 +142,41 @@ CELERY_TIMEZONE = TIME_ZONE
 CELERY_TASK_ALWAYS_EAGER = env.bool('CELERY_TASK_ALWAYS_EAGER', default=False)
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 30 * 60  # 1800 seconds (30 minutes hard limit)
+
+
+# ==============================================================================
+# Notifications App (Phase 11)
+# ==============================================================================
+
+# Add 'notifications' to INSTALLED_APPS list (add alongside 'core'):
+# 'notifications',
+
+# Add to TEMPLATES context_processors list:
+# 'notifications.context_processors.unread_notification_count',
+# ==============================================================================
+# Notifications App (Phase 11) — Email Gate Configuration
+# ==============================================================================
+
+# --- Gate 1: Mailtrap Transactional Sending API (HTTPS/443) ---
+MAILTRAP_API_TOKEN = env('MAILTRAP_API_TOKEN', default='')
+MAILTRAP_FROM_EMAIL = env('MAILTRAP_FROM_EMAIL', default='noreply@sendmoor.com')
+MAILTRAP_FROM_NAME = env('MAILTRAP_FROM_NAME', default='VerifyNG')
+
+# --- Gate 2: Namecheap Private Email SMTP (port 465 SSL) ---
+NAMECHEAP_SMTP_HOST = env('NAMECHEAP_SMTP_HOST', default='mail.privateemail.com')
+NAMECHEAP_SMTP_PORT = env.int('NAMECHEAP_SMTP_PORT', default=465)
+NAMECHEAP_SMTP_USER = env('NAMECHEAP_SMTP_USER', default='')
+NAMECHEAP_SMTP_PASSWORD = env('NAMECHEAP_SMTP_PASS', default='')
+NAMECHEAP_FROM_EMAIL = env('NAMECHEAP_FROM_EMAIL', default='')
+NAMECHEAP_FROM_NAME = env('NAMECHEAP_FROM_NAME', default='VerifyNG')
+
+# --- Gate 3: Gmail SMTP (port 587 STARTTLS) ---
+GMAIL_SMTP_USER = env('GMAIL_SMTP_USER', default='')
+GMAIL_SMTP_APP_PASSWORD = env('GMAIL_SMTP_APP_PASSWORD', default='')
+GMAIL_FROM_NAME = env('GMAIL_FROM_NAME', default='VerifyNG')
+
+
+
 
 
 

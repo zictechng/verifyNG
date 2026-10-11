@@ -11,6 +11,7 @@ urlpatterns = [
     path('reports/', include('reports.urls', namespace='reports')),
     path('dashboard/', include('dashboard.urls', namespace='dashboard')),
     path('verification/', include('verification.urls', namespace='verification')),
+    path('notifications/', include('notifications.urls', namespace='notifications')),
     path('', include('public_website.urls')),
 ]
 

@@ -1,13 +1,12 @@
+# core/tasks.py
 import logging
-import smtplib
 import socket
+import smtplib
 from celery import shared_task
-from django.core.mail import send_mail
-from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
-# Specific transient connection and timeout failures (excluding broad OSError and duplicate socket.error)
+# Kept for backwards-compat import by other modules that reference this symbol
 TRANSIENT_NETWORK_ERRORS = (
     smtplib.SMTPServerDisconnected,
     smtplib.SMTPConnectError,
@@ -19,7 +18,7 @@ TRANSIENT_NETWORK_ERRORS = (
 
 
 def _mask_email(email: str) -> str:
-    """Masks recipient email for privacy-safe logging (e.g. u***@example.com)."""
+    """Privacy-safe email mask for logs."""
     if not email or '@' not in email:
         return '***'
     user_part, domain_part = email.split('@', 1)
@@ -29,9 +28,7 @@ def _mask_email(email: str) -> str:
 
 @shared_task(bind=True, name="core.tasks.ping_celery_task")
 def ping_celery_task(self):
-    """
-    Health check and smoke test task to verify Celery broker and worker execution.
-    """
+    """Health check smoke-test task."""
     logger.info("Celery ping task executed (task_id=%s)", self.request.id)
     return {"status": "pong", "task_id": self.request.id}
 
@@ -40,55 +37,56 @@ def ping_celery_task(self):
     bind=True,
     name="core.tasks.send_email_notification_task",
     max_retries=3,
-    default_retry_delay=60
+    default_retry_delay=60,
 )
-def send_email_notification_task(self, recipient_email, subject, message_body):
+def send_email_notification_task(self, recipient_email: str, subject: str, message_body: str):
     """
-    Asynchronous task for delivering transactional notifications.
-    Retries up to 3 times on transient transport/network failures with a 60-second delay.
-    Permanent SMTP 5xx errors and configuration errors propagate immediately without retrying.
+    Admin broadcast email task (used by AdminCommunicationsView).
+    Delegates to the three-gate notifications.email_service.
+    Retries up to 3 times on transient errors.
     """
-    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'webmaster@localhost')
+    from notifications.email_service import send_email
+
+    html_body = f"<p>{message_body}</p>"
+    text_body = message_body
 
     try:
-        sent_count = send_mail(
+        result = send_email(
+            to_email=recipient_email,
             subject=subject,
-            message=message_body,
-            from_email=from_email,
-            recipient_list=[recipient_email],
-            fail_silently=False,
+            html_body=html_body,
+            text_body=text_body,
         )
         logger.info(
-            "Notification email dispatched (recipient=%s, task_id=%s)",
+            "Admin broadcast email delivered via %s → %s (task_id=%s)",
+            result.get("provider_used"),
             _mask_email(recipient_email),
-            self.request.id
+            self.request.id,
         )
-        return {"status": "sent", "count": sent_count}
+        return {"status": "sent", "provider_used": result.get("provider_used")}
 
-    except smtplib.SMTPResponseException as exc:
-        # Transient SMTP 4xx errors trigger retry
-        if 400 <= exc.smtp_code < 500:
-            logger.warning(
-                "Transient SMTP 4xx error (code=%s, recipient=%s, task_id=%s). Retrying.",
-                exc.smtp_code,
-                _mask_email(recipient_email),
-                self.request.id
-            )
-            raise self.retry(exc=exc)
-        # Permanent SMTP 5xx errors propagate immediately
+    except RuntimeError as exc:
+        # All three gates failed — log but do not retry further
         logger.error(
-            "Permanent SMTP 5xx rejection (code=%s, recipient=%s, task_id=%s). Task will not retry.",
-            exc.smtp_code,
+            "All email gates exhausted for broadcast to %s (task_id=%s): %s",
             _mask_email(recipient_email),
-            self.request.id
+            self.request.id,
+            exc,
         )
-        raise exc
+        return {"status": "all_gates_failed", "error": str(exc)}
 
     except TRANSIENT_NETWORK_ERRORS as exc:
         logger.warning(
-            "Transient network error during email dispatch (error=%s, recipient=%s, task_id=%s). Retrying.",
-            type(exc).__name__,
-            _mask_email(recipient_email),
-            self.request.id
+            "Transient network error in broadcast task (task_id=%s). Retrying.",
+            self.request.id,
         )
         raise self.retry(exc=exc)
+
+    except Exception as exc:
+        logger.error(
+            "Unexpected error in broadcast email task (task_id=%s): %s",
+            self.request.id,
+            exc,
+        )
+        raise self.retry(exc=exc)
+
