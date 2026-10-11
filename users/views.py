@@ -3,7 +3,7 @@ from django.http import HttpResponse
 from core.rate_limiting import check_rate_limit
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, DetailView
-from notifications.email_service import send_email
+from notifications.tasks import send_broadcast_email_task
 import logging
 
 from django.contrib.auth.views import (
@@ -13,7 +13,7 @@ from django.contrib.auth.views import (
     PasswordResetDoneView,
     PasswordResetConfirmView,
     PasswordResetCompleteView,
-    PasswordChangeView, 
+    PasswordChangeView,
 )
 from django.contrib.auth.mixins import LoginRequiredMixin
 
@@ -24,10 +24,10 @@ from users.forms import (
     CustomSetPasswordForm,
     CustomPasswordChangeForm,
 )
-from notifications.tasks import send_broadcast_email_task
 from users.models import User
 
 logger = logging.getLogger(__name__)
+
 
 class RegisterView(CreateView):
     """
@@ -78,7 +78,7 @@ class UserProfileView(LoginRequiredMixin, DetailView):
         return self.request.user
 
 
-# --- Password Reset Flow Views ---
+# --- Password Reset Flow (unauthenticated — forgot password) ---
 
 class CustomPasswordResetView(PasswordResetView):
     template_name = 'users/password_reset_form.html'
@@ -90,6 +90,7 @@ class CustomPasswordResetView(PasswordResetView):
 
 class CustomPasswordResetDoneView(PasswordResetDoneView):
     template_name = 'users/password_reset_done.html'
+
 
 class CustomPasswordResetConfirmView(PasswordResetConfirmView):
     template_name = 'users/password_reset_confirm.html'
@@ -118,14 +119,17 @@ class CustomPasswordResetConfirmView(PasswordResetConfirmView):
         )
         return response
 
+
 class CustomPasswordResetCompleteView(PasswordResetCompleteView):
     template_name = 'users/password_reset_complete.html'
+
+
+# --- Password Change (authenticated — inside portal) ---
 
 class CustomPasswordChangeView(LoginRequiredMixin, PasswordChangeView):
     """
     In-portal password change for all authenticated user roles.
     Requires current password. Sends security notification email via Celery.
-    Redirects back to this page with a success message on completion.
     """
     template_name = 'users/password_change_form.html'
     form_class = CustomPasswordChangeForm
@@ -152,5 +156,4 @@ class CustomPasswordChangeView(LoginRequiredMixin, PasswordChangeView):
             ),
         )
         return response
-
 
