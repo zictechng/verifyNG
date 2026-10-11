@@ -1,0 +1,25 @@
+
+{% extends "emails/base_email.html" %}
+{% block subject %}{{ subject|default:"Notification from "|add:site_name }}{% endblock %}
+{% block body %}
+
+{% if heading %}<h1 class="email-heading">{{ heading }}</h1>{% endif %}
+
+<p>Hi {{ user_name|default:"there" }},</p>
+
+{{ body_html|safe }}
+
+{% if cta_url and cta_label %}
+<div class="email-btn-wrap">
+  <a href="{{ cta_url }}" class="email-btn">{{ cta_label }} &rarr;</a>
+</div>
+{% endif %}
+
+<hr class="email-divider">
+
+<p style="color:#64748B;font-size:13px">
+  This is a transactional notification from {{ site_name }}.
+  If you have questions, contact <a href="mailto:{{ support_email }}" style="color:#2457D6">{{ support_email }}</a>.
+</p>
+
+{% endblock %}

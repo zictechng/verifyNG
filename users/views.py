@@ -5,6 +5,9 @@ from django.urls import reverse_lazy
 from django.views.generic import CreateView, DetailView
 from notifications.tasks import send_broadcast_email_task
 import logging
+from django.utils.timezone import localtime, now
+from core.email_utils import render_email
+from core.models import SiteConfiguration
 
 from django.contrib.auth.views import (
     LoginView,
@@ -105,26 +108,20 @@ class CustomPasswordResetConfirmView(PasswordResetConfirmView):
     def form_valid(self, form):
         response = super().form_valid(form)
         user = form.user
+        site_name = SiteConfiguration.get_solo().site_name
+        html_body, text_body = render_email('password_changed', {
+            'user_name': user.first_name or user.username,
+            'changed_at': localtime(now()).strftime('%d %b %Y, %I:%M %p'),
+        })
         send_broadcast_email_task.delay(
             to_email=user.email,
-            subject='Your VerifyNG password has been changed',
-            html_body=(
-                f"<p>Hello {user.first_name or user.username},</p>"
-                "<p>Your VerifyNG account password was successfully changed.</p>"
-                "<p>If you did not make this change, please contact us immediately at "
-                "<a href='mailto:support@verifyng.com'>support@verifyng.com</a>.</p>"
-                "<p>— The VerifyNG Team</p>"
-            ),
-            text_body=(
-                f"Hello {user.first_name or user.username},\n\n"
-                "Your VerifyNG account password was successfully changed.\n\n"
-                "If you did not make this change, contact us at support@verifyng.com.\n\n"
-                "— The VerifyNG Team"
-            ),
+            subject=f'Your {site_name} password has been changed',
+            html_body=html_body,
+            text_body=text_body,
         )
         return response
 
-
+    
 class CustomPasswordResetCompleteView(PasswordResetCompleteView):
     template_name = 'users/password_reset_complete.html'
 
@@ -143,22 +140,16 @@ class CustomPasswordChangeView(LoginRequiredMixin, PasswordChangeView):
     def form_valid(self, form):
         response = super().form_valid(form)
         user = self.request.user
+        site_name = SiteConfiguration.get_solo().site_name
+        html_body, text_body = render_email('password_changed', {
+            'user_name': user.first_name or user.username,
+            'changed_at': localtime(now()).strftime('%d %b %Y, %I:%M %p'),
+        })
         send_broadcast_email_task.delay(
             to_email=user.email,
-            subject='Your VerifyNG password has been changed',
-            html_body=(
-                f"<p>Hello {user.first_name or user.username},</p>"
-                "<p>Your VerifyNG account password was just changed from inside your portal.</p>"
-                "<p>If you did not make this change, please contact us immediately at "
-                "<a href='mailto:support@verifyng.com'>support@verifyng.com</a>.</p>"
-                "<p>— The VerifyNG Team</p>"
-            ),
-            text_body=(
-                f"Hello {user.first_name or user.username},\n\n"
-                "Your VerifyNG account password was just changed from inside your portal.\n\n"
-                "If you did not make this change, contact us at support@verifyng.com.\n\n"
-                "— The VerifyNG Team"
-            ),
+            subject=f'Your {site_name} password has been changed',
+            html_body=html_body,
+            text_body=text_body,
         )
         return response
 

@@ -1,17 +1,36 @@
-
 from django.contrib import admin
 from core.models import SiteConfiguration
 
 
 @admin.register(SiteConfiguration)
 class SiteConfigurationAdmin(admin.ModelAdmin):
-    list_display = ('site_name', 'site_tagline', 'updated_at')
+    list_display = ('site_name', 'base_url', 'support_email', 'updated_at')
+
     fieldsets = (
         ('Branding & Identity', {
-            'fields': ('site_name', 'site_tagline', 'logo', 'favicon')
+            'fields': ('site_name', 'site_tagline', 'logo', 'favicon'),
+            'description': (
+                'These values appear in the navigation bar, browser tab, '
+                'email headers, and all generated documents.'
+            ),
         }),
-        ('Footer & Disclaimers', {
-            'fields': ('footer_text',)
+        ('URLs & Contact', {
+            'fields': ('base_url', 'support_email', 'company_reg_number', 'company_address'),
+            'description': (
+                'base_url is used to build links in emails. '
+                'Update this to your live domain before going to production.'
+            ),
+        }),
+        ('Social Media Links', {
+            'fields': (
+                'twitter_url', 'facebook_url',
+                'instagram_url', 'linkedin_url', 'youtube_url', 'whatsapp_number',
+            ),
+            'description': 'Leave blank to hide a link in the email footer and website footer.',
+            'classes': ('collapse',),
+        }),
+        ('Footer', {
+            'fields': ('footer_text',),
         }),
     )
 
@@ -20,4 +39,3 @@ class SiteConfigurationAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
-

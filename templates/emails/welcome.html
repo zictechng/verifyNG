@@ -1,23 +1,38 @@
-
-{% extends 'emails/base_email.html' %}
-{% block subject %}Welcome to VerifyNG{% endblock %}
+{% extends "emails/base_email.html" %}
+{% block subject %}Welcome to {{ site_name }}{% endblock %}
 {% block body %}
-<p>Hello {{ user_name }},</p>
-<p>Welcome to <strong>VerifyNG</strong> — Nigeria's public trust and safety platform. Your account has been created successfully.</p>
+
+<h1 class="email-heading">Welcome to {{ site_name }}, {{ user_name }}!</h1>
+
+<p>
+  Your account is ready. {{ site_name }} helps Nigerians check, report,
+  and verify — so you can trust before you commit.
+</p>
 
 <div class="email-alert email-alert-info">
-  You can now <strong>check</strong> phone numbers, names and accounts for fraud history, <strong>report</strong> scammers, and <strong>build</strong> your own verified trust profile.
+  <strong>&#x1F4CB; Your account is active</strong>
+  You can now search phone numbers, names, and business identities, submit fraud reports,
+  and build your own verified digital trust profile.
 </div>
 
-<p><a href="{{ dashboard_url }}" class="email-btn">Go to Your Dashboard &rarr;</a></p>
+<p>Here's what you can do right now:</p>
+
+<p>
+  &#x2713; &nbsp;<strong>CHECK</strong> — Search any phone number, name, NIN, or bank account<br>
+  &#x2713; &nbsp;<strong>REPORT</strong> — Submit a verified fraud report so others are warned<br>
+  &#x2713; &nbsp;<strong>VERIFY</strong> — Build a portable digital trust profile for employment
+</p>
+
+<div class="email-btn-wrap">
+  <a href="{{ site_url }}/dashboard/" class="email-btn">Go to your dashboard &rarr;</a>
+</div>
 
 <hr class="email-divider">
 
-<p style="font-size:13px; color:#64748B;">
-  If you did not create this account, contact us at
-  <a href="mailto:support@verifyng.com" style="color:#2457D6;">support@verifyng.com</a>.
+<p style="color:#64748B;font-size:13px">
+  Need help? Reply to this email or contact us at
+  <a href="mailto:{{ support_email }}" style="color:#2457D6">{{ support_email }}</a>.
+  We typically respond within one business day.
 </p>
 
-<p>— The VerifyNG Team</p>
 {% endblock %}
-
