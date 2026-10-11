@@ -1,5 +1,10 @@
 from django import forms
-from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
+from django.contrib.auth.forms import (
+    UserCreationForm,
+    AuthenticationForm,
+    PasswordResetForm,
+    SetPasswordForm,
+)
 from users.models import User
 
 
@@ -48,4 +53,42 @@ class CustomAuthenticationForm(AuthenticationForm):
     )
     password = forms.CharField(
         widget=forms.PasswordInput(attrs={'placeholder': 'Password', 'class': 'form-control'})
+    )
+
+
+class CustomPasswordResetForm(PasswordResetForm):
+    """
+    Password reset form with Bootstrap styling applied to the email widget.
+    """
+    email = forms.EmailField(
+        widget=forms.EmailInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter your registered email address',
+            'autocomplete': 'email',
+        })
+    )
+
+
+class CustomSetPasswordForm(SetPasswordForm):
+    """
+    Set-password form (used on the reset confirm page) with Bootstrap styling
+    applied to both password widgets.
+    """
+    new_password1 = forms.CharField(
+        label='New Password',
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter a strong new password',
+            'autocomplete': 'new-password',
+        }),
+        strip=False,
+    )
+    new_password2 = forms.CharField(
+        label='Confirm New Password',
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Repeat your new password',
+            'autocomplete': 'new-password',
+        }),
+        strip=False,
     )

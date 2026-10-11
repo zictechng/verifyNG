@@ -10,10 +10,16 @@ from django.contrib.auth.views import (
     PasswordResetDoneView,
     PasswordResetConfirmView,
     PasswordResetCompleteView,
+
 )
 from django.contrib.auth.mixins import LoginRequiredMixin
 
-from users.forms import CustomUserCreationForm, CustomAuthenticationForm
+from users.forms import (
+    CustomUserCreationForm,
+    CustomAuthenticationForm,
+    CustomPasswordResetForm,
+    CustomSetPasswordForm,
+)
 from users.models import User
 
 
@@ -73,6 +79,7 @@ class CustomPasswordResetView(PasswordResetView):
     email_template_name = 'users/password_reset_email.html'
     subject_template_name = 'users/password_reset_subject.txt'
     success_url = reverse_lazy('users:password_reset_done')
+    form_class = CustomPasswordResetForm
 
 
 class CustomPasswordResetDoneView(PasswordResetDoneView):
@@ -82,6 +89,7 @@ class CustomPasswordResetDoneView(PasswordResetDoneView):
 class CustomPasswordResetConfirmView(PasswordResetConfirmView):
     template_name = 'users/password_reset_confirm.html'
     success_url = reverse_lazy('users:password_reset_complete')
+    form_class = CustomSetPasswordForm
 
 
 class CustomPasswordResetCompleteView(PasswordResetCompleteView):
