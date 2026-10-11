@@ -11,3 +11,5 @@ cloudinary>=1.36.0
 requests>=2.31.0
 python-dateutil>=2.9.0
 django-csp>=3.8
+django-otp==1.7.4
+qrcode[pil]==8.2
