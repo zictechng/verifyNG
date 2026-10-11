@@ -1,0 +1,209 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>{% block subject %}VerifyNG{% endblock %}</title>
+  <style>
+    /* Reset */
+    body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+    table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+    img { -ms-interpolation-mode: bicubic; border: 0; outline: none; text-decoration: none; }
+    body { margin: 0 !important; padding: 0 !important; background-color: #F6F8FC; }
+
+    /* Base */
+    .email-wrapper { width: 100%; background-color: #F6F8FC; padding: 40px 16px; }
+    .email-card {
+      max-width: 600px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 1px 4px rgba(15,23,42,0.06);
+    }
+
+    /* Header */
+    .email-header {
+      padding: 32px 40px 24px;
+      border-bottom: 1px solid #E3E9F2;
+    }
+    .email-logo {
+      font-size: 20px;
+      font-weight: 700;
+      color: #2457D6;
+      text-decoration: none;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+      letter-spacing: -0.3px;
+    }
+    .email-logo span { color: #17233B; }
+
+    /* Body */
+    .email-body {
+      padding: 36px 40px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+      font-size: 15px;
+      line-height: 1.7;
+      color: #17233B;
+    }
+    .email-body p { margin: 0 0 18px; }
+    .email-body p:last-child { margin-bottom: 0; }
+
+    /* CTA Button */
+    .email-btn {
+      display: inline-block;
+      margin: 8px 0 24px;
+      padding: 13px 28px;
+      background-color: #2457D6;
+      color: #ffffff !important;
+      text-decoration: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    }
+
+    /* OTP Block */
+    .otp-block {
+      margin: 24px 0;
+      padding: 24px;
+      background: #F6F8FC;
+      border: 1px solid #E3E9F2;
+      border-radius: 10px;
+      text-align: center;
+    }
+    .otp-label {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #64748B;
+      margin-bottom: 14px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    }
+    .otp-code {
+      display: inline-flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .otp-digit {
+      display: inline-block;
+      width: 48px;
+      height: 56px;
+      line-height: 56px;
+      text-align: center;
+      font-size: 26px;
+      font-weight: 700;
+      color: #2457D6;
+      background: #ffffff;
+      border: 2px solid #E3E9F2;
+      border-radius: 8px;
+      font-family: 'Courier New', Courier, monospace;
+      letter-spacing: 0;
+    }
+    .otp-dot {
+      width: 5px;
+      height: 5px;
+      background: #CBD5E1;
+      border-radius: 50%;
+      display: inline-block;
+      margin: 0 2px;
+    }
+    .otp-expiry {
+      margin-top: 14px;
+      font-size: 12px;
+      color: #64748B;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    }
+
+    /* Alert banner */
+    .email-alert {
+      padding: 14px 18px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      font-size: 14px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    }
+    .email-alert-warning { background: #FEF3C7; border-left: 4px solid #B45309; color: #92400E; }
+    .email-alert-success { background: #DCFCE7; border-left: 4px solid #16A34A; color: #14532D; }
+    .email-alert-info    { background: #EAF1FF; border-left: 4px solid #2457D6; color: #1e3a8a; }
+
+    /* Divider */
+    .email-divider {
+      border: none;
+      border-top: 1px solid #E3E9F2;
+      margin: 28px 0;
+    }
+
+    /* Footer */
+    .email-footer {
+      background: #F6F8FC;
+      border-top: 1px solid #E3E9F2;
+      padding: 28px 40px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    }
+    .email-footer-links {
+      margin-bottom: 14px;
+      text-align: center;
+    }
+    .email-footer-links a {
+      color: #64748B;
+      text-decoration: none;
+      font-size: 12px;
+      margin: 0 8px;
+    }
+    .email-footer-links a:hover { color: #2457D6; }
+    .email-footer-notice {
+      font-size: 11px;
+      color: #94A3B8;
+      text-align: center;
+      line-height: 1.6;
+    }
+    .email-footer-notice a { color: #94A3B8; text-decoration: underline; }
+
+    @media only screen and (max-width: 480px) {
+      .email-header, .email-body, .email-footer { padding-left: 24px !important; padding-right: 24px !important; }
+      .otp-digit { width: 40px; height: 48px; line-height: 48px; font-size: 22px; }
+    }
+  </style>
+</head>
+<body>
+<div class="email-wrapper">
+  <div class="email-card">
+
+    <!-- Header -->
+    <div class="email-header">
+      <a href="{{ site_url }}" class="email-logo">Verify<span>NG</span></a>
+    </div>
+
+    <!-- Body -->
+    <div class="email-body">
+      {% block body %}{% endblock %}
+    </div>
+
+    <!-- Footer -->
+    <div class="email-footer">
+      <div class="email-footer-links">
+        <a href="{{ site_url }}">Home</a>
+        <a href="{{ site_url }}/about/">About</a>
+        <a href="{{ site_url }}/contact/">Contact</a>
+        <a href="{{ site_url }}/privacy/">Privacy Policy</a>
+        <a href="{{ site_url }}/terms/">Terms</a>
+      </div>
+      <div class="email-footer-notice">
+        This is a transactional email from VerifyNG.<br>
+        VerifyNG Ltd &bull; Nigeria's Public Trust &amp; Safety Platform<br>
+        &copy; {% now "Y" %} VerifyNG. All rights reserved.<br>
+        <a href="{{ site_url }}/unsubscribe/">Unsubscribe</a> &bull;
+        <a href="{{ site_url }}/privacy/">Privacy</a>
+      </div>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>
+

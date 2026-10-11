@@ -87,6 +87,11 @@ class CustomPasswordResetView(PasswordResetView):
     success_url = reverse_lazy('users:password_reset_done')
     form_class = CustomPasswordResetForm
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['site_url'] = self.request.build_absolute_uri('/').rstrip('/')
+        return context
+
 
 class CustomPasswordResetDoneView(PasswordResetDoneView):
     template_name = 'users/password_reset_done.html'

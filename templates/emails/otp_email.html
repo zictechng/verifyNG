@@ -1,0 +1,33 @@
+
+{% extends 'emails/base_email.html' %}
+{% block subject %}Your VerifyNG verification code{% endblock %}
+{% block body %}
+<p>Hello {{ user_name }},</p>
+<p>Use the verification code below to complete your action. Do not share this code with anyone.</p>
+
+<div class="otp-block">
+  <div class="otp-label">Your verification code</div>
+  <div class="otp-code">
+    {% for digit in otp_digits %}
+      <span class="otp-digit">{{ digit }}</span>
+      {% if not forloop.last and forloop.counter == 3 %}
+        <span style="display:inline-flex; flex-direction:column; gap:4px; align-items:center;">
+          <span class="otp-dot"></span>
+          <span class="otp-dot"></span>
+          <span class="otp-dot"></span>
+        </span>
+      {% endif %}
+    {% endfor %}
+  </div>
+  <div class="otp-expiry">⏱ This code expires in <strong>{{ expiry_minutes }} minutes</strong></div>
+</div>
+
+<hr class="email-divider">
+
+<div class="email-alert email-alert-warning">
+  <strong>Never share this code.</strong> VerifyNG staff will never ask for your verification code.
+</div>
+
+<p>— The VerifyNG Team</p>
+{% endblock %}
+
