@@ -40,7 +40,8 @@ class UserLoginView(LoginView):
         )
         if is_limited:
             return HttpResponse(
-                "Too many login attempts. Please wait 15 minutes before trying again."
+                "Too many login attempts. Please wait 15 minutes before trying again.",
+                status=429
             )
         return super().dispatch(request, *args, **kwargs)
 

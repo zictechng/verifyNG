@@ -32,9 +32,9 @@ class ReportCreateView(LoginRequiredMixin, FormView):
     template_name = 'reports/create_report.html'
 
     def dispatch(self, request, *args, **kwargs):
-        if not request.user.is_authenticated:
-            return super().dispatch(request, *args, **kwargs)
-        if not request.user.is_verified:
+        # LoginRequiredMixin handles unauthenticated users via super().
+        # For authenticated-but-unverified users, block here before form renders.
+        if request.user.is_authenticated and not request.user.is_verified:
             messages.warning(
                 request,
                 "You must verify your identity (NIN or BVN) before submitting a fraud report. "
