@@ -1,0 +1,112 @@
+
+
+{% extends "public/base.html" %}
+{% load static %}
+
+{% block title %}Transaction History — VerifyNG{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-md-5">
+
+  <div class="d-flex align-items-center gap-3 mb-4">
+    <a href="{% url 'payments:my_subscription' %}" class="btn btn-sm" style="border:1.5px solid var(--vng-border);border-radius:9999px;color:var(--vng-muted);">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path fill="currentColor" d="M19 12H5m7-7l-7 7 7 7"/></svg>
+    </a>
+    <h2 class="fw-800 mb-0" style="font-size:1.4rem;">Transaction History</h2>
+  </div>
+
+  <div class="vng-card rounded-4 overflow-hidden" style="background:#fff;">
+    {% if page_obj.object_list %}
+
+    <!-- Desktop table (md+) -->
+    <div class="d-none d-md-block">
+      <table class="table mb-0" style="border-color:var(--vng-border);">
+        <thead>
+          <tr style="background:var(--vng-page-bg);">
+            <th style="font-size:.75rem;font-weight:700;color:var(--vng-muted);text-transform:uppercase;letter-spacing:.05em;padding:1rem 1.25rem;border-color:var(--vng-border);">Date</th>
+            <th style="font-size:.75rem;font-weight:700;color:var(--vng-muted);text-transform:uppercase;letter-spacing:.05em;padding:1rem 1.25rem;border-color:var(--vng-border);">Plan</th>
+            <th style="font-size:.75rem;font-weight:700;color:var(--vng-muted);text-transform:uppercase;letter-spacing:.05em;padding:1rem 1.25rem;border-color:var(--vng-border);">Reference</th>
+            <th style="font-size:.75rem;font-weight:700;color:var(--vng-muted);text-transform:uppercase;letter-spacing:.05em;padding:1rem 1.25rem;border-color:var(--vng-border);">Amount</th>
+            <th style="font-size:.75rem;font-weight:700;color:var(--vng-muted);text-transform:uppercase;letter-spacing:.05em;padding:1rem 1.25rem;border-color:var(--vng-border);">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for txn in page_obj %}
+          <tr style="border-color:var(--vng-border);">
+            <td style="padding:1rem 1.25rem;font-size:.875rem;vertical-align:middle;color:var(--vng-muted);">{{ txn.created_at|date:"j M Y" }}</td>
+            <td style="padding:1rem 1.25rem;font-size:.875rem;vertical-align:middle;font-weight:600;">{{ txn.plan.name|default:"—" }}</td>
+            <td style="padding:1rem 1.25rem;vertical-align:middle;">
+              <code style="font-size:.78rem;background:var(--vng-page-bg);padding:.2rem .5rem;border-radius:6px;">{{ txn.reference }}</code>
+            </td>
+            <td style="padding:1rem 1.25rem;font-size:.9rem;vertical-align:middle;font-weight:700;color:{% if txn.status == 'success' %}var(--vng-success){% else %}var(--vng-muted){% endif %};">
+              ₦{{ txn.amount_naira|floatformat:0 }}
+            </td>
+            <td style="padding:1rem 1.25rem;vertical-align:middle;">
+              <span class="badge"
+                    style="font-size:.72rem;font-weight:700;border-radius:9999px;padding:.3rem .75rem;
+                           background:{% if txn.status == 'success' %}var(--vng-success-light){% elif txn.status == 'pending' %}var(--vng-primary-light){% else %}#FEF2F2{% endif %};
+                           color:{% if txn.status == 'success' %}var(--vng-success){% elif txn.status == 'pending' %}var(--vng-primary){% else %}#DC2626{% endif %};">
+                {{ txn.get_status_display|upper }}
+              </span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Mobile list (< md) -->
+    <div class="d-md-none">
+      {% for txn in page_obj %}
+      <div class="p-4 {% if not forloop.last %}border-bottom{% endif %}" style="border-color:var(--vng-border);">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <div>
+            <div class="fw-700" style="font-size:.95rem;">{{ txn.plan.name|default:"Unknown Plan" }}</div>
+            <div class="text-muted" style="font-size:.78rem;">{{ txn.created_at|date:"j M Y, g:i A" }}</div>
+          </div>
+          <div class="text-end">
+            <div class="fw-800" style="font-size:1rem;color:{% if txn.status == 'success' %}var(--vng-success){% else %}var(--vng-muted){% endif %};">
+              ₦{{ txn.amount_naira|floatformat:0 }}
+            </div>
+            <span class="badge mt-1"
+                  style="font-size:.7rem;font-weight:700;border-radius:9999px;padding:.25rem .6rem;
+                         background:{% if txn.status == 'success' %}var(--vng-success-light){% elif txn.status == 'pending' %}var(--vng-primary-light){% else %}#FEF2F2{% endif %};
+                         color:{% if txn.status == 'success' %}var(--vng-success){% elif txn.status == 'pending' %}var(--vng-primary){% else %}#DC2626{% endif %};">
+              {{ txn.get_status_display|upper }}
+            </span>
+          </div>
+        </div>
+        <code style="font-size:.72rem;color:var(--vng-muted);">{{ txn.reference }}</code>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="d-flex align-items-center justify-content-between px-4 py-3 border-top" style="border-color:var(--vng-border);">
+      <span class="text-muted" style="font-size:.825rem;">
+        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+      </span>
+      <div class="d-flex gap-2">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}" class="btn btn-sm" style="border:1.5px solid var(--vng-border);border-radius:9999px;color:var(--vng-ink);font-size:.825rem;padding:.4rem .9rem;">← Prev</a>
+        {% endif %}
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}" class="btn btn-sm btn-vng-primary" style="border-radius:9999px;font-size:.825rem;padding:.4rem .9rem;">Next →</a>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="text-center py-5 text-muted">
+      <svg width="40" height="40" fill="none" viewBox="0 0 24 24" class="mb-3 opacity-25"><path fill="currentColor" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+      <p class="mb-0" style="font-size:.875rem;">No transactions yet.</p>
+      <a href="{% url 'payments:plans' %}" class="btn btn-sm btn-vng-primary mt-3" style="border-radius:9999px;">View Plans</a>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}
+

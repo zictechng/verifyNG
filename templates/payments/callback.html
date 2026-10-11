@@ -1,0 +1,94 @@
+
+{% extends "public/base.html" %}
+{% load static %}
+
+{% block title %}{% if success %}Payment Successful{% else %}Payment Failed{% endif %} — VerifyNG{% endblock %}
+
+{% block content %}
+<div class="container py-5 d-flex justify-content-center">
+  <div class="text-center" style="max-width:500px;width:100%;">
+
+    <!-- Result card -->
+    <div class="vng-card p-4 p-md-5 rounded-4 shadow-sm">
+
+      <!-- Icon -->
+      <div class="mb-4">
+        {% if success %}
+        <div class="mx-auto rounded-circle d-flex align-items-center justify-content-center"
+             style="width:80px;height:80px;background:var(--vng-success-light);">
+          <svg width="40" height="40" fill="none" viewBox="0 0 24 24">
+            <path fill="var(--vng-success)" d="M9 12l2 2 4-4m5-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </div>
+        {% else %}
+        <div class="mx-auto rounded-circle d-flex align-items-center justify-content-center"
+             style="width:80px;height:80px;background:#FEF2F2;">
+          <svg width="40" height="40" fill="none" viewBox="0 0 24 24">
+            <path fill="#DC2626" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Heading -->
+      <h2 class="fw-800 mb-2">{% if success %}Payment Successful!{% else %}Payment Failed{% endif %}</h2>
+
+      {% if success %}
+        <p class="text-muted mb-4" style="line-height:1.7;">
+          Your <strong>{{ transaction.plan.name }}</strong> plan is now active.
+          {% if transaction.plan.has_unlimited_checks %}
+            You have <strong>unlimited</strong> checks available.
+          {% else %}
+            You have <strong>{{ transaction.plan.check_limit }} checks</strong> available this period.
+          {% endif %}
+        </p>
+
+        <!-- Transaction summary -->
+        <div class="rounded-3 p-3 mb-4 text-start" style="background:var(--vng-page-bg);border:1px solid var(--vng-border);">
+          <div class="d-flex justify-content-between mb-2">
+            <span class="text-muted" style="font-size:.85rem;">Plan</span>
+            <span class="fw-600" style="font-size:.85rem;">{{ transaction.plan.name }}</span>
+          </div>
+          <div class="d-flex justify-content-between mb-2">
+            <span class="text-muted" style="font-size:.85rem;">Amount</span>
+            <span class="fw-700" style="font-size:.85rem;color:var(--vng-success);">₦{{ transaction.amount_naira|floatformat:0 }}</span>
+          </div>
+          <div class="d-flex justify-content-between">
+            <span class="text-muted" style="font-size:.85rem;">Reference</span>
+            <span class="fw-500 font-monospace" style="font-size:.78rem;">{{ transaction.reference }}</span>
+          </div>
+        </div>
+
+        <div class="d-grid gap-2">
+          <a href="{% url 'payments:my_subscription' %}" class="btn btn-vng-primary fw-700" style="border-radius:9999px;padding:.85rem;">
+            View My Subscription
+          </a>
+          <a href="{% url 'dashboard:home' %}" class="btn fw-600" style="border:2px solid var(--vng-border);border-radius:9999px;color:var(--vng-ink);padding:.75rem;">
+            Go to Dashboard
+          </a>
+        </div>
+
+      {% else %}
+        <p class="text-muted mb-4" style="line-height:1.7;">
+          Your payment could not be completed.
+          {% if transaction.failure_reason %}
+            <br><em style="font-size:.875rem;">{{ transaction.failure_reason }}</em>
+          {% endif %}
+          <br>No charge has been made to your account.
+        </p>
+
+        <div class="d-grid gap-2">
+          <a href="{% url 'payments:plans' %}" class="btn btn-vng-primary fw-700" style="border-radius:9999px;padding:.85rem;">
+            Try Again
+          </a>
+          <a href="{% url 'dashboard:home' %}" class="btn fw-600" style="border:2px solid var(--vng-border);border-radius:9999px;color:var(--vng-ink);padding:.75rem;">
+            Go to Dashboard
+          </a>
+        </div>
+      {% endif %}
+
+    </div><!-- /.vng-card -->
+  </div>
+</div>
+{% endblock %}
+

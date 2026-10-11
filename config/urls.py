@@ -12,9 +12,11 @@ urlpatterns = [
     path('dashboard/', include('dashboard.urls', namespace='dashboard')),
     path('verification/', include('verification.urls', namespace='verification')),
     path('notifications/', include('notifications.urls', namespace='notifications')),
+    path('payments/', include('payments.urls', namespace='payments')),
     path('', include('public_website.urls')),
 ]
 
 if settings.DEBUG:
     from django.conf.urls.static import static
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+

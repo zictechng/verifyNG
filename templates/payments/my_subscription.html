@@ -1,0 +1,219 @@
+
+{% extends "public/base.html" %}
+{% load static %}
+
+{% block title %}My Subscription — VerifyNG{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-md-5">
+  <div class="row g-4">
+
+    <!-- LEFT: Current plan -->
+    <div class="col-12 col-lg-7">
+      <h2 class="fw-800 mb-4" style="font-size:1.5rem;">My Subscription</h2>
+
+      {% if active_subscription %}
+      <!-- Active subscription card -->
+      <div class="vng-card p-4 mb-4 rounded-4"
+           style="border:2px solid var(--vng-success);background:#fff;box-shadow:0 4px 20px rgba(22,163,74,.08);">
+
+        <div class="d-flex align-items-start justify-content-between flex-wrap gap-2 mb-3">
+          <div>
+            <span class="badge mb-2" style="background:var(--vng-success-light);color:var(--vng-success);font-weight:700;font-size:.75rem;border-radius:9999px;padding:.35rem .85rem;">✓ ACTIVE</span>
+            <h3 class="fw-800 mb-0" style="font-size:1.4rem;">{{ active_subscription.plan.name }}</h3>
+          </div>
+          <div class="text-end">
+            <div class="fw-800" style="font-size:1.75rem;color:var(--vng-ink);">
+              {% if active_subscription.plan.is_free %}Free{% else %}₦{{ active_subscription.plan.price_naira|floatformat:0 }}{% endif %}
+            </div>
+            <div class="text-muted" style="font-size:.8rem;">/{{ active_subscription.plan.get_interval_display|lower }}</div>
+          </div>
+        </div>
+
+        <!-- Period info -->
+        <div class="row g-3 mb-3">
+          <div class="col-6">
+            <div class="p-3 rounded-3" style="background:var(--vng-page-bg);">
+              <div class="text-muted mb-1" style="font-size:.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Start Date</div>
+              <div class="fw-700" style="font-size:.9rem;">{{ active_subscription.current_period_start|date:"j M Y"|default:"—" }}</div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="p-3 rounded-3" style="background:var(--vng-page-bg);">
+              <div class="text-muted mb-1" style="font-size:.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;">
+                {% if active_subscription.current_period_end %}Expires{% else %}Validity{% endif %}
+              </div>
+              <div class="fw-700" style="font-size:.9rem;">
+                {% if active_subscription.current_period_end %}
+                  {{ active_subscription.current_period_end|date:"j M Y" }}
+                  {% if active_subscription.days_remaining is not None %}
+                    <span class="ms-1 badge" style="font-size:.7rem;background:var(--vng-primary-light);color:var(--vng-primary);border-radius:9999px;">{{ active_subscription.days_remaining }}d left</span>
+                  {% endif %}
+                {% else %}
+                  No Expiry
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Checks info -->
+        <div class="p-3 rounded-3 mb-3" style="background:var(--vng-primary-light);border:1px solid #c7d9f9;">
+          <div class="d-flex align-items-center gap-2">
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path fill="var(--vng-primary)" d="M9 12l2 2 4-4m5-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span style="font-size:.875rem;color:var(--vng-primary);font-weight:600;">
+              {% if active_subscription.plan.has_unlimited_checks %}
+                Unlimited background checks
+              {% else %}
+                {{ active_subscription.plan.check_limit }} checks per period
+              {% endif %}
+            </span>
+          </div>
+        </div>
+
+        <!-- Cancel notice or button -->
+        {% if active_subscription.cancel_at_period_end %}
+        <div class="alert mb-0 rounded-3 border-0" style="background:var(--vng-warning-light);">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" class="me-2"><path fill="#B45309" d="M12 2a10 10 0 100 20A10 10 0 0012 2zm0 14a1 1 0 110-2 1 1 0 010 2zm1-5a1 1 0 01-2 0V7a1 1 0 012 0v4z"/></svg>
+          <span style="color:var(--vng-warning);font-size:.875rem;font-weight:600;">
+            Cancellation scheduled — access continues until {{ active_subscription.current_period_end|date:"j M Y"|default:"end of period" }}.
+          </span>
+        </div>
+        {% else %}
+        <button type="button" class="btn btn-sm fw-600 mt-1"
+                data-bs-toggle="modal" data-bs-target="#cancelModal"
+                style="color:#DC2626;border:1.5px solid #DC2626;border-radius:9999px;padding:.4rem 1.2rem;font-size:.825rem;background:transparent;">
+          Cancel subscription
+        </button>
+        {% endif %}
+      </div>
+
+      {% else %}
+      <!-- No active subscription -->
+      <div class="vng-card p-4 mb-4 rounded-4 text-center" style="background:#fff;border:2px dashed var(--vng-border);">
+        <div class="mx-auto mb-3 rounded-circle d-flex align-items-center justify-content-center"
+             style="width:56px;height:56px;background:var(--vng-primary-light);">
+          <svg width="26" height="26" fill="none" viewBox="0 0 24 24"><path fill="var(--vng-primary)" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+        </div>
+        <h5 class="fw-700 mb-2">No Active Plan</h5>
+
+        <!-- Free quota display -->
+        {% if free_quota %}
+        <p class="text-muted mb-3" style="font-size:.875rem;line-height:1.6;">
+          You're on the free tier.<br>
+          <strong>{{ free_quota.checks_used }}</strong> of <strong>{{ site_settings.free_check_limit }}</strong> free checks used this period.
+        </p>
+        {% else %}
+        <p class="text-muted mb-3" style="font-size:.875rem;">Upgrade to get more checks and features.</p>
+        {% endif %}
+
+        <a href="{% url 'payments:plans' %}" class="btn btn-vng-primary fw-700" style="border-radius:9999px;padding:.75rem 2rem;">
+          View Plans
+        </a>
+      </div>
+      {% endif %}
+
+      <!-- Upgrade prompt (when subscribed but not unlimited) -->
+      {% if active_subscription and not active_subscription.plan.has_unlimited_checks %}
+      <div class="p-3 rounded-3 d-flex align-items-center gap-3" style="background:var(--vng-page-bg);border:1px solid var(--vng-border);">
+        <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path fill="var(--vng-primary)" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+        <div>
+          <div class="fw-600" style="font-size:.875rem;">Need more checks?</div>
+          <a href="{% url 'payments:plans' %}" style="font-size:.825rem;color:var(--vng-primary);font-weight:600;">View upgrade options →</a>
+        </div>
+      </div>
+      {% endif %}
+
+    </div><!-- /col-left -->
+
+    <!-- RIGHT: Recent transactions -->
+    <div class="col-12 col-lg-5">
+      <div class="d-flex align-items-center justify-content-between mb-4">
+        <h2 class="fw-800 mb-0" style="font-size:1.25rem;">Recent Payments</h2>
+        {% if recent_transactions %}
+        <a href="{% url 'payments:history' %}" style="font-size:.825rem;color:var(--vng-primary);font-weight:600;">View all →</a>
+        {% endif %}
+      </div>
+
+      {% if recent_transactions %}
+      <div class="vng-card rounded-4 overflow-hidden" style="background:#fff;">
+        {% for txn in recent_transactions %}
+        <div class="d-flex align-items-center gap-3 px-4 py-3 {% if not forloop.last %}border-bottom{% endif %}" style="border-color:var(--vng-border) !important;">
+          <!-- Status icon -->
+          <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+               style="width:38px;height:38px;background:{% if txn.status == 'success' %}var(--vng-success-light){% elif txn.status == 'pending' %}var(--vng-primary-light){% else %}#FEF2F2{% endif %};">
+            {% if txn.status == 'success' %}
+              <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path fill="var(--vng-success)" d="M9 12l2 2 4-4"/></svg>
+            {% elif txn.status == 'pending' %}
+              <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path fill="var(--vng-primary)" d="M12 8v4l3 3"/></svg>
+            {% else %}
+              <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path fill="#DC2626" d="M6 18L18 6M6 6l12 12"/></svg>
+            {% endif %}
+          </div>
+          <!-- Details -->
+          <div class="flex-grow-1 min-w-0">
+            <div class="fw-600 text-truncate" style="font-size:.875rem;">{{ txn.plan.name|default:"Unknown Plan" }}</div>
+            <div class="text-muted" style="font-size:.75rem;">{{ txn.created_at|date:"j M Y" }}</div>
+          </div>
+          <!-- Amount -->
+          <div class="text-end flex-shrink-0">
+            <div class="fw-700" style="font-size:.9rem;color:{% if txn.status == 'success' %}var(--vng-success){% else %}var(--vng-muted){% endif %};">
+              ₦{{ txn.amount_naira|floatformat:0 }}
+            </div>
+            <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;
+                        color:{% if txn.status == 'success' %}var(--vng-success){% elif txn.status == 'pending' %}var(--vng-primary){% else %}#DC2626{% endif %};font-weight:600;">
+              {{ txn.get_status_display }}
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      {% else %}
+      <div class="vng-card p-4 rounded-4 text-center text-muted" style="background:#fff;">
+        <svg width="36" height="36" fill="none" viewBox="0 0 24 24" class="mb-3 opacity-25"><path fill="currentColor" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+        <p class="mb-0" style="font-size:.875rem;">No payment history yet.</p>
+      </div>
+      {% endif %}
+
+    </div><!-- /col-right -->
+  </div>
+</div>
+
+<!-- Cancel Confirmation Modal -->
+{% if active_subscription and not active_subscription.cancel_at_period_end %}
+<div class="modal fade" id="cancelModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-4 border-0 shadow-lg p-2">
+      <div class="modal-body text-center p-4">
+        <!-- Warning icon -->
+        <div class="mx-auto mb-3 rounded-circle d-flex align-items-center justify-content-center"
+             style="width:60px;height:60px;background:#FEF2F2;">
+          <svg width="28" height="28" fill="none" viewBox="0 0 24 24"><path fill="#DC2626" d="M12 2a10 10 0 100 20A10 10 0 0012 2zm0 14a1 1 0 110-2 1 1 0 010 2zm1-5a1 1 0 01-2 0V7a1 1 0 012 0v4z"/></svg>
+        </div>
+        <h5 class="fw-800 mb-2">Cancel Subscription?</h5>
+        <p class="text-muted mb-4" style="font-size:.875rem;line-height:1.7;">
+          Your <strong>{{ active_subscription.plan.name }}</strong> plan will remain active until
+          <strong>{{ active_subscription.current_period_end|date:"j M Y"|default:"the end of your period" }}</strong>.
+          After that, you'll revert to the free tier.
+        </p>
+        <form method="post" action="{% url 'payments:cancel' %}">
+          {% csrf_token %}
+          <div class="d-grid gap-2">
+            <button type="submit" class="btn fw-700" style="background:#DC2626;color:#fff;border:none;border-radius:9999px;padding:.85rem;">
+              Yes, Cancel My Subscription
+            </button>
+            <button type="button" class="btn fw-600" data-bs-dismiss="modal"
+                    style="border:2px solid var(--vng-border);border-radius:9999px;color:var(--vng-ink);padding:.75rem;">
+              Keep My Subscription
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+

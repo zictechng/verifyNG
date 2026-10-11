@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     'verification',
     'core',
     'notifications',
+    'payments',
 ]
 
 MIDDLEWARE = [
@@ -173,7 +174,15 @@ GMAIL_SMTP_APP_PASSWORD = env('GMAIL_SMTP_APP_PASSWORD', default='')
 GMAIL_FROM_NAME = env('GMAIL_FROM_NAME', default='VerifyNG')
 
 
+# ==============================================================================
+# Payments & Subscriptions (Phase 12) — Paystack Configuration
+# ==============================================================================
+PAYSTACK_SECRET_KEY = env('PAYSTACK_SECRET_KEY', default='')
+PAYSTACK_PUBLIC_KEY = env('PAYSTACK_PUBLIC_KEY', default='')
 
+# Full base URL used to build Paystack callback URLs.
+# Override in production: SITE_BASE_URL=https://verifyng.com
+SITE_BASE_URL = env('SITE_BASE_URL', default='http://localhost:8000')
 
 
 

@@ -1,0 +1,177 @@
+
+{% extends "public/base.html" %}
+{% load static %}
+
+{% block title %}Plans & Pricing — VerifyNG{% endblock %}
+{% block meta_description %}Choose the right VerifyNG plan for background checks and fraud reports in Nigeria.{% endblock %}
+
+{% block content %}
+<div class="vng-plans-page py-5">
+  <div class="container">
+
+    <!-- Page Header -->
+    <div class="text-center mb-5">
+      <span class="badge rounded-pill mb-3" style="background:var(--vng-primary-light);color:var(--vng-primary);font-size:.8rem;font-weight:600;padding:.5rem 1rem;">Simple, Transparent Pricing</span>
+      <h1 class="fw-800 mb-3" style="font-size:clamp(1.75rem,4vw,2.75rem);letter-spacing:-.03em;">Choose Your Plan</h1>
+      <p class="text-muted mx-auto" style="max-width:520px;line-height:1.7;">Run background checks, verify identities, and submit fraud reports. Pick the plan that fits — upgrade or cancel anytime.</p>
+    </div>
+
+    <!-- Maintenance banner -->
+    {% if site_settings.maintenance_mode %}
+    <div class="alert alert-warning rounded-3 border-0 shadow-sm mb-4 d-flex align-items-center gap-3">
+      <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path fill="#B45309" d="M12 2a10 10 0 100 20A10 10 0 0012 2zm0 14a1 1 0 110-2 1 1 0 010 2zm1-5a1 1 0 01-2 0V7a1 1 0 012 0v4z"/></svg>
+      <span class="fw-600">Payments are temporarily unavailable for maintenance. Check back soon.</span>
+    </div>
+    {% endif %}
+
+    <!-- Free tier status (authenticated) -->
+    {% if user.is_authenticated and free_quota and not active_subscription %}
+    <div class="vng-free-bar mb-4 p-3 rounded-3 d-flex align-items-center justify-content-between flex-wrap gap-2"
+         style="background:var(--vng-primary-light);border:1px solid #c7d9f9;">
+      <div class="d-flex align-items-center gap-2">
+        <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="var(--vng-primary)" opacity=".15"/><path fill="var(--vng-primary)" d="M12 6v6l4 2"/></svg>
+        <span style="font-size:.875rem;color:var(--vng-primary);font-weight:600;">
+          Free tier: {{ free_quota.checks_used }} / {{ site_settings.free_check_limit }} checks used this period
+        </span>
+      </div>
+      <div class="progress flex-grow-1 mx-2" style="height:6px;max-width:200px;background:#c7d9f9;">
+        <div class="progress-bar" style="width:{% widthratio free_quota.checks_used site_settings.free_check_limit 100 %}%;background:var(--vng-primary);border-radius:9999px;"></div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Active subscription banner -->
+    {% if active_subscription %}
+    <div class="alert rounded-3 border-0 shadow-sm mb-4 d-flex align-items-center gap-3"
+         style="background:var(--vng-success-light);border-left:4px solid var(--vng-success) !important;">
+      <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path fill="var(--vng-success)" d="M9 12l2 2 4-4m5-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      <div>
+        <span class="fw-700" style="color:var(--vng-success);">Active: {{ active_subscription.plan.name }}</span>
+        <span class="text-muted ms-2" style="font-size:.85rem;">
+          {% if active_subscription.current_period_end %}
+            · renews {{ active_subscription.current_period_end|date:"j M Y" }}
+          {% else %}
+            · no expiry
+          {% endif %}
+        </span>
+      </div>
+      <a href="{% url 'payments:my_subscription' %}" class="btn btn-sm ms-auto" style="background:var(--vng-success);color:#fff;border:none;border-radius:9999px;font-weight:600;font-size:.8rem;">Manage</a>
+    </div>
+    {% endif %}
+
+    <!-- Plans Grid -->
+    <div class="row g-4 justify-content-center">
+      {% for plan in plans %}
+      <div class="col-12 col-sm-10 col-md-6 col-lg-4">
+        <div class="vng-plan-card h-100 position-relative
+                    {% if plan.is_featured %}vng-plan-featured{% endif %}"
+             style="background:#fff;border-radius:var(--vng-radius-lg);border:2px solid {% if plan.is_featured %}var(--vng-primary){% else %}var(--vng-border){% endif %};padding:1.75rem 1.5rem;display:flex;flex-direction:column;box-shadow:{% if plan.is_featured %}var(--vng-shadow-lg){% else %}var(--vng-shadow-sm){% endif %};transition:box-shadow .2s,transform .2s;">
+
+          <!-- Featured badge -->
+          {% if plan.is_featured %}
+          <div class="position-absolute top-0 start-50 translate-middle">
+            <span class="badge" style="background:var(--vng-primary);color:#fff;font-size:.7rem;font-weight:700;padding:.35rem .85rem;border-radius:9999px;letter-spacing:.05em;">RECOMMENDED</span>
+          </div>
+          {% endif %}
+
+          <!-- Plan name + price -->
+          <div class="mb-4 {% if plan.is_featured %}pt-2{% endif %}">
+            <h3 class="fw-700 mb-1" style="font-size:1.25rem;">{{ plan.name }}</h3>
+            <p class="text-muted mb-3" style="font-size:.875rem;line-height:1.6;">{{ plan.description }}</p>
+
+            <div class="d-flex align-items-end gap-1">
+              {% if plan.is_free %}
+                <span style="font-size:2.5rem;font-weight:800;color:var(--vng-ink);line-height:1;">Free</span>
+              {% else %}
+                <span style="font-size:1.1rem;font-weight:600;color:var(--vng-muted);align-self:flex-start;padding-top:.4rem;">₦</span>
+                <span style="font-size:2.5rem;font-weight:800;color:var(--vng-ink);line-height:1;">{{ plan.price_naira|floatformat:0 }}</span>
+                <span style="font-size:.9rem;color:var(--vng-muted);padding-bottom:.25rem;">/{{ plan.get_interval_display|lower }}</span>
+              {% endif %}
+            </div>
+
+            <div class="mt-2">
+              {% if plan.has_unlimited_checks %}
+                <span class="badge" style="background:var(--vng-teal-light);color:var(--vng-teal);font-size:.75rem;font-weight:600;border-radius:9999px;padding:.3rem .75rem;">Unlimited checks</span>
+              {% else %}
+                <span class="badge" style="background:var(--vng-primary-light);color:var(--vng-primary);font-size:.75rem;font-weight:600;border-radius:9999px;padding:.3rem .75rem;">{{ plan.check_limit }} checks / period</span>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Features list -->
+          <ul class="list-unstyled mb-4 flex-grow-1">
+            {% for feature in plan.features.all %}
+            <li class="d-flex align-items-start gap-2 mb-2" style="font-size:.875rem;">
+              {% if feature.is_included %}
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="flex-shrink:0;margin-top:2px;"><path fill="var(--vng-success)" d="M9 12l2 2 4-4m5-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span>{{ feature.feature_text }}</span>
+              {% else %}
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="flex-shrink:0;margin-top:2px;"><path fill="#CBD5E1" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span style="color:var(--vng-muted);text-decoration:line-through;">{{ feature.feature_text }}</span>
+              {% endif %}
+            </li>
+            {% endfor %}
+          </ul>
+
+          <!-- CTA -->
+          <div class="mt-auto">
+            {% if user.is_authenticated %}
+              {% if active_subscription and active_subscription.plan.id == plan.id %}
+                <button class="btn w-100 fw-600" style="border:2px solid var(--vng-border);color:var(--vng-muted);border-radius:9999px;padding:.75rem;cursor:default;">
+                  Current Plan
+                </button>
+              {% elif site_settings.maintenance_mode %}
+                <button class="btn w-100 fw-600" disabled style="background:#CBD5E1;color:#fff;border:none;border-radius:9999px;padding:.75rem;">
+                  Unavailable
+                </button>
+              {% else %}
+                <a href="{% url 'payments:checkout' plan.slug %}"
+                   class="btn w-100 fw-700 {% if plan.is_featured %}btn-vng-primary{% else %}btn-vng-outline{% endif %}"
+                   style="border-radius:9999px;padding:.75rem;">
+                  {% if plan.is_free %}Get Started Free{% else %}Get {{ plan.name }}{% endif %}
+                </a>
+              {% endif %}
+            {% else %}
+              <a href="{% url 'users:login' %}?next={% url 'payments:checkout' plan.slug %}"
+                 class="btn w-100 fw-700 {% if plan.is_featured %}btn-vng-primary{% else %}btn-vng-outline{% endif %}"
+                 style="border-radius:9999px;padding:.75rem;">
+                Sign in to Subscribe
+              </a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% empty %}
+      <div class="col-12 text-center py-5">
+        <p class="text-muted">No plans available at the moment. Please check back soon.</p>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Footer note -->
+    <p class="text-center text-muted mt-5 mb-0" style="font-size:.825rem;">
+      All prices in Nigerian Naira (₦). Payments powered by <strong>Paystack</strong>. Cancel anytime.
+    </p>
+
+  </div>
+</div>
+
+<!-- Plan card hover styles -->
+<style>
+  .vng-plan-card:hover {
+    box-shadow: var(--vng-shadow-lg);
+    transform: translateY(-2px);
+  }
+  .btn-vng-outline {
+    border: 2px solid var(--vng-primary) !important;
+    color: var(--vng-primary) !important;
+    background: transparent !important;
+    transition: background .2s, color .2s;
+  }
+  .btn-vng-outline:hover {
+    background: var(--vng-primary) !important;
+    color: #fff !important;
+  }
+</style>
+{% endblock %}
+
