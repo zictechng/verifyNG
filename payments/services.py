@@ -13,7 +13,7 @@ import requests
 from django.conf import settings
 from django.utils import timezone
 
-from .models import Plan, Subscription, Transaction, SiteSettings
+from .models import Plan, Subscription, Transaction, SiteSettings, PaymentAuditLog
 
 logger = logging.getLogger(__name__)
 
@@ -201,6 +201,17 @@ def _activate_subscription(transaction: Transaction, paystack_data: dict):
         plan.name,
         period_end.date(),
     )
+    PaymentAuditLog.objects.create(
+        action='SUBSCRIPTION_ACTIVATED',
+        user=transaction.user,
+        transaction=transaction,
+        subscription=subscription,
+        details={
+            'plan_name': plan.name,
+            'plan_id': plan.id,
+            'period_end': str(period_end.date()),
+        },
+    )
 
 
 def verify_webhook_signature(payload_bytes: bytes, paystack_signature: str) -> bool:
@@ -212,7 +223,6 @@ def verify_webhook_signature(payload_bytes: bytes, paystack_signature: str) -> b
     expected = hmac.new(secret, payload_bytes, hashlib.sha512).hexdigest()
     return hmac.compare_digest(expected, paystack_signature)
 
-
 def process_webhook_event(event: dict):
     """
     Process a verified Paystack webhook event.
@@ -222,6 +232,11 @@ def process_webhook_event(event: dict):
     data = event.get('data', {})
 
     logger.info("Processing Paystack webhook event: %s", event_type)
+
+    PaymentAuditLog.objects.create(
+        action='WEBHOOK_RECEIVED',
+        details={'event_type': event_type},
+    )
 
     if event_type == 'charge.success':
         reference = data.get('reference', '')
@@ -237,13 +252,20 @@ def process_webhook_event(event: dict):
         Subscription.objects.filter(
             paystack_subscription_code=sub_code
         ).update(status='cancelled', cancel_at_period_end=True, updated_at=timezone.now())
+        PaymentAuditLog.objects.create(
+            action='WEBHOOK_SUBSCRIPTION_DISABLED',
+            details={'subscription_code': sub_code},
+        )
 
     elif event_type == 'invoice.payment_failed':
         sub_code = data.get('subscription', {}).get('subscription_code', '')
         Subscription.objects.filter(
             paystack_subscription_code=sub_code
         ).update(status='past_due', updated_at=timezone.now())
-
+        PaymentAuditLog.objects.create(
+            action='WEBHOOK_PAYMENT_FAILED',
+            details={'subscription_code': sub_code},
+        )
 
 def get_active_subscription(user) -> Subscription | None:
     """Return the user's current active subscription or None."""

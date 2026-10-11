@@ -9,8 +9,9 @@ from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
+from core.rate_limiting import get_client_ip
 
-from .models import FreeUsageQuota, Plan, SiteSettings, Subscription, Transaction
+from .models import FreeUsageQuota, Plan, SiteSettings, Subscription, Transaction, PaymentAuditLog
 from .services import (
     get_active_subscription,
     initialize_transaction,
@@ -19,6 +20,7 @@ from .services import (
     verify_webhook_signature,
 )
 from .tasks import verify_pending_transaction
+from core.rate_limiting import get_client_ip
 
 logger = logging.getLogger(__name__)
 
@@ -98,6 +100,12 @@ def checkout(request, plan_slug):
 
     # Store reference in session so callback can verify without a GET param being tampered
     request.session['vng_pending_ref'] = result['reference']
+    PaymentAuditLog.objects.create(
+        action='CHECKOUT_INITIATED',
+        user=request.user,
+        ip_address=get_client_ip(request),
+        details={'plan_name': plan.name, 'plan_slug': plan.slug, 'reference': result['reference']},
+    )
 
     return redirect(result['authorization_url'])
 
@@ -116,6 +124,11 @@ def _activate_free_plan(user, plan: Plan):
         status='active',
         current_period_start=timezone.now(),
         current_period_end=None,  # Free plan — no expiry
+    )
+    PaymentAuditLog.objects.create(
+        action='FREE_PLAN_ACTIVATED',
+        user=user,
+        details={'plan_name': plan.name, 'plan_id': plan.id},
     )
     logger.info("Free plan activated for user=%s plan=%s", user.username, plan.name)
 
@@ -189,6 +202,13 @@ def payment_callback(request):
         return redirect('payments:my_subscription')
 
     success = transaction.status == 'success'
+    PaymentAuditLog.objects.create(
+        action='PAYMENT_SUCCESS' if success else 'PAYMENT_FAILED',
+        user=request.user,
+        transaction=transaction,
+        ip_address=get_client_ip(request),
+        details={'reference': reference, 'plan_name': transaction.plan.name if transaction.plan else ''},
+    )
     context = {
         'success': success,
         'transaction': transaction,
@@ -281,7 +301,14 @@ def cancel_subscription(request):
     active_sub.cancel_at_period_end = True
     active_sub.cancelled_at = timezone.now()
     active_sub.save(update_fields=['cancel_at_period_end', 'cancelled_at', 'updated_at'])
-
+    
+    PaymentAuditLog.objects.create(
+        action='SUBSCRIPTION_CANCELLED',
+        user=request.user,
+        subscription=active_sub,
+        ip_address=get_client_ip(request),
+        details={'plan_name': active_sub.plan.name, 'period_end': str(active_sub.current_period_end)},
+    )
     logger.info(
         "Subscription cancel_at_period_end set (user=%s, sub=%s)",
         request.user.username, active_sub.id

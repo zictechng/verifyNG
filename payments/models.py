@@ -1,5 +1,6 @@
 
 # payments/models.py
+from django.conf import settings
 import uuid
 from django.db import models
 from django.utils import timezone
@@ -295,4 +296,60 @@ class FreeUsageQuota(models.Model):
         obj, _ = cls.objects.get_or_create(user=user)
         obj.reset_if_expired()
         return obj
+
+
+class PaymentAuditLog(models.Model):
+    """
+    Immutable audit log for all payment-related events.
+    Never delete or update rows — append only.
+    """
+    ACTION_CHOICES = (
+        ('CHECKOUT_INITIATED', 'Checkout Initiated'),
+        ('PAYMENT_SUCCESS', 'Payment Success'),
+        ('PAYMENT_FAILED', 'Payment Failed'),
+        ('SUBSCRIPTION_ACTIVATED', 'Subscription Activated'),
+        ('SUBSCRIPTION_CANCELLED', 'Subscription Cancelled'),
+        ('FREE_PLAN_ACTIVATED', 'Free Plan Activated'),
+        ('WEBHOOK_RECEIVED', 'Webhook Event Received'),
+        ('WEBHOOK_SUBSCRIPTION_DISABLED', 'Webhook: Subscription Disabled'),
+        ('WEBHOOK_PAYMENT_FAILED', 'Webhook: Payment Failed'),
+    )
+
+    action = models.CharField(max_length=60, choices=ACTION_CHOICES, db_index=True)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='payment_audit_logs',
+    )
+    transaction = models.ForeignKey(
+        Transaction,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='audit_logs',
+    )
+    subscription = models.ForeignKey(
+        Subscription,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='audit_logs',
+    )
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    details = models.JSONField(default=dict, blank=True)
+    timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ['-timestamp']
+        verbose_name = 'Payment Audit Log'
+        verbose_name_plural = 'Payment Audit Logs'
+
+    def __str__(self):
+        return f"{self.action} — {self.user} at {self.timestamp:%Y-%m-%d %H:%M}"
+
+
+
+
 
