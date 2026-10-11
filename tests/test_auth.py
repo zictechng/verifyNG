@@ -18,16 +18,16 @@ from users.models import User
 # ---------------------------------------------------------------------------
 
 def make_user(username='testuser', password='StrongPass123!', email='test@example.com',
-              is_verified=False):
+              identity_verified=False):
     """Create and return a User instance."""
     user = User.objects.create_user(
         username=username,
         email=email,
         password=password,
     )
-    if is_verified:
-        user.is_verified = True
-        user.save(update_fields=['is_verified'])
+    if identity_verified:
+        user.identity_verified = True
+        user.save(update_fields=['identity_verified'])
     return user
 
 
@@ -209,7 +209,7 @@ class ReportIdentityGateTest(TestCase):
         factory = RequestFactory()
         request = factory.get(self.url)
 
-        user = make_user(username='unverified', is_verified=False)
+        user = make_user(username='unverified', identity_verified=False)
         request.user = user
 
         # Attach message storage (required by messages.warning in dispatch)
@@ -232,7 +232,7 @@ class ReportIdentityGateTest(TestCase):
         factory = RequestFactory()
         request = factory.get(self.url)
 
-        user = make_user(username='verified2', is_verified=True)
+        user = make_user(username='verified2', identity_verified=True)
         request.user = user
 
         setattr(request, 'session', {})

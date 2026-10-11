@@ -53,8 +53,8 @@ def lookup_public_record(identifier_hash: str) -> dict | None:
         for vr in subject.verification_requests.all()
     )
 
-    is_verified = is_business_verified or has_verified_request
-    if is_verified:
+    identity_verified = is_business_verified or has_verified_request
+    if identity_verified:
         verification_label = "Officially Verified"
     else:
         verification_label = "Unverified (No Official Verification on File)"
@@ -77,7 +77,7 @@ def lookup_public_record(identifier_hash: str) -> dict | None:
         "subject_name": subject_name,
         "entity_type": entity_type,
         "active_reports_count": published_count,
-        "is_verified": is_verified,
+        "identity_verified": identity_verified,
         "verification_label": verification_label,
         "has_active_flags": has_active_flags,
         "published_reports_count": published_count,

@@ -27,7 +27,7 @@ class CheckResponse(Schema):
     active_reports_count: int
 
     # Status separation and public safety additions (Phase 7, Batch 7.1)
-    is_verified: bool
+    identity_verified: bool
     verification_label: str
     has_active_flags: bool
     published_reports_count: int

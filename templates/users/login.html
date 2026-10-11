@@ -26,7 +26,7 @@
                     </div>
                 {% endif %}
 
-                <form method="post" novalidate>
+                <form method="post" novalidate x-data="{ loading: false }" @submit="loading = true">
                     {% csrf_token %}
 
                     <div class="mb-3">
@@ -59,8 +59,12 @@
                         {% endif %}
                     </div>
 
-                    <button type="submit" class="btn btn-vng-primary w-100 py-2 mt-2">
-                        Sign In &rarr;
+                    <button type="submit" class="btn btn-vng-primary w-100 py-2 mt-2" :disabled="loading">
+                        <span x-show="!loading">Sign In &rarr;</span>
+                        <span x-show="loading" x-cloak>
+                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                            Signing in...
+                        </span>
                     </button>
                 </form>
 

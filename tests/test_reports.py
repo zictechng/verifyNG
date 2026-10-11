@@ -38,8 +38,8 @@ from reports.services import (
 
 def make_verified_user(username='reporter', email='reporter@example.com'):
     user = User.objects.create_user(username=username, email=email, password='StrongPass123!')
-    user.is_verified = True
-    user.save(update_fields=['is_verified'])
+    user.identity_verified = True
+    user.save(update_fields=['identity_verified'])
     return user
 
 

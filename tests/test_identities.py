@@ -351,7 +351,7 @@ class LookupPublicRecordTest(TestCase):
     def test_result_contains_expected_keys(self):
         result = lookup_public_record(self.good_hash)
         required_keys = {
-            'subject_name', 'entity_type', 'is_verified',
+            'subject_name', 'entity_type', 'identity_verified',
             'has_active_flags', 'published_reports_count',
             'disputed_reports_count', 'allegation_notice',
         }

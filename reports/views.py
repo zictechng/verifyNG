@@ -33,7 +33,7 @@ class ReportCreateView(LoginRequiredMixin, FormView):
     def dispatch(self, request, *args, **kwargs):
         # LoginRequiredMixin handles unauthenticated users via super().
         # For authenticated-but-unverified users, block here before form renders.
-        if request.user.is_authenticated and not request.user.is_verified:
+        if request.user.is_authenticated and not request.user.identity_verified:
             messages.warning(
                 request,
                 "You must verify your identity (NIN or BVN) before submitting a fraud report. "

@@ -20,7 +20,7 @@ class User(AbstractUser):
         db_index=True,
         help_text="Primary RBAC role assignment"
     )
-    is_verified = models.BooleanField(
+    identity_verified = models.BooleanField(
         default=False,
         help_text="User identity verification status"
     )

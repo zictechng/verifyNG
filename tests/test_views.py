@@ -39,14 +39,14 @@ from verification.models import VerificationRequest, VerificationResult
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
 def make_user(username='testuser', email='test@example.com', password='StrongPass123!',
-              role='user', is_staff=False, is_superuser=False, is_verified=True):
+              role='user', is_staff=False, is_superuser=False, identity_verified=True):
     u = User.objects.create_user(
         username=username, email=email, password=password,
         is_staff=is_staff, is_superuser=is_superuser,
     )
     u.role = role
-    u.is_verified = is_verified
-    u.save(update_fields=['role', 'is_verified'])
+    u.identity_verified = identity_verified
+    u.save(update_fields=['role', 'identity_verified'])
     return u
 
 

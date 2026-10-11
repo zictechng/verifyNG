@@ -680,7 +680,7 @@ class EndToEndVerificationAndPublicCheckTestCase(TestCase):
         # 1. Initially unverified
         res0 = lookup_public_record(self.cac_hash)
         self.assertIsNotNone(res0)
-        self.assertFalse(res0['is_verified'])
+        self.assertFalse(res0['identity_verified'])
         self.assertEqual(res0['verification_label'], "Unverified (No Official Verification on File)")
 
         # 2. Employer submits verification request referencing CAC
@@ -718,7 +718,7 @@ class EndToEndVerificationAndPublicCheckTestCase(TestCase):
 
         # 5. Public CHECK on the CAC hash immediately evaluates as officially verified
         res1 = lookup_public_record(self.cac_hash)
-        self.assertTrue(res1['is_verified'])
+        self.assertTrue(res1['identity_verified'])
         self.assertEqual(res1['verification_label'], "Officially Verified")
 
 

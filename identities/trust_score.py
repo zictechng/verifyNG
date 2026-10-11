@@ -189,7 +189,7 @@ def recalculate_trust_score(subject_id: int) -> 'TrustScore':
     disputed_count   = subject.reports.filter(state='disputed').count()
     restricted_count = subject.reports.filter(state='restricted').count()
     completed_verifs = subject.verification_requests.filter(status='completed').count()
-    is_verified      = subject.verification_requests.filter(
+    identity_verified      = subject.verification_requests.filter(
         status='completed', result__outcome='verified'
     ).exists()
 
@@ -204,7 +204,7 @@ def recalculate_trust_score(subject_id: int) -> 'TrustScore':
             'published_reports_count':  published_count,
             'disputed_reports_count':   disputed_count,
             'restricted_reports_count': restricted_count,
-            'is_identity_verified':     is_verified,
+            'is_identity_verified':     identity_verified,
             'completed_verifications':  completed_verifs,
         }
     )

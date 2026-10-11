@@ -21,7 +21,7 @@
                     <div>
                         <h5 class="fw-bold mb-0">{{ user_profile.get_full_name|default:user_profile.username }}</h5>
                         <span class="badge bg-primary text-uppercase">{{ user_profile.get_role_display }}</span>
-                        {% if user_profile.is_verified %}
+                        {% if user_profile.identity_verified %}
                             <span class="badge bg-success ms-1">Verified</span>
                         {% else %}
                             <span class="badge bg-secondary ms-1">Unverified</span>

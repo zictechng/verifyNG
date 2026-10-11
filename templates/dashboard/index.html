@@ -59,7 +59,7 @@
             <div class="vng-card p-4 h-100">
                 <div class="d-flex align-items-center justify-content-between mb-3">
                     <span class="small fw-semibold text-muted">Account</span>
-                    {% if request.user.is_verified %}
+                    {% if request.user.identity_verified %}
                         <span class="badge bg-success">Verified</span>
                     {% else %}
                         <span class="badge bg-secondary">Unverified</span>

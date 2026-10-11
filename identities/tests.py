@@ -124,7 +124,7 @@ class Phase7StatusSeparationServiceTestCase(TestCase):
 
         record = lookup_public_record('hash_tech_corp_123')
         self.assertIsNotNone(record)
-        self.assertTrue(record['is_verified'])
+        self.assertTrue(record['identity_verified'])
         self.assertEqual(record['verification_label'], 'Officially Verified')
         self.assertTrue(record['has_active_flags'])
         # Only published report is counted; 'submitted' is excluded
@@ -136,7 +136,7 @@ class Phase7StatusSeparationServiceTestCase(TestCase):
     def test_status_separation_unverified_entity(self):
         record = lookup_public_record('hash_tech_corp_123')
         self.assertIsNotNone(record)
-        self.assertFalse(record['is_verified'])
+        self.assertFalse(record['identity_verified'])
         self.assertFalse(record['has_active_flags'])
         self.assertEqual(record['published_reports_count'], 0)
         self.assertEqual(record['verification_label'], 'Unverified (No Official Verification on File)')

@@ -78,7 +78,7 @@ class RateLimitingEndpointRegressionTestCase(TestCase):
         data = res.json()
         self.assertEqual(data['subject_name'], 'Lookup Target')
         self.assertEqual(data['entity_type'], 'person')
-        self.assertFalse(data['is_verified'])
+        self.assertFalse(data['identity_verified'])
         self.assertFalse(data['has_active_flags'])
         self.assertIn('allegation_notice', data)
         # Ensure zero raw identifier or PII is returned
