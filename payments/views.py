@@ -10,6 +10,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from core.rate_limiting import get_client_ip
+from core.rate_limiting import check_rate_limit
 
 from .models import FreeUsageQuota, Plan, SiteSettings, Subscription, Transaction, PaymentAuditLog
 from .services import (
@@ -72,6 +73,13 @@ def checkout(request, plan_slug):
     Initiates a Paystack payment for the chosen plan.
     Free plans are activated directly without a payment redirect.
     """
+    # Rate limit: max 10 checkout attempts per hour per IP
+    
+    is_limited, retry_after = check_rate_limit(request, namespace='payments_checkout', limit=10, window=3600)
+    if is_limited:
+        messages.error(request, "Too many payment attempts. Please wait before trying again.")
+        return redirect('payments:plans')
+
     site_settings = SiteSettings.get()
     if site_settings.maintenance_mode:
         messages.error(request, "Payments are temporarily unavailable. Please try again later.")

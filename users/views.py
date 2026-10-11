@@ -1,4 +1,6 @@
 from django.shortcuts import render
+from django.http import HttpResponse
+from core.rate_limiting import check_rate_limit
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, DetailView
 from django.contrib.auth.views import (
@@ -27,9 +29,20 @@ class RegisterView(CreateView):
 class UserLoginView(LoginView):
     """
     Standard authentication login view.
+    Rate limited: max 10 login attempts per IP per 15 minutes.
     """
     form_class = CustomAuthenticationForm
     template_name = 'users/login.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        is_limited, retry_after = check_rate_limit(
+            request, namespace='login', limit=10, window=900
+        )
+        if is_limited:
+            return HttpResponse(
+                "Too many login attempts. Please wait 15 minutes before trying again."
+            )
+        return super().dispatch(request, *args, **kwargs)
 
 
 class UserLogoutView(LogoutView):
