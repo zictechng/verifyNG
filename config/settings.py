@@ -127,9 +127,6 @@ PUBLIC_CHECK_RATE_LIMIT = env.int('PUBLIC_CHECK_RATE_LIMIT', default=30)
 PUBLIC_CHECK_RATE_LIMIT_WINDOW = env.int('PUBLIC_CHECK_RATE_LIMIT_WINDOW', default=60)
 SECURE_PROXY_TRUSTED_IPS = env.list('SECURE_PROXY_TRUSTED_IPS', default=[])
 
-
-
-
 # ==============================================================================
 # Celery Configuration (Phase 6, Batch 6.2)
 # ==============================================================================
