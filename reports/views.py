@@ -25,10 +25,23 @@ from core.rate_limiting import get_client_ip
 
 logger = logging.getLogger(__name__)
 
+
 class ReportCreateView(LoginRequiredMixin, FormView):
     """Authenticated view for submitting a new fraud report."""
     form_class = FraudReportSubmissionForm
     template_name = 'reports/create_report.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return super().dispatch(request, *args, **kwargs)
+        if not request.user.is_verified:
+            messages.warning(
+                request,
+                "You must verify your identity (NIN or BVN) before submitting a fraud report. "
+                "Please complete identity verification first."
+            )
+            return redirect('verification:create')
+        return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
         try:
@@ -59,7 +72,6 @@ class ReportCreateView(LoginRequiredMixin, FormView):
                 "Evidence file upload failed. Please verify storage settings or try uploading again."
             )
             return self.form_invalid(form)
-
 
 class ReportDetailView(DetailView):
     """Public/reporter/moderator view for a single fraud report."""
