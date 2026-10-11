@@ -8,6 +8,9 @@ from django.contrib.auth.forms import (
 )
 from users.models import User
 
+from core.email_utils import render_email
+from core.models import SiteConfiguration
+from notifications.tasks import send_broadcast_email_task
 
 class CustomUserCreationForm(UserCreationForm):
     """
@@ -68,6 +71,33 @@ class CustomPasswordResetForm(PasswordResetForm):
             'autocomplete': 'email',
         })
     )
+
+    def send_mail(self, subject_template_name, email_template_name, context,
+                  from_email, to_email, html_email_template_name=None):
+
+        config = SiteConfiguration.get_solo()
+        uid = context.get('uid', '')
+        token = context.get('token', '')
+        protocol = context.get('protocol', 'https')
+        domain = context.get('domain', '')
+        reset_url = f"{protocol}://{domain}/users/password-reset/confirm/{uid}/{token}/"
+
+        user_obj = context.get('user')
+        user_name = ''
+        if user_obj:
+            user_name = user_obj.first_name or user_obj.username
+
+        html_body, text_body = render_email('password_reset', {
+            'user_name': user_name,
+            'reset_url': reset_url,
+        })
+
+        send_broadcast_email_task.delay(
+            to_email=to_email,
+            subject=f'Reset your {config.site_name} password',
+            html_body=html_body,
+            text_body=text_body,
+        )
 
 
 class CustomSetPasswordForm(SetPasswordForm):
