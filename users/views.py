@@ -3,6 +3,9 @@ from django.http import HttpResponse
 from core.rate_limiting import check_rate_limit
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, DetailView
+from notifications.email_service import send_email
+import logging
+
 from django.contrib.auth.views import (
     LoginView,
     LogoutView,
@@ -22,6 +25,7 @@ from users.forms import (
 )
 from users.models import User
 
+logger = logging.getLogger(__name__)
 
 class RegisterView(CreateView):
     """
@@ -90,6 +94,31 @@ class CustomPasswordResetConfirmView(PasswordResetConfirmView):
     template_name = 'users/password_reset_confirm.html'
     success_url = reverse_lazy('users:password_reset_complete')
     form_class = CustomSetPasswordForm
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        user = form.user
+        try:
+            send_email(
+                to_email=user.email,
+                subject='Your VerifyNG password has been changed',
+                html_body=(
+                    f"<p>Hello {user.first_name or user.username},</p>"
+                    "<p>Your VerifyNG account password was successfully changed.</p>"
+                    "<p>If you did not make this change, please contact us immediately at "
+                    "<a href='mailto:support@verifyng.com'>support@verifyng.com</a>.</p>"
+                    "<p>— The VerifyNG Team</p>"
+                ),
+                text_body=(
+                    f"Hello {user.first_name or user.username},\n\n"
+                    "Your VerifyNG account password was successfully changed.\n\n"
+                    "If you did not make this change, contact us at support@verifyng.com.\n\n"
+                    "— The VerifyNG Team"
+                ),
+            )
+        except RuntimeError:
+            logger.error("Failed to send password change confirmation to user %s", user.pk)
+        return response
 
 
 class CustomPasswordResetCompleteView(PasswordResetCompleteView):
