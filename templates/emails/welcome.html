@@ -1,38 +1,16 @@
 {% extends "emails/base_email.html" %}
 {% block subject %}Welcome to {{ site_name }}{% endblock %}
+
 {% block body %}
+<h1>Welcome, {{ user_name }}.</h1>
 
-<h1 class="email-heading">Welcome to {{ site_name }}, {{ user_name }}!</h1>
+<p>Your {{ site_name }} account is ready. You can now check phone numbers and identities, report fraud, and build a verified trust profile for employment.</p>
 
-<p>
-  Your account is ready. {{ site_name }} helps Nigerians check, report,
-  and verify — so you can trust before you commit.
-</p>
-
-<div class="email-alert email-alert-info">
-  <strong>&#x1F4CB; Your account is active</strong>
-  You can now search phone numbers, names, and business identities, submit fraud reports,
-  and build your own verified digital trust profile.
+<div class="btn-wrap">
+  <a href="{{ site_url }}/dashboard/" class="btn">Go to your dashboard</a>
 </div>
 
-<p>Here's what you can do right now:</p>
+<hr class="divider">
 
-<p>
-  &#x2713; &nbsp;<strong>CHECK</strong> — Search any phone number, name, NIN, or bank account<br>
-  &#x2713; &nbsp;<strong>REPORT</strong> — Submit a verified fraud report so others are warned<br>
-  &#x2713; &nbsp;<strong>VERIFY</strong> — Build a portable digital trust profile for employment
-</p>
-
-<div class="email-btn-wrap">
-  <a href="{{ site_url }}/dashboard/" class="email-btn">Go to your dashboard &rarr;</a>
-</div>
-
-<hr class="email-divider">
-
-<p style="color:#64748B;font-size:13px">
-  Need help? Reply to this email or contact us at
-  <a href="mailto:{{ support_email }}" style="color:#2457D6">{{ support_email }}</a>.
-  We typically respond within one business day.
-</p>
-
+<p style="font-size:14px;color:#6e6e73;">Need help getting started? Reply to this email or write to <a href="mailto:{{ support_email }}" style="color:#0071e3;">{{ support_email }}</a> — we typically respond within one business day.</p>
 {% endblock %}
