@@ -1,19 +1,16 @@
 {% extends "emails/base_email.html" %}
 {% block subject %}Your {{ site_name }} verification code{% endblock %}
-{% block body %}
 
-<h1 class="email-heading">Verify your identity</h1>
+{% block body %}
+<h1>Verify your identity</h1>
 
 <p>Hi {{ user_name }},</p>
 
-<p>
-  Use the code below to complete your {{ action|default:"verification" }} on {{ site_name }}.
-  This code is valid for <strong>{{ expiry_minutes|default:"10" }} minutes</strong>.
-</p>
+<p>Use the code below to complete your {{ action|default:"verification" }}. It expires in <strong>{{ expiry_minutes|default:"10" }} minutes</strong>.</p>
 
 <div class="otp-block">
-  <div class="otp-label">Your one-time code</div>
-  <div class="otp-row">
+  <div class="otp-label">One-time code</div>
+  <div class="otp-digits">
     {% for digit in otp_digits %}
       <span class="otp-digit">{{ digit }}</span>
       {% if forloop.counter == 3 and not forloop.last %}
@@ -25,19 +22,12 @@
       {% endif %}
     {% endfor %}
   </div>
-  <div class="otp-expiry">
-    Expires in {{ expiry_minutes|default:"10" }} minutes &bull; Do not share this code with anyone
-  </div>
+  <div class="otp-expires">Expires in {{ expiry_minutes|default:"10" }} minutes &nbsp;&bull;&nbsp; Never share this code</div>
 </div>
 
-<p>
-  If you did not request this code, you can safely ignore this email.
-  Someone may have entered your email address by mistake.
-</p>
+<p>If you didn't request this code, you can ignore this email. Someone may have entered your email address by mistake.</p>
 
-<p style="color:#64748B;font-size:13px">
-  {{ site_name }} will never call or message you asking for this code.
-  If someone is asking for it, it is a scam.
-</p>
-
+<div class="notice">
+  <p>{{ site_name }} will never call or message you to ask for this code. If someone is asking for it, it's a scam.</p>
+</div>
 {% endblock %}

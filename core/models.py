@@ -93,9 +93,9 @@ class SiteConfiguration(models.Model):
         help_text="LinkedIn company page URL. Leave blank to hide in footer.",
     )
     youtube_url = models.URLField(
-            blank=True,
-            default='',
-            help_text="Youtube company page URL. Leave blank to hide in footer.",
+        blank=True,
+        default='',
+        help_text="YouTube channel URL. Leave blank to hide in footer.",
     )
     whatsapp_number = models.CharField(
         max_length=20,
