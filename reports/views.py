@@ -25,7 +25,6 @@ from core.rate_limiting import get_client_ip
 
 logger = logging.getLogger(__name__)
 
-
 class ReportCreateView(LoginRequiredMixin, FormView):
     """Authenticated view for submitting a new fraud report."""
     form_class = FraudReportSubmissionForm
