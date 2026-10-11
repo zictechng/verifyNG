@@ -1,74 +1,156 @@
-
 {% extends 'admin_portal/base_admin.html' %}
 
-{% block title %}Communications Center | VerifyNG Admin Portal{% endblock %}
+{% block title %}Broadcast Center | VerifyNG Admin Portal{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'admin_portal:overview' %}">Overview</a></li>
+<li class="breadcrumb-item active">Broadcast Center</li>
+{% endblock %}
 
 {% block admin_body %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h2 class="h4 fw-bold mb-1">Communications & Notification Dispatch</h2>
-        <p class="text-muted small mb-0">Dispatch transactional notifications and announcements asynchronously via Celery workers.</p>
-    </div>
+<div class="adm-page-heading">
+    <h1>Communications &amp; Broadcast Center</h1>
+    <p>Compose and dispatch email notifications asynchronously to platform users via Celery workers.</p>
 </div>
 
-<div class="row">
+<div class="row g-4">
+    <!-- Compose panel -->
     <div class="col-lg-8">
-        <div class="card border-0 shadow-sm rounded-3 p-4">
-            <form method="post">
-                {% csrf_token %}
-                <h5 class="fw-bold mb-3">Compose Broadcast Message</h5>
+        <div class="adm-card">
+            <div class="adm-card-header">
+                <h2 class="adm-card-title">Compose Broadcast Message</h2>
+            </div>
 
-                <!-- Target Group -->
-                <div class="mb-3">
-                    <label class="form-label small fw-semibold">Target Audience *</label>
-                    <select name="target_type" class="form-select" id="targetTypeSelect" onchange="handleTargetChange(this.value)">
-                        <option value="all">All Active Users Across Platform</option>
-                        <option value="role">Users by Role (Moderators, Officers, Businesses...)</option>
-                        <option value="single">Single Specific User Email</option>
-                    </select>
+            <form method="post" id="broadcastForm">
+                {% csrf_token %}
+
+                <!-- Target selector tabs -->
+                <div class="mb-4">
+                    <label class="form-label" style="font-size:0.78rem;font-weight:700;color:var(--adm-muted);text-transform:uppercase;letter-spacing:0.07em;">Target Audience *</label>
+                    <div style="display:flex;gap:0;border:1px solid var(--adm-border);border-radius:8px;overflow:hidden;">
+                        <label style="flex:1;margin:0;">
+                            <input type="radio" name="target_type" value="all" class="d-none target-radio" {% if not request.POST.target_type or request.POST.target_type == 'all' %}checked{% endif %}>
+                            <span class="target-label" data-value="all"
+                                  style="display:block;text-align:center;padding:9px 12px;font-size:0.82rem;font-weight:600;cursor:pointer;border-right:1px solid var(--adm-border);transition:background 0.12s,color 0.12s;">
+                                All Users
+                            </span>
+                        </label>
+                        <label style="flex:1;margin:0;">
+                            <input type="radio" name="target_type" value="role" class="d-none target-radio" {% if request.POST.target_type == 'role' %}checked{% endif %}>
+                            <span class="target-label" data-value="role"
+                                  style="display:block;text-align:center;padding:9px 12px;font-size:0.82rem;font-weight:600;cursor:pointer;border-right:1px solid var(--adm-border);transition:background 0.12s,color 0.12s;">
+                                By Role
+                            </span>
+                        </label>
+                        <label style="flex:1;margin:0;">
+                            <input type="radio" name="target_type" value="single" class="d-none target-radio" {% if request.POST.target_type == 'single' %}checked{% endif %}>
+                            <span class="target-label" data-value="single"
+                                  style="display:block;text-align:center;padding:9px 12px;font-size:0.82rem;font-weight:600;cursor:pointer;transition:background 0.12s,color 0.12s;">
+                                Single User
+                            </span>
+                        </label>
+                    </div>
                 </div>
 
-                <!-- Role Selector (Conditional) -->
-                <div class="mb-3 d-none" id="roleSelectorGroup">
-                    <label class="form-label small fw-semibold">Select User Role</label>
-                    <select name="target_role" class="form-select">
+                <!-- Role selector (shown when "By Role" selected) -->
+                <div id="roleGroup" class="mb-3" style="display:none;">
+                    <label class="form-label" style="font-size:0.78rem;font-weight:700;color:var(--adm-muted);">Select Role</label>
+                    <select name="target_role" class="form-select" style="border-radius:7px;border-color:var(--adm-border);font-size:0.845rem;">
                         {% for r_val, r_label in roles %}
-                            <option value="{{ r_val }}">{{ r_label }}</option>
+                            <option value="{{ r_val }}" {% if request.POST.target_role == r_val %}selected{% endif %}>{{ r_label }}</option>
                         {% endfor %}
                     </select>
                 </div>
 
-                <!-- Single Email Input (Conditional) -->
-                <div class="mb-3 d-none" id="singleEmailGroup">
-                    <label class="form-label small fw-semibold">Recipient Email Address</label>
-                    <input type="email" name="target_email" class="form-control" placeholder="user@example.com">
+                <!-- Single email (shown when "Single User" selected) -->
+                <div id="singleGroup" class="mb-3" style="display:none;">
+                    <label class="form-label" style="font-size:0.78rem;font-weight:700;color:var(--adm-muted);">Recipient Email</label>
+                    <input type="email" name="target_email" class="form-control"
+                           placeholder="user@example.com"
+                           value="{{ request.POST.target_email|default:'' }}"
+                           style="border-radius:7px;border-color:var(--adm-border);font-size:0.845rem;">
                 </div>
 
                 <!-- Subject -->
                 <div class="mb-3">
-                    <label class="form-label small fw-semibold">Email Subject Line *</label>
-                    <input type="text" name="subject" class="form-control" placeholder="VerifyNG Platform Update: ..." required>
+                    <label class="form-label" style="font-size:0.78rem;font-weight:700;color:var(--adm-muted);">Email Subject *</label>
+                    <input type="text" name="subject" class="form-control" required
+                           placeholder="VerifyNG Platform Update: …"
+                           value="{{ request.POST.subject|default:'' }}"
+                           style="border-radius:7px;border-color:var(--adm-border);font-size:0.845rem;">
                 </div>
 
-                <!-- Message Body -->
+                <!-- Message body -->
                 <div class="mb-4">
-                    <label class="form-label small fw-semibold">Message Body *</label>
-                    <textarea name="message_body" rows="6" class="form-control" placeholder="Enter message text..." required></textarea>
+                    <label class="form-label" style="font-size:0.78rem;font-weight:700;color:var(--adm-muted);">Message Body *</label>
+                    <textarea name="message_body" rows="7" class="form-control" required
+                              placeholder="Enter your message to the selected audience…"
+                              style="border-radius:7px;border-color:var(--adm-border);font-size:0.845rem;resize:vertical;">{{ request.POST.message_body|default:'' }}</textarea>
                 </div>
 
-                <button type="submit" class="btn btn-primary px-4">Dispatch Messages via Celery &rarr;</button>
+                <!-- Dispatch button -->
+                <div class="d-flex align-items-center gap-3">
+                    <button type="submit" class="btn-adm-primary" id="dispatchBtn">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                        Dispatch via Celery
+                    </button>
+                    <span style="font-size:0.78rem;color:var(--adm-muted);">Messages queue asynchronously &mdash; dispatch is non-blocking.</span>
+                </div>
             </form>
         </div>
     </div>
 
+    <!-- Info panel -->
     <div class="col-lg-4">
-        <div class="card border-0 shadow-sm rounded-3 p-4 bg-light">
-            <h6 class="fw-bold mb-2">Delivery Engine Safeguards</h6>
-            <ul class="small text-muted ps-3 mb-0">
-                <li class="mb-2">Dispatched asynchronously using <code>core.tasks.send_email_notification_task</code>.</li>
-                <li class="mb-2">Rate-limiting protection applies automatically across external SMTP relays.</li>
-                <li class="mb-2">All dispatch runs record an immutable <code>AuditLog</code> with actor attribution.</li>
+        <!-- Delivery engine -->
+        <div class="adm-card mb-3">
+            <h2 class="adm-card-title mb-3">Delivery Engine</h2>
+            <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:12px;">
+                <li style="display:flex;gap:10px;align-items:flex-start;">
+                    <div style="width:28px;height:28px;border-radius:6px;background:rgba(36,87,214,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2457D6" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                    </div>
+                    <div>
+                        <p style="font-size:0.82rem;font-weight:600;margin:0 0 2px;color:var(--adm-ink);">Async Celery Worker</p>
+                        <p style="font-size:0.75rem;color:var(--adm-muted);margin:0;">Messages are dispatched via <code style="font-size:0.72rem;">send_email_notification_task</code> — non-blocking.</p>
+                    </div>
+                </li>
+                <li style="display:flex;gap:10px;align-items:flex-start;">
+                    <div style="width:28px;height:28px;border-radius:6px;background:rgba(22,163,74,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+                    </div>
+                    <div>
+                        <p style="font-size:0.82rem;font-weight:600;margin:0 0 2px;color:var(--adm-ink);">Immutable Audit Log</p>
+                        <p style="font-size:0.75rem;color:var(--adm-muted);margin:0;">Every dispatch creates an <code style="font-size:0.72rem;">AuditLog</code> entry with actor, recipient count, and subject.</p>
+                    </div>
+                </li>
+                <li style="display:flex;gap:10px;align-items:flex-start;">
+                    <div style="width:28px;height:28px;border-radius:6px;background:rgba(217,119,6,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    </div>
+                    <div>
+                        <p style="font-size:0.82rem;font-weight:600;margin:0 0 2px;color:var(--adm-ink);">Active Users Only</p>
+                        <p style="font-size:0.75rem;color:var(--adm-muted);margin:0;">Suspended accounts and users with no email on file are automatically excluded.</p>
+                    </div>
+                </li>
             </ul>
+        </div>
+
+        <!-- Audience reference -->
+        <div class="adm-card">
+            <h2 class="adm-card-title mb-3">Audience Reference</h2>
+            <table style="width:100%;font-size:0.78rem;border-collapse:collapse;">
+                <tbody>
+                    {% for r_val, r_label in roles %}
+                    <tr>
+                        <td style="padding:5px 0;color:var(--adm-muted);">{{ r_label }}</td>
+                        <td style="padding:5px 0;text-align:right;">
+                            <span class="adm-badge blue">{{ r_val }}</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
@@ -76,10 +158,43 @@
 
 {% block admin_scripts %}
 <script>
-    function handleTargetChange(val) {
-        document.getElementById('roleSelectorGroup').classList.toggle('d-none', val !== 'role');
-        document.getElementById('singleEmailGroup').classList.toggle('d-none', val !== 'single');
+(function () {
+    const radios   = document.querySelectorAll('.target-radio');
+    const labels   = document.querySelectorAll('.target-label');
+    const roleGrp  = document.getElementById('roleGroup');
+    const singleGrp = document.getElementById('singleGroup');
+
+    function update(val) {
+        labels.forEach(lbl => {
+            const isActive = lbl.dataset.value === val;
+            lbl.style.background = isActive ? 'var(--adm-accent)' : '';
+            lbl.style.color = isActive ? '#fff' : 'var(--adm-muted)';
+        });
+        roleGrp.style.display  = val === 'role'   ? '' : 'none';
+        singleGrp.style.display = val === 'single' ? '' : 'none';
     }
+
+    radios.forEach(r => r.addEventListener('change', () => update(r.value)));
+    labels.forEach(lbl => lbl.addEventListener('click', () => {
+        const radio = lbl.closest('label').querySelector('input');
+        radio.checked = true;
+        update(radio.value);
+    }));
+
+    // Init on load
+    const checked = document.querySelector('.target-radio:checked');
+    update(checked ? checked.value : 'all');
+
+    // Confirm before large dispatch
+    document.getElementById('broadcastForm').addEventListener('submit', function (e) {
+        const val = document.querySelector('.target-radio:checked').value;
+        if (val === 'all') {
+            if (!confirm('You are about to email ALL active users on the platform. Confirm dispatch?')) {
+                e.preventDefault();
+            }
+        }
+    });
+}());
 </script>
 {% endblock %}
 

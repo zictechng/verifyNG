@@ -1,77 +1,139 @@
-
 {% extends 'admin_portal/base_admin.html' %}
 
-{% block title %}Security & Audit Logs | VerifyNG Admin Portal{% endblock %}
+{% block title %}Security Audit Logs | VerifyNG Admin Portal{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'admin_portal:overview' %}">Overview</a></li>
+<li class="breadcrumb-item active">Audit Logs</li>
+{% endblock %}
 
 {% block admin_body %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h2 class="h4 fw-bold mb-1">Security & Login Audit Logs</h2>
-        <p class="text-muted small mb-0">Forensic trail of all login attempts, authentication outcomes, client IP addresses, and systems used.</p>
-    </div>
+<div class="adm-page-heading">
+    <h1>Security &amp; Audit Logs</h1>
+    <p>Forensic trail of all login attempts, authentication outcomes, client IPs, and device information.</p>
 </div>
 
-<!-- Filter Bar -->
-<div class="card border-0 shadow-sm rounded-3 p-3 mb-4">
-    <form method="get" class="row g-2 align-items-center">
+<!-- Filter bar -->
+<div class="adm-filter-bar">
+    <form method="get" class="row g-2 align-items-end">
         <div class="col-md-6">
-            <input type="text" name="q" class="form-control" placeholder="Search by username or IP address..." value="{{ search_query }}">
+            <label class="form-label small fw-semibold mb-1" style="color:var(--adm-muted);">Search</label>
+            <div class="input-group input-group-sm">
+                <span class="input-group-text border-end-0 bg-white">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                </span>
+                <input type="text" name="q" class="form-control border-start-0"
+                       placeholder="Username or IP address…" value="{{ search_query }}" style="height:38px;">
+            </div>
         </div>
         <div class="col-md-3">
-            <select name="status" class="form-select">
-                <option value="">-- All Outcomes --</option>
+            <label class="form-label small fw-semibold mb-1" style="color:var(--adm-muted);">Outcome</label>
+            <select name="status" class="form-select form-select-sm" style="height:38px;">
+                <option value="">All Outcomes</option>
                 <option value="success" {% if selected_status == 'success' %}selected{% endif %}>Success</option>
-                <option value="failed" {% if selected_status == 'failed' %}selected{% endif %}>Failed</option>
+                <option value="failed"  {% if selected_status == 'failed'  %}selected{% endif %}>Failed</option>
                 <option value="blocked" {% if selected_status == 'blocked' %}selected{% endif %}>Blocked / Suspended</option>
             </select>
         </div>
         <div class="col-md-3">
-            <button type="submit" class="btn btn-primary w-100">Filter Audits</button>
+            <label class="form-label small mb-1" style="color:transparent;">x</label>
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn-adm-primary w-100" style="justify-content:center;">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+                    Apply
+                </button>
+                {% if search_query or selected_status %}
+                <a href="{% url 'admin_portal:audit_logs' %}" class="btn-adm-outline" title="Clear">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </a>
+                {% endif %}
+            </div>
         </div>
     </form>
 </div>
 
-<!-- Audit Log Table -->
-<div class="card border-0 shadow-sm rounded-3 p-4">
+<!-- Audit log table -->
+<div class="adm-card">
+    <div class="adm-card-header">
+        <h2 class="adm-card-title">
+            Login Audit Events
+            {% if logs %}
+                <span class="adm-badge gray ms-2">{{ logs|length }}{% if logs|length == 100 %}+{% endif %}</span>
+            {% endif %}
+        </h2>
+        <span style="font-size:0.75rem;color:var(--adm-muted);">Immutable &mdash; append-only record</span>
+    </div>
     <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-            <thead class="table-light">
+        <table class="adm-table">
+            <thead>
                 <tr>
                     <th>Username Attempted</th>
-                    <th>Status</th>
+                    <th>Outcome</th>
                     <th>IP Address</th>
-                    <th>Device & OS</th>
+                    <th>Device &amp; OS</th>
                     <th>Browser</th>
                     <th>Location</th>
                     <th>Timestamp</th>
-                    <th>Reason / Details</th>
+                    <th>Failure Reason</th>
                 </tr>
             </thead>
             <tbody>
                 {% for log in logs %}
                 <tr>
-                    <td class="fw-semibold">{{ log.username_attempted }}</td>
                     <td>
-                        {% if log.status == 'success' %}
-                            <span class="badge bg-success">Success</span>
-                        {% elif log.status == 'blocked' %}
-                            <span class="badge bg-warning text-dark">Suspended</span>
-                        {% else %}
-                            <span class="badge bg-danger">Failed</span>
+                        <span class="fw-semibold" style="font-size:0.845rem;">{{ log.username_attempted }}</span>
+                        {% if log.user %}
+                            <span class="adm-badge gray ms-1" style="font-size:0.65rem;">{{ log.user.get_role_display }}</span>
                         {% endif %}
                     </td>
-                    <td class="font-monospace small">{{ log.ip_address|default:"127.0.0.1" }}</td>
-                    <td>{{ log.device_type }} &bull; {{ log.os }}</td>
-                    <td>{{ log.browser }}</td>
-                    <td>{{ log.location_city }}, {{ log.location_country }}</td>
-                    <td class="small text-muted">{{ log.timestamp|date:"M d, Y H:i:s" }}</td>
-                    <td class="small text-muted">{{ log.failure_reason|default:"Authenticated successfully" }}</td>
+                    <td>
+                        {% if log.status == 'success' %}
+                            <span class="adm-badge green"><span class="dot"></span>Success</span>
+                        {% elif log.status == 'blocked' %}
+                            <span class="adm-badge amber"><span class="dot"></span>Suspended</span>
+                        {% else %}
+                            <span class="adm-badge red"><span class="dot"></span>Failed</span>
+                        {% endif %}
+                    </td>
+                    <td class="mono">{{ log.ip_address|default:"—" }}</td>
+                    <td class="td-muted">{{ log.device_type|default:"—" }} &bull; {{ log.os|default:"—" }}</td>
+                    <td class="td-muted">{{ log.browser|default:"—" }}</td>
+                    <td class="td-muted">
+                        {% if log.location_city or log.location_country %}
+                            {{ log.location_city|default:"" }}{% if log.location_city and log.location_country %}, {% endif %}{{ log.location_country|default:"" }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+                    <td class="mono td-muted" style="white-space:nowrap;">{{ log.timestamp|date:"M d Y, H:i:s" }}</td>
+                    <td class="td-muted">
+                        {% if log.failure_reason %}
+                            <span class="adm-badge red" style="font-size:0.65rem;">{{ log.failure_reason }}</span>
+                        {% else %}
+                            <span style="color:#94A3B8;">—</span>
+                        {% endif %}
+                    </td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="8" class="text-center text-muted py-3">No security audit logs found.</td></tr>
+                <tr>
+                    <td colspan="8">
+                        <div class="adm-empty">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                            <p>No security audit logs found for the applied filters.</p>
+                        </div>
+                    </td>
+                </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
+    {% if logs|length == 100 %}
+    <div class="px-4 py-3 border-top" style="border-color:var(--adm-border)!important;">
+        <p class="mb-0" style="font-size:0.78rem;color:var(--adm-muted);">
+            Showing most recent 100 events. Use search or outcome filter to narrow results.
+        </p>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}
+

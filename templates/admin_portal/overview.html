@@ -1,80 +1,117 @@
-
 {% extends 'admin_portal/base_admin.html' %}
 
 {% block title %}Overview | VerifyNG Admin Portal{% endblock %}
 
+{% block breadcrumb %}<li class="breadcrumb-item active">Overview</li>{% endblock %}
+
+{% block health_pills %}
+    <span class="adm-health-pill {% if db_healthy %}ok{% else %}err{% endif %}">
+        <span class="dot"></span>
+        DB {% if db_healthy %}Connected{% else %}Error{% endif %}
+    </span>
+    <span class="adm-health-pill {% if redis_healthy %}ok{% else %}warn{% endif %}">
+        <span class="dot"></span>
+        Redis {% if redis_healthy %}Active{% else %}Bypassed{% endif %}
+    </span>
+{% endblock %}
+
 {% block admin_body %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h2 class="h4 fw-bold mb-1">Executive Application Overview</h2>
-        <p class="text-muted small mb-0">Live operations, platform telemetry, and system audit indicators.</p>
-    </div>
-    <div class="d-flex gap-2">
-        <span class="badge {% if db_healthy %}bg-success{% else %}bg-danger{% endif %} p-2">DB: {% if db_healthy %}Connected{% else %}Error{% endif %}</span>
-        <span class="badge {% if redis_healthy %}bg-success{% else %}bg-warning text-dark{% endif %} p-2">Redis: {% if redis_healthy %}Active{% else %}Bypassed{% endif %}</span>
-    </div>
+<div class="adm-page-heading">
+    <h1>Executive Overview</h1>
+    <p>Live platform KPIs, 7-day activity trends, and recent security events.</p>
 </div>
 
-<!-- KPI Summary Cards -->
+<!-- KPI strip -->
 <div class="row g-3 mb-4">
-    <div class="col-md-3">
+    <!-- Users -->
+    <div class="col-sm-6 col-xl-3">
         <div class="kpi-card">
-            <span class="text-muted small text-uppercase fw-bold">Total Users</span>
-            <h3 class="fw-bold mt-2 mb-1">{{ total_users }}</h3>
-            <span class="small text-success">{{ active_users }} Active</span> &bull;
-            <span class="small text-danger">{{ suspended_users }} Suspended</span>
+            <div class="kpi-icon" style="background:rgba(36,87,214,0.1);">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2457D6" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <div class="kpi-label">Total Users</div>
+            <div class="kpi-value">{{ total_users }}</div>
+            <div class="kpi-sub">
+                <span class="kpi-ok">{{ active_users }} active</span>
+                &nbsp;&bull;&nbsp;
+                <span class="kpi-bad">{{ suspended_users }} suspended</span>
+            </div>
         </div>
     </div>
-    <div class="col-md-3">
+    <!-- Fraud reports -->
+    <div class="col-sm-6 col-xl-3">
         <div class="kpi-card">
-            <span class="text-muted small text-uppercase fw-bold">Fraud Reports</span>
-            <h3 class="fw-bold mt-2 mb-1">{{ total_reports }}</h3>
-            <span class="small text-primary">{{ published_reports }} Published</span> &bull;
-            <span class="small text-warning">{{ pending_reports }} In Review</span>
+            <div class="kpi-icon" style="background:rgba(220,38,38,0.1);">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </div>
+            <div class="kpi-label">Fraud Reports</div>
+            <div class="kpi-value">{{ total_reports }}</div>
+            <div class="kpi-sub">
+                <span class="kpi-ok">{{ published_reports }} published</span>
+                &nbsp;&bull;&nbsp;
+                <span class="kpi-warn">{{ pending_reports }} in review</span>
+            </div>
         </div>
     </div>
-    <div class="col-md-3">
+    <!-- Verifications -->
+    <div class="col-sm-6 col-xl-3">
         <div class="kpi-card">
-            <span class="text-muted small text-uppercase fw-bold">Verifications</span>
-            <h3 class="fw-bold mt-2 mb-1">{{ total_verifications }}</h3>
-            <span class="small text-warning">{{ pending_verifications }} Pending</span> &bull;
-            <span class="small text-danger">{{ open_disputes }} Disputes</span>
+            <div class="kpi-icon" style="background:rgba(15,118,110,0.1);">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0F766E" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+            </div>
+            <div class="kpi-label">Verifications</div>
+            <div class="kpi-value">{{ total_verifications }}</div>
+            <div class="kpi-sub">
+                <span class="kpi-warn">{{ pending_verifications }} pending</span>
+                &nbsp;&bull;&nbsp;
+                <span class="kpi-bad">{{ open_disputes }} disputes</span>
+            </div>
         </div>
     </div>
-    <div class="col-md-3">
+    <!-- Identifiers -->
+    <div class="col-sm-6 col-xl-3">
         <div class="kpi-card">
-            <span class="text-muted small text-uppercase fw-bold">Peppered Identifiers</span>
-            <h3 class="fw-bold mt-2 mb-1">{{ total_identifiers }}</h3>
-            <span class="small text-muted">Phone, CAC, Account, Email</span>
+            <div class="kpi-icon" style="background:rgba(124,58,237,0.1);">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+            </div>
+            <div class="kpi-label">Indexed Identifiers</div>
+            <div class="kpi-value">{{ total_identifiers }}</div>
+            <div class="kpi-sub" style="color:#64748B;">Phone · CAC · Account · Email</div>
         </div>
     </div>
 </div>
 
-<!-- 7-Day Interactive Activity Trend Graph -->
-<div class="card border-0 shadow-sm rounded-3 p-4 mb-4">
-    <h5 class="fw-bold mb-3">7-Day Platform Activity Trends</h5>
-    <div style="height: 300px;">
+<!-- 7-day activity chart -->
+<div class="adm-card mb-4">
+    <div class="adm-card-header">
+        <h2 class="adm-card-title">7-Day Platform Activity</h2>
+        <span class="td-muted" style="font-size:0.78rem;">Rolling window — last 7 days</span>
+    </div>
+    <div style="height:280px; position:relative;">
         <canvas id="activityChart"></canvas>
     </div>
 </div>
 
-<!-- Recent Security & Login Events Table -->
-<div class="card border-0 shadow-sm rounded-3 p-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="fw-bold mb-0">Recent User Logins & Security Events</h5>
-        <a href="{% url 'admin_portal:audit_logs' %}" class="btn btn-sm btn-outline-primary">View Full Audit Log &rarr;</a>
+<!-- Recent login events -->
+<div class="adm-card">
+    <div class="adm-card-header">
+        <h2 class="adm-card-title">Recent Login &amp; Security Events</h2>
+        <a href="{% url 'admin_portal:audit_logs' %}" class="btn-adm-outline btn-adm-sm">
+            Full Audit Log
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
     </div>
     <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-            <thead class="table-light">
+        <table class="adm-table">
+            <thead>
                 <tr>
                     <th>User</th>
-                    <th>Status</th>
+                    <th>Outcome</th>
                     <th>IP Address</th>
-                    <th>System / OS</th>
+                    <th>OS / Device</th>
                     <th>Browser</th>
                     <th>Location</th>
-                    <th>Timestamp</th>
+                    <th>When</th>
                 </tr>
             </thead>
             <tbody>
@@ -82,25 +119,34 @@
                 <tr>
                     <td>
                         <span class="fw-semibold">{{ item.username_attempted }}</span>
-                        {% if item.user %}<span class="badge bg-light text-dark ms-1">{{ item.user.get_role_display }}</span>{% endif %}
+                        {% if item.user %}
+                            <span class="adm-badge gray ms-1">{{ item.user.get_role_display }}</span>
+                        {% endif %}
                     </td>
                     <td>
                         {% if item.status == 'success' %}
-                            <span class="badge bg-success">Success</span>
+                            <span class="adm-badge green"><span class="dot"></span>Success</span>
                         {% elif item.status == 'blocked' %}
-                            <span class="badge bg-warning text-dark">Suspended</span>
+                            <span class="adm-badge amber"><span class="dot"></span>Suspended</span>
                         {% else %}
-                            <span class="badge bg-danger">Failed</span>
+                            <span class="adm-badge red"><span class="dot"></span>Failed</span>
                         {% endif %}
                     </td>
-                    <td class="font-monospace small">{{ item.ip_address|default:"127.0.0.1" }}</td>
-                    <td>{{ item.os }}</td>
-                    <td>{{ item.browser }}</td>
-                    <td>{{ item.location_city }}, {{ item.location_country }}</td>
-                    <td class="small text-muted">{{ item.timestamp|date:"M d, H:i" }}</td>
+                    <td class="mono">{{ item.ip_address|default:"—" }}</td>
+                    <td class="td-muted">{{ item.os }}</td>
+                    <td class="td-muted">{{ item.browser }}</td>
+                    <td class="td-muted">{{ item.location_city }}, {{ item.location_country }}</td>
+                    <td class="td-muted">{{ item.timestamp|date:"M d, H:i" }}</td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="7" class="text-center text-muted py-3">No login events recorded yet.</td></tr>
+                <tr>
+                    <td colspan="7">
+                        <div class="adm-empty">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                            <p>No login events recorded yet.</p>
+                        </div>
+                    </td>
+                </tr>
                 {% endfor %}
             </tbody>
         </table>
@@ -110,6 +156,7 @@
 
 {% block admin_scripts %}
 <script>
+(function () {
     const ctx = document.getElementById('activityChart').getContext('2d');
     new Chart(ctx, {
         type: 'line',
@@ -120,24 +167,33 @@
                     label: 'New Registrations',
                     data: {{ chart_users_json|safe }},
                     borderColor: '#2457D6',
-                    backgroundColor: 'rgba(36, 87, 214, 0.1)',
-                    tension: 0.3,
+                    backgroundColor: 'rgba(36,87,214,0.07)',
+                    borderWidth: 2,
+                    pointRadius: 3,
+                    pointBackgroundColor: '#2457D6',
+                    tension: 0.35,
                     fill: true
                 },
                 {
-                    label: 'Fraud Reports Filed',
+                    label: 'Fraud Reports',
                     data: {{ chart_reports_json|safe }},
                     borderColor: '#DC2626',
-                    backgroundColor: 'rgba(220, 38, 38, 0.1)',
-                    tension: 0.3,
+                    backgroundColor: 'rgba(220,38,38,0.07)',
+                    borderWidth: 2,
+                    pointRadius: 3,
+                    pointBackgroundColor: '#DC2626',
+                    tension: 0.35,
                     fill: true
                 },
                 {
-                    label: 'Verifications Requested',
+                    label: 'Verifications',
                     data: {{ chart_verifications_json|safe }},
                     borderColor: '#0F766E',
-                    backgroundColor: 'rgba(15, 118, 110, 0.1)',
-                    tension: 0.3,
+                    backgroundColor: 'rgba(15,118,110,0.07)',
+                    borderWidth: 2,
+                    pointRadius: 3,
+                    pointBackgroundColor: '#0F766E',
+                    tension: 0.35,
                     fill: true
                 }
             ]
@@ -145,8 +201,37 @@
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { position: 'top' } }
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: { font: { size: 12 }, boxWidth: 12, padding: 16 }
+                },
+                tooltip: {
+                    backgroundColor: '#1E293B',
+                    titleColor: '#94A3B8',
+                    bodyColor: '#F8FAFC',
+                    padding: 12,
+                    cornerRadius: 8,
+                    callbacks: {
+                        label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y}`
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { color: 'rgba(226,232,240,0.6)' },
+                    ticks: { color: '#94A3B8', font: { size: 11 } }
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: { color: 'rgba(226,232,240,0.6)' },
+                    ticks: { color: '#94A3B8', font: { size: 11 }, precision: 0 }
+                }
+            }
         }
     });
+}());
 </script>
 {% endblock %}
+

@@ -1,111 +1,171 @@
-
 {% extends 'admin_portal/base_admin.html' %}
 
 {% block title %}User Operations | VerifyNG Admin Portal{% endblock %}
 
+{% block breadcrumb %}<li class="breadcrumb-item active">User Operations</li>{% endblock %}
+
 {% block admin_body %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h2 class="h4 fw-bold mb-1">User Management & Access Control</h2>
-        <p class="text-muted small mb-0">Search, reassign roles, activate, or suspend platform user accounts.</p>
-    </div>
+<div class="adm-page-heading">
+    <h1>User Management &amp; Access Control</h1>
+    <p>Search, filter, assign roles, and manage account status for all platform users.</p>
 </div>
 
-<!-- Filters Bar -->
-<div class="card border-0 shadow-sm rounded-3 p-3 mb-4">
-    <form method="get" class="row g-2 align-items-center">
+<!-- Filter bar -->
+<div class="adm-filter-bar">
+    <form method="get" class="row g-2 align-items-end">
         <div class="col-md-5">
-            <input type="text" name="q" class="form-control" placeholder="Search by username or email..." value="{{ query }}">
+            <label class="form-label small fw-semibold mb-1" style="color:var(--adm-muted);">Search</label>
+            <div class="input-group input-group-sm">
+                <span class="input-group-text border-end-0 bg-white">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                </span>
+                <input type="text" name="q" class="form-control border-start-0"
+                       placeholder="Username or email…" value="{{ query }}" style="height:38px;">
+            </div>
         </div>
         <div class="col-md-3">
-            <select name="role" class="form-select">
-                <option value="">-- All Roles --</option>
+            <label class="form-label small fw-semibold mb-1" style="color:var(--adm-muted);">Role</label>
+            <select name="role" class="form-select form-select-sm" style="height:38px;">
+                <option value="">All Roles</option>
                 {% for r_val, r_label in role_choices %}
                     <option value="{{ r_val }}" {% if selected_role == r_val %}selected{% endif %}>{{ r_label }}</option>
                 {% endfor %}
             </select>
         </div>
         <div class="col-md-2">
-            <select name="status" class="form-select">
-                <option value="">-- All Statuses --</option>
-                <option value="active" {% if selected_status == 'active' %}selected{% endif %}>Active</option>
+            <label class="form-label small fw-semibold mb-1" style="color:var(--adm-muted);">Status</label>
+            <select name="status" class="form-select form-select-sm" style="height:38px;">
+                <option value="">All Statuses</option>
+                <option value="active"    {% if selected_status == 'active'    %}selected{% endif %}>Active</option>
                 <option value="suspended" {% if selected_status == 'suspended' %}selected{% endif %}>Suspended</option>
             </select>
         </div>
         <div class="col-md-2">
-            <button type="submit" class="btn btn-primary w-100">Filter</button>
+            <label class="form-label small mb-1" style="color:transparent;">x</label>
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn-adm-primary w-100" style="justify-content:center;">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    Filter
+                </button>
+                {% if query or selected_role or selected_status %}
+                <a href="{% url 'admin_portal:users' %}" class="btn-adm-outline" title="Clear filters">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </a>
+                {% endif %}
+            </div>
         </div>
     </form>
 </div>
 
-<!-- Users Table -->
-<div class="card border-0 shadow-sm rounded-3 p-4">
+<!-- Users table -->
+<div class="adm-card">
+    <div class="adm-card-header">
+        <h2 class="adm-card-title">
+            Users
+            {% if users_list %}
+                <span class="adm-badge gray ms-2">{{ users_list|length }}{% if users_list|length == 50 %}+{% endif %}</span>
+            {% endif %}
+        </h2>
+    </div>
     <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-            <thead class="table-light">
+        <table class="adm-table">
+            <thead>
                 <tr>
-                    <th>Username</th>
+                    <th>User</th>
                     <th>Email</th>
                     <th>Role</th>
                     <th>Status</th>
                     <th>Joined</th>
-                    <th class="text-end">Actions</th>
+                    <th style="text-align:right;">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 {% for u in users_list %}
                 <tr>
                     <td>
-                        <span class="fw-bold">{{ u.username }}</span>
-                        {% if u.is_superuser %}<span class="badge bg-danger ms-1">Superuser</span>{% endif %}
+                        <div class="d-flex align-items-center gap-2">
+                            <!-- Avatar initials -->
+                            <div style="width:32px;height:32px;border-radius:50%;
+                                        background:rgba(36,87,214,0.12);
+                                        display:flex;align-items:center;justify-content:center;
+                                        font-size:0.7rem;font-weight:700;color:#2457D6;flex-shrink:0;">
+                                {{ u.username|slice:":2"|upper }}
+                            </div>
+                            <div>
+                                <span class="fw-semibold" style="font-size:0.845rem;">{{ u.username }}</span>
+                                {% if u.is_superuser %}
+                                    <span class="adm-badge red ms-1">Superuser</span>
+                                {% endif %}
+                            </div>
+                        </div>
                     </td>
-                    <td>{{ u.email|default:"No email on file" }}</td>
-                    <td><span class="badge bg-secondary">{{ u.get_role_display }}</span></td>
+                    <td class="td-muted">{{ u.email|default:"—" }}</td>
+                    <td><span class="adm-badge gray">{{ u.get_role_display }}</span></td>
                     <td>
                         {% if u.is_active %}
-                            <span class="badge bg-success">Active</span>
+                            <span class="adm-badge green"><span class="dot"></span>Active</span>
                         {% else %}
-                            <span class="badge bg-danger">Suspended</span>
+                            <span class="adm-badge red"><span class="dot"></span>Suspended</span>
                         {% endif %}
                     </td>
-                    <td class="small text-muted">{{ u.date_joined|date:"M d, Y" }}</td>
-                    <td class="text-end">
-                        <div class="d-inline-flex gap-1">
-                            <!-- Toggle Suspend Button -->
-                            <form method="post" action="{% url 'admin_portal:user_toggle_status' u.id %}">
+                    <td class="td-muted">{{ u.date_joined|date:"M d, Y" }}</td>
+                    <td style="text-align:right;">
+                        <div style="display:inline-flex;gap:6px;align-items:center;">
+                            <!-- Toggle status -->
+                            <form method="post" action="{% url 'admin_portal:user_toggle_status' u.id %}" style="display:inline;">
                                 {% csrf_token %}
                                 {% if u.is_active %}
-                                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Suspend user {{ u.username }}?');">Suspend</button>
+                                    <button type="submit" class="btn-adm-danger btn-adm-sm"
+                                            onclick="return confirm('Suspend {{ u.username }}? They will not be able to log in.');">
+                                        Suspend
+                                    </button>
                                 {% else %}
-                                    <button type="submit" class="btn btn-sm btn-outline-success">Activate</button>
+                                    <button type="submit" class="btn-adm-success btn-adm-sm">Reactivate</button>
                                 {% endif %}
                             </form>
-
-                            <!-- Role Change Trigger -->
-                            <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#roleModal{{ u.id }}">Role</button>
+                            <!-- Role change trigger -->
+                            <button type="button" class="btn-adm-outline btn-adm-sm"
+                                    data-bs-toggle="modal" data-bs-target="#roleModal{{ u.id }}">
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                Role
+                            </button>
                         </div>
 
-                        <!-- Role Modal -->
-                        <div class="modal fade text-start" id="roleModal{{ u.id }}" tabindex="-1">
-                            <div class="modal-dialog modal-dialog-centered">
-                                <div class="modal-content">
-                                    <div class="modal-header">
-                                        <h5 class="modal-title">Modify Role for {{ u.username }}</h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        <!-- Role modal -->
+                        <div class="modal fade text-start" id="roleModal{{ u.id }}" tabindex="-1" aria-labelledby="roleModalLabel{{ u.id }}" aria-hidden="true">
+                            <div class="modal-dialog modal-dialog-centered" style="max-width:400px;">
+                                <div class="modal-content" style="border-radius:12px;border:1px solid var(--adm-border);box-shadow:0 20px 60px rgba(0,0,0,0.15);">
+                                    <div class="modal-header border-bottom" style="border-color:var(--adm-border)!important;padding:18px 22px 14px;">
+                                        <div>
+                                            <h5 class="modal-title fw-bold" id="roleModalLabel{{ u.id }}" style="font-size:0.95rem;margin:0 0 2px;">
+                                                Change Role
+                                            </h5>
+                                            <p class="mb-0" style="font-size:0.78rem;color:var(--adm-muted);">
+                                                {{ u.username }}
+                                                &bull; currently <strong>{{ u.get_role_display }}</strong>
+                                            </p>
+                                        </div>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                     </div>
                                     <form method="post" action="{% url 'admin_portal:user_change_role' u.id %}">
                                         {% csrf_token %}
-                                        <div class="modal-body">
-                                            <label class="form-label small fw-semibold">Select Target Role</label>
-                                            <select name="role" class="form-select">
+                                        <div class="modal-body" style="padding:18px 22px;">
+                                            <label class="form-label" style="font-size:0.78rem;font-weight:600;color:var(--adm-muted);">New Role</label>
+                                            <select name="role" class="form-select" style="border-radius:7px;border-color:var(--adm-border);font-size:0.845rem;">
                                                 {% for r_val, r_label in role_choices %}
                                                     <option value="{{ r_val }}" {% if u.role == r_val %}selected{% endif %}>{{ r_label }}</option>
                                                 {% endfor %}
                                             </select>
+                                            <p class="mt-2 mb-0" style="font-size:0.75rem;color:var(--adm-muted);">
+                                                This change is logged in the immutable audit trail.
+                                            </p>
                                         </div>
-                                        <div class="modal-footer">
-                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                            <button type="submit" class="btn btn-primary">Save Role</button>
+                                        <div class="modal-footer border-top" style="border-color:var(--adm-border)!important;padding:12px 22px;gap:8px;">
+                                            <button type="button" class="btn-adm-outline" data-bs-dismiss="modal">Cancel</button>
+                                            <button type="submit" class="btn-adm-primary">
+                                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+                                                Save Role
+                                            </button>
                                         </div>
                                     </form>
                                 </div>
@@ -114,10 +174,24 @@
                     </td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="6" class="text-center text-muted py-3">No users match your search criteria.</td></tr>
+                <tr>
+                    <td colspan="6">
+                        <div class="adm-empty">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                            <p>No users match your search criteria.</p>
+                        </div>
+                    </td>
+                </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
+    {% if users_list|length == 50 %}
+    <div class="px-4 py-3 border-top" style="border-color:var(--adm-border)!important;">
+        <p class="mb-0" style="font-size:0.78rem;color:var(--adm-muted);">
+            Showing first 50 results. Refine your search to narrow results further.
+        </p>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}

@@ -1,4 +1,3 @@
-
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
@@ -6,119 +5,554 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}VerifyNG Admin Portal{% endblock %}</title>
-    <!-- Bootstrap 5 CSS CDN -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         :root {
-            --admin-sidebar-bg: #0F172A;
-            --admin-sidebar-text: #94A3B8;
-            --admin-sidebar-active: #2457D6;
-            --admin-page-bg: #F8FAFC;
+            --adm-sidebar-bg:    #0B1120;
+            --adm-sidebar-hover: rgba(255,255,255,0.06);
+            --adm-sidebar-active:#2457D6;
+            --adm-page-bg:       #F0F4FA;
+            --adm-card-bg:       #FFFFFF;
+            --adm-border:        #E2E8F0;
+            --adm-ink:           #1E293B;
+            --adm-muted:         #64748B;
+            --adm-accent:        #2457D6;
+            --adm-success:       #16A34A;
+            --adm-danger:        #DC2626;
+            --adm-warning:       #D97706;
+            --adm-sidebar-width: 256px;
         }
+
+        *, *::before, *::after { box-sizing: border-box; }
+
         body {
-            background-color: var(--admin-page-bg);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0;
+            background: var(--adm-page-bg);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", sans-serif;
+            color: var(--adm-ink);
             min-height: 100vh;
-        }
-        .admin-sidebar {
-            width: 260px;
-            background-color: var(--admin-sidebar-bg);
-            min-height: 100vh;
-            color: var(--admin-sidebar-text);
-        }
-        .admin-sidebar .nav-link {
-            color: var(--admin-sidebar-text);
-            padding: 0.75rem 1.25rem;
-            border-radius: 8px;
-            font-weight: 500;
             display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 4px;
         }
-        .admin-sidebar .nav-link:hover {
-            color: #FFFFFF;
-            background-color: rgba(255, 255, 255, 0.05);
-        }
-        .admin-sidebar .nav-link.active {
-            color: #FFFFFF;
-            background-color: var(--admin-sidebar-active);
-        }
-        .admin-content {
-            flex: 1;
-            padding: 2rem;
+
+        /* ── Sidebar ─────────────────────────────────── */
+        .adm-sidebar {
+            width: var(--adm-sidebar-width);
+            min-height: 100vh;
+            background: var(--adm-sidebar-bg);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            position: sticky;
+            top: 0;
+            height: 100vh;
             overflow-y: auto;
         }
-        .kpi-card {
+
+        .adm-sidebar-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 20px 16px 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.07);
+        }
+        .adm-sidebar-logo .logo-shield {
+            width: 30px; height: 30px;
+            background: var(--adm-accent);
+            border-radius: 7px;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .adm-sidebar-logo .logo-text {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: #fff;
+            line-height: 1.2;
+        }
+        .adm-sidebar-logo .logo-sub {
+            font-size: 0.65rem;
+            color: #64748B;
+            font-weight: 400;
+            display: block;
+        }
+
+        /* section labels */
+        .adm-nav-label {
+            font-size: 0.6rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: #475569;
+            padding: 18px 16px 6px;
+        }
+
+        .adm-nav {
+            padding: 0 8px;
+        }
+
+        .adm-nav-link {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 10px;
+            border-radius: 7px;
+            font-size: 0.845rem;
+            font-weight: 500;
+            color: #94A3B8;
+            text-decoration: none;
+            margin-bottom: 2px;
+            transition: background 0.12s, color 0.12s;
+            position: relative;
+        }
+        .adm-nav-link:hover {
+            background: var(--adm-sidebar-hover);
+            color: #fff;
+        }
+        .adm-nav-link.active {
+            background: var(--adm-accent);
+            color: #fff;
+        }
+        .adm-nav-link .nav-badge {
+            margin-left: auto;
+            font-size: 0.65rem;
+            font-weight: 700;
+            background: rgba(255,255,255,0.15);
+            color: #fff;
+            border-radius: 10px;
+            padding: 1px 7px;
+            min-width: 22px;
+            text-align: center;
+        }
+        .adm-nav-link.active .nav-badge {
+            background: rgba(255,255,255,0.25);
+        }
+
+        .adm-sidebar-divider {
             border: none;
-            border-radius: 12px;
-            background: #FFFFFF;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-            padding: 1.5rem;
+            border-top: 1px solid rgba(255,255,255,0.07);
+            margin: 8px 16px;
+        }
+
+        .adm-sidebar-user {
+            padding: 12px 16px;
+            border-top: 1px solid rgba(255,255,255,0.07);
+            margin-top: auto;
+        }
+        .adm-sidebar-user .uname {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #fff;
+            display: block;
+        }
+        .adm-sidebar-user .urole {
+            font-size: 0.65rem;
+            color: #DC2626;
+            background: rgba(220,38,38,0.15);
+            border: 1px solid rgba(220,38,38,0.3);
+            border-radius: 4px;
+            padding: 1px 6px;
+            display: inline-block;
+            margin-top: 3px;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        /* ── Main content ─────────────────────────────── */
+        .adm-main {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .adm-topbar {
+            background: var(--adm-card-bg);
+            border-bottom: 1px solid var(--adm-border);
+            padding: 12px 28px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+        .adm-topbar .breadcrumb { margin: 0; font-size: 0.8rem; }
+        .adm-topbar .breadcrumb-item a { color: var(--adm-muted); text-decoration: none; }
+        .adm-topbar .breadcrumb-item.active { color: var(--adm-ink); font-weight: 500; }
+        .adm-topbar .health-pills { display: flex; gap: 6px; }
+        .adm-health-pill {
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 20px;
+            display: flex; align-items: center; gap: 5px;
+        }
+        .adm-health-pill .dot {
+            width: 6px; height: 6px; border-radius: 50%; display: inline-block;
+        }
+        .adm-health-pill.ok  { background: rgba(22,163,74,0.1);  color: #16A34A; }
+        .adm-health-pill.ok .dot  { background: #16A34A; }
+        .adm-health-pill.warn { background: rgba(217,119,6,0.12); color: #D97706; }
+        .adm-health-pill.warn .dot { background: #D97706; }
+        .adm-health-pill.err  { background: rgba(220,38,38,0.1);  color: #DC2626; }
+        .adm-health-pill.err .dot  { background: #DC2626; }
+
+        .adm-body {
+            padding: 28px;
+            flex: 1;
+        }
+
+        /* ── Flash messages ───────────────────────────── */
+        .adm-flash {
+            border-radius: 8px;
+            font-size: 0.875rem;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            border: 1px solid transparent;
+        }
+        .adm-flash.success { background: rgba(22,163,74,0.08); border-color: rgba(22,163,74,0.25); color: #15803d; }
+        .adm-flash.error   { background: rgba(220,38,38,0.07); border-color: rgba(220,38,38,0.2);  color: #b91c1c; }
+        .adm-flash.warning { background: rgba(217,119,6,0.07); border-color: rgba(217,119,6,0.2);  color: #b45309; }
+        .adm-flash.info    { background: rgba(36,87,214,0.07); border-color: rgba(36,87,214,0.2);  color: #1d4ed8; }
+
+        /* ── Cards ────────────────────────────────────── */
+        .adm-card {
+            background: var(--adm-card-bg);
+            border: 1px solid var(--adm-border);
+            border-radius: 10px;
+            padding: 22px;
+        }
+        .adm-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 18px;
+        }
+        .adm-card-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--adm-ink);
+            margin: 0;
+        }
+
+        /* ── KPI Cards ────────────────────────────────── */
+        .kpi-card {
+            background: var(--adm-card-bg);
+            border: 1px solid var(--adm-border);
+            border-radius: 10px;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        .kpi-card .kpi-icon {
+            width: 38px; height: 38px;
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            margin-bottom: 14px;
+        }
+        .kpi-card .kpi-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--adm-muted);
+            margin-bottom: 4px;
+        }
+        .kpi-card .kpi-value {
+            font-size: 1.85rem;
+            font-weight: 800;
+            color: var(--adm-ink);
+            line-height: 1;
+            margin-bottom: 8px;
+        }
+        .kpi-card .kpi-sub {
+            font-size: 0.75rem;
+            color: var(--adm-muted);
+        }
+        .kpi-card .kpi-sub .kpi-ok   { color: var(--adm-success); font-weight: 600; }
+        .kpi-card .kpi-sub .kpi-warn  { color: var(--adm-warning); font-weight: 600; }
+        .kpi-card .kpi-sub .kpi-bad   { color: var(--adm-danger);  font-weight: 600; }
+
+        /* ── Data Tables ──────────────────────────────── */
+        .adm-table { width: 100%; border-collapse: collapse; }
+        .adm-table th {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            color: var(--adm-muted);
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--adm-border);
+            white-space: nowrap;
+            background: #F8FAFC;
+        }
+        .adm-table th:first-child { border-radius: 6px 0 0 0; }
+        .adm-table th:last-child  { border-radius: 0 6px 0 0; }
+        .adm-table td {
+            font-size: 0.845rem;
+            padding: 11px 14px;
+            border-bottom: 1px solid var(--adm-border);
+            color: var(--adm-ink);
+            vertical-align: middle;
+        }
+        .adm-table tr:last-child td { border-bottom: none; }
+        .adm-table tr:hover td { background: #F8FAFC; }
+        .adm-table .mono { font-family: "SF Mono", "Fira Code", Consolas, monospace; font-size: 0.78rem; }
+        .adm-table .td-muted { color: var(--adm-muted); font-size: 0.78rem; }
+
+        /* ── Status badges ────────────────────────────── */
+        .adm-badge {
+            display: inline-flex; align-items: center; gap: 5px;
+            font-size: 0.7rem; font-weight: 600;
+            padding: 3px 9px; border-radius: 20px; white-space: nowrap;
+        }
+        .adm-badge .dot { width: 5px; height: 5px; border-radius: 50%; }
+        .adm-badge.green  { background: rgba(22,163,74,0.1);  color: #16A34A; }
+        .adm-badge.green .dot  { background: #16A34A; }
+        .adm-badge.red    { background: rgba(220,38,38,0.1);  color: #DC2626; }
+        .adm-badge.red .dot    { background: #DC2626; }
+        .adm-badge.amber  { background: rgba(217,119,6,0.1);  color: #D97706; }
+        .adm-badge.amber .dot  { background: #D97706; }
+        .adm-badge.blue   { background: rgba(36,87,214,0.1);  color: #2457D6; }
+        .adm-badge.blue .dot   { background: #2457D6; }
+        .adm-badge.gray   { background: rgba(100,116,139,0.1); color: #475569; }
+        .adm-badge.gray .dot   { background: #94A3B8; }
+
+        /* ── Filter bar ───────────────────────────────── */
+        .adm-filter-bar {
+            background: var(--adm-card-bg);
+            border: 1px solid var(--adm-border);
+            border-radius: 10px;
+            padding: 14px 18px;
+            margin-bottom: 18px;
+        }
+        .adm-filter-bar .form-control,
+        .adm-filter-bar .form-select {
+            font-size: 0.845rem;
+            border-color: var(--adm-border);
+            border-radius: 7px;
+            height: 38px;
+        }
+        .adm-filter-bar .form-control:focus,
+        .adm-filter-bar .form-select:focus {
+            border-color: var(--adm-accent);
+            box-shadow: 0 0 0 3px rgba(36,87,214,0.12);
+        }
+
+        /* ── Buttons ──────────────────────────────────── */
+        .btn-adm-primary {
+            background: var(--adm-accent);
+            color: #fff;
+            border: none;
+            border-radius: 7px;
+            font-size: 0.845rem;
+            font-weight: 600;
+            padding: 8px 18px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex; align-items: center; gap: 6px;
+            transition: background 0.12s;
+        }
+        .btn-adm-primary:hover { background: #1a46c0; color: #fff; }
+
+        .btn-adm-outline {
+            background: transparent;
+            color: var(--adm-ink);
+            border: 1px solid var(--adm-border);
+            border-radius: 7px;
+            font-size: 0.845rem;
+            font-weight: 500;
+            padding: 7px 14px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex; align-items: center; gap: 6px;
+            transition: border-color 0.12s, background 0.12s;
+        }
+        .btn-adm-outline:hover { border-color: #94A3B8; background: #F8FAFC; color: var(--adm-ink); }
+
+        .btn-adm-danger {
+            background: transparent;
+            color: var(--adm-danger);
+            border: 1px solid rgba(220,38,38,0.3);
+            border-radius: 7px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            padding: 5px 12px;
+            cursor: pointer;
+            transition: background 0.12s;
+        }
+        .btn-adm-danger:hover { background: rgba(220,38,38,0.07); }
+
+        .btn-adm-success {
+            background: transparent;
+            color: var(--adm-success);
+            border: 1px solid rgba(22,163,74,0.3);
+            border-radius: 7px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            padding: 5px 12px;
+            cursor: pointer;
+            transition: background 0.12s;
+        }
+        .btn-adm-success:hover { background: rgba(22,163,74,0.07); }
+
+        .btn-adm-sm {
+            font-size: 0.76rem;
+            padding: 4px 10px;
+        }
+
+        /* ── Page heading ─────────────────────────────── */
+        .adm-page-heading {
+            margin-bottom: 22px;
+        }
+        .adm-page-heading h1 {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: var(--adm-ink);
+            margin: 0 0 4px;
+        }
+        .adm-page-heading p {
+            font-size: 0.845rem;
+            color: var(--adm-muted);
+            margin: 0;
+        }
+
+        /* ── Empty states ─────────────────────────────── */
+        .adm-empty {
+            text-align: center;
+            padding: 48px 24px;
+            color: var(--adm-muted);
+        }
+        .adm-empty svg { opacity: 0.3; margin-bottom: 12px; }
+        .adm-empty p { font-size: 0.875rem; margin: 0; }
+
+        /* ── Mobile: hide sidebar on small screens ────── */
+        @media (max-width: 767px) {
+            .adm-sidebar { display: none; }
+            .adm-topbar { padding: 10px 16px; }
+            .adm-body   { padding: 16px; }
         }
     </style>
 </head>
-<body class="d-flex">
-    <!-- Sidebar -->
-    <aside class="admin-sidebar p-3 d-flex flex-column">
-        <div class="px-2 py-3 mb-3 border-bottom border-secondary d-flex align-items-center gap-2">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="#2457D6"><path d="M12 2L3 7V12C3 17.52 6.84 22.74 12 24C17.16 22.74 21 17.52 21 12V7L12 2Z"/></svg>
-            <span class="fs-5 fw-bold text-white">VerifyNG Admin</span>
-        </div>
+<body>
 
-        <nav class="nav flex-column mb-auto">
-            <a href="{% url 'admin_portal:overview' %}" class="nav-link {% if request.resolver_match.url_name == 'overview' %}active{% endif %}">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-                Overview
-            </a>
-            <a href="{% url 'admin_portal:users' %}" class="nav-link {% if request.resolver_match.url_name == 'users' %}active{% endif %}">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                User Operations
-            </a>
-            <a href="{% url 'admin_portal:audit_logs' %}" class="nav-link {% if request.resolver_match.url_name == 'audit_logs' %}active{% endif %}">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                Security & Audits
-            </a>
-            <a href="{% url 'admin_portal:communications' %}" class="nav-link {% if request.resolver_match.url_name == 'communications' %}active{% endif %}">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-                Communications
-            </a>
-            <hr class="border-secondary my-3">
-            <a href="{% url 'dashboard:index' %}" class="nav-link">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-                User Dashboard
-            </a>
-            <a href="/admin/" target="_blank" class="nav-link">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-                Django Admin (Raw)
-            </a>
+<!-- ══ Sidebar ═══════════════════════════════════════════ -->
+<aside class="adm-sidebar">
+    <!-- Logo -->
+    <div class="adm-sidebar-logo">
+        <div class="logo-shield">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><path d="M12 2L3 7V12C3 17.52 6.84 22.74 12 24C17.16 22.74 21 17.52 21 12V7L12 2Z"/></svg>
+        </div>
+        <div class="logo-text">
+            VerifyNG
+            <span class="logo-sub">Admin Portal</span>
+        </div>
+    </div>
+
+    <!-- Section: Platform -->
+    <div class="adm-nav-label">Platform</div>
+    <nav class="adm-nav">
+        <a href="{% url 'admin_portal:overview' %}"
+           class="adm-nav-link {% if request.resolver_match.url_name == 'overview' %}active{% endif %}">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+            Overview
+        </a>
+    </nav>
+
+    <!-- Section: Users -->
+    <div class="adm-nav-label">User Management</div>
+    <nav class="adm-nav">
+        <a href="{% url 'admin_portal:users' %}"
+           class="adm-nav-link {% if request.resolver_match.url_name == 'users' %}active{% endif %}">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            User Operations
+        </a>
+    </nav>
+
+    <!-- Section: Security -->
+    <div class="adm-nav-label">Security</div>
+    <nav class="adm-nav">
+        <a href="{% url 'admin_portal:audit_logs' %}"
+           class="adm-nav-link {% if request.resolver_match.url_name == 'audit_logs' %}active{% endif %}">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            Audit Logs
+        </a>
+    </nav>
+
+    <!-- Section: Communications -->
+    <div class="adm-nav-label">Communications</div>
+    <nav class="adm-nav">
+        <a href="{% url 'admin_portal:communications' %}"
+           class="adm-nav-link {% if request.resolver_match.url_name == 'communications' %}active{% endif %}">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            Broadcast Center
+        </a>
+    </nav>
+
+    <hr class="adm-sidebar-divider">
+
+    <!-- Section: Exit -->
+    <nav class="adm-nav">
+        <a href="{% url 'dashboard:index' %}" class="adm-nav-link">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            User Dashboard
+        </a>
+        <a href="/admin/" target="_blank" rel="noopener" class="adm-nav-link">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            Django Admin (Raw)
+        </a>
+    </nav>
+
+    <!-- User identity footer -->
+    <div class="adm-sidebar-user">
+        <span class="uname">{{ request.user.username }}</span>
+        <span class="urole">Superadmin</span>
+    </div>
+</aside>
+
+<!-- ══ Main ══════════════════════════════════════════════ -->
+<div class="adm-main">
+
+    <!-- Top bar with breadcrumb + health pills -->
+    <header class="adm-topbar">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="{% url 'admin_portal:overview' %}">Admin</a></li>
+                {% block breadcrumb %}<li class="breadcrumb-item active">Overview</li>{% endblock %}
+            </ol>
         </nav>
-
-        <div class="px-2 pt-3 border-top border-secondary small">
-            <span class="text-white fw-bold d-block">{{ request.user.username }}</span>
-            <span class="badge bg-danger">Superadmin</span>
+        <div class="health-pills">
+            {% block health_pills %}{% endblock %}
         </div>
-    </aside>
+    </header>
 
-    <!-- Main Content Body -->
-    <main class="admin-content">
+    <!-- Content area -->
+    <main class="adm-body">
+
+        <!-- Flash messages -->
         {% if messages %}
             {% for message in messages %}
-                <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                <div class="adm-flash {% if message.tags == 'success' %}success{% elif message.tags == 'error' %}error{% elif message.tags == 'warning' %}warning{% else %}info{% endif %}">
+                    {% if message.tags == 'success' %}
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" flex-shrink="0"><path d="M20 6L9 17l-5-5"/></svg>
+                    {% elif message.tags == 'error' %}
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" flex-shrink="0"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                    {% else %}
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" flex-shrink="0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    {% endif %}
+                    <span>{{ message }}</span>
                 </div>
             {% endfor %}
         {% endif %}
 
         {% block admin_body %}{% endblock %}
     </main>
+</div>
 
-    <!-- Bootstrap 5 JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    {% block admin_scripts %}{% endblock %}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+{% block admin_scripts %}{% endblock %}
 </body>
 </html>
-
