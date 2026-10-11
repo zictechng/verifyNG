@@ -1,19 +1,27 @@
-import os
 from pathlib import Path
 import environ
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 env = environ.Env(
-    DEBUG=(bool, True)
+    DEBUG=(bool, False),
 )
 
-# Read .env file from project root
-environ.Env.read_env(BASE_DIR / '.env')
+# Read .env file from project root (ignored if absent in production)
+environ.Env.read_env(BASE_DIR / '.env', overwrite=False)
 
-SECRET_KEY = env('SECRET_KEY', default='django-insecure-test-key')
+# ---------------------------------------------------------------------------
+# Core — must come from environment in production; no insecure defaults
+# ---------------------------------------------------------------------------
+SECRET_KEY = env('SECRET_KEY')
+
 DEBUG = env('DEBUG')
-ALLOWED_HOSTS = ['*']
+
+# ALLOWED_HOSTS must be set in .env or environment.
+# Development default: localhost only.
+# Production: set ALLOWED_HOSTS=verifyng.com,www.verifyng.com in .env
+_raw_hosts = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1', '[::1]'])
+ALLOWED_HOSTS = _raw_hosts
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -185,6 +193,37 @@ PAYSTACK_PUBLIC_KEY = env('PAYSTACK_PUBLIC_KEY', default='')
 SITE_BASE_URL = env('SITE_BASE_URL', default='http://localhost:8000')
 
 
+# ==============================================================================
+# Security Headers (Phase 13) — active in production (DEBUG=False)
+# ==============================================================================
+
+# HTTPS / HSTS
+SECURE_SSL_REDIRECT = env.bool('SECURE_SSL_REDIRECT', default=not DEBUG)
+SECURE_HSTS_SECONDS = env.int('SECURE_HSTS_SECONDS', default=0 if DEBUG else 31536000)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = not DEBUG
+SECURE_HSTS_PRELOAD = not DEBUG
+
+# Proxy header — set if behind Nginx / load balancer
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https') if not DEBUG else None
+
+# Cookie security
+SESSION_COOKIE_SECURE = not DEBUG
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_AGE = 60 * 60 * 8  # 8 hours
+
+CSRF_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_HTTPONLY = True
+CSRF_COOKIE_SAMESITE = 'Lax'
+
+# Clickjacking (already in middleware — this header controls the value)
+X_FRAME_OPTIONS = 'DENY'
+
+# MIME sniffing
+SECURE_CONTENT_TYPE_NOSNIFF = True
+
+# Referrer
+SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
 
 
 
