@@ -42,10 +42,6 @@ class User(AbstractUser):
 
     def is_authorized_agency(self):
         return self.role == 'agency'
-
-    def __str__(self):
-        return f"{self.username} ({self.get_role_display()})"
-    
     def save(self, *args, **kwargs):
     # Django 5.1 creates functools.partial descriptors for BooleanFields
     # which can leak into instance attributes during save(). Force bool types.
@@ -54,6 +50,11 @@ class User(AbstractUser):
         if not isinstance(self.is_active, bool):
             self.is_active = bool(self.is_active)
         super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.username} ({self.get_role_display()})"
+    
+   
 
 
 class LoginAudit(models.Model):
