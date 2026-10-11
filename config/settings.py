@@ -23,7 +23,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    
+    'csp',
     'users',
     'public_website',
     'dashboard',
@@ -38,6 +38,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'csp.middleware.CSPMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -205,6 +206,46 @@ X_FRAME_OPTIONS = 'DENY'
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
 SECURE_BROWSER_XSS_FILTER = True
+
+
+
+
+# ==============================================================================
+# Content Security Policy (Phase 13) — django-csp 4.0
+# ==============================================================================
+CONTENT_SECURITY_POLICY = {
+    "DIRECTIVES": {
+        "script-src": [
+            "'self'",
+            "https://cdn.jsdelivr.net",
+            "https://cdnjs.cloudflare.com",
+        ],
+        "style-src": [
+            "'self'",
+            "https://cdn.jsdelivr.net",
+            "https://cdnjs.cloudflare.com",
+            "https://fonts.googleapis.com",
+        ],
+        "font-src": [
+            "'self'",
+            "https://fonts.gstatic.com",
+        ],
+        "img-src": [
+            "'self'",
+            "data:",
+            "https://res.cloudinary.com",
+        ],
+        "form-action": ["'self'"],
+        "frame-ancestors": ["'none'"],
+        "default-src": ["'self'"],
+        "connect-src": [
+            "'self'",
+            "https://api.paystack.co",
+            "https://js.paystack.co",
+        ],
+    },
+    "REPORT_ONLY": env.bool('CSP_REPORT_ONLY', default=DEBUG),
+}
 
 
 
