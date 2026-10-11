@@ -72,14 +72,16 @@ def _send_via_mailtrap_api(
 ) -> None:
     """
     Gate 1: Send via Mailtrap Transactional Sending API (HTTPS POST, no SMTP socket).
+    'from' always uses MAILTRAP_SENDING_EMAIL (verified Mailtrap domain: mailserver.sendmoor.com).
+    Display name is dynamic from MAILTRAP_FROM_NAME.
     Raises on any error so the caller falls through to Gate 2.
     """
     api_token = getattr(settings, 'MAILTRAP_API_TOKEN', '')
-    from_email = getattr(settings, 'MAILTRAP_FROM_EMAIL', '')
+    from_email = getattr(settings, 'MAILTRAP_SENDING_EMAIL', 'noreply@mailserver.sendmoor.com')
     from_name = getattr(settings, 'MAILTRAP_FROM_NAME', 'VerifyNG')
 
     if not api_token or not from_email:
-        raise ValueError("Mailtrap API credentials not configured (MAILTRAP_API_TOKEN / MAILTRAP_FROM_EMAIL)")
+        raise ValueError("Mailtrap API credentials not configured (MAILTRAP_API_TOKEN / MAILTRAP_SENDING_EMAIL)")
 
     payload = {
         "from": {"email": from_email, "name": from_name},
@@ -189,7 +191,6 @@ def send_email(
         RuntimeError: if all three gates fail, with diagnostic details from each.
     """
     if not text_body:
-        # Minimal plaintext fallback stripped from HTML
         import re
         text_body = re.sub(r'<[^>]+>', '', html_body).strip()
 
@@ -228,3 +229,4 @@ def send_email(
         f"All three email delivery gates failed for {masked}. "
         f"Diagnostics: {gate_errors}"
     )
+

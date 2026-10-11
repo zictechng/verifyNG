@@ -162,8 +162,9 @@ CELERY_TASK_TIME_LIMIT = 30 * 60  # 1800 seconds (30 minutes hard limit)
 
 # --- Gate 1: Mailtrap Transactional Sending API (HTTPS/443) ---
 MAILTRAP_API_TOKEN = env('MAILTRAP_API_TOKEN', default='')
-MAILTRAP_FROM_EMAIL = env('MAILTRAP_FROM_EMAIL', default='noreply@sendmoor.com')
+MAILTRAP_SENDING_EMAIL = env('MAILTRAP_SENDING_EMAIL', default='noreply@mailserver.sendmoor.com')
 MAILTRAP_FROM_NAME = env('MAILTRAP_FROM_NAME', default='VerifyNG')
+
 
 # --- Gate 2: Namecheap Private Email SMTP (port 465 SSL) ---
 NAMECHEAP_SMTP_HOST = env('NAMECHEAP_SMTP_HOST', default='mail.privateemail.com')

@@ -4,6 +4,7 @@ from django.contrib.auth.forms import (
     AuthenticationForm,
     PasswordResetForm,
     SetPasswordForm,
+    PasswordChangeForm,  
 )
 from users.models import User
 
@@ -74,6 +75,39 @@ class CustomSetPasswordForm(SetPasswordForm):
     Set-password form (used on the reset confirm page) with Bootstrap styling
     applied to both password widgets.
     """
+    new_password1 = forms.CharField(
+        label='New Password',
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter a strong new password',
+            'autocomplete': 'new-password',
+        }),
+        strip=False,
+    )
+    new_password2 = forms.CharField(
+        label='Confirm New Password',
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Repeat your new password',
+            'autocomplete': 'new-password',
+        }),
+        strip=False,
+    )
+
+class CustomPasswordChangeForm(PasswordChangeForm):
+    """
+    In-portal change-password form with Bootstrap styling on all three widgets.
+    Requires the user's current (old) password before accepting a new one.
+    """
+    old_password = forms.CharField(
+        label='Current Password',
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter your current password',
+            'autocomplete': 'current-password',
+        }),
+        strip=False,
+    )
     new_password1 = forms.CharField(
         label='New Password',
         widget=forms.PasswordInput(attrs={

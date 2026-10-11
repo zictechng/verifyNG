@@ -13,7 +13,7 @@ from django.contrib.auth.views import (
     PasswordResetDoneView,
     PasswordResetConfirmView,
     PasswordResetCompleteView,
-
+    PasswordChangeView, 
 )
 from django.contrib.auth.mixins import LoginRequiredMixin
 
@@ -22,7 +22,9 @@ from users.forms import (
     CustomAuthenticationForm,
     CustomPasswordResetForm,
     CustomSetPasswordForm,
+    CustomPasswordChangeForm,
 )
+from notifications.tasks import send_broadcast_email_task
 from users.models import User
 
 logger = logging.getLogger(__name__)
@@ -89,7 +91,6 @@ class CustomPasswordResetView(PasswordResetView):
 class CustomPasswordResetDoneView(PasswordResetDoneView):
     template_name = 'users/password_reset_done.html'
 
-
 class CustomPasswordResetConfirmView(PasswordResetConfirmView):
     template_name = 'users/password_reset_confirm.html'
     success_url = reverse_lazy('users:password_reset_complete')
@@ -98,28 +99,58 @@ class CustomPasswordResetConfirmView(PasswordResetConfirmView):
     def form_valid(self, form):
         response = super().form_valid(form)
         user = form.user
-        try:
-            send_email(
-                to_email=user.email,
-                subject='Your VerifyNG password has been changed',
-                html_body=(
-                    f"<p>Hello {user.first_name or user.username},</p>"
-                    "<p>Your VerifyNG account password was successfully changed.</p>"
-                    "<p>If you did not make this change, please contact us immediately at "
-                    "<a href='mailto:support@verifyng.com'>support@verifyng.com</a>.</p>"
-                    "<p>— The VerifyNG Team</p>"
-                ),
-                text_body=(
-                    f"Hello {user.first_name or user.username},\n\n"
-                    "Your VerifyNG account password was successfully changed.\n\n"
-                    "If you did not make this change, contact us at support@verifyng.com.\n\n"
-                    "— The VerifyNG Team"
-                ),
-            )
-        except RuntimeError:
-            logger.error("Failed to send password change confirmation to user %s", user.pk)
+        send_broadcast_email_task.delay(
+            to_email=user.email,
+            subject='Your VerifyNG password has been changed',
+            html_body=(
+                f"<p>Hello {user.first_name or user.username},</p>"
+                "<p>Your VerifyNG account password was successfully changed.</p>"
+                "<p>If you did not make this change, please contact us immediately at "
+                "<a href='mailto:support@verifyng.com'>support@verifyng.com</a>.</p>"
+                "<p>— The VerifyNG Team</p>"
+            ),
+            text_body=(
+                f"Hello {user.first_name or user.username},\n\n"
+                "Your VerifyNG account password was successfully changed.\n\n"
+                "If you did not make this change, contact us at support@verifyng.com.\n\n"
+                "— The VerifyNG Team"
+            ),
+        )
         return response
-
 
 class CustomPasswordResetCompleteView(PasswordResetCompleteView):
     template_name = 'users/password_reset_complete.html'
+
+class CustomPasswordChangeView(LoginRequiredMixin, PasswordChangeView):
+    """
+    In-portal password change for all authenticated user roles.
+    Requires current password. Sends security notification email via Celery.
+    Redirects back to this page with a success message on completion.
+    """
+    template_name = 'users/password_change_form.html'
+    form_class = CustomPasswordChangeForm
+    success_url = reverse_lazy('users:password_change_done')
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        user = self.request.user
+        send_broadcast_email_task.delay(
+            to_email=user.email,
+            subject='Your VerifyNG password has been changed',
+            html_body=(
+                f"<p>Hello {user.first_name or user.username},</p>"
+                "<p>Your VerifyNG account password was just changed from inside your portal.</p>"
+                "<p>If you did not make this change, please contact us immediately at "
+                "<a href='mailto:support@verifyng.com'>support@verifyng.com</a>.</p>"
+                "<p>— The VerifyNG Team</p>"
+            ),
+            text_body=(
+                f"Hello {user.first_name or user.username},\n\n"
+                "Your VerifyNG account password was just changed from inside your portal.\n\n"
+                "If you did not make this change, contact us at support@verifyng.com.\n\n"
+                "— The VerifyNG Team"
+            ),
+        )
+        return response
+
+
