@@ -192,21 +192,63 @@ class AuthenticationRequiredTest(TestCase):
 # ---------------------------------------------------------------------------
 
 class ReportIdentityGateTest(TestCase):
+    """
+    Tests the identity verification gate on ReportCreateView.
+    Uses RequestFactory + middleware simulation for accurate dispatch testing.
+    """
 
     def setUp(self):
-        self.client = Client()
         self.url = reverse('reports:create')
 
-    def test_unverified_user_redirected_from_report_create(self):
+    def test_dispatch_blocks_unverified_user(self):
+        """dispatch() must redirect authenticated-but-unverified users."""
+        from reports.views import ReportCreateView
+        from django.test import RequestFactory
+        from django.contrib.messages.storage.fallback import FallbackStorage
+
+        factory = RequestFactory()
+        request = factory.get(self.url)
+
         user = make_user(username='unverified', is_verified=False)
-        self.client.force_login(user)
-        response = self.client.get(self.url, follow=False)
+        request.user = user
+
+        # Attach message storage (required by messages.warning in dispatch)
+        setattr(request, 'session', {})
+        messages_storage = FallbackStorage(request)
+        setattr(request, '_messages', messages_storage)
+
+        view = ReportCreateView.as_view()
+        response = view(request)
+
         self.assertEqual(response.status_code, 302)
         self.assertIn('verification', response['Location'])
 
-    def test_verified_user_can_access_report_create(self):
-        user = make_user(username='verified', is_verified=True)
-        self.client.force_login(user)
-        response = self.client.get(self.url)
-        self.assertNotEqual(response.status_code, 403)
+    def test_dispatch_allows_verified_user(self):
+        """dispatch() must allow authenticated verified users through."""
+        from reports.views import ReportCreateView
+        from django.test import RequestFactory
+        from django.contrib.messages.storage.fallback import FallbackStorage
+
+        factory = RequestFactory()
+        request = factory.get(self.url)
+
+        user = make_user(username='verified2', is_verified=True)
+        request.user = user
+
+        setattr(request, 'session', {})
+        messages_storage = FallbackStorage(request)
+        setattr(request, '_messages', messages_storage)
+
+        view = ReportCreateView.as_view()
+        response = view(request)
+
+        # 200 = form shown; should NOT be a verification redirect
+        self.assertNotEqual(response.status_code, 302)
+
+    def test_report_create_redirects_anonymous(self):
+        """Anonymous users must be redirected to login."""
+        client = Client()
+        response = client.get(self.url, follow=False)
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('login', response['Location'])
 
