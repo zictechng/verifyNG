@@ -178,6 +178,10 @@ GMAIL_SMTP_USER = env('GMAIL_SMTP_USER', default='')
 GMAIL_SMTP_APP_PASSWORD = env('GMAIL_SMTP_APP_PASSWORD', default='')
 GMAIL_FROM_NAME = env('GMAIL_FROM_NAME', default='VerifyNG')
 
+# Route all Django outbound mail through the three-gate VerifyNG service
+EMAIL_BACKEND = 'notifications.django_email_backend.VerifyNGEmailBackend'
+DEFAULT_FROM_EMAIL = env('MAILTRAP_FROM_EMAIL', default='noreply@verifyng.com')
+
 
 # ==============================================================================
 # Payments & Subscriptions (Phase 12) — Paystack Configuration
@@ -247,7 +251,7 @@ CONTENT_SECURITY_POLICY = {
             "https://js.paystack.co",
         ],
     },
-    "REPORT_ONLY": env.bool('CSP_REPORT_ONLY', default=DEBUG),
+    "REPORT_ONLY": env.bool('CSP_REPORT_ONLY', default=True),
 }
 
 
