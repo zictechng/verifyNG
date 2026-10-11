@@ -45,6 +45,15 @@ class User(AbstractUser):
 
     def __str__(self):
         return f"{self.username} ({self.get_role_display()})"
+    
+    def save(self, *args, **kwargs):
+    # Django 5.1 creates functools.partial descriptors for BooleanFields
+    # which can leak into instance attributes during save(). Force bool types.
+        if not isinstance(self.identity_verified, bool):
+            self.identity_verified = False
+        if not isinstance(self.is_active, bool):
+            self.is_active = bool(self.is_active)
+        super().save(*args, **kwargs)
 
 
 class LoginAudit(models.Model):
