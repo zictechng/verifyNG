@@ -14,7 +14,12 @@ from django.http import HttpResponse
 from django.shortcuts import render
 from django.urls import reverse_lazy
 from django.utils.timezone import localtime, now
-from django.views.generic import CreateView, DetailView
+from django.views.generic import CreateView, DetailView, View
+
+from django.contrib import messages
+from django.contrib.auth import update_session_auth_hash
+from django.http import HttpResponseRedirect
+from django.urls import reverse_lazy
 
 from core.email_utils import render_email
 from core.models import SiteConfiguration
@@ -193,3 +198,83 @@ class CustomPasswordChangeView(LoginRequiredMixin, PasswordChangeView):
                 "Failed to send password-change confirmation email to user %s", user.pk
             )
         return response
+
+
+class UserProfileUpdateView(LoginRequiredMixin, View):
+    """
+    Allows authenticated users to update first_name, last_name, and email.
+    Username and role are read-only.
+    """
+    template_name = 'users/profile.html'
+
+    def get(self, request):
+        from django import forms as dj_forms
+
+        class ProfileForm(dj_forms.ModelForm):
+            class Meta:
+                model = User
+                fields = ['first_name', 'last_name', 'email']
+                widgets = {
+                    'first_name': dj_forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'First name'}),
+                    'last_name': dj_forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Last name'}),
+                    'email': dj_forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'email@example.com'}),
+                }
+
+        form = ProfileForm(instance=request.user)
+        return render(request, self.template_name, {'form': form, 'user_profile': request.user})
+
+    def post(self, request):
+        from django import forms as dj_forms
+
+        class ProfileForm(dj_forms.ModelForm):
+            class Meta:
+                model = User
+                fields = ['first_name', 'last_name', 'email']
+                widgets = {
+                    'first_name': dj_forms.TextInput(attrs={'class': 'form-control'}),
+                    'last_name': dj_forms.TextInput(attrs={'class': 'form-control'}),
+                    'email': dj_forms.EmailInput(attrs={'class': 'form-control'}),
+                }
+
+        form = ProfileForm(request.POST, instance=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Profile updated successfully.')
+            return HttpResponseRedirect(reverse_lazy('users:profile'))
+        return render(request, self.template_name, {'form': form, 'user_profile': request.user})
+
+
+class DeleteAccountView(LoginRequiredMixin, View):
+    """
+    Requires password confirmation and checkbox before permanently deleting the account.
+    Soft-deletes by deactivating (is_active=False) rather than hard-deleting,
+    preserving fraud report integrity per CLAUDE.md data retention requirements.
+    """
+    template_name = 'users/delete_account.html'
+
+    def get(self, request):
+        return render(request, self.template_name)
+
+    def post(self, request):
+        password = request.POST.get('password', '')
+        confirmed = request.POST.get('confirm_delete') == 'on'
+
+        if not confirmed:
+            messages.error(request, 'You must check the confirmation box.')
+            return render(request, self.template_name)
+
+        if not request.user.check_password(password):
+            messages.error(request, 'Incorrect password. Please try again.')
+            return render(request, self.template_name)
+
+        # Soft delete — deactivate account, preserve fraud report data
+        user = request.user
+        user.is_active = False
+        user.save(update_fields=['is_active'])
+
+        from django.contrib.auth import logout
+        logout(request)
+        messages.success(request, 'Your account has been deleted.')
+        return HttpResponseRedirect(reverse_lazy('home'))
+
+

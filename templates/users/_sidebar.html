@@ -1,0 +1,60 @@
+
+{% load static %}
+<div class="col-lg-3 col-md-4 mb-4 mb-md-0">
+    <div class="vng-card p-3">
+        <div class="d-flex align-items-center gap-3 p-2 mb-3 border-bottom pb-3">
+            <div class="vng-avatar-circle flex-shrink-0" style="width:44px;height:44px;font-size:18px;">
+                {{ request.user.get_full_name|default:request.user.username|slice:":1"|upper }}
+            </div>
+            <div class="min-w-0">
+                <div class="fw-semibold text-truncate" style="font-size:14px;color:var(--vng-ink);">{{ request.user.get_full_name|default:request.user.username }}</div>
+                <div class="small text-muted text-truncate">{{ request.user.email }}</div>
+            </div>
+        </div>
+
+        <nav class="d-flex flex-column gap-1">
+            <a href="{% url 'users:profile' %}"
+               class="vng-sidebar-link {% if active_section == 'profile' %}active{% endif %}">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+                Profile
+            </a>
+            <a href="{% url 'users:password_change' %}"
+               class="vng-sidebar-link {% if active_section == 'settings' %}active{% endif %}">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                Settings
+            </a>
+            <a href="{% url 'notifications:list' %}"
+               class="vng-sidebar-link {% if active_section == 'notifications' %}active{% endif %}">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+                Notifications
+                {% if unread_notification_count > 0 %}
+                <span class="ms-auto badge rounded-pill" style="background:var(--vng-primary);font-size:10px;">{{ unread_notification_count }}</span>
+                {% endif %}
+            </a>
+            <div class="mt-2 pt-2 border-top">
+                <a href="{% url 'users:delete_account' %}"
+                   class="vng-sidebar-link vng-sidebar-link--danger {% if active_section == 'delete' %}active{% endif %}">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                    Delete Account
+                </a>
+            </div>
+        </nav>
+    </div>
+</div>
+
+<style>
+.vng-sidebar-link {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px; border-radius: 8px;
+    font-size: 14px; font-weight: 500; color: var(--vng-muted);
+    text-decoration: none; transition: all 0.12s ease;
+}
+.vng-sidebar-link:hover { background: var(--vng-page-bg); color: var(--vng-primary); text-decoration: none; }
+.vng-sidebar-link.active { background: var(--vng-primary-light); color: var(--vng-primary); font-weight: 600; }
+.vng-sidebar-link svg { flex-shrink: 0; opacity: 0.7; }
+.vng-sidebar-link.active svg, .vng-sidebar-link:hover svg { opacity: 1; }
+.vng-sidebar-link--danger { color: #DC2626; }
+.vng-sidebar-link--danger:hover { background: #FEF2F2; color: #B91C1C; }
+.vng-sidebar-link--danger svg { opacity: 0.8; }
+</style>
+

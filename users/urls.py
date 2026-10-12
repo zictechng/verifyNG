@@ -4,6 +4,8 @@ from users.views import (
     UserLoginView,
     UserLogoutView,
     UserProfileView,
+    UserProfileUpdateView,
+    DeleteAccountView,
     CustomPasswordResetView,
     CustomPasswordResetDoneView,
     CustomPasswordResetConfirmView,
@@ -18,7 +20,8 @@ urlpatterns = [
     path('register/', RegisterView.as_view(), name='register'),
     path('login/', UserLoginView.as_view(), name='login'),
     path('logout/', UserLogoutView.as_view(), name='logout'),
-    path('profile/', UserProfileView.as_view(), name='profile'),
+    path('profile/', UserProfileUpdateView.as_view(), name='profile'),
+    path('delete-account/', DeleteAccountView.as_view(), name='delete_account'),
 
     # Password Reset (unauthenticated — forgot password)
     path('password-reset/', CustomPasswordResetView.as_view(), name='password_reset'),

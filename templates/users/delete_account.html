@@ -1,0 +1,71 @@
+
+{% extends 'public/base.html' %}
+{% load static %}
+
+{% block title %}Delete Account | {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-md-5">
+    <div class="row">
+
+        {% with active_section='delete' %}
+        {% include 'users/_sidebar.html' %}
+        {% endwith %}
+
+        <div class="col-lg-9 col-md-8">
+            <div class="mb-4">
+                <h1 class="h4 fw-bold mb-1">Delete Account</h1>
+                <p class="small text-muted mb-0">Permanently remove your account and all associated data.</p>
+            </div>
+
+            <div class="vng-card p-4" style="border-color:#FCA5A5;">
+                <div class="d-flex align-items-start gap-3 mb-4 pb-4 border-bottom">
+                    <span style="display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;background:#FEE2E2;border-radius:10px;flex-shrink:0;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    </span>
+                    <div>
+                        <h6 class="fw-bold mb-1" style="color:#B91C1C;">This action is permanent and cannot be undone.</h6>
+                        <p class="small text-muted mb-0">Deleting your account will remove your profile, submitted reports, and verification history. Fraud reports you have submitted may be retained for platform integrity purposes as required by our terms of service.</p>
+                    </div>
+                </div>
+
+                {% if messages %}
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags|default:'danger' }} small mb-4" role="alert">{{ message }}</div>
+                {% endfor %}
+                {% endif %}
+
+                <form method="post" novalidate x-data="{ confirmed: false, loading: false }" @submit="loading = true">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Enter your password to confirm</label>
+                        <input type="password" name="password" class="form-control" placeholder="Your current password" required autocomplete="current-password">
+                    </div>
+                    <div class="mb-4">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="confirm_delete" x-model="confirmed">
+                            <label class="form-check-label small" for="confirm_delete">
+                                I understand this will permanently delete my account and cannot be reversed.
+                            </label>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'users:profile' %}" class="btn btn-vng-outline btn-vng-sm">Cancel</a>
+                        <button type="submit"
+                                class="btn btn-vng-sm btn-danger"
+                                :disabled="!confirmed || loading"
+                                x-bind:style="!confirmed ? 'opacity:0.5;cursor:not-allowed' : ''">
+                            <span x-show="!loading">Delete My Account</span>
+                            <span x-show="loading" x-cloak>
+                                <span class="spinner-border spinner-border-sm me-1"></span>Deleting...
+                            </span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
