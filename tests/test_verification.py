@@ -67,7 +67,7 @@ class GenerateCertificateIdTests(TestCase):
         self.assertEqual(parts[0], 'VNG')
         self.assertTrue(parts[1].isdigit())
         self.assertEqual(len(parts[2]), 8)
-        self.assertTrue(parts[2].isupper())
+        self.assertEqual(parts[2], parts[2].upper())
 
     def test_uniqueness(self):
         ids = {generate_certificate_id() for _ in range(50)}
@@ -354,4 +354,3 @@ class CertificateQueryLogViewTests(TestCase):
         resp = self.client.get(url)
         self.assertIn(resp.status_code, [403, 404])
 
-        
