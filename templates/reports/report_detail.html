@@ -46,22 +46,39 @@
                 <a href="{% url 'reports:create_dispute' report.reference_number %}" class="btn btn-sm btn-outline-danger">Dispute This Report</a>
             {% endif %}
             {# Colour-coded state badge #}
+                        
             {% if report.state == 'published' %}
-                <span class="badge bg-success fs-6 px-3 py-2">Published</span>
+                <span class="d-inline-flex align-items-center gap-1 px-3 py-1 rounded-pill small fw-semibold" style="background:#DCFCE7;color:#16A34A;border:1px solid #BBF7D0;">
+                    <span style="width:7px;height:7px;border-radius:50%;background:#16A34A;display:inline-block;"></span>Published
+                </span>
             {% elif report.state == 'under_review' %}
-                <span class="badge bg-warning text-dark fs-6 px-3 py-2">Under Review</span>
+                <span class="d-inline-flex align-items-center gap-1 px-3 py-1 rounded-pill small fw-semibold" style="background:#FEF3C7;color:#B45309;border:1px solid #FDE68A;">
+                    <span style="width:7px;height:7px;border-radius:50%;background:#B45309;display:inline-block;"></span>Under Review
+                </span>
             {% elif report.state == 'submitted' %}
-                <span class="badge bg-primary fs-6 px-3 py-2">Submitted</span>
+                <span class="d-inline-flex align-items-center gap-1 px-3 py-1 rounded-pill small fw-semibold" style="background:#EAF1FF;color:#2457D6;border:1px solid #C7D9F8;">
+                    <span style="width:7px;height:7px;border-radius:50%;background:#2457D6;display:inline-block;"></span>Submitted
+                </span>
             {% elif report.state == 'rejected' %}
-                <span class="badge bg-danger fs-6 px-3 py-2">Rejected</span>
+                <span class="d-inline-flex align-items-center gap-1 px-3 py-1 rounded-pill small fw-semibold" style="background:#FEE2E2;color:#DC2626;border:1px solid #FECACA;">
+                    <span style="width:7px;height:7px;border-radius:50%;background:#DC2626;display:inline-block;"></span>Rejected
+                </span>
             {% elif report.state == 'disputed' %}
-                <span class="badge fs-6 px-3 py-2" style="background:#7C3AED;">Disputed</span>
+                <span class="d-inline-flex align-items-center gap-1 px-3 py-1 rounded-pill small fw-semibold" style="background:#EDE9FE;color:#7C3AED;border:1px solid #DDD6FE;">
+                    <span style="width:7px;height:7px;border-radius:50%;background:#7C3AED;display:inline-block;"></span>Disputed
+                </span>
             {% elif report.state == 'restricted' %}
-                <span class="badge bg-warning text-dark fs-6 px-3 py-2">Restricted</span>
+                <span class="d-inline-flex align-items-center gap-1 px-3 py-1 rounded-pill small fw-semibold" style="background:#FEF3C7;color:#B45309;border:1px solid #FDE68A;">
+                    <span style="width:7px;height:7px;border-radius:50%;background:#B45309;display:inline-block;"></span>Restricted
+                </span>
             {% elif report.state == 'resolved' %}
-                <span class="badge bg-secondary fs-6 px-3 py-2">Resolved</span>
+                <span class="d-inline-flex align-items-center gap-1 px-3 py-1 rounded-pill small fw-semibold" style="background:#F1F5F9;color:#64748B;border:1px solid #CBD5E1;">
+                    <span style="width:7px;height:7px;border-radius:50%;background:#64748B;display:inline-block;"></span>Resolved
+                </span>
             {% else %}
-                <span class="badge bg-secondary fs-6 px-3 py-2">{{ report.get_state_display }}</span>
+                <span class="d-inline-flex align-items-center gap-1 px-3 py-1 rounded-pill small fw-semibold" style="background:#F1F5F9;color:#64748B;border:1px solid #CBD5E1;">
+                    <span style="width:7px;height:7px;border-radius:50%;background:#64748B;display:inline-block;"></span>{{ report.get_state_display }}
+                </span>
             {% endif %}
         </div>
     </div>
