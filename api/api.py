@@ -17,6 +17,8 @@ from reports.storage_services import StorageError
 
 logger = logging.getLogger(__name__)
 
+from ninja.main import NinjaAPI as _NinjaAPI
+_NinjaAPI._registry.clear()
 api = NinjaAPI(urls_namespace='verifyng_api')
 
 class CheckResponse(Schema):
