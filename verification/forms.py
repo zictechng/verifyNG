@@ -112,3 +112,31 @@ class OfficerRejectionForm(forms.Form):
             'placeholder': 'State specific reason for rejecting/declining this verification request'
         })
     )
+
+
+
+
+# ── W-08: Certificate Application Form ────────────────────────────────────────
+class CertificateApplyForm(forms.Form):
+    CHECK_LEVEL_CHOICES = (
+        ('employment', 'Employment Check — for general work and tenancy'),
+        ('enhanced',   'Enhanced Check — for security, healthcare, and senior roles'),
+    )
+
+    check_level = forms.ChoiceField(
+        choices=CHECK_LEVEL_CHOICES,
+        label='Certificate Level',
+        help_text='Choose the level appropriate for your role and industry.',
+        widget=forms.RadioSelect,
+    )
+
+    def clean_check_level(self):
+        value = self.cleaned_data.get('check_level')
+        valid = {'employment', 'enhanced'}
+        if value not in valid:
+            raise forms.ValidationError("Invalid certificate level selected.")
+        return value
+
+
+
+

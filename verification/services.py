@@ -292,3 +292,184 @@ def reject_verification_request(
             )
 
         return req
+
+
+
+# ── W-08: Certificate Service Layer ───────────────────────────────────────────
+from verification.models import VerificationCertificate, CertificateQueryLog
+from payments.models import Transaction
+from reports.models import AuditLog
+
+
+def get_certificate_query_price(check_level: str) -> int:
+    """
+    Returns query price in kobo.
+    Employment Check: ₦50 (5000 kobo)
+    Enhanced Check:   ₦100 (10000 kobo)
+    """
+    return 10000 if check_level == 'enhanced' else 5000
+
+
+def create_certificate_application(holder, check_level: str, ip_address: str = None):
+    """
+    Creates a VerificationCertificate in 'pending' status.
+    Does not activate — activation requires NIN verification by an officer.
+    Logs the application event.
+    Returns the created certificate.
+    """
+    from identities.models import SubjectEntity
+
+    # Resolve or create the SubjectEntity for this user
+    subject, _ = SubjectEntity.objects.get_or_create(
+        user=holder,
+        defaults={'subject_type': 'individual'}
+    )
+
+    certificate = VerificationCertificate.objects.create(
+        subject=subject,
+        holder=holder,
+        check_level=check_level,
+        status='pending',
+    )
+
+    AuditLog.objects.create(
+        report=None,
+        action='CERTIFICATE_APPLICATION_SUBMITTED',
+        performed_by=holder,
+        ip_address=ip_address,
+        details={
+            'certificate_id': certificate.certificate_id,
+            'check_level': check_level,
+        }
+    )
+
+    return certificate
+
+
+def process_certificate_query(
+    certificate,
+    queried_by,
+    transaction_reference: str,
+    ip_address: str = None,
+    purpose: str = 'other',
+    organisation_name: str = '',
+):
+    """
+    Validates payment, builds the result snapshot, and writes an
+    immutable CertificateQueryLog row.
+
+    Rules:
+    - Transaction must exist, belong to queried_by, and status == 'success'
+    - One log row is written per successful query — never updated
+    - result_snapshot captures counts at the moment of query
+
+    Returns the CertificateQueryLog instance.
+    Raises ValidationError on any failure.
+    """
+    from django.core.exceptions import ValidationError
+
+    # 1. Validate payment
+    try:
+        transaction = Transaction.objects.get(
+            reference=transaction_reference,
+            user=queried_by,
+            status='success',
+        )
+    except Transaction.DoesNotExist:
+        raise ValidationError(
+            "Payment could not be confirmed. "
+            "Please complete payment before viewing this certificate."
+        )
+
+    # 2. Build immutable result snapshot (counts only — data minimisation)
+    fraud_count = 0
+    misconduct_count = 0
+    try:
+        from reports.models import FraudReport
+        fraud_count = FraudReport.objects.filter(
+            subject=certificate.subject,
+            status='verified'
+        ).count()
+    except Exception:
+        pass
+
+    result_snapshot = {
+        'certificate_id': certificate.certificate_id,
+        'certificate_status': certificate.status,
+        'check_level': certificate.check_level,
+        'is_valid': certificate.is_valid,
+        'fraud_report_count': fraud_count,
+        'misconduct_report_count': misconduct_count,
+        'queried_at': tz.now().isoformat(),
+    }
+
+    # 3. Write the immutable log row
+    query_log = CertificateQueryLog.objects.create(
+        certificate=certificate,
+        queried_by=queried_by,
+        payment=transaction,
+        ip_address=ip_address,
+        purpose=purpose,
+        organisation_name=organisation_name,
+        result_snapshot=result_snapshot,
+    )
+
+    return query_log
+
+
+def get_certificate_pdf_url(certificate) -> str:
+    """
+    Returns a time-limited signed Cloudinary URL for the certificate PDF.
+    Reuses the existing CloudinaryEvidenceStorage service layer.
+    
+    Returns empty string if no PDF has been generated yet.
+    """
+    if not certificate.pdf_file:
+        return ''
+
+    from reports.storage_services import get_storage_service, StorageError
+
+    try:
+        storage = get_storage_service()
+        return storage.generate_signed_url(
+            public_id=certificate.pdf_file,
+            format='pdf',
+            resource_type='raw',      # PDFs are raw in Cloudinary
+            expires_in_seconds=300,   # 5 minutes
+        )
+    except StorageError:
+        logger.error(
+            "Failed to generate signed URL for certificate %s",
+            certificate.certificate_id
+        )
+        return ''
+
+def upload_certificate_pdf(certificate, pdf_file_obj) -> str:
+    """
+    Uploads a generated certificate PDF to Cloudinary.
+    Stores the returned public_id on the certificate record.
+    
+    Args:
+        certificate: VerificationCertificate instance
+        pdf_file_obj: file-like object of the generated PDF
+        
+    Returns:
+        public_id string from Cloudinary
+    """
+    from reports.storage_services import get_storage_service, StorageError
+
+    storage = get_storage_service()
+    result = storage.upload_evidence(
+        file_obj=pdf_file_obj,
+        folder_prefix='certificates'    # separate folder from evidence/
+    )
+    public_id = result['public_id']
+
+    certificate.pdf_file = public_id
+    certificate.save(update_fields=['pdf_file', 'updated_at'])
+
+    return public_id
+
+
+
+

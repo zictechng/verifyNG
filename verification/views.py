@@ -302,3 +302,255 @@ class VerificationReportDocumentView(LoginRequiredMixin, DetailView):
 
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# W-08: Certificate System Views
+# ─────────────────────────────────────────────────────────────────────────────
+from django.utils import timezone as tz
+from verification.models import VerificationCertificate, CertificateQueryLog
+from verification.forms import CertificateApplyForm
+from verification.services import (
+    create_certificate_application,
+    process_certificate_query,
+    get_certificate_query_price,
+)
+
+
+class CertificateApplyView(LoginRequiredMixin, FormView):
+    """
+    Authenticated user applies for a Standard or Enhanced certificate.
+    Creates a VerificationCertificate in 'pending' status.
+    NIN verification and activation happen via officer review (separate flow).
+    """
+    template_name = 'verification/certificate_apply.html'
+    form_class = CertificateApplyForm
+
+    def dispatch(self, request, *args, **kwargs):
+        # Prevent duplicate active certificates
+        if request.user.is_authenticated:
+            existing = VerificationCertificate.objects.filter(
+                holder=request.user,
+                status__in=['pending', 'active']
+            ).first()
+            if existing:
+                messages.info(
+                    request,
+                    f"You already have a certificate ({existing.certificate_id}). "
+                    f"You cannot apply for a new one while it is active or pending."
+                )
+                return redirect('verification:my_certificate')
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        ip_addr = get_client_ip(self.request)
+        try:
+            certificate = create_certificate_application(
+                holder=self.request.user,
+                check_level=form.cleaned_data['check_level'],
+                ip_address=ip_addr,
+            )
+            messages.success(
+                self.request,
+                f"Your application has been submitted. "
+                f"Certificate ID: {certificate.certificate_id}. "
+                f"You will be notified once your identity is verified."
+            )
+            return redirect('verification:my_certificate')
+        except ValidationError as e:
+            form.add_error(None, str(e))
+            return self.form_invalid(form)
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['page_title'] = 'Apply for a VerifyNG Certificate'
+        return ctx
+
+
+class MyCertificateView(LoginRequiredMixin, View):
+    """
+    Certificate holder views their own certificate dashboard.
+    Shows certificate status, ID, QR code, and recent query activity.
+    """
+    template_name = 'verification/my_certificate.html'
+
+    def get(self, request):
+        certificate = (
+            VerificationCertificate.objects
+            .filter(holder=request.user, is_active=True)
+            .select_related('subject')
+            .order_by('-created_at')
+            .first()
+        )
+        recent_queries = []
+        if certificate:
+            recent_queries = (
+                CertificateQueryLog.objects
+                .filter(certificate=certificate)
+                .select_related('queried_by')
+                .order_by('-queried_at')[:5]
+            )
+        return render(request, self.template_name, {
+            'certificate': certificate,
+            'recent_queries': recent_queries,
+            'page_title': 'My Certificate',
+        })
+
+
+class QueryLogView(LoginRequiredMixin, View):
+    """
+    Certificate holder views the full log of who has queried their certificate.
+    Paginated. Holder can see: querier name, organisation, purpose, date.
+    Holder cannot see the result_snapshot (what the querier saw).
+    """
+    template_name = 'verification/query_log.html'
+    paginate_by = 20
+
+    def get(self, request):
+        certificate = get_object_or_404(
+            VerificationCertificate,
+            holder=request.user,
+            is_active=True
+        )
+        from django.core.paginator import Paginator
+        qs = (
+            CertificateQueryLog.objects
+            .filter(certificate=certificate)
+            .select_related('queried_by')
+            .order_by('-queried_at')
+        )
+        paginator = Paginator(qs, self.paginate_by)
+        page_number = request.GET.get('page', 1)
+        page_obj = paginator.get_page(page_number)
+
+        return render(request, self.template_name, {
+            'certificate': certificate,
+            'page_obj': page_obj,
+            'total_queries': qs.count(),
+            'page_title': 'Who Checked My Certificate',
+        })
+
+
+class CertificateQueryView(LoginRequiredMixin, View):
+    """
+    An employer, landlord, or other querier enters a certificate ID and sees the result.
+    Requirements before showing result:
+    1. User must be logged in
+    2. User must have completed payment for this query
+    3. Certificate must exist
+    Result is logged to CertificateQueryLog with an immutable result_snapshot.
+    Shows: name, photo, status, record counts — never report details.
+    """
+    template_name = 'verification/certificate_query_result.html'
+
+    def get(self, request, certificate_id):
+        """
+        GET: Show the query landing page with payment prompt.
+        If payment already confirmed for this session, show result.
+        """
+        certificate = get_object_or_404(
+            VerificationCertificate,
+            certificate_id=certificate_id
+        )
+        # Check if user has already paid for this certificate in this session
+        paid_transaction_id = request.session.get(
+            f'cert_query_paid_{certificate_id}'
+        )
+        if paid_transaction_id:
+            return self._render_result(request, certificate, paid_transaction_id)
+
+        # Show payment prompt
+        query_price = get_certificate_query_price(certificate.check_level)
+        return render(request, 'verification/certificate_query_landing.html', {
+            'certificate_id': certificate_id,
+            'query_price': query_price,
+            'page_title': f'Query Certificate {certificate_id}',
+        })
+
+    def post(self, request, certificate_id):
+        """
+        POST: Called by payment callback after successful Paystack transaction.
+        Confirms payment, logs the query, shows the result.
+        """
+        certificate = get_object_or_404(
+            VerificationCertificate,
+            certificate_id=certificate_id
+        )
+        transaction_reference = request.POST.get('transaction_reference', '')
+        ip_addr = get_client_ip(request)
+        purpose = request.POST.get('purpose', 'other')
+        organisation_name = request.POST.get('organisation_name', '')
+
+        try:
+            query_log = process_certificate_query(
+                certificate=certificate,
+                queried_by=request.user,
+                transaction_reference=transaction_reference,
+                ip_address=ip_addr,
+                purpose=purpose,
+                organisation_name=organisation_name,
+            )
+            # Store payment confirmation in session so GET can show result
+            request.session[f'cert_query_paid_{certificate_id}'] = str(query_log.payment_id)
+            return self._render_result(request, certificate, query_log.payment_id)
+
+        except ValidationError as e:
+            messages.error(request, str(e))
+            return redirect('verification:certificate_query', certificate_id=certificate_id)
+
+    def _render_result(self, request, certificate, transaction_id):
+        """
+        Internal: Renders the result page.
+        Shows counts only — never individual report details.
+        This is the controlled, data-minimised view.
+        """
+        # Import here to avoid circular imports — reports app wired in W-09
+        fraud_count = 0
+        misconduct_count = 0
+        try:
+            from reports.models import FraudReport
+            fraud_count = FraudReport.objects.filter(
+                subject=certificate.subject,
+                status='verified'
+            ).count()
+        except Exception:
+            pass  # reports app not yet linked — safe default
+
+        return render(request, self.template_name, {
+            'certificate': certificate,
+            'fraud_count': fraud_count,
+            'misconduct_count': misconduct_count,
+            'is_valid': certificate.is_valid,
+            'page_title': f'Certificate Result — {certificate.certificate_id}',
+            'disclaimer': (
+                "This is a VerifyNG Verification Report. "
+                "It is not a government-issued certificate. "
+                "VerifyNG makes no guarantee of the completeness of this record."
+            ),
+        })
+
+
+class CertificatePDFView(LoginRequiredMixin, View):
+    """
+    PDF download of the certificate.
+    Restricted to the certificate holder only.
+    Serves via pre-signed S3 URL or generates on demand.
+    """
+    def get(self, request, certificate_id):
+        certificate = get_object_or_404(
+            VerificationCertificate,
+            certificate_id=certificate_id,
+            holder=request.user,       # holder only — no one else
+            status='active',
+        )
+        if certificate.pdf_file:
+            # Redirect to pre-signed S3 URL (generated in service layer)
+            from verification.services import get_certificate_pdf_url
+            pdf_url = get_certificate_pdf_url(certificate)
+            return redirect(pdf_url)
+
+        messages.warning(
+            request,
+            "Your certificate PDF is not yet ready. "
+            "It will be generated once your identity is verified."
+        )
+        return redirect('verification:my_certificate')
+
