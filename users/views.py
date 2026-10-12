@@ -215,21 +215,6 @@ class CustomPasswordChangeView(LoginRequiredMixin, PasswordChangeView):
                 "Failed to send password-change confirmation email to user %s", user.pk
             )
         return response
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        from notifications.models import NotificationPreference
-        prefs, _ = NotificationPreference.objects.get_or_create(user=self.request.user)
-        context['prefs'] = prefs
-        context['prefs_fields'] = [
-            ('email_on_report_submitted', 'Report submitted'),
-            ('email_on_report_published', 'Report published'),
-            ('email_on_report_rejected', 'Report rejected'),
-            ('email_on_dispute_opened', 'Dispute opened'),
-            ('email_on_dispute_resolved', 'Dispute resolved'),
-            ('email_on_verification_completed', 'Verification completed'),
-        ]
-        return context
 
 
 class UserProfileUpdateView(LoginRequiredMixin, View):
