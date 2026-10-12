@@ -653,25 +653,16 @@ def log_certificate_query(
     certificate,
     queried_by,
     ip_address: str,
-    transaction_reference: str = '',
+    payment=None,
     purpose: str = '',
 ) -> None:
-    """
-    Appends an immutable CertificateQueryLog entry.
-    Called ONLY after payment verification succeeds.
-    Never updates or deletes existing rows — append-only audit trail.
-
-    VERIFIED:
-    - CertificateQueryLog has no update/delete default_permissions
-    """
     from verification.models import CertificateQueryLog
-
     CertificateQueryLog.objects.create(
         certificate=certificate,
         queried_by=queried_by if (queried_by and queried_by.is_authenticated) else None,
         ip_address=ip_address or None,
         purpose=purpose[:100] if purpose else '',
-        transaction_reference=transaction_reference[:100] if transaction_reference else '',
+        payment=payment,
     )
 
 

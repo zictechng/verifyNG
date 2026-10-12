@@ -380,18 +380,13 @@ class MyCertificateView(LoginRequiredMixin, DetailView):
     def get_object(self, queryset=None):
         cert_id = self.kwargs.get('certificate_id')
         obj = get_object_or_404(
-            VerificationCertificate.objects.select_related(
-                'verification_request',
-                'verification_request__requester',
-                'holder_subject',
-            ),
+            VerificationCertificate.objects.select_related('subject', 'holder'),
             certificate_id=cert_id
         )
-        requester = obj.verification_request.requester
         if (
             not self.request.user.is_superuser
             and not is_verification_officer(self.request.user)
-            and (requester is None or requester.id != self.request.user.id)
+            and (obj.holder is None or obj.holder.id != self.request.user.id)
         ):
             raise PermissionDenied("You do not have authorization to view this certificate.")
         return obj
@@ -399,7 +394,7 @@ class MyCertificateView(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx['pdf_url'] = get_certificate_pdf_url(self.object)
-        ctx['is_valid'] = self.object.is_valid()
+        ctx['is_valid'] = self.object.is_valid
         return ctx
 
 
@@ -429,7 +424,7 @@ class CertificateQueryLandingView(View):
     def post(self, request):
         if not request.user.is_authenticated:
             messages.info(request, "Please sign in to proceed with certificate verification.")
-            return redirect(f"{reverse('accounts:login')}?next={request.path}")
+            return redirect(f"{reverse('users:login')}?next={request.path}")
 
         cert_id = request.POST.get('cert_id', '').strip()
         purpose = request.POST.get('purpose', '').strip()
@@ -439,7 +434,7 @@ class CertificateQueryLandingView(View):
             return redirect('verification:certificate_query_landing')
 
         certificate = get_object_or_404(
-            VerificationCertificate,
+            VerificationCertificate.objects.select_related('subject', 'holder'),
             certificate_id=cert_id,
             is_active=True
         )
@@ -456,13 +451,13 @@ class CertificateQueryLandingView(View):
         # Store context in session for post-payment callback
         request.session['pending_cert_query'] = {
             'certificate_id': cert_id,
-            'transaction_reference': tx.reference,
+            'transaction_reference': tx.get('reference', ''),
             'purpose': purpose,
             'ip_address': ip_addr,
         }
 
         # Redirect to Paystack — handled by payments app
-        return redirect(reverse('payments:paystack_authorize', kwargs={'reference': tx.reference}))
+        return redirect(reverse('payments:paystack_authorize', kwargs={'reference': tx.get('reference', '')}))
 
 
 class CertificateQueryResultView(LoginRequiredMixin, View):
@@ -552,14 +547,13 @@ class CertificateQueryLogView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         cert_id = self.kwargs.get('certificate_id')
         self._certificate = get_object_or_404(
-            VerificationCertificate.objects.select_related('verification_request__requester'),
+            VerificationCertificate.objects.select_related('subject', 'holder'),
             certificate_id=cert_id
         )
-        requester = self._certificate.verification_request.requester
         if (
             not self.request.user.is_superuser
             and not is_verification_officer(self.request.user)
-            and (requester is None or requester.id != self.request.user.id)
+            and (self._certificate.holder is None or self._certificate.holder.id != self.request.user.id)
         ):
             raise PermissionDenied("You do not have authorization to view this query log.")
 

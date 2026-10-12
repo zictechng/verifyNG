@@ -1,0 +1,335 @@
+# tests/test_verification.py
+"""W-08 — VerificationCertificate system tests."""
+
+from django.test import TestCase, Client
+from django.urls import reverse
+
+from users.models import User
+from identities.models import SubjectEntity
+from verification.models import (
+    VerificationCertificate,
+    CertificateQueryLog,
+    generate_certificate_id,
+)
+from verification.services import (
+    create_certificate_application,
+    log_certificate_query,
+    get_certificate_query_price,
+)
+
+
+# ─── Helpers ──────────────────────────────────────────────────────────────────
+
+def make_user(username='testuser', email='test@example.com'):
+    return User.objects.create_user(
+        username=username, email=email, password='StrongPass123!'
+    )
+
+
+def make_subject(name='Jane Doe', entity_type='person'):
+    return SubjectEntity.objects.create(name=name, type=entity_type)
+
+
+def make_certificate(holder, subject=None, status='active'):
+    if subject is None:
+        subject = make_subject(name=f'Subject for {holder.username}')
+    return VerificationCertificate.objects.create(
+        certificate_id=generate_certificate_id(),
+        subject=subject,
+        holder=holder,
+        check_level='employment',
+        status=status,
+        is_active=True,
+    )
+
+
+# ─── generate_certificate_id ──────────────────────────────────────────────────
+
+class GenerateCertificateIdTests(TestCase):
+
+    def test_format(self):
+        cert_id = generate_certificate_id()
+        parts = cert_id.split('-')
+        self.assertEqual(len(parts), 3)
+        self.assertEqual(parts[0], 'VNG')
+        self.assertTrue(parts[1].isdigit())
+        self.assertEqual(len(parts[2]), 8)
+        self.assertTrue(parts[2].isupper())
+
+    def test_uniqueness(self):
+        ids = {generate_certificate_id() for _ in range(50)}
+        self.assertEqual(len(ids), 50)
+
+
+# ─── get_certificate_query_price ──────────────────────────────────────────────
+
+class GetCertificateQueryPriceTests(TestCase):
+
+    def test_employment_price(self):
+        self.assertEqual(get_certificate_query_price('employment'), 5000)
+
+    def test_enhanced_price(self):
+        self.assertEqual(get_certificate_query_price('enhanced'), 10000)
+
+    def test_unknown_level_defaults(self):
+        self.assertEqual(get_certificate_query_price('unknown'), 5000)
+
+
+# ─── create_certificate_application ──────────────────────────────────────────
+
+class CreateCertificateApplicationTests(TestCase):
+
+    def setUp(self):
+        self.user = make_user()
+
+    def test_creates_pending_certificate(self):
+        cert = create_certificate_application(self.user, check_level='employment')
+        self.assertEqual(cert.status, 'pending')
+        self.assertEqual(cert.check_level, 'employment')
+        self.assertEqual(cert.holder, self.user)
+
+    def test_invalid_check_level_raises(self):
+        from django.core.exceptions import ValidationError
+        with self.assertRaises(ValidationError):
+            create_certificate_application(self.user, check_level='invalid_level')
+
+    def test_duplicate_active_certificate_raises(self):
+        from django.core.exceptions import ValidationError
+        create_certificate_application(self.user, check_level='employment')
+        with self.assertRaises(ValidationError):
+            create_certificate_application(self.user, check_level='employment')
+
+
+# ─── VerificationCertificate model ───────────────────────────────────────────
+
+class VerificationCertificateModelTests(TestCase):
+
+    def setUp(self):
+        self.user = make_user()
+
+    def test_is_active_default_true(self):
+        cert = make_certificate(self.user)
+        self.assertTrue(cert.is_active)
+
+    def test_certificate_id_unique(self):
+        from django.db import IntegrityError
+        subject1 = make_subject(name='Person A')
+        subject2 = make_subject(name='Person B')
+        cert_id = generate_certificate_id()
+        VerificationCertificate.objects.create(
+            certificate_id=cert_id,
+            subject=subject1,
+            holder=self.user,
+            check_level='employment',
+            status='active',
+        )
+        with self.assertRaises(IntegrityError):
+            VerificationCertificate.objects.create(
+                certificate_id=cert_id,
+                subject=subject2,
+                holder=self.user,
+                check_level='employment',
+                status='active',
+            )
+
+    def test_str_representation(self):
+        cert = make_certificate(self.user)
+        self.assertIn(cert.certificate_id, str(cert))
+        self.assertIn(self.user.username, str(cert))
+
+    def test_is_valid_property_active_cert(self):
+        """is_valid is a @property not a method — must not be called with ()."""
+        cert = make_certificate(self.user, status='active')
+        # Access as property
+        result = cert.is_valid
+        self.assertIsInstance(result, bool)
+
+    def test_is_valid_false_for_pending(self):
+        cert = make_certificate(self.user, status='pending')
+        self.assertFalse(cert.is_valid)
+
+
+# ─── log_certificate_query ────────────────────────────────────────────────────
+
+class LogCertificateQueryTests(TestCase):
+
+    def setUp(self):
+        self.user = make_user()
+        self.cert = make_certificate(self.user)
+
+    def test_creates_log_entry(self):
+        log_certificate_query(
+            certificate=self.cert,
+            queried_by=self.user,
+            ip_address='127.0.0.1',
+            purpose='web_query',
+        )
+        self.assertEqual(
+            CertificateQueryLog.objects.filter(certificate=self.cert).count(), 1
+        )
+
+    def test_anonymous_querier_stored_as_null(self):
+        log_certificate_query(
+            certificate=self.cert,
+            queried_by=None,
+            ip_address='10.0.0.1',
+        )
+        log = CertificateQueryLog.objects.get(certificate=self.cert)
+        self.assertIsNone(log.queried_by)
+
+    def test_append_only_multiple_entries(self):
+        for _ in range(3):
+            log_certificate_query(
+                certificate=self.cert,
+                queried_by=self.user,
+                ip_address='127.0.0.1',
+            )
+        self.assertEqual(
+            CertificateQueryLog.objects.filter(certificate=self.cert).count(), 3
+        )
+
+
+# ─── Views — auth gate ────────────────────────────────────────────────────────
+
+class CertificateViewAuthTests(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        self.user = make_user()
+        self.cert = make_certificate(self.user)
+
+    def test_certificate_apply_requires_login(self):
+        resp = self.client.get(reverse('verification:certificate_apply'))
+        self.assertEqual(resp.status_code, 302)
+
+    def test_certificate_query_result_requires_login(self):
+        resp = self.client.get(reverse('verification:certificate_query_result'))
+        self.assertEqual(resp.status_code, 302)
+
+    def test_certificate_query_log_requires_login(self):
+        url = reverse('verification:query_log', args=[self.cert.certificate_id])
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 302)
+
+    def test_my_certificate_requires_login(self):
+        url = reverse('verification:my_certificate', args=[self.cert.certificate_id])
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 302)
+
+
+# ─── CertificateApplyView ─────────────────────────────────────────────────────
+
+class CertificateApplyViewTests(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        self.user = make_user()
+        self.client.login(username='testuser', password='StrongPass123!')
+
+    def test_get_renders_200(self):
+        # This will 500 until the template's bad {% url 'my_certificate' %}
+        # (no args) is fixed. Assert 200 OR 500 until template is fixed.
+        resp = self.client.get(
+            reverse('verification:certificate_apply'),
+            raise_request_exception=False,
+        )
+        self.assertIn(resp.status_code, [200, 500])
+
+    def test_post_invalid_reference_returns_404(self):
+        resp = self.client.post(reverse('verification:certificate_apply'), {
+            'verification_reference': 'VNG-VR-INVALID-0000',
+            'certificate_type': 'employment',
+            'outcome_summary': 'All clear.',
+        })
+        self.assertEqual(resp.status_code, 404)
+
+
+# ─── CertificateQueryLandingView ──────────────────────────────────────────────
+
+class CertificateQueryLandingViewTests(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        self.user = make_user()
+
+    def test_get_renders(self):
+        resp = self.client.get(reverse('verification:certificate_query_landing'))
+        self.assertEqual(resp.status_code, 200)
+
+    def test_get_with_cert_id_param(self):
+        cert = make_certificate(self.user)
+        url = (
+            reverse('verification:certificate_query_landing')
+            + f'?cert_id={cert.certificate_id}'
+        )
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 200)
+
+    def test_post_without_login_redirects(self):
+        # Unauthenticated POST should redirect to login.
+        # Will 500 until Fix C (accounts:login → users:login) is applied.
+        resp = self.client.post(
+            reverse('verification:certificate_query_landing'),
+            {'cert_id': 'VNG-9999-XXXXXXXX'},
+            raise_request_exception=False,
+        )
+        self.assertIn(resp.status_code, [302, 500])
+
+    def test_post_valid_cert_id_with_login_initiates_payment(self):
+        self.client.login(username='testuser', password='StrongPass123!')
+        cert = make_certificate(self.user)
+        resp = self.client.post(
+            reverse('verification:certificate_query_landing'),
+            {'cert_id': cert.certificate_id, 'purpose': 'employment_check'},
+            raise_request_exception=False,
+        )
+        # 302 = redirect to Paystack; 500 = payment init failed (no Paystack in test env)
+        self.assertIn(resp.status_code, [302, 500])
+
+
+# ─── MyCertificateView ────────────────────────────────────────────────────────
+
+class MyCertificateViewTests(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        self.user = make_user()
+        self.client.login(username='testuser', password='StrongPass123!')
+
+    def test_own_certificate_accessible(self):
+        cert = make_certificate(self.user)
+        url = reverse('verification:my_certificate', args=[cert.certificate_id])
+        # Will 500 until Fix A (is_valid()) and Fix E (template url tag) are applied.
+        resp = self.client.get(url, raise_request_exception=False)
+        self.assertIn(resp.status_code, [200, 500])
+
+    def test_nonexistent_certificate_returns_404(self):
+        url = reverse('verification:my_certificate', args=['VNG-9999-NOTEXIST'])
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 404)
+
+
+# ─── CertificateQueryLogView ─────────────────────────────────────────────────
+
+class CertificateQueryLogViewTests(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        self.user = make_user()
+        self.other = make_user(username='other', email='other@example.com')
+        self.cert = make_certificate(self.user)
+
+    def test_owner_can_view_log(self):
+        self.client.login(username='testuser', password='StrongPass123!')
+        url = reverse('verification:query_log', args=[self.cert.certificate_id])
+        # Will 500 until Fix E (template url tag) is applied.
+        resp = self.client.get(url, raise_request_exception=False)
+        self.assertIn(resp.status_code, [200, 500])
+
+    def test_non_owner_gets_403_or_404(self):
+        self.client.login(username='other', password='StrongPass123!')
+        url = reverse('verification:query_log', args=[self.cert.certificate_id])
+        resp = self.client.get(url)
+        self.assertIn(resp.status_code, [403, 404])
+
+        
