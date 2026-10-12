@@ -233,16 +233,56 @@
 
         {# ── Sidebar ── #}
         <div class="col-lg-4">
-            <div class="vng-card p-4 mb-3">
+                        <div class="vng-card p-4 mb-3">
                 <p class="small fw-semibold text-muted text-uppercase mb-3">Report Summary</p>
-                <dl class="row small mb-0">
-                    <dt class="col-5 text-muted">Reference:</dt>
-                    <dd class="col-7 font-monospace fw-semibold">{{ report.reference_number }}</dd>
-                    <dt class="col-5 text-muted">Submitted:</dt>
-                    <dd class="col-7">{{ report.created_at|date:"M j, Y" }}</dd>
-                    <dt class="col-5 text-muted">Status:</dt>
-                    <dd class="col-7">{{ report.get_state_display }}</dd>
-                </dl>
+
+                {{# Reference #}}
+                <div class="mb-3">
+                    <p class="small text-muted mb-1" style="font-size:11px;letter-spacing:.04em;">REFERENCE</p>
+                    <div class="d-flex align-items-center gap-2">
+                        <svg width="13" height="13" fill="none" stroke="#2457D6" stroke-width="2" viewBox="0 0 24 24"><path d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/></svg>
+                        <span class="font-monospace fw-semibold small" style="color:#17233B;letter-spacing:.03em;">{{ report.reference_number }}</span>
+                    </div>
+                </div>
+
+                <hr class="my-2" style="border-color:#E3E9F2;">
+
+                {{# Submitted #}}
+                <div class="mb-3">
+                    <p class="small text-muted mb-1" style="font-size:11px;letter-spacing:.04em;">SUBMITTED</p>
+                    <div class="d-flex align-items-center gap-2">
+                        <svg width="13" height="13" fill="none" stroke="#64748B" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                        <span class="small" style="color:#17233B;">{{ report.created_at|date:"M j, Y" }}</span>
+                    </div>
+                </div>
+
+                <hr class="my-2" style="border-color:#E3E9F2;">
+
+                {{# Status #}}
+                <div>
+                    <p class="small text-muted mb-1" style="font-size:11px;letter-spacing:.04em;">STATUS</p>
+                    <div class="d-flex align-items-center gap-2">
+                        {% if report.state == 'published' %}
+                            <span style="width:8px;height:8px;border-radius:50%;background:#16A34A;display:inline-block;flex-shrink:0;"></span>
+                            <span class="small fw-semibold" style="color:#16A34A;">{{ report.get_state_display }}</span>
+                        {% elif report.state == 'under_review' %}
+                            <span style="width:8px;height:8px;border-radius:50%;background:#B45309;display:inline-block;flex-shrink:0;"></span>
+                            <span class="small fw-semibold" style="color:#B45309;">{{ report.get_state_display }}</span>
+                        {% elif report.state == 'submitted' %}
+                            <span style="width:8px;height:8px;border-radius:50%;background:#2457D6;display:inline-block;flex-shrink:0;"></span>
+                            <span class="small fw-semibold" style="color:#2457D6;">{{ report.get_state_display }}</span>
+                        {% elif report.state == 'rejected' %}
+                            <span style="width:8px;height:8px;border-radius:50%;background:#DC2626;display:inline-block;flex-shrink:0;"></span>
+                            <span class="small fw-semibold" style="color:#DC2626;">{{ report.get_state_display }}</span>
+                        {% elif report.state == 'disputed' %}
+                            <span style="width:8px;height:8px;border-radius:50%;background:#D97706;display:inline-block;flex-shrink:0;"></span>
+                            <span class="small fw-semibold" style="color:#D97706;">{{ report.get_state_display }}</span>
+                        {% else %}
+                            <span style="width:8px;height:8px;border-radius:50%;background:#64748B;display:inline-block;flex-shrink:0;"></span>
+                            <span class="small fw-semibold" style="color:#64748B;">{{ report.get_state_display }}</span>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
             <div class="vng-card p-4">
                 <p class="small fw-semibold text-muted text-uppercase mb-2">Platform Notice</p>
