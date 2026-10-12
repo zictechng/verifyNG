@@ -6,76 +6,66 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <title>{% block subject %}{{ site_name }}{% endblock %}</title>
   <style>
-    /* ── Reset ───────────────────────────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; }
     body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
     table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
     img { border: 0; display: block; outline: none; text-decoration: none; -ms-interpolation-mode: bicubic; }
-    body { margin: 0; padding: 0; background-color: #f5f5f7; width: 100%; }
-
-    /* ── Page wrapper ────────────────────────────────────────────────── */
-    .page {
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #ffffff;
       width: 100%;
-      background-color: #f5f5f7;
-      padding: 48px 20px 64px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial, sans-serif;
     }
 
-    /* ── Card ────────────────────────────────────────────────────────── */
-    .card {
-      max-width: 560px;
+    /* ── Outer wrapper ── */
+    .email-wrapper {
+      width: 100%;
+      background-color: #ffffff;
+    }
+
+    /* ── Content area ── */
+    .content {
+      max-width: 600px;
       margin: 0 auto;
-      background: #ffffff;
-      border-radius: 18px;
-      overflow: hidden;
+      padding: 0 20px;
     }
 
-    /* ── Inner padding container ─────────────────────────────────────── */
-    .inner {
-      padding: 48px 52px;
+    /* ── Logo area ── */
+    .logo-area {
+      padding: 40px 0 32px;
     }
-
-    /* ── Logo ────────────────────────────────────────────────────────── */
-    .logo-wrap {
-      padding: 36px 52px 0;
+    .logo-img {
+      height: 32px;
+      width: auto;
     }
     .logo-text {
-      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-      font-size: 19px;
+      font-size: 20px;
       font-weight: 700;
       color: #1d1d1f;
       text-decoration: none;
-      letter-spacing: -0.4px;
-    }
-    .logo-img {
-      height: 28px;
-      width: auto;
-    }
-
-    /* ── Body typography ─────────────────────────────────────────────── */
-    .inner h1 {
-      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-      font-size: 24px;
-      font-weight: 700;
-      color: #1d1d1f;
-      margin: 0 0 20px;
-      line-height: 1.25;
       letter-spacing: -0.3px;
     }
-    .inner p {
-      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-      font-size: 16px;
-      line-height: 1.65;
-      color: #3d3d3f;
-      margin: 0 0 18px;
+
+    /* ── Body text ── */
+    .body-area {
+      padding-bottom: 48px;
     }
-    .inner p:last-child { margin-bottom: 0; }
-    .inner a {
+    .body-area p {
+      font-size: 17px;
+      line-height: 1.65;
+      color: #1d1d1f;
+      margin: 0 0 20px;
+    }
+    .body-area p:last-child { margin-bottom: 0; }
+    .body-area a {
       color: #0071e3;
       text-decoration: none;
     }
-    .inner a:hover { text-decoration: underline; }
+    .body-area a:hover { text-decoration: underline; }
+    .body-area strong { font-weight: 600; }
 
-    /* ── CTA button ──────────────────────────────────────────────────── */
+    /* ── CTA button (optional, only shown when used) ── */
     .btn-wrap { margin: 28px 0; }
     .btn {
       display: inline-block;
@@ -84,150 +74,81 @@
       color: #ffffff !important;
       text-decoration: none !important;
       border-radius: 980px;
-      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', Helvetica, Arial, sans-serif;
       font-size: 15px;
       font-weight: 600;
       letter-spacing: -0.1px;
       line-height: 1;
     }
 
-    /* ── Divider ─────────────────────────────────────────────────────── */
+    /* ── Divider ── */
     .divider {
       border: none;
       border-top: 1px solid #e5e5ea;
-      margin: 28px 0;
+      margin: 24px 0;
     }
 
-    /* ── Alert / notice boxes ────────────────────────────────────────── */
+    /* ── Notice boxes ── */
     .notice {
       background: #f5f5f7;
       border-radius: 10px;
       padding: 16px 20px;
       margin: 0 0 22px;
     }
-    .notice p {
-      font-size: 14px;
-      color: #6e6e73;
-      margin: 0;
-      line-height: 1.55;
-    }
-    .notice-warning {
-      background: #fff8ec;
-      border-left: 3px solid #ff9f0a;
-    }
+    .notice p { font-size: 15px; color: #6e6e73; margin: 0; line-height: 1.55; }
+    .notice-warning { background: #fff8ec; border-left: 3px solid #ff9f0a; }
     .notice-warning p { color: #6e4900; }
-    .notice-success {
-      background: #f0faf3;
-      border-left: 3px solid #34c759;
-    }
+    .notice-success { background: #f0faf3; border-left: 3px solid #34c759; }
     .notice-success p { color: #1a5c2b; }
 
-    /* ── OTP block ───────────────────────────────────────────────────── */
-    .otp-block {
-      margin: 28px 0;
-      text-align: center;
-    }
-    .otp-label {
-      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-      font-size: 12px;
-      font-weight: 600;
-      color: #86868b;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      margin-bottom: 18px;
-    }
-    .otp-digits {
-      display: inline-flex;
-      align-items: center;
-      gap: 0;
-    }
+    /* ── OTP block ── */
+    .otp-block { margin: 28px 0; text-align: center; }
+    .otp-label { font-size: 12px; font-weight: 600; color: #86868b; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 18px; }
+    .otp-digits { display: inline-flex; align-items: center; gap: 0; }
     .otp-digit {
-      display: inline-block;
-      width: 52px;
-      height: 62px;
-      line-height: 62px;
-      text-align: center;
-      font-family: 'SF Mono', 'Menlo', 'Monaco', 'Courier New', Courier, monospace;
-      font-size: 30px;
-      font-weight: 700;
-      color: #1d1d1f;
-      background: #ffffff;
-      border: 1.5px solid #d1d1d6;
-      border-radius: 10px;
-      margin: 0 4px;
+      display: inline-block; width: 52px; height: 62px; line-height: 62px;
+      text-align: center; font-family: 'SF Mono', 'Menlo', 'Monaco', 'Courier New', Courier, monospace;
+      font-size: 30px; font-weight: 700; color: #1d1d1f; background: #ffffff;
+      border: 1.5px solid #d1d1d6; border-radius: 10px; margin: 0 4px;
     }
-    .otp-sep {
-      display: inline-flex;
-      gap: 4px;
-      margin: 0 6px;
-      align-items: center;
-    }
-    .otp-dot {
-      width: 4px;
-      height: 4px;
-      background: #c7c7cc;
-      border-radius: 50%;
-      display: inline-block;
-    }
-    .otp-expires {
-      margin-top: 14px;
-      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-      font-size: 13px;
-      color: #86868b;
-    }
+    .otp-expires { margin-top: 14px; font-size: 13px; color: #86868b; }
 
-    /* ── Footer ──────────────────────────────────────────────────────── */
-    .footer {
-      padding: 24px 52px 36px;
-      border-top: 1px solid #e5e5ea;
+    /* ── Footer band ── */
+    .footer-band {
+      background-color: #f5f5f7;
+      padding: 24px 20px;
+      text-align: center;
+      border-radius: 0 0 12px 12px;
     }
-    .footer-links {
-      margin-bottom: 12px;
-    }
-    .footer-links a {
-      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    .footer-band p {
       font-size: 12px;
-      color: #6e6e73;
-      text-decoration: none;
-      margin-right: 14px;
-    }
-    .footer-links a:hover { text-decoration: underline; }
-    .footer-social {
-      margin-bottom: 12px;
-    }
-    .footer-social a {
-      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-      font-size: 12px;
-      color: #6e6e73;
-      text-decoration: none;
-      margin-right: 12px;
-    }
-    .footer-copy {
-      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-      font-size: 12px;
-      color: #86868b;
+      color: #999999;
+      margin: 0 0 6px;
       line-height: 1.6;
     }
-    .footer-copy a { color: #86868b; text-decoration: underline; }
+    .footer-band p:last-child { margin-bottom: 0; }
+    .footer-band a {
+      color: #999999;
+      text-decoration: none;
+    }
+    .footer-band a:hover { text-decoration: underline; }
+    .footer-sep { margin: 0 6px; color: #c7c7cc; }
 
-    /* ── Responsive ──────────────────────────────────────────────────── */
+    /* ── Responsive ── */
     @media only screen and (max-width: 480px) {
-      .page  { padding: 20px 12px 40px; }
-      .logo-wrap  { padding: 28px 28px 0; }
-      .inner { padding: 32px 28px; }
-      .footer { padding: 20px 28px 28px; }
-      .inner h1  { font-size: 20px; }
-      .inner p   { font-size: 15px; }
+      .logo-area { padding: 28px 0 24px; }
+      .body-area p { font-size: 16px; }
       .otp-digit { width: 42px; height: 52px; line-height: 52px; font-size: 24px; margin: 0 3px; }
     }
   </style>
 </head>
 <body>
-<div class="page">
-  <div class="card">
+<div class="email-wrapper">
+
+  <!-- Content area: logo + body -->
+  <div class="content">
 
     <!-- Logo -->
-    <div class="logo-wrap">
+    <div class="logo-area">
       <a href="{{ site_url }}">
         {% if logo_url %}
           <img src="{{ logo_url }}" alt="{{ site_name }}" class="logo-img">
@@ -238,39 +159,26 @@
     </div>
 
     <!-- Body -->
-    <div class="inner">
+    <div class="body-area">
       {% block body %}{% endblock %}
     </div>
 
-    <!-- Footer -->
-    <div class="footer">
-
-      {% if twitter_url or facebook_url or instagram_url or linkedin_url or youtube_url or whatsapp_number %}
-      <div class="footer-social">
-        {% if twitter_url %}<a href="{{ twitter_url }}">Twitter</a>{% endif %}
-        {% if facebook_url %}<a href="{{ facebook_url }}">Facebook</a>{% endif %}
-        {% if instagram_url %}<a href="{{ instagram_url }}">Instagram</a>{% endif %}
-        {% if linkedin_url %}<a href="{{ linkedin_url }}">LinkedIn</a>{% endif %}
-        {% if youtube_url %}<a href="{{ youtube_url }}">YouTube</a>{% endif %}
-        {% if whatsapp_number %}<a href="https://wa.me/{{ whatsapp_number|cut:'+' }}">WhatsApp</a>{% endif %}
-      </div>
-      {% endif %}
-
-      <div class="footer-links">
-        <a href="{{ site_url }}/privacy/">Privacy Policy</a>
-        <a href="{{ site_url }}/terms/">Terms of Use</a>
-        <a href="{{ site_url }}/contact/">Contact</a>
-        <a href="{{ site_url }}/unsubscribe/">Unsubscribe</a>
-      </div>
-
-      <div class="footer-copy">
-        &copy; {% now "Y" %} {{ site_name }}.{% if company_reg %} Reg. No. {{ company_reg }}.{% endif %} All rights reserved.<br>
-        {% if company_address %}{{ company_address }}<br>{% endif %}
-        Questions? <a href="mailto:{{ support_email }}">{{ support_email }}</a>
-      </div>
-
-    </div>
   </div>
+
+  <!-- Footer band: full width grey -->
+  <div class="footer-band">
+    <p>This is a service notification related to your {{ site_name }} account.</p>
+    <p>
+      &copy; {% now "Y" %} {{ site_name }}{% if company_reg %}, Reg. No. {{ company_reg }}{% endif %}. All Rights Reserved
+      <span class="footer-sep">|</span>
+      <a href="{{ site_url }}/privacy/">Privacy Policy</a>
+      <span class="footer-sep">|</span>
+      <a href="{{ site_url }}/terms/">Terms of Use</a>
+      <span class="footer-sep">|</span>
+      <a href="mailto:{{ support_email }}">Contact Us</a>
+    </p>
+  </div>
+
 </div>
 </body>
 </html>
