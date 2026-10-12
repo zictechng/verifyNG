@@ -3,6 +3,7 @@ from reports.views import (
     ReportCreateView,
     ReportDetailView,
     EvidenceDownloadView,
+    EvidenceUploadView,
     DisputeCreateView,
     ModerationQueueView,
     ReportModerationTransitionView,
@@ -18,6 +19,7 @@ urlpatterns = [
     path('moderation/<str:reference_number>/transition/', ReportModerationTransitionView.as_view(), name='moderation_transition'),
     path('disputes/<int:dispute_id>/resolve/', DisputeResolveView.as_view(), name='resolve_dispute'),
     path('evidence/<int:evidence_id>/download/', EvidenceDownloadView.as_view(), name='evidence_download'),
+    path('<str:reference_number>/evidence/upload/', EvidenceUploadView.as_view(), name='upload_evidence'),
     path('<str:reference_number>/dispute/', DisputeCreateView.as_view(), name='create_dispute'),
 
     # Catch-all detail view registered last

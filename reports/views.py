@@ -146,6 +146,62 @@ class EvidenceDownloadView(View):
             raise Http404("Evidence file could not be retrieved at this time.")
 
 
+class EvidenceUploadView(LoginRequiredMixin, View):
+    """
+    Allows the original reporter to upload additional evidence files
+    to their own report, provided it is still in an open state.
+    Allowed states: submitted, under_review.
+    """
+    ALLOWED_STATES = {'submitted', 'under_review'}
+    ALLOWED_MIME_TYPES = {
+        'image/jpeg', 'image/png', 'image/webp',
+        'application/pdf',
+    }
+    MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB
+
+    def post(self, request, reference_number):
+        report = get_object_or_404(FraudReport, reference_number=reference_number)
+
+        # Ownership check
+        if report.reporter != request.user:
+            raise PermissionDenied("You do not have permission to add evidence to this report.")
+
+        # State check
+        if report.state not in self.ALLOWED_STATES:
+            messages.error(request, "Evidence can only be added while the report is under review.")
+            return HttpResponseRedirect(report.get_absolute_url() if hasattr(report, 'get_absolute_url') else f'/reports/{reference_number}/')
+
+        uploaded_file = request.FILES.get('evidence_file')
+        if not uploaded_file:
+            messages.error(request, "Please select a file to upload.")
+            return HttpResponseRedirect(f'/reports/{reference_number}/')
+
+        # File size check
+        if uploaded_file.size > self.MAX_FILE_SIZE_BYTES:
+            messages.error(request, "File size must be 10 MB or less.")
+            return HttpResponseRedirect(f'/reports/{reference_number}/')
+
+        # MIME type check
+        if uploaded_file.content_type not in self.ALLOWED_MIME_TYPES:
+            messages.error(request, "Only JPEG, PNG, WebP images and PDF files are accepted.")
+            return HttpResponseRedirect(f'/reports/{reference_number}/')
+
+        file_type = request.POST.get('file_type', 'other')
+        description = request.POST.get('description', '').strip()[:255]
+
+        ReportEvidence.objects.create(
+            report=report,
+            file=uploaded_file,
+            file_type=file_type,
+            description=description,
+            is_confidential=True,
+            storage_provider='local',
+        )
+
+        messages.success(request, "Evidence uploaded successfully.")
+        return HttpResponseRedirect(f'/reports/{reference_number}/')
+    
+
 class DisputeCreateView(LoginRequiredMixin, FormView):
     """View for filing a right-of-response dispute against a published report."""
     form_class = DisputeSubmissionForm

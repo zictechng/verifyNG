@@ -169,6 +169,55 @@
                 </div>
             </div>
 
+            {% if request.user == report.reporter %}
+            {% if report.state == 'submitted' or report.state == 'under_review' %}
+            <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white border-bottom py-3">
+                <span class="small fw-semibold text-muted text-uppercase">Add More Evidence</span>
+            </div>
+            <div class="card-body">
+                <p class="small text-muted mb-3">Upload additional supporting files (JPEG, PNG, WebP or PDF — max 10 MB each).</p>
+                <form method="post"
+                    action="{% url 'reports:upload_evidence' report.reference_number %}"
+                    enctype="multipart/form-data"
+                    x-data="{ uploading: false }"
+                    @submit="uploading = true">
+                {% csrf_token %}
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-4">
+                    <label class="form-label small fw-semibold">File type</label>
+                    <select name="file_type" class="form-select form-select-sm">
+                        <option value="screenshot">Screenshot / Image</option>
+                        <option value="document">Document / PDF</option>
+                        <option value="receipt">Payment Receipt</option>
+                        <option value="chat_log">Chat Log</option>
+                        <option value="other">Other</option>
+                    </select>
+                    </div>
+                    <div class="col-md-4">
+                    <label class="form-label small fw-semibold">Description <span class="text-muted fw-normal">(optional)</span></label>
+                    <input type="text" name="description" class="form-control form-control-sm" placeholder="Brief note about this file" maxlength="255">
+                    </div>
+                    <div class="col-md-4">
+                    <label class="form-label small fw-semibold">File</label>
+                    <input type="file" name="evidence_file" class="form-control form-control-sm"
+                            accept=".jpg,.jpeg,.png,.webp,.pdf" required>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <button type="submit" class="btn btn-primary btn-sm" :disabled="uploading">
+                    <span x-show="!uploading">Upload Evidence</span>
+                    <span x-show="uploading" x-cloak>
+                        <span class="spinner-border spinner-border-sm me-1"></span>Uploading…
+                    </span>
+                    </button>
+                </div>
+                </form>
+            </div>
+            </div>
+            {% endif %}
+            {% endif %}
+
             {# Moderator quick link #}
             {% if is_moderator %}
             <div class="d-flex justify-content-between align-items-center p-3 rounded" style="background:#EAF1FF;">
