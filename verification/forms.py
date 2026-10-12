@@ -5,7 +5,7 @@ from django.core.exceptions import ValidationError
 from verification.models import VerificationRequest, VerificationResult
 from identities.models import SubjectEntity
 from identities.utils import SUPPORTED_IDENTIFIER_TYPES, normalize_identifier
-
+from verification.models import VerificationCertificate
 
 class VerificationRequestCreateForm(forms.Form):
     subject_name = forms.CharField(
@@ -115,45 +115,40 @@ class OfficerRejectionForm(forms.Form):
 
 
 
-
-# ── W-08: Certificate Application Form ────────────────────────────────────────
-class CertificateApplyForm(forms.Form):
-    CHECK_LEVEL_CHOICES = (
-        ('employment', 'Employment Check — for general work and tenancy'),
-        ('enhanced',   'Enhanced Check — for security, healthcare, and senior roles'),
-    )
-
-    check_level = forms.ChoiceField(
-        choices=CHECK_LEVEL_CHOICES,
-        label='Certificate Level',
-        help_text='Choose the level appropriate for your role and industry.',
-        widget=forms.RadioSelect,
-    )
-
-    def clean_check_level(self):
-        value = self.cleaned_data.get('check_level')
-        valid = {'employment', 'enhanced'}
-        if value not in valid:
-            raise forms.ValidationError("Invalid certificate level selected.")
-        return value
-
-
-
-
-# ─── W-08: Certificate System ─────────────────────────────────────────────────
+# ============================================================
+# W-08: Certificate application form
+# ============================================================
 
 class CertificateApplyForm(forms.Form):
-    CHECK_LEVEL_CHOICES = (
-        ('employment', 'Employment Check — for general work and tenancy'),
-        ('enhanced', 'Enhanced Check — for security, healthcare, and senior roles'),
-    )
-    check_level = forms.ChoiceField(
-        choices=CHECK_LEVEL_CHOICES,
+    """
+    Form for a user to apply for a VerificationCertificate
+    against one of their completed VerificationRequests.
+    """
+    verification_reference = forms.CharField(
+        max_length=50,
         required=True,
-        widget=forms.RadioSelect(attrs={'class': 'form-check-input'}),
-        label='Certificate Level',
-        help_text='Select the level of check appropriate for your circumstances.'
+        widget=forms.TextInput(attrs={
+            'class': 'form-control font-monospace',
+            'placeholder': 'e.g. VNG-VR-20261001-AB12',
+        }),
+        help_text="The reference number of your completed verification request."
     )
+    certificate_type = forms.ChoiceField(
+        choices=VerificationCertificate.CERTIFICATE_TYPES,
+        required=True,
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    outcome_summary = forms.CharField(
+        required=True,
+        max_length=1000,
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 4,
+            'placeholder': 'Brief plain-language summary of the verification outcome to appear on the certificate.'
+        }),
+        help_text="This summary will be printed on the issued certificate."
+    )
+
 
 
 

@@ -1,5 +1,7 @@
 
 import uuid
+import secrets
+import hashlib
 import json
 import logging
 from django.utils import timezone
@@ -548,6 +550,207 @@ def initialize_certificate_query_transaction(user, certificate) -> dict:
         'authorization_url': data['authorization_url'],
         'access_code': data.get('access_code', ''),
     }
+
+
+# ============================================================
+# W-08: Certificate service functions
+# ============================================================
+import hashlib
+
+
+def generate_certificate_id() -> str:
+    """
+    Generates unique certificate ID in format: VNG-YYYY-XXXXXXXX
+    (8 uppercase hex characters, cryptographically random)
+    """
+    year = timezone.now().year
+    random_hex = secrets.token_hex(4).upper()  # 4 bytes = 8 hex chars
+    return f"VNG-{year}-{random_hex}"
+
+
+def get_certificate_pdf_url(certificate) -> str:
+    """
+    Returns a short-lived signed Cloudinary URL for a certificate PDF.
+    Returns empty string if no PDF has been generated yet.
+
+    VERIFIED against reports/storage_services.py:
+    - generate_signed_url(self, public_id, format, resource_type="image", expires_in_seconds=300)
+    - 'format' is a REQUIRED positional argument — must be supplied explicitly.
+    - PDFs are stored as raw resources in Cloudinary (not images).
+    """
+    from reports.storage_services import get_storage_service
+    if not certificate.pdf_file:
+        return ''
+    return get_storage_service().generate_signed_url(
+        public_id=certificate.pdf_file,
+        format='pdf',
+        resource_type='raw',
+        expires_in_seconds=300,
+    )
+
+
+def upload_certificate_pdf(certificate, pdf_file_obj) -> str:
+    """
+    Uploads a certificate PDF to Cloudinary and stores the public_id on the model.
+    Returns the Cloudinary public_id.
+
+    VERIFIED against reports/storage_services.py:
+    - upload_evidence(self, file_obj, folder_prefix="evidence") — signature confirmed.
+    - Does NOT accept a resource_type parameter — resource type is inferred internally
+      from the file extension by the storage service.
+    """
+    from reports.storage_services import get_storage_service
+    storage = get_storage_service()
+    result = storage.upload_evidence(
+        file_obj=pdf_file_obj,
+        folder_prefix='certificates',
+    )
+    public_id = result.get('public_id', '')
+    certificate.pdf_file = public_id
+    certificate.save(update_fields=['pdf_file', 'updated_at'])
+    return public_id
+
+
+def issue_verification_certificate(
+    verification_request,
+    certificate_type: str,
+    outcome_summary: str,
+    ip_address: str = None
+):
+    """
+    Issues a VerificationCertificate for a completed VerificationRequest.
+    Idempotent: raises ValidationError if a certificate already exists for this request.
+    Atomically creates certificate + audit log entry.
+
+    Preconditions:
+    - verification_request.status must be 'completed'
+    - verification_request must have a VerificationResult
+    - No certificate must already exist for this request
+
+    VERIFIED:
+    - SubjectEntity has no user FK; certificate links via name + type='person'
+    - AuditLog.action is a free CharField — no choices restriction
+    """
+    from verification.models import VerificationCertificate
+    from reports.models import AuditLog
+
+    valid_types = dict(VerificationCertificate.CERTIFICATE_TYPES)
+    if certificate_type not in valid_types:
+        raise ValidationError(f"Invalid certificate type: {certificate_type}. Allowed: {list(valid_types.keys())}")
+
+    if verification_request.status != 'completed':
+        raise ValidationError(
+            f"Cannot issue certificate for request in status '{verification_request.status}'. "
+            "Request must be 'completed'."
+        )
+
+    if not hasattr(verification_request, 'result'):
+        raise ValidationError("Cannot issue certificate: no VerificationResult exists for this request.")
+
+    # Idempotency guard
+    if hasattr(verification_request, 'certificate'):
+        raise ValidationError(
+            f"A certificate [{verification_request.certificate.certificate_id}] "
+            "has already been issued for this verification request."
+        )
+
+    subject_name = (
+        verification_request.target_subject.name
+        if verification_request.target_subject
+        else "Unknown"
+    )
+
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            with transaction.atomic():
+                cert_id = generate_certificate_id()
+                certificate = VerificationCertificate.objects.create(
+                    certificate_id=cert_id,
+                    verification_request=verification_request,
+                    holder_subject=verification_request.target_subject,
+                    certificate_type=certificate_type,
+                    issued_to_name=subject_name,
+                    outcome_summary=outcome_summary.strip(),
+                    is_active=True,
+                )
+
+                AuditLog.objects.create(
+                    report=None,
+                    action="VERIFICATION_CERTIFICATE_ISSUED",
+                    performed_by=verification_request.requester,
+                    ip_address=ip_address,
+                    details={
+                        "certificate_id": cert_id,
+                        "certificate_type": certificate_type,
+                        "verification_reference": verification_request.reference_number,
+                        "subject_name": subject_name,
+                    }
+                )
+
+                return certificate
+
+        except IntegrityError:
+            if attempt == max_retries - 1:
+                raise
+            continue
+
+
+def initialize_certificate_query_transaction(user, certificate):
+    """
+    Initializes a Paystack payment transaction for a certificate query.
+    Returns the Transaction object (status='pending').
+    The caller must redirect the user to Paystack authorization URL.
+
+    VERIFIED:
+    - Transaction.reference is unique CharField
+    - Transaction.user is FK (required, not null)
+    - Transaction.plan is nullable — not needed for one-off certificate queries
+    - Transaction.status 'success' confirmed in payments/models.py
+    """
+    from payments.models import Transaction
+    from payments.services import generate_reference
+
+    CERTIFICATE_QUERY_AMOUNT_KOBO = 50000  # ₦500 in kobo — adjust per business plan
+
+    reference = generate_reference()
+    tx = Transaction.objects.create(
+        user=user,
+        reference=reference,
+        amount_kobo=CERTIFICATE_QUERY_AMOUNT_KOBO,
+        currency='NGN',
+        status='pending',
+        plan=None,
+        subscription=None,
+    )
+    return tx
+
+
+def log_certificate_query(
+    certificate,
+    queried_by,
+    ip_address: str,
+    transaction_reference: str = '',
+    purpose: str = '',
+) -> None:
+    """
+    Appends an immutable CertificateQueryLog entry.
+    Called ONLY after payment verification succeeds.
+    Never updates or deletes existing rows — append-only audit trail.
+
+    VERIFIED:
+    - CertificateQueryLog has no update/delete default_permissions
+    """
+    from verification.models import CertificateQueryLog
+
+    CertificateQueryLog.objects.create(
+        certificate=certificate,
+        queried_by=queried_by if (queried_by and queried_by.is_authenticated) else None,
+        ip_address=ip_address or None,
+        purpose=purpose[:100] if purpose else '',
+        transaction_reference=transaction_reference[:100] if transaction_reference else '',
+    )
+
 
 
 

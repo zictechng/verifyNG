@@ -1,70 +1,51 @@
 from django.contrib import admin
-from .models import (
-    VerificationRequest,
-    VerificationResult,
-    VerificationCertificate,
-    CertificateQueryLog,
-)
-
-
-class VerificationResultInline(admin.StackedInline):
-    model = VerificationResult
-    extra = 0
-    readonly_fields = ('verified_at',)
+from verification.models import VerificationRequest, VerificationResult, VerificationCertificate, CertificateQueryLog
 
 
 @admin.register(VerificationRequest)
 class VerificationRequestAdmin(admin.ModelAdmin):
-    list_display = ('reference_number', 'target_subject', 'requester', 'verification_type', 'status', 'created_at')
-    list_filter = ('verification_type', 'status', 'created_at')
-    search_fields = ('reference_number', 'target_subject__name')
-    inlines = [VerificationResultInline]
+    list_display = ('reference_number', 'verification_type', 'status', 'requester', 'created_at')
+    list_filter = ('status', 'verification_type')
+    search_fields = ('reference_number', 'requester__username', 'requester__email')
+    readonly_fields = ('reference_number', 'created_at', 'updated_at')
+    ordering = ('-created_at',)
 
 
 @admin.register(VerificationResult)
 class VerificationResultAdmin(admin.ModelAdmin):
     list_display = ('request', 'outcome', 'verified_by', 'verified_at')
-    list_filter = ('outcome', 'verified_at')
-    search_fields = ('request__reference_number', 'summary')
-
-
-class CertificateQueryLogInline(admin.TabularInline):
-    model = CertificateQueryLog
-    extra = 0
-    readonly_fields = ('queried_at', 'queried_by', 'payment', 'purpose', 'organisation_name', 'ip_address', 'result_snapshot')
-    can_delete = False
-
-    def has_add_permission(self, request, obj=None):
-        # Query logs are append-only — never created from admin
-        return False
+    list_filter = ('outcome',)
+    search_fields = ('request__reference_number',)
+    readonly_fields = ('verified_at',)
 
 
 @admin.register(VerificationCertificate)
 class VerificationCertificateAdmin(admin.ModelAdmin):
-    list_display = ('certificate_id', 'holder', 'check_level', 'status', 'issued_at', 'expires_at', 'created_at')
-    list_filter = ('check_level', 'status', 'created_at')
-    search_fields = ('certificate_id', 'holder__username', 'holder__email', 'subject__name')
+    list_display = ('certificate_id', 'issued_to_name', 'certificate_type', 'is_active', 'created_at')
+    list_filter = ('certificate_type', 'is_active')
+    search_fields = ('certificate_id', 'issued_to_name')
     readonly_fields = ('certificate_id', 'created_at', 'updated_at')
-    inlines = [CertificateQueryLogInline]
-
-    def has_delete_permission(self, request, obj=None):
-        # Certificates must be revoked, not deleted
-        return False
+    ordering = ('-created_at',)
 
 
 @admin.register(CertificateQueryLog)
 class CertificateQueryLogAdmin(admin.ModelAdmin):
-    list_display = ('certificate', 'queried_by', 'purpose', 'organisation_name', 'queried_at')
-    list_filter = ('purpose', 'queried_at')
-    search_fields = ('certificate__certificate_id', 'queried_by__username', 'organisation_name')
-    readonly_fields = ('certificate', 'queried_by', 'payment', 'queried_at', 'ip_address', 'purpose', 'organisation_name', 'result_snapshot')
+    """
+    Append-only audit log: no add, change, or delete permissions in admin.
+    Read-only view for auditing purposes only.
+    """
+    list_display = ('certificate', 'queried_by', 'queried_at', 'ip_address', 'purpose')
+    list_filter = ('queried_at',)
+    search_fields = ('certificate__certificate_id', 'queried_by__username', 'transaction_reference')
+    readonly_fields = ('certificate', 'queried_by', 'queried_at', 'ip_address', 'purpose', 'transaction_reference')
+    ordering = ('-queried_at',)
 
     def has_add_permission(self, request):
         return False
 
-    def has_delete_permission(self, request, obj=None):
+    def has_change_permission(self, request, obj=None):
         return False
 
-    def has_change_permission(self, request, obj=None):
+    def has_delete_permission(self, request, obj=None):
         return False
 

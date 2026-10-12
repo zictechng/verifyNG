@@ -301,193 +301,277 @@ class VerificationReportDocumentView(LoginRequiredMixin, DetailView):
 
 
 
-# ─── W-08: Certificate Views ──────────────────────────────────────────────────
-
+# ============================================================
+# W-08: Certificate views
+# ============================================================
+from django.contrib.auth.decorators import login_required
 from verification.models import VerificationCertificate, CertificateQueryLog
 from verification.forms import CertificateApplyForm
 from verification.services import (
-    create_certificate_application,
-    get_certificate_query_price,
-    process_certificate_query,
+    issue_verification_certificate,
     get_certificate_pdf_url,
+    initialize_certificate_query_transaction,
+    log_certificate_query,
 )
-from reports.models import FraudReport
 
 
-class CertificateApplyView(LoginRequiredMixin, FormView):
+class CertificateApplyView(LoginRequiredMixin, View):
     """
-    Allows an authenticated user to apply for an Employment or Enhanced certificate.
-    Blocks duplicate active/pending applications at the same level.
+    GET:  Show form to apply for a certificate against a completed request.
+    POST: Issue the certificate atomically.
+
+    Access: Authenticated user who is the requester of the verification request.
     """
-    form_class = CertificateApplyForm
     template_name = 'verification/certificate_apply.html'
 
-    def form_valid(self, form):
-        ip_addr = get_client_ip(self.request)
+    def get(self, request):
+        form = CertificateApplyForm(initial={
+            'verification_reference': request.GET.get('ref', '')
+        })
+        return render(request, self.template_name, {'form': form})
+
+    def post(self, request):
+        form = CertificateApplyForm(request.POST)
+        if not form.is_valid():
+            return render(request, self.template_name, {'form': form})
+
+        ref = form.cleaned_data['verification_reference']
+        ip_addr = get_client_ip(request)
+
+        vr = get_object_or_404(
+            VerificationRequest.objects.select_related('target_subject', 'requester', 'result'),
+            reference_number=ref
+        )
+
+        # Least-privilege: only the original requester may apply for a certificate
+        if vr.requester_id != request.user.id and not request.user.is_superuser:
+            raise PermissionDenied(
+                "You may only apply for a certificate on your own verification requests."
+            )
+
         try:
-            certificate = create_certificate_application(
-                holder=self.request.user,
-                check_level=form.cleaned_data['check_level'],
+            certificate = issue_verification_certificate(
+                verification_request=vr,
+                certificate_type=form.cleaned_data['certificate_type'],
+                outcome_summary=form.cleaned_data['outcome_summary'],
                 ip_address=ip_addr,
             )
             messages.success(
-                self.request,
-                f"Certificate application [{certificate.certificate_id}] submitted. "
-                "A verification officer will review and activate it."
+                request,
+                f"Certificate [{certificate.certificate_id}] issued successfully."
             )
-            return redirect('verification:my_certificate')
-        except Exception as e:
-            form.add_error(None, str(e))
-            return self.form_invalid(form)
+            return redirect('verification:my_certificate', certificate_id=certificate.certificate_id)
+        except ValidationError as e:
+            form.add_error(None, e.message if hasattr(e, 'message') else str(e))
+            return render(request, self.template_name, {'form': form})
 
 
-class MyCertificateView(LoginRequiredMixin, View):
+class MyCertificateView(LoginRequiredMixin, DetailView):
     """
-    Holder's certificate dashboard.
-    Shows their most recent certificate and the last 5 query log entries.
+    Displays a certificate to the holder (requester).
+    Generates a time-limited signed PDF URL via Cloudinary.
+
+    Access: Original requester, verification officers, superusers.
     """
+    model = VerificationCertificate
     template_name = 'verification/my_certificate.html'
+    context_object_name = 'certificate'
+
+    def get_object(self, queryset=None):
+        cert_id = self.kwargs.get('certificate_id')
+        obj = get_object_or_404(
+            VerificationCertificate.objects.select_related(
+                'verification_request',
+                'verification_request__requester',
+                'holder_subject',
+            ),
+            certificate_id=cert_id
+        )
+        requester = obj.verification_request.requester
+        if (
+            not self.request.user.is_superuser
+            and not is_verification_officer(self.request.user)
+            and (requester is None or requester.id != self.request.user.id)
+        ):
+            raise PermissionDenied("You do not have authorization to view this certificate.")
+        return obj
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['pdf_url'] = get_certificate_pdf_url(self.object)
+        ctx['is_valid'] = self.object.is_valid()
+        return ctx
+
+
+class CertificateQueryLandingView(View):
+    """
+    Public GET: Landing page for third-party employers/landlords to query a certificate.
+    POST: Initiates Paystack payment for the query.
+
+    No login required for GET (public-facing).
+    Login required for POST (payment must be tied to an authenticated user account).
+    """
+    template_name = 'verification/certificate_query_landing.html'
 
     def get(self, request):
-        certificate = (
-            VerificationCertificate.objects
-            .filter(holder=request.user)
-            .order_by('-created_at')
-            .first()
-        )
-        recent_queries = []
-        if certificate:
-            recent_queries = (
-                certificate.query_logs
-                .select_related('queried_by')
-                .order_by('-queried_at')[:5]
-            )
+        cert_id = request.GET.get('cert_id', '')
+        certificate = None
+        if cert_id:
+            certificate = VerificationCertificate.objects.filter(
+                certificate_id=cert_id,
+                is_active=True
+            ).first()
         return render(request, self.template_name, {
             'certificate': certificate,
-            'recent_queries': recent_queries,
+            'cert_id': cert_id,
+        })
+
+    def post(self, request):
+        if not request.user.is_authenticated:
+            messages.info(request, "Please sign in to proceed with certificate verification.")
+            return redirect(f"{reverse('accounts:login')}?next={request.path}")
+
+        cert_id = request.POST.get('cert_id', '').strip()
+        purpose = request.POST.get('purpose', '').strip()
+
+        if not cert_id:
+            messages.error(request, "Certificate ID is required.")
+            return redirect('verification:certificate_query_landing')
+
+        certificate = get_object_or_404(
+            VerificationCertificate,
+            certificate_id=cert_id,
+            is_active=True
+        )
+
+        ip_addr = get_client_ip(request)
+
+        try:
+            tx = initialize_certificate_query_transaction(request.user, certificate)
+        except Exception as e:
+            logger.error("Failed to initialize certificate query transaction: %s", str(e))
+            messages.error(request, "Unable to initiate payment. Please try again.")
+            return redirect('verification:certificate_query_landing')
+
+        # Store context in session for post-payment callback
+        request.session['pending_cert_query'] = {
+            'certificate_id': cert_id,
+            'transaction_reference': tx.reference,
+            'purpose': purpose,
+            'ip_address': ip_addr,
+        }
+
+        # Redirect to Paystack — handled by payments app
+        return redirect(reverse('payments:paystack_authorize', kwargs={'reference': tx.reference}))
+
+
+class CertificateQueryResultView(LoginRequiredMixin, View):
+    """
+    Post-payment callback view.
+    Verifies payment status, logs the query, and displays certificate result.
+
+    Called after Paystack redirects back to VerifyNG with the transaction reference.
+    """
+    template_name = 'verification/certificate_query_result.html'
+
+    def get(self, request):
+        from payments.models import Transaction
+
+        pending = request.session.pop('pending_cert_query', None)
+        if not pending:
+            messages.error(request, "No pending certificate query found. Please start again.")
+            return redirect('verification:certificate_query_landing')
+
+        cert_id = pending.get('certificate_id')
+        tx_ref = pending.get('transaction_reference')
+        purpose = pending.get('purpose', '')
+        ip_addr = pending.get('ip_address') or get_client_ip(request)
+
+        # Verify transaction succeeded
+        try:
+            tx = Transaction.objects.get(reference=tx_ref, user=request.user)
+        except Transaction.DoesNotExist:
+            messages.error(request, "Payment record not found. Please contact support.")
+            return redirect('verification:certificate_query_landing')
+
+        if tx.status != 'success':
+            messages.warning(
+                request,
+                f"Payment not confirmed (status: {tx.status}). "
+                "Please wait or contact support if you believe this is an error."
+            )
+            return redirect('verification:certificate_query_landing')
+
+        certificate = get_object_or_404(
+            VerificationCertificate.objects.select_related('holder_subject', 'verification_request'),
+            certificate_id=cert_id,
+            is_active=True
+        )
+
+        # Append-only audit log — only after payment confirmed
+        log_certificate_query(
+            certificate=certificate,
+            queried_by=request.user,
+            ip_address=ip_addr,
+            transaction_reference=tx_ref,
+            purpose=purpose,
+        )
+
+        AuditLog.objects.create(
+            report=None,
+            action="CERTIFICATE_QUERY_COMPLETED",
+            performed_by=request.user,
+            ip_address=ip_addr,
+            details={
+                "certificate_id": cert_id,
+                "transaction_reference": tx_ref,
+                "purpose": purpose,
+                "is_valid": certificate.is_valid(),
+            }
+        )
+
+        return render(request, self.template_name, {
+            'certificate': certificate,
+            'is_valid': certificate.is_valid(),
+            'query_purpose': purpose,
         })
 
 
-class QueryLogView(LoginRequiredMixin, ListView):
+class CertificateQueryLogView(LoginRequiredMixin, ListView):
     """
-    Paginated full query log for the holder's certificate.
-    Shows: querier name, organisation, purpose, date.
-    Does NOT expose result_snapshot to the holder.
+    Shows the query log for a certificate — visible to:
+    - The original certificate holder (requester)
+    - Verification officers
+    - Superusers
     """
     model = CertificateQueryLog
     template_name = 'verification/query_log.html'
     context_object_name = 'query_logs'
-    paginate_by = 20
+    paginate_by = 25
 
     def get_queryset(self):
-        certificate = (
-            VerificationCertificate.objects
-            .filter(holder=self.request.user)
-            .order_by('-created_at')
-            .first()
+        cert_id = self.kwargs.get('certificate_id')
+        self._certificate = get_object_or_404(
+            VerificationCertificate.objects.select_related('verification_request__requester'),
+            certificate_id=cert_id
         )
-        if not certificate:
-            return CertificateQueryLog.objects.none()
+        requester = self._certificate.verification_request.requester
+        if (
+            not self.request.user.is_superuser
+            and not is_verification_officer(self.request.user)
+            and (requester is None or requester.id != self.request.user.id)
+        ):
+            raise PermissionDenied("You do not have authorization to view this query log.")
+
         return (
-            certificate.query_logs
+            CertificateQueryLog.objects
+            .filter(certificate=self._certificate)
             .select_related('queried_by')
             .order_by('-queried_at')
         )
 
-
-class CertificateQueryView(View):
-    """
-    Public certificate lookup — requires payment before results are shown.
-    GET:  displays payment prompt with certificate ID and price.
-    POST: validates confirmed payment Transaction, records CertificateQueryLog,
-          renders result showing counts only (never raw report content).
-    """
-    template_name_landing = 'verification/certificate_query_landing.html'
-    template_name_result = 'verification/certificate_query_result.html'
-
-    def get(self, request, certificate_id):
-        certificate = get_object_or_404(
-            VerificationCertificate.objects.select_related('subject', 'holder'),
-            certificate_id=certificate_id,
-        )
-        price = get_certificate_query_price(certificate.check_level)
-        return render(request, self.template_name_landing, {
-            'certificate': certificate,
-            'price_kobo': price,
-            'price_naira': price // 100,
-        })
-
-    def post(self, request, certificate_id):
-        if not request.user.is_authenticated:
-            return redirect(f"{reverse('users:login')}?next={request.path}")
-
-        certificate = get_object_or_404(
-            VerificationCertificate.objects.select_related('subject', 'holder'),
-            certificate_id=certificate_id,
-        )
-
-        from payments.models import Transaction
-        payment_ref = request.POST.get('payment_reference', '').strip()
-        if not payment_ref:
-            messages.error(request, "Payment reference is required.")
-            return redirect('verification:certificate_query', certificate_id=certificate_id)
-
-        try:
-            payment = Transaction.objects.get(
-                reference=payment_ref,
-                user=request.user,
-                status='success',
-            )
-        except Transaction.DoesNotExist:
-            messages.error(request, "Payment not found or not yet confirmed. Please try again.")
-            return redirect('verification:certificate_query', certificate_id=certificate_id)
-
-        purpose = request.POST.get('purpose', 'other')
-        organisation_name = request.POST.get('organisation_name', '').strip()
-        ip_addr = get_client_ip(request)
-
-        try:
-            log, snapshot = process_certificate_query(
-                certificate=certificate,
-                queried_by=request.user,
-                payment=payment,
-                purpose=purpose,
-                organisation_name=organisation_name,
-                ip_address=ip_addr,
-            )
-        except Exception as e:
-            messages.error(request, str(e))
-            return redirect('verification:certificate_query', certificate_id=certificate_id)
-
-        return render(request, self.template_name_result, {
-            'certificate': certificate,
-            'snapshot': snapshot,
-            'log': log,
-        })
-
-
-class CertificatePDFView(LoginRequiredMixin, View):
-    """
-    Holder-only access to their certificate PDF via a signed Cloudinary URL.
-    Redirects to the signed URL — never serves the file directly.
-    """
-    def get(self, request, certificate_id):
-        certificate = get_object_or_404(
-            VerificationCertificate,
-            certificate_id=certificate_id,
-            holder=request.user,
-        )
-        if not certificate.pdf_file:
-            messages.info(request, "Your certificate PDF is not yet available.")
-            return redirect('verification:my_certificate')
-
-        signed_url = get_certificate_pdf_url(certificate)
-        if not signed_url:
-            messages.error(request, "Could not generate download link. Please contact support.")
-            return redirect('verification:my_certificate')
-
-        return HttpResponseRedirect(signed_url)
-
-
-
-
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['certificate'] = self._certificate
+        return ctx
+    
