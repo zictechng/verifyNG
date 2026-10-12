@@ -1,9 +1,9 @@
 
 import uuid
-import secrets
 import hashlib
 import json
 import logging
+import secrets
 from django.utils import timezone
 from django.db import transaction, IntegrityError
 from django.core.exceptions import ValidationError
@@ -551,64 +551,14 @@ def initialize_certificate_query_transaction(user, certificate) -> dict:
         'access_code': data.get('access_code', ''),
     }
 
-
-# ============================================================
-# W-08: Certificate service functions
-# ============================================================
-import hashlib
-
-
 def generate_certificate_id() -> str:
     """
-    Generates unique certificate ID in format: VNG-YYYY-XXXXXXXX
-    (8 uppercase hex characters, cryptographically random)
+    Generates a unique certificate ID: VNG-YYYY-XXXXXXXX
+    (8 uppercase hex chars, cryptographically random via secrets module).
     """
     year = timezone.now().year
-    random_hex = secrets.token_hex(4).upper()  # 4 bytes = 8 hex chars
+    random_hex = secrets.token_hex(4).upper()
     return f"VNG-{year}-{random_hex}"
-
-
-def get_certificate_pdf_url(certificate) -> str:
-    """
-    Returns a short-lived signed Cloudinary URL for a certificate PDF.
-    Returns empty string if no PDF has been generated yet.
-
-    VERIFIED against reports/storage_services.py:
-    - generate_signed_url(self, public_id, format, resource_type="image", expires_in_seconds=300)
-    - 'format' is a REQUIRED positional argument — must be supplied explicitly.
-    - PDFs are stored as raw resources in Cloudinary (not images).
-    """
-    from reports.storage_services import get_storage_service
-    if not certificate.pdf_file:
-        return ''
-    return get_storage_service().generate_signed_url(
-        public_id=certificate.pdf_file,
-        format='pdf',
-        resource_type='raw',
-        expires_in_seconds=300,
-    )
-
-
-def upload_certificate_pdf(certificate, pdf_file_obj) -> str:
-    """
-    Uploads a certificate PDF to Cloudinary and stores the public_id on the model.
-    Returns the Cloudinary public_id.
-
-    VERIFIED against reports/storage_services.py:
-    - upload_evidence(self, file_obj, folder_prefix="evidence") — signature confirmed.
-    - Does NOT accept a resource_type parameter — resource type is inferred internally
-      from the file extension by the storage service.
-    """
-    from reports.storage_services import get_storage_service
-    storage = get_storage_service()
-    result = storage.upload_evidence(
-        file_obj=pdf_file_obj,
-        folder_prefix='certificates',
-    )
-    public_id = result.get('public_id', '')
-    certificate.pdf_file = public_id
-    certificate.save(update_fields=['pdf_file', 'updated_at'])
-    return public_id
 
 
 def issue_verification_certificate(
@@ -696,33 +646,6 @@ def issue_verification_certificate(
             continue
 
 
-def initialize_certificate_query_transaction(user, certificate):
-    """
-    Initializes a Paystack payment transaction for a certificate query.
-    Returns the Transaction object (status='pending').
-    The caller must redirect the user to Paystack authorization URL.
-
-    VERIFIED:
-    - Transaction.reference is unique CharField
-    - Transaction.user is FK (required, not null)
-    - Transaction.plan is nullable — not needed for one-off certificate queries
-    - Transaction.status 'success' confirmed in payments/models.py
-    """
-    from payments.models import Transaction
-    from payments.services import generate_reference
-
-    CERTIFICATE_QUERY_AMOUNT_KOBO = 50000  # ₦500 in kobo — adjust per business plan
-
-    reference = generate_reference()
-    tx = Transaction.objects.create(
-        user=user,
-        reference=reference,
-        amount_kobo=CERTIFICATE_QUERY_AMOUNT_KOBO,
-        currency='NGN',
-        status='pending',
-        plan=None,
-        subscription=None,
-    )
     return tx
 
 
