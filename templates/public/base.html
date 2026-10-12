@@ -460,7 +460,7 @@
 
     <!-- Mobile-First Sticky App Bottom Navigation -->
     {% block mobile_bottom_nav %}
-    {% if request.resolver_match.url_name != 'login' and request.resolver_match.url_name != 'register' and request.resolver_match.url_name != 'create' and request.resolver_match.url_name != 'password_reset' %}
+    {% if request.resolver_match.url_name != 'login' and request.resolver_match.url_name != 'register' and request.resolver_match.url_name != 'password_reset' %}
     <nav class="vng-bottom-nav d-md-none" aria-label="Mobile Navigation">
         <!-- Tab 1: Home -->
         <a href="{% url 'home' %}" class="vng-bottom-tab {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
