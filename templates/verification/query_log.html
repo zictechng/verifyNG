@@ -8,7 +8,7 @@
 <div class="container py-4 py-md-5">
 
     <div class="mb-4">
-        <a href="{% url 'verification:my_certificate' %}" class="text-decoration-none small text-muted">&larr; My Certificates</a>
+        {% if certificate %}<a href="{% url 'verification:my_certificate' certificate.certificate_id %}" class="text-decoration-none small text-muted">&larr; My Certificate</a>{% else %}<a href="/" class="text-decoration-none small text-muted">&larr; Home</a>{% endif %}
         <h1 class="h3 fw-bold mt-1 mb-0">Certificate Query Log</h1>
         <p class="small text-muted mb-0">
             All lookups of certificate <span class="font-monospace fw-semibold">{{ certificate.certificate_id }}</span>.

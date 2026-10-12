@@ -448,16 +448,17 @@ class CertificateQueryLandingView(View):
             messages.error(request, "Unable to initiate payment. Please try again.")
             return redirect('verification:certificate_query_landing')
 
-        # Store context in session for post-payment callback
+        tx_reference = tx.get('reference', '') if isinstance(tx, dict) else getattr(tx, 'reference', '')
+
         request.session['pending_cert_query'] = {
             'certificate_id': cert_id,
-            'transaction_reference': tx.get('reference', ''),
+            'transaction_reference': tx_reference,
             'purpose': purpose,
             'ip_address': ip_addr,
         }
 
         # Redirect to Paystack — handled by payments app
-        return redirect(reverse('payments:paystack_authorize', kwargs={'reference': tx.get('reference', '')}))
+        return redirect(f"/payments/callback/?reference={tx_reference}")
 
 
 class CertificateQueryResultView(LoginRequiredMixin, View):
