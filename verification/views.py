@@ -570,3 +570,96 @@ class CertificateQueryLogView(LoginRequiredMixin, ListView):
         ctx['certificate'] = self._certificate
         return ctx
     
+
+
+
+class CertificateActivateView(LoginRequiredMixin, View):
+    """
+    POST-only. Officer/superuser activates a pending certificate.
+
+    Transitions: pending → active
+    Sets issued_at and expires_at on the model.
+    Access: Verification officers and superusers only.
+    """
+
+    def post(self, request, certificate_id):
+        if not (is_verification_officer(request.user) or request.user.is_superuser):
+            raise PermissionDenied("Verification Officer authorization required.")
+
+        certificate = get_object_or_404(
+            VerificationCertificate.objects.select_related('holder', 'subject'),
+            certificate_id=certificate_id,
+        )
+
+        try:
+            certificate.activate()
+            AuditLog.objects.create(
+                report=None,
+                action="CERTIFICATE_ACTIVATED",
+                performed_by=request.user,
+                ip_address=get_client_ip(request),
+                details={
+                    "certificate_id": certificate_id,
+                    "holder": certificate.holder.username if certificate.holder else None,
+                    "check_level": certificate.check_level,
+                    "issued_at": certificate.issued_at.isoformat() if certificate.issued_at else None,
+                    "expires_at": certificate.expires_at.isoformat() if certificate.expires_at else None,
+                }
+            )
+            messages.success(
+                request,
+                f"Certificate [{certificate_id}] activated successfully. "
+                f"Valid until {certificate.expires_at.strftime('%d %b %Y') if certificate.expires_at else 'no expiry'}."
+            )
+        except ValueError as e:
+            messages.error(request, str(e))
+
+        return redirect('verification:my_certificate', certificate_id=certificate_id)
+
+
+class CertificateRevokeView(LoginRequiredMixin, View):
+    """
+    POST-only. Officer/superuser revokes an active or suspended certificate.
+
+    Transitions: active|suspended → revoked
+    Requires 'reason' in POST body.
+    Access: Verification officers and superusers only.
+    """
+
+    def post(self, request, certificate_id):
+        if not (is_verification_officer(request.user) or request.user.is_superuser):
+            raise PermissionDenied("Verification Officer authorization required.")
+
+        certificate = get_object_or_404(
+            VerificationCertificate.objects.select_related('holder', 'subject'),
+            certificate_id=certificate_id,
+        )
+
+        reason = request.POST.get('reason', '').strip()
+        if not reason:
+            messages.error(request, "A revocation reason is required.")
+            return redirect('verification:my_certificate', certificate_id=certificate_id)
+
+        try:
+            certificate.revoke(reason=reason)
+            AuditLog.objects.create(
+                report=None,
+                action="CERTIFICATE_REVOKED",
+                performed_by=request.user,
+                ip_address=get_client_ip(request),
+                details={
+                    "certificate_id": certificate_id,
+                    "holder": certificate.holder.username if certificate.holder else None,
+                    "reason": reason,
+                }
+            )
+            messages.success(
+                request,
+                f"Certificate [{certificate_id}] has been revoked."
+            )
+        except ValueError as e:
+            messages.error(request, str(e))
+
+        return redirect('verification:my_certificate', certificate_id=certificate_id)
+
+

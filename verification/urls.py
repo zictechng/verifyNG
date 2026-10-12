@@ -15,6 +15,8 @@ urlpatterns = [
     path('certificate/query/result/', views.CertificateQueryResultView.as_view(), name='certificate_query_result'),
     path('certificate/<str:certificate_id>/', views.MyCertificateView.as_view(), name='my_certificate'),
     path('certificate/<str:certificate_id>/log/', views.CertificateQueryLogView.as_view(), name='query_log'),
+    path('certificate/<str:certificate_id>/activate/', views.CertificateActivateView.as_view(), name='certificate_activate'),
+    path('certificate/<str:certificate_id>/revoke/', views.CertificateRevokeView.as_view(), name='certificate_revoke'),
 
     # ── Existing catch-all (must remain LAST) ─────────────────────────
     path('<str:reference_number>/', views.VerificationDetailView.as_view(), name='detail'),
