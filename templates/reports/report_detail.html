@@ -176,7 +176,8 @@
                 <span class="small fw-semibold text-muted text-uppercase">Add More Evidence</span>
             </div>
             <div class="card-body">
-                <p class="small text-muted mb-3">Upload additional supporting files (JPEG, PNG, WebP or PDF — max 10 MB each).</p>
+                <p class="small text-muted mb-3">Upload one file at a time. Label each file clearly so moderators know what they are looking at. You can return to this page to add more.</p>
+                <p class="small text-muted mb-3">Accepted formats: JPEG, PNG, WebP, PDF — max 10 MB per file. If you have multiple related documents, scan them into a single PDF before uploading.</p>
                 <form method="post"
                     action="{% url 'reports:upload_evidence' report.reference_number %}"
                     enctype="multipart/form-data"
