@@ -263,6 +263,37 @@
 
         .vng-bottom-tab svg { width: 20px; height: 20px; stroke-width: 2; }
         .vng-bottom-tab.active, .vng-bottom-tab:hover { color: var(--vng-primary); }
+                /* ── Avatar dropdown ── */
+        .vng-avatar-btn { background: none; border: none; padding: 0; cursor: pointer; line-height: 0; }
+        .vng-avatar-circle {
+            display: flex; align-items: center; justify-content: center;
+            width: 36px; height: 36px; border-radius: 50%;
+            background: var(--vng-primary); color: #fff;
+            font-size: 14px; font-weight: 700; user-select: none;
+            transition: opacity 0.15s ease; cursor: pointer;
+        }
+        .vng-avatar-btn:hover .vng-avatar-circle { opacity: 0.85; }
+        .vng-avatar-dropdown {
+            position: absolute; top: calc(100% + 10px); right: 0;
+            width: 220px; background: #fff;
+            border: 1px solid var(--vng-border); border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(36,87,214,0.12), 0 2px 8px rgba(0,0,0,0.06);
+            z-index: 1055; overflow: hidden;
+        }
+        .vng-avatar-header { padding: 14px 16px 10px; }
+        .vng-avatar-name { font-size: 13px; font-weight: 600; color: var(--vng-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .vng-avatar-email { font-size: 12px; color: var(--vng-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px; }
+        .vng-avatar-divider { height: 1px; background: var(--vng-border); margin: 4px 0; }
+        .vng-avatar-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 16px; font-size: 13px; color: var(--vng-ink);
+            text-decoration: none; transition: background 0.12s ease;
+        }
+        .vng-avatar-item:hover { background: var(--vng-page-bg); color: var(--vng-primary); text-decoration: none; }
+        .vng-avatar-item svg { opacity: 0.65; flex-shrink: 0; }
+        .vng-avatar-item:hover svg { opacity: 1; }
+        .vng-avatar-item-danger { color: #DC2626 !important; }
+        .vng-avatar-item-danger:hover { background: #FEF2F2 !important; color: #B91C1C !important; }
     </style>
     
     {% block extra_head %}{% endblock %}
@@ -289,9 +320,11 @@
                     <!-- Desktop / Tablet Navigation Links (Shifted Left next to Logo) -->
                 <div class="collapse navbar-collapse d-none d-md-flex" id="desktopNav">
                     <ul class="navbar-nav me-auto ms-md-4 ms-lg-5 ps-lg-3 mb-2 mb-md-0 gap-1">
+                        {% if not user.is_authenticated %}
                         <li class="nav-item">
                             <a class="nav-link vng-nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}" href="{% url 'home' %}">Home</a>
                         </li>
+                        {% endif %}
                         <li class="nav-item">
                             <a class="nav-link vng-nav-link {% if request.resolver_match.url_name == 'check' %}active{% endif %}" href="{% url 'check' %}">Verify</a>
                         </li>
@@ -299,8 +332,8 @@
                             <a class="nav-link vng-nav-link {% if request.resolver_match.url_name == 'create' or request.resolver_match.url_name == 'report' %}active{% endif %}" href="{% url 'reports:create' %}">Report</a>
                         </li>
                     </ul>
+
                     <!-- Auth Actions -->
-                                        <!-- Auth Actions -->
                     <div class="d-flex align-items-center gap-2">
                         {% if user.is_authenticated %}
                             <!-- Notification Bell — desktop -->
@@ -318,10 +351,38 @@
                                 </span>
                                 {% endif %}
                             </a>
-                            <a href="{% url 'dashboard:index' %}" class="btn btn-vng-outline btn-sm">Account</a>
-                            <form method="post" action="{% url 'users:logout' %}" class="d-inline">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-sm btn-link text-muted text-decoration-none p-2">Logout</button>
+                                                        <div class="position-relative" x-data="{ open: false }" @click.outside="open = false">
+                                <button class="vng-avatar-btn" @click="open = !open" title="Account menu">
+                                    <span class="vng-avatar-circle">{{ user.get_full_name|default:user.username|slice:":1"|upper }}</span>
+                                </button>
+                                <div class="vng-avatar-dropdown" x-show="open" style="display:none;">
+                                    <div class="vng-avatar-header">
+                                        <div class="vng-avatar-name">{{ user.get_full_name|default:user.username }}</div>
+                                        <div class="vng-avatar-email">{{ user.email }}</div>
+                                    </div>
+                                    <div class="vng-avatar-divider"></div>
+                                    <a href="{% url 'users:profile' %}" class="vng-avatar-item">
+                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+                                        Profile
+                                    </a>
+                                    <a href="{% url 'dashboard:index' %}" class="vng-avatar-item">
+                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                                        Dashboard
+                                    </a>
+                                    <a href="{% url 'notifications:list' %}" class="vng-avatar-item">
+                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+                                        Notifications
+                                    </a>
+                                    <div class="vng-avatar-divider"></div>
+                                    <form method="post" action="{% url 'users:logout' %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="vng-avatar-item vng-avatar-item-danger w-100 border-0 bg-transparent text-start">
+                                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                                            Logout
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
                             </form>
                         {% else %}
                             <a href="{% url 'users:login' %}" class="btn btn-vng-outline btn-sm">Login</a>
