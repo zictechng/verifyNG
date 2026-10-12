@@ -5,9 +5,14 @@ from django.conf import settings
 
 admin.site.__class__ = OTPAdminSite
 
+_api_urls = None
+
 def get_api_urls():
-    from api.api import api
-    return api.urls
+    global _api_urls
+    if _api_urls is None:
+        from api.api import api
+        _api_urls = api.urls
+    return _api_urls
 
 urlpatterns = [
     path('admin/', admin.site.urls),

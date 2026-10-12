@@ -140,6 +140,7 @@ class VerificationCertificate(models.Model):
         ('employment', 'Employment Check'),
         ('enhanced', 'Enhanced Check'),
     )
+    CERTIFICATE_TYPES = CHECK_LEVEL_CHOICES
     STATUS_CHOICES = (
         ('pending', 'Pending — awaiting officer activation'),
         ('active', 'Active'),
@@ -193,6 +194,7 @@ class VerificationCertificate(models.Model):
     pdf_file = models.CharField(
         max_length=500,
         blank=True,
+        default='',
         help_text="Cloudinary public_id for the certificate PDF — never a raw file path"
     )
     created_at = models.DateTimeField(auto_now_add=True)
@@ -308,17 +310,5 @@ class CertificateQueryLog(models.Model):
     def __str__(self):
         return f"Query of {self.certificate.certificate_id} by {self.queried_by.username} at {self.queried_at}"
         
-# ─────────────────────────────────────────────────────────────────────────────
-# W-08: Certificate System
-# ─────────────────────────────────────────────────────────────────────────────
 
-def generate_certificate_id():
-    """
-    Generates a non-sequential, non-guessable certificate ID.
-    Format: VNG-{YEAR}-{8 uppercase hex chars}
-    Example: VNG-2026-A7F2B9C1
-    """
-    year = tz.now().year
-    hex_part = secrets.token_hex(4).upper()
-    return f"VNG-{year}-{hex_part}"
 
