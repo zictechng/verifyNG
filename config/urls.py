@@ -2,14 +2,17 @@ from django.contrib import admin
 from django.urls import path, include
 from django_otp.admin import OTPAdminSite
 from django.conf import settings
-from api.api import api
 
 admin.site.__class__ = OTPAdminSite
+
+def get_api_urls():
+    from api.api import api
+    return api.urls
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('admin-portal/', include('dashboard.admin_urls', namespace='admin_portal')),
-    path('api/v1/', api.urls),
+    path('api/v1/', get_api_urls()),
     path('users/', include('users.urls', namespace='users')),
     path('reports/', include('reports.urls', namespace='reports')),
     path('dashboard/', include('dashboard.urls', namespace='dashboard')),
