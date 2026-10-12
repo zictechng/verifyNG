@@ -482,3 +482,72 @@ def upload_certificate_pdf(certificate, pdf_file_obj) -> str:
     return public_id
 
 
+
+
+
+def initialize_certificate_query_transaction(user, certificate) -> dict:
+    """
+    Creates a pending Transaction for a one-time certificate query payment.
+    No Plan is associated — price is fixed by check_level.
+
+    Returns dict with 'reference' and 'authorization_url' for Paystack popup.
+    Raises RuntimeError on Paystack API failure.
+    """
+    import uuid
+    import requests
+    from django.conf import settings
+    from payments.models import Transaction
+    from payments.services import generate_reference
+
+    price_kobo = get_certificate_query_price(certificate.check_level)
+    reference = generate_reference()
+
+    Transaction.objects.create(
+        user=user,
+        plan=None,
+        subscription=None,
+        reference=reference,
+        amount_kobo=price_kobo,
+        currency='NGN',
+        status='pending',
+    )
+
+    payload = {
+        'email': user.email,
+        'amount': price_kobo,
+        'currency': 'NGN',
+        'reference': reference,
+        'callback_url': f"{settings.SITE_BASE_URL}/verify/certificate/{certificate.certificate_id}/",
+        'metadata': {
+            'purpose': 'certificate_query',
+            'certificate_id': certificate.certificate_id,
+            'check_level': certificate.check_level,
+        },
+    }
+
+    headers = {
+        'Authorization': f"Bearer {settings.PAYSTACK_SECRET_KEY}",
+        'Content-Type': 'application/json',
+    }
+
+    resp = requests.post(
+        'https://api.paystack.co/transaction/initialize',
+        json=payload,
+        headers=headers,
+        timeout=15,
+    )
+
+    if resp.status_code != 200 or not resp.json().get('status'):
+        raise RuntimeError(
+            f"Paystack initialization failed: {resp.text}"
+        )
+
+    data = resp.json()['data']
+    return {
+        'reference': reference,
+        'authorization_url': data['authorization_url'],
+        'access_code': data.get('access_code', ''),
+    }
+
+
+
