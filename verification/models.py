@@ -117,6 +117,197 @@ class VerificationResult(models.Model):
 
 
 
+# ─── W-08: Certificate System ─────────────────────────────────────────────────
+
+import secrets
+
+
+def generate_certificate_id():
+    """Generates unique certificate ID: VNG-{YEAR}-{8 uppercase hex chars}"""
+    from django.utils import timezone as tz
+    year = tz.now().year
+    hex_part = secrets.token_hex(4).upper()
+    return f"VNG-{year}-{hex_part}"
+
+
+class VerificationCertificate(models.Model):
+    """
+    Issued certificate for Employment Check (L2) or Enhanced Check (L3).
+    Certificate ID is permanent and immutable once assigned.
+    PDF stored as Cloudinary public_id in pdf_file CharField.
+    """
+    CHECK_LEVEL_CHOICES = (
+        ('employment', 'Employment Check'),
+        ('enhanced', 'Enhanced Check'),
+    )
+    STATUS_CHOICES = (
+        ('pending', 'Pending — awaiting officer activation'),
+        ('active', 'Active'),
+        ('suspended', 'Suspended'),
+        ('revoked', 'Revoked'),
+        ('expired', 'Expired'),
+    )
+
+    certificate_id = models.CharField(
+        max_length=20,
+        unique=True,
+        db_index=True,
+        default=generate_certificate_id,
+        help_text="Permanent public certificate reference e.g. VNG-2026-A7F2B9C1"
+    )
+    subject = models.ForeignKey(
+        SubjectEntity,
+        on_delete=models.PROTECT,
+        related_name='certificates',
+        help_text="SubjectEntity record representing the certificate holder"
+    )
+    holder = models.ForeignKey(
+        User,
+        on_delete=models.PROTECT,
+        related_name='held_certificates',
+        help_text="Authenticated user account of the certificate holder"
+    )
+    check_level = models.CharField(
+        max_length=20,
+        choices=CHECK_LEVEL_CHOICES,
+        default='employment',
+        db_index=True
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='pending',
+        db_index=True
+    )
+    issued_at = models.DateTimeField(null=True, blank=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
+    revoked_at = models.DateTimeField(null=True, blank=True)
+    revocation_reason = models.TextField(blank=True)
+    suspended_at = models.DateTimeField(null=True, blank=True)
+    suspension_reason = models.TextField(blank=True)
+    qr_code_url = models.CharField(
+        max_length=500,
+        blank=True,
+        help_text="URL or data URI of the QR code image"
+    )
+    pdf_file = models.CharField(
+        max_length=500,
+        blank=True,
+        help_text="Cloudinary public_id for the certificate PDF — never a raw file path"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = 'Verification Certificate'
+        verbose_name_plural = 'Verification Certificates'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"[{self.certificate_id}] {self.holder.username} — {self.get_check_level_display()} ({self.get_status_display()})"
+
+    @property
+    def is_valid(self) -> bool:
+        """True only when status is active and not past expiry."""
+        from django.utils import timezone as tz
+        if self.status != 'active':
+            return False
+        if self.expires_at and tz.now() > self.expires_at:
+            return False
+        return True
+
+    @property
+    def expiry_years(self) -> int:
+        """Employment Check = 1 year. Enhanced Check = 3 years."""
+        return 1 if self.check_level == 'employment' else 3
+
+    def activate(self, officer_user=None):
+        """
+        Transitions certificate from 'pending' to 'active'.
+        Sets issued_at and calculates expires_at from expiry_years.
+        """
+        from django.utils import timezone as tz
+        from dateutil.relativedelta import relativedelta
+        if self.status != 'pending':
+            raise ValueError(f"Cannot activate certificate in status '{self.status}'.")
+        self.status = 'active'
+        self.issued_at = tz.now()
+        self.expires_at = self.issued_at + relativedelta(years=self.expiry_years)
+        self.save(update_fields=['status', 'issued_at', 'expires_at', 'updated_at'])
+
+    def suspend(self, reason: str = ''):
+        """Transitions active certificate to suspended."""
+        from django.utils import timezone as tz
+        if self.status != 'active':
+            raise ValueError(f"Cannot suspend certificate in status '{self.status}'.")
+        self.status = 'suspended'
+        self.suspended_at = tz.now()
+        self.suspension_reason = reason
+        self.save(update_fields=['status', 'suspended_at', 'suspension_reason', 'updated_at'])
+
+    def revoke(self, reason: str = ''):
+        """Irrevocably revokes an active or suspended certificate."""
+        from django.utils import timezone as tz
+        if self.status not in ('active', 'suspended'):
+            raise ValueError(f"Cannot revoke certificate in status '{self.status}'.")
+        self.status = 'revoked'
+        self.revoked_at = tz.now()
+        self.revocation_reason = reason
+        self.is_active = False
+        self.save(update_fields=['status', 'revoked_at', 'revocation_reason', 'is_active', 'updated_at'])
+
+
+class CertificateQueryLog(models.Model):
+    """
+    Append-only audit log for every paid lookup of a certificate.
+    Rows must never be updated or deleted.
+    result_snapshot is an immutable record of what counts were shown at query time.
+    """
+    PURPOSE_CHOICES = (
+        ('hiring', 'Employment / Hiring'),
+        ('tenancy', 'Tenancy / Letting'),
+        ('personal', 'Personal Check'),
+        ('other', 'Other'),
+    )
+
+    certificate = models.ForeignKey(
+        VerificationCertificate,
+        on_delete=models.PROTECT,
+        related_name='query_logs'
+    )
+    queried_by = models.ForeignKey(
+        User,
+        on_delete=models.PROTECT,
+        related_name='certificate_queries'
+    )
+    payment = models.ForeignKey(
+        'payments.Transaction',
+        on_delete=models.PROTECT,
+        related_name='certificate_queries'
+    )
+    queried_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    purpose = models.CharField(
+        max_length=20,
+        choices=PURPOSE_CHOICES,
+        default='other',
+        db_index=True
+    )
+    organisation_name = models.CharField(max_length=200, blank=True)
+    result_snapshot = models.JSONField(
+        default=dict,
+        help_text="Immutable snapshot of counts shown at query time — never update this field."
+    )
+
+    class Meta:
+        verbose_name = 'Certificate Query Log'
+        verbose_name_plural = 'Certificate Query Logs'
+        ordering = ['-queried_at']
+
+    def __str__(self):
+        return f"Query of {self.certificate.certificate_id} by {self.queried_by.username} at {self.queried_at}"
+        
 # ─────────────────────────────────────────────────────────────────────────────
 # W-08: Certificate System
 # ─────────────────────────────────────────────────────────────────────────────

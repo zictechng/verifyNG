@@ -295,53 +295,86 @@ def reject_verification_request(
 
 
 
-# ── W-08: Certificate Service Layer ───────────────────────────────────────────
-from verification.models import VerificationCertificate, CertificateQueryLog
-from payments.models import Transaction
-from reports.models import AuditLog
+
+# ─── W-08: Certificate Service Functions ──────────────────────────────────────
+
+from decimal import Decimal
 
 
 def get_certificate_query_price(check_level: str) -> int:
     """
-    Returns query price in kobo.
-    Employment Check: ₦50 (5000 kobo)
-    Enhanced Check:   ₦100 (10000 kobo)
+    Returns price in kobo (smallest Paystack unit).
+    Employment Check: ₦50 = 5000 kobo
+    Enhanced Check:   ₦100 = 10000 kobo
     """
-    return 10000 if check_level == 'enhanced' else 5000
+    prices = {
+        'employment': 5000,
+        'enhanced': 10000,
+    }
+    return prices.get(check_level, 5000)
 
 
-def create_certificate_application(holder, check_level: str, ip_address: str = None):
+def create_certificate_application(
+    holder,
+    check_level: str,
+    ip_address: str = None,
+):
     """
     Creates a VerificationCertificate in 'pending' status.
-    Does not activate — activation requires NIN verification by an officer.
-    Logs the application event.
-    Returns the created certificate.
+    A new SubjectEntity is created for this certificate holder using
+    their full name from the User account.
+    Activation requires an officer to call certificate.activate() separately.
+
+    Returns: VerificationCertificate instance
+    Raises: ValidationError if check_level is invalid or holder already has an active certificate at this level.
     """
+    from verification.models import VerificationCertificate
     from identities.models import SubjectEntity
+    from reports.models import AuditLog
 
-    # Resolve or create the SubjectEntity for this user
-    subject, _ = SubjectEntity.objects.get_or_create(
-        user=holder,
-        defaults={'subject_type': 'individual'}
-    )
+    valid_levels = dict(VerificationCertificate.CHECK_LEVEL_CHOICES)
+    if check_level not in valid_levels:
+        raise ValidationError(f"Invalid check level: {check_level}")
 
-    certificate = VerificationCertificate.objects.create(
-        subject=subject,
+    # Prevent duplicate active or pending certificates at the same level
+    existing = VerificationCertificate.objects.filter(
         holder=holder,
         check_level=check_level,
-        status='pending',
-    )
+        status__in=('pending', 'active', 'suspended'),
+    ).first()
+    if existing:
+        raise ValidationError(
+            f"You already have a {existing.get_check_level_display()} certificate "
+            f"({existing.get_status_display()}: {existing.certificate_id}). "
+            f"It must be revoked before applying again."
+        )
 
-    AuditLog.objects.create(
-        report=None,
-        action='CERTIFICATE_APPLICATION_SUBMITTED',
-        performed_by=holder,
-        ip_address=ip_address,
-        details={
-            'certificate_id': certificate.certificate_id,
-            'check_level': check_level,
-        }
-    )
+    # Build subject name from the user account
+    subject_name = holder.get_full_name().strip() or holder.username
+
+    with transaction.atomic():
+        subject = SubjectEntity.objects.create(
+            name=subject_name,
+            type='person',
+        )
+
+        certificate = VerificationCertificate.objects.create(
+            subject=subject,
+            holder=holder,
+            check_level=check_level,
+            status='pending',
+        )
+
+        AuditLog.objects.create(
+            report=None,
+            action='CERTIFICATE_APPLICATION_SUBMITTED',
+            performed_by=holder,
+            ip_address=ip_address,
+            details={
+                'certificate_id': certificate.certificate_id,
+                'check_level': check_level,
+            }
+        )
 
     return certificate
 
@@ -349,127 +382,103 @@ def create_certificate_application(holder, check_level: str, ip_address: str = N
 def process_certificate_query(
     certificate,
     queried_by,
-    transaction_reference: str,
-    ip_address: str = None,
-    purpose: str = 'other',
+    payment,
+    purpose: str,
     organisation_name: str = '',
+    ip_address: str = None,
 ):
     """
-    Validates payment, builds the result snapshot, and writes an
-    immutable CertificateQueryLog row.
+    Validates payment, builds result_snapshot with published fraud report counts only,
+    writes an append-only CertificateQueryLog row.
 
-    Rules:
-    - Transaction must exist, belong to queried_by, and status == 'success'
-    - One log row is written per successful query — never updated
-    - result_snapshot captures counts at the moment of query
-
-    Returns the CertificateQueryLog instance.
-    Raises ValidationError on any failure.
+    result_snapshot intentionally contains counts only — never report content.
+    Returns: (CertificateQueryLog, result_snapshot dict)
     """
-    from django.core.exceptions import ValidationError
+    from verification.models import CertificateQueryLog
+    from reports.models import FraudReport, AuditLog
 
-    # 1. Validate payment
-    try:
-        transaction = Transaction.objects.get(
-            reference=transaction_reference,
-            user=queried_by,
-            status='success',
-        )
-    except Transaction.DoesNotExist:
-        raise ValidationError(
-            "Payment could not be confirmed. "
-            "Please complete payment before viewing this certificate."
-        )
+    if payment.status != 'success':
+        raise ValidationError("Payment must be confirmed before querying a certificate.")
 
-    # 2. Build immutable result snapshot (counts only — data minimisation)
-    fraud_count = 0
-    misconduct_count = 0
-    try:
-        from reports.models import FraudReport
-        fraud_count = FraudReport.objects.filter(
-            subject=certificate.subject,
-            status='verified'
-        ).count()
-    except Exception:
-        pass
+    # Published fraud reports only — 'state' field, value 'published'
+    # IMPORTANT: FraudReport uses 'state' not 'status', and 'published' not 'verified'
+    published_count = FraudReport.objects.filter(
+        target_subject=certificate.subject,
+        state='published',
+    ).count()
 
-    result_snapshot = {
+    disputed_count = FraudReport.objects.filter(
+        target_subject=certificate.subject,
+        state='disputed',
+    ).count()
+
+    snapshot = {
         'certificate_id': certificate.certificate_id,
-        'certificate_status': certificate.status,
         'check_level': certificate.check_level,
+        'certificate_status': certificate.status,
         'is_valid': certificate.is_valid,
-        'fraud_report_count': fraud_count,
-        'misconduct_report_count': misconduct_count,
-        'queried_at': tz.now().isoformat(),
+        'issued_at': certificate.issued_at.isoformat() if certificate.issued_at else None,
+        'expires_at': certificate.expires_at.isoformat() if certificate.expires_at else None,
+        'published_fraud_reports': published_count,
+        'disputed_reports': disputed_count,
+        'subject_name': certificate.subject.name,
+        'queried_at': timezone.now().isoformat(),
     }
 
-    # 3. Write the immutable log row
-    query_log = CertificateQueryLog.objects.create(
-        certificate=certificate,
-        queried_by=queried_by,
-        payment=transaction,
-        ip_address=ip_address,
-        purpose=purpose,
-        organisation_name=organisation_name,
-        result_snapshot=result_snapshot,
-    )
+    with transaction.atomic():
+        log = CertificateQueryLog.objects.create(
+            certificate=certificate,
+            queried_by=queried_by,
+            payment=payment,
+            ip_address=ip_address,
+            purpose=purpose,
+            organisation_name=organisation_name,
+            result_snapshot=snapshot,
+        )
 
-    return query_log
+        AuditLog.objects.create(
+            report=None,
+            action='CERTIFICATE_QUERIED',
+            performed_by=queried_by,
+            ip_address=ip_address,
+            details={
+                'certificate_id': certificate.certificate_id,
+                'purpose': purpose,
+                'organisation': organisation_name,
+            }
+        )
+
+    return log, snapshot
 
 
 def get_certificate_pdf_url(certificate) -> str:
     """
-    Returns a time-limited signed Cloudinary URL for the certificate PDF.
-    Reuses the existing CloudinaryEvidenceStorage service layer.
-    
-    Returns empty string if no PDF has been generated yet.
+    Returns a signed Cloudinary URL for the certificate PDF.
+    Uses the shared storage service — no boto3, no S3.
+    Returns empty string if no PDF has been uploaded yet.
     """
+    from reports.storage_services import get_storage_service
     if not certificate.pdf_file:
         return ''
+    return get_storage_service().generate_signed_url(certificate.pdf_file)
 
-    from reports.storage_services import get_storage_service, StorageError
-
-    try:
-        storage = get_storage_service()
-        return storage.generate_signed_url(
-            public_id=certificate.pdf_file,
-            format='pdf',
-            resource_type='raw',      # PDFs are raw in Cloudinary
-            expires_in_seconds=300,   # 5 minutes
-        )
-    except StorageError:
-        logger.error(
-            "Failed to generate signed URL for certificate %s",
-            certificate.certificate_id
-        )
-        return ''
 
 def upload_certificate_pdf(certificate, pdf_file_obj) -> str:
     """
-    Uploads a generated certificate PDF to Cloudinary.
-    Stores the returned public_id on the certificate record.
-    
-    Args:
-        certificate: VerificationCertificate instance
-        pdf_file_obj: file-like object of the generated PDF
-        
-    Returns:
-        public_id string from Cloudinary
+    Uploads a PDF file object to Cloudinary under the 'certificates' folder prefix.
+    Stores the returned public_id in certificate.pdf_file and saves.
+    Returns the public_id string.
     """
-    from reports.storage_services import get_storage_service, StorageError
-
+    from reports.storage_services import get_storage_service
     storage = get_storage_service()
     result = storage.upload_evidence(
         file_obj=pdf_file_obj,
-        folder_prefix='certificates'    # separate folder from evidence/
+        folder_prefix='certificates',
+        resource_type='raw',
     )
-    public_id = result['public_id']
-
+    public_id = result.get('public_id', '')
     certificate.pdf_file = public_id
     certificate.save(update_fields=['pdf_file', 'updated_at'])
-
     return public_id
-
-
 
 

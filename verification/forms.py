@@ -140,3 +140,20 @@ class CertificateApplyForm(forms.Form):
 
 
 
+# ─── W-08: Certificate System ─────────────────────────────────────────────────
+
+class CertificateApplyForm(forms.Form):
+    CHECK_LEVEL_CHOICES = (
+        ('employment', 'Employment Check — for general work and tenancy'),
+        ('enhanced', 'Enhanced Check — for security, healthcare, and senior roles'),
+    )
+    check_level = forms.ChoiceField(
+        choices=CHECK_LEVEL_CHOICES,
+        required=True,
+        widget=forms.RadioSelect(attrs={'class': 'form-check-input'}),
+        label='Certificate Level',
+        help_text='Select the level of check appropriate for your circumstances.'
+    )
+
+
+
