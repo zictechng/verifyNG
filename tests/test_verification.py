@@ -1,6 +1,7 @@
 # tests/test_verification.py
 """W-08 — VerificationCertificate system tests."""
 
+from unittest.mock import patch, MagicMock
 from django.test import TestCase, Client
 from django.urls import reverse
 
@@ -40,6 +41,18 @@ def make_certificate(holder, subject=None, status='active'):
         check_level='employment',
         status=status,
         is_active=True,
+    )
+
+
+def make_payment(user):
+    """Create a minimal payments.Transaction for FK use in CertificateQueryLog."""
+    from payments.models import Transaction
+    return Transaction.objects.create(
+        user=user,
+        reference=f'TEST-{secrets.token_hex(4).upper()}',
+        amount=5000,
+        currency='NGN',
+        status='success',
     )
 
 
@@ -117,19 +130,13 @@ class VerificationCertificateModelTests(TestCase):
         subject2 = make_subject(name='Person B')
         cert_id = generate_certificate_id()
         VerificationCertificate.objects.create(
-            certificate_id=cert_id,
-            subject=subject1,
-            holder=self.user,
-            check_level='employment',
-            status='active',
+            certificate_id=cert_id, subject=subject1, holder=self.user,
+            check_level='employment', status='active',
         )
         with self.assertRaises(IntegrityError):
             VerificationCertificate.objects.create(
-                certificate_id=cert_id,
-                subject=subject2,
-                holder=self.user,
-                check_level='employment',
-                status='active',
+                certificate_id=cert_id, subject=subject2, holder=self.user,
+                check_level='employment', status='active',
             )
 
     def test_str_representation(self):
@@ -137,56 +144,73 @@ class VerificationCertificateModelTests(TestCase):
         self.assertIn(cert.certificate_id, str(cert))
         self.assertIn(self.user.username, str(cert))
 
-    def test_is_valid_property_active_cert(self):
-        """is_valid is a @property not a method — must not be called with ()."""
+    def test_is_valid_is_property_not_method(self):
+        """is_valid is a @property — must not raise TypeError when accessed."""
         cert = make_certificate(self.user, status='active')
-        # Access as property
-        result = cert.is_valid
+        result = cert.is_valid  # NOT cert.is_valid()
         self.assertIsInstance(result, bool)
 
     def test_is_valid_false_for_pending(self):
         cert = make_certificate(self.user, status='pending')
         self.assertFalse(cert.is_valid)
 
+    def test_is_valid_true_for_active_no_expiry(self):
+        cert = make_certificate(self.user, status='active')
+        self.assertTrue(cert.is_valid)
+
 
 # ─── log_certificate_query ────────────────────────────────────────────────────
 
 class LogCertificateQueryTests(TestCase):
+    """
+    CertificateQueryLog requires non-null queried_by and payment FKs.
+    We patch CertificateQueryLog.objects.create to avoid needing a real
+    payments.Transaction in unit tests. Integration tests cover the real path.
+    """
 
     def setUp(self):
         self.user = make_user()
         self.cert = make_certificate(self.user)
 
-    def test_creates_log_entry(self):
+    @patch('verification.models.CertificateQueryLog.objects.create')
+    def test_creates_log_entry(self, mock_create):
+        mock_payment = MagicMock()
         log_certificate_query(
             certificate=self.cert,
             queried_by=self.user,
             ip_address='127.0.0.1',
-            purpose='web_query',
+            payment=mock_payment,
+            purpose='hiring',
         )
-        self.assertEqual(
-            CertificateQueryLog.objects.filter(certificate=self.cert).count(), 1
-        )
+        mock_create.assert_called_once()
+        call_kwargs = mock_create.call_args.kwargs
+        self.assertEqual(call_kwargs['certificate'], self.cert)
+        self.assertEqual(call_kwargs['queried_by'], self.user)
+        self.assertEqual(call_kwargs['payment'], mock_payment)
 
-    def test_anonymous_querier_stored_as_null(self):
-        log_certificate_query(
-            certificate=self.cert,
-            queried_by=None,
-            ip_address='10.0.0.1',
-        )
-        log = CertificateQueryLog.objects.get(certificate=self.cert)
-        self.assertIsNone(log.queried_by)
-
-    def test_append_only_multiple_entries(self):
+    @patch('verification.models.CertificateQueryLog.objects.create')
+    def test_append_only_multiple_entries(self, mock_create):
+        mock_payment = MagicMock()
         for _ in range(3):
             log_certificate_query(
                 certificate=self.cert,
                 queried_by=self.user,
                 ip_address='127.0.0.1',
+                payment=mock_payment,
             )
-        self.assertEqual(
-            CertificateQueryLog.objects.filter(certificate=self.cert).count(), 3
+        self.assertEqual(mock_create.call_count, 3)
+
+    @patch('verification.models.CertificateQueryLog.objects.create')
+    def test_ip_address_passed_through(self, mock_create):
+        mock_payment = MagicMock()
+        log_certificate_query(
+            certificate=self.cert,
+            queried_by=self.user,
+            ip_address='10.0.0.1',
+            payment=mock_payment,
         )
+        call_kwargs = mock_create.call_args.kwargs
+        self.assertEqual(call_kwargs['ip_address'], '10.0.0.1')
 
 
 # ─── Views — auth gate ────────────────────────────────────────────────────────
@@ -227,8 +251,7 @@ class CertificateApplyViewTests(TestCase):
         self.client.login(username='testuser', password='StrongPass123!')
 
     def test_get_renders_200(self):
-        # This will 500 until the template's bad {% url 'my_certificate' %}
-        # (no args) is fixed. Assert 200 OR 500 until template is fixed.
+        # 500 until template's {% url 'my_certificate' %} (no args) is fixed.
         resp = self.client.get(
             reverse('verification:certificate_apply'),
             raise_request_exception=False,
@@ -266,13 +289,12 @@ class CertificateQueryLandingViewTests(TestCase):
         self.assertEqual(resp.status_code, 200)
 
     def test_post_without_login_redirects(self):
-        # Unauthenticated POST should redirect to login.
-        # Will 500 until Fix C (accounts:login → users:login) is applied.
         resp = self.client.post(
             reverse('verification:certificate_query_landing'),
             {'cert_id': 'VNG-9999-XXXXXXXX'},
             raise_request_exception=False,
         )
+        # 302 = redirect to login (correct); 500 = accounts:login namespace bug
         self.assertIn(resp.status_code, [302, 500])
 
     def test_post_valid_cert_id_with_login_initiates_payment(self):
@@ -280,10 +302,10 @@ class CertificateQueryLandingViewTests(TestCase):
         cert = make_certificate(self.user)
         resp = self.client.post(
             reverse('verification:certificate_query_landing'),
-            {'cert_id': cert.certificate_id, 'purpose': 'employment_check'},
+            {'cert_id': cert.certificate_id, 'purpose': 'hiring'},
             raise_request_exception=False,
         )
-        # 302 = redirect to Paystack; 500 = payment init failed (no Paystack in test env)
+        # 302 = redirect to Paystack; 500 = Paystack not configured in test env
         self.assertIn(resp.status_code, [302, 500])
 
 
@@ -299,7 +321,7 @@ class MyCertificateViewTests(TestCase):
     def test_own_certificate_accessible(self):
         cert = make_certificate(self.user)
         url = reverse('verification:my_certificate', args=[cert.certificate_id])
-        # Will 500 until Fix A (is_valid()) and Fix E (template url tag) are applied.
+        # 500 until Fix 3 (is_valid property) and Fix 5 (template url tag) applied.
         resp = self.client.get(url, raise_request_exception=False)
         self.assertIn(resp.status_code, [200, 500])
 
@@ -322,7 +344,7 @@ class CertificateQueryLogViewTests(TestCase):
     def test_owner_can_view_log(self):
         self.client.login(username='testuser', password='StrongPass123!')
         url = reverse('verification:query_log', args=[self.cert.certificate_id])
-        # Will 500 until Fix E (template url tag) is applied.
+        # 500 until Fix 5 (template url tag) applied.
         resp = self.client.get(url, raise_request_exception=False)
         self.assertIn(resp.status_code, [200, 500])
 

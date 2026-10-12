@@ -646,9 +646,6 @@ def issue_verification_certificate(
             continue
 
 
-    return tx
-
-
 def log_certificate_query(
     certificate,
     queried_by,
@@ -656,13 +653,22 @@ def log_certificate_query(
     payment=None,
     purpose: str = '',
 ) -> None:
+    """
+    Appends an immutable CertificateQueryLog entry.
+    Called ONLY after payment verification succeeds.
+    Never updates or deletes existing rows — append-only audit trail.
+
+    queried_by and payment are both required FK fields with no null=True on
+    the model — caller must supply authenticated user and confirmed Transaction.
+    """
     from verification.models import CertificateQueryLog
+
     CertificateQueryLog.objects.create(
         certificate=certificate,
-        queried_by=queried_by if (queried_by and queried_by.is_authenticated) else None,
-        ip_address=ip_address or None,
-        purpose=purpose[:100] if purpose else '',
+        queried_by=queried_by,
         payment=payment,
+        ip_address=ip_address or None,
+        purpose=purpose if purpose else 'other',
     )
 
 

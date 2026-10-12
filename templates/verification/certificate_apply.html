@@ -8,7 +8,7 @@
 <div class="container py-4 py-md-5">
 
     <div class="mb-4">
-        <a href="{% url 'verification:my_certificate' %}" class="text-decoration-none small text-muted">&larr; My Certificates</a>
+        <a href="{% url 'verification:certificate_apply' %}" class="text-decoration-none small text-muted">&larr; Apply for Certificate</a>
         <h1 class="h3 fw-bold mt-1 mb-0">Apply for a Verification Certificate</h1>
         <p class="small text-muted mb-0">Issue a portable VerifyNG certificate from a completed verification request.</p>
     </div>
@@ -54,7 +54,7 @@
 
                     <div class="d-flex gap-2 mt-4">
                         <button type="submit" class="btn btn-vng-primary">Issue Certificate</button>
-                        <a href="{% url 'verification:my_certificate' %}" class="btn btn-vng-outline">Cancel</a>
+                        <a href="{% url 'verification:certificate_apply' %}" class="btn btn-vng-outline">Cancel</a>
                     </div>
                 </form>
             </div>
