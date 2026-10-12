@@ -108,7 +108,9 @@
                         <form method="post"
                               action="{% url 'reports:upload_subject_photo' report.reference_number %}"
                               enctype="multipart/form-data"
-                              id="subjectPhotoForm">
+                              id="subjectPhotoForm"
+                              class="flex-shrink-0"
+                              style="width:88px;">
                             {% csrf_token %}
                             <input type="file"
                                    name="subject_photo"
@@ -117,8 +119,8 @@
                                    class="d-none"
                                    onchange="document.getElementById('subjectPhotoForm').submit();">
                             <label for="subjectPhotoInput"
-                                   class="d-block flex-shrink-0 rounded-3 overflow-hidden position-relative"
-                                   style="width:88px;height:88px;cursor:pointer;"
+                                   class="d-block rounded-3 overflow-hidden position-relative"
+                                   style="width:100px;height:100px;cursor:pointer;"
                                    title="Click to upload subject photo">
                                 {% if report.target_subject.photo %}
                                 <img src="{{ report.target_subject.photo.url }}"
@@ -144,7 +146,7 @@
                                     </svg>
                                 </div>
                             </label>
-                            <p class="mt-1 mb-0 text-center" style="font-size:10px;color:#94A3B8;line-height:1.3;">
+                            <p class="mt-1 mb-0 text-center" style="font-size:12px;color:#94A3B8;line-height:1.3;">
                                 {% if report.target_subject.photo %}
                                 Click photo to replace the alleged Person photo
                                 {% else %}
