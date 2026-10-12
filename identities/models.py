@@ -9,6 +9,14 @@ class SubjectEntity(models.Model):
     )
     type = models.CharField(max_length=20, choices=ENTITY_TYPES, default='person')
     name = models.CharField(max_length=255, db_index=True)
+    type = models.CharField(max_length=20, choices=ENTITY_TYPES, default='person')
+    name = models.CharField(max_length=255, db_index=True)
+    photo = models.ImageField(
+        upload_to='subjects/photos/',
+        null=True,
+        blank=True,
+        help_text="Optional photo of the subject. Displayed on report detail page.",
+    )
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
