@@ -13,12 +13,11 @@ from identities.utils import hash_identifier_value
 from identities.services import lookup_public_record
 from core.rate_limiting import check_rate_limit, get_client_ip
 from reports.services import create_fraud_report
-from verification.services import create_verification_request
 from reports.storage_services import StorageError
 
 logger = logging.getLogger(__name__)
 
-api = NinjaAPI()
+api = NinjaAPI(urls_namespace='verifyng_api')
 
 class CheckResponse(Schema):
     # Preserved existing fields (backward compatibility with Phase 6 test suite)
