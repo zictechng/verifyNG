@@ -173,10 +173,27 @@ class CustomPasswordChangeView(LoginRequiredMixin, PasswordChangeView):
     """
     Allows an authenticated user to change their own password from inside the portal.
     Sends a branded security notification email via Celery on success.
+    Also passes email notification preferences so they render on the same page.
     """
     template_name = 'users/password_change_form.html'
     form_class = CustomPasswordChangeForm
     success_url = reverse_lazy('users:password_change_done')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        from notifications.models import NotificationPreference
+        context['prefs'] = NotificationPreference.for_user(self.request.user)
+        context['prefs_fields'] = [
+            ('email_report_submitted', 'Fraud report received'),
+            ('email_report_published', 'Report published'),
+            ('email_report_rejected', 'Report rejected'),
+            ('email_dispute_opened', 'Dispute filed on my report'),
+            ('email_dispute_resolved', 'Dispute resolved'),
+            ('email_verification_completed', 'Verification completed'),
+            ('email_verification_rejected', 'Verification rejected'),
+            ('email_broadcast', 'Platform announcements'),
+        ]
+        return context
 
     def form_valid(self, form):
         response = super().form_valid(form)
@@ -198,6 +215,21 @@ class CustomPasswordChangeView(LoginRequiredMixin, PasswordChangeView):
                 "Failed to send password-change confirmation email to user %s", user.pk
             )
         return response
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        from notifications.models import NotificationPreference
+        prefs, _ = NotificationPreference.objects.get_or_create(user=self.request.user)
+        context['prefs'] = prefs
+        context['prefs_fields'] = [
+            ('email_on_report_submitted', 'Report submitted'),
+            ('email_on_report_published', 'Report published'),
+            ('email_on_report_rejected', 'Report rejected'),
+            ('email_on_dispute_opened', 'Dispute opened'),
+            ('email_on_dispute_resolved', 'Dispute resolved'),
+            ('email_on_verification_completed', 'Verification completed'),
+        ]
+        return context
 
 
 class UserProfileUpdateView(LoginRequiredMixin, View):

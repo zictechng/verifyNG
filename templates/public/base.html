@@ -298,7 +298,7 @@
     
     {% block extra_head %}{% endblock %}
 </head>
-<body class="{% block body_class %}{% if request.resolver_match.url_name != 'login' and request.resolver_match.url_name != 'register' and request.resolver_match.url_name != 'create' and request.resolver_match.url_name != 'password_reset' %}has-bottom-nav{% endif %}{% endblock %}">
+<body class="{% block body_class %}{% if request.resolver_match.url_name != 'login' and request.resolver_match.url_name != 'register' and request.resolver_match.url_name != 'password_reset' %}has-bottom-nav{% endif %}{% endblock %}">
 
     <!-- Top Navigation Header -->
     <header>

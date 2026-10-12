@@ -7,6 +7,8 @@ from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 
+from django.contrib import messages
+
 from notifications.models import Notification, NotificationPreference
 
 logger = logging.getLogger(__name__)
@@ -74,7 +76,7 @@ def mark_all_read(request):
 
 @login_required
 def update_preferences(request):
-    """Save notification email preferences form."""
+    """Save notification email preferences form. Redirects back to origin page."""
     if request.method != 'POST':
         return HttpResponseRedirect(reverse('notifications:list'))
 
@@ -88,5 +90,13 @@ def update_preferences(request):
         setattr(prefs, field, field in request.POST)
     prefs.save()
 
+    messages.success(request, 'Email notification preferences saved.')
+
+    # Return to whichever page submitted the form (Settings or Notifications)
+    referer = request.META.get('HTTP_REFERER', '')
+    from django.urls import reverse as url_reverse
+    settings_url = url_reverse('users:password_change')
+    if settings_url in referer:
+        return HttpResponseRedirect(settings_url)
     return HttpResponseRedirect(reverse('notifications:list'))
 
