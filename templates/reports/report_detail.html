@@ -91,7 +91,7 @@
             {# Subject + context card #}
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-body p-4">
-                                        <div class="d-flex align-items-center gap-2 mb-3">
+                    <div class="d-flex align-items-center gap-2 mb-3">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-muted">
                             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
                         </svg>
@@ -109,8 +109,7 @@
                               action="{% url 'reports:upload_subject_photo' report.reference_number %}"
                               enctype="multipart/form-data"
                               id="subjectPhotoForm"
-                              class="flex-shrink-0"
-                              style="width:88px;">
+                              class="flex-shrink-0">
                             {% csrf_token %}
                             <input type="file"
                                    name="subject_photo"
@@ -119,7 +118,7 @@
                                    class="d-none"
                                    onchange="document.getElementById('subjectPhotoForm').submit();">
                             <label for="subjectPhotoInput"
-                                   class="d-block rounded-3 overflow-hidden position-relative"
+                                   class="d-block rounded-3 overflow-hidden position-relative mb-0"
                                    style="width:100px;height:100px;cursor:pointer;"
                                    title="Click to upload subject photo">
                                 {% if report.target_subject.photo %}
@@ -146,14 +145,6 @@
                                     </svg>
                                 </div>
                             </label>
-                            <p class="mt-1 mb-0 text-center" style="font-size:12px;color:#94A3B8;line-height:1.3;">
-                                {% if report.target_subject.photo %}
-                                Click photo to replace the alleged Person photo
-                                {% else %}
-                                Click to add the alleged Person photo
-                                {% endif %}
-                                <br>JPEG · PNG · WebP · max 5 MB
-                            </p>
                         </form>
                         {% else %}
                         {# Read-only: show photo or neutral placeholder #}
@@ -172,7 +163,14 @@
                             </div>
                             {% endif %}
                         </div>
+                        
                         {% endif %}
+                        {% if request.user == report.reporter and report.state == 'submitted' or request.user == report.reporter and report.state == 'under_review' %}
+                    <p class="mt-2 mb-0 text-muted" style="font-size:11px;">
+                        {% if report.target_subject.photo %}Click the photo to replace it.{% else %}Click the photo area to upload a photo of the subject.{% endif %}
+                        Accepted: JPEG, PNG, WebP — max 5 MB.
+                    </p>
+                    {% endif %}
                     </div>
 
                     {% if suspect_context.bank_name or suspect_context.location or suspect_context.state or suspect_context.city %}
