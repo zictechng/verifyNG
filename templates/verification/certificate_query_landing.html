@@ -1,0 +1,61 @@
+
+{% extends 'public/base.html' %}
+{% load static %}
+
+{% block title %}Verify a Certificate | {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-md-5">
+
+    <div class="mb-4">
+        <a href="{% url 'dashboard:index' %}" class="text-decoration-none small text-muted">&larr; Back to Member Portal</a>
+        <h1 class="h3 fw-bold mt-1 mb-0">Verify a VerifyNG Certificate</h1>
+        <p class="small text-muted mb-0">Enter a certificate ID to check its authenticity and current status.</p>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show mb-3" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="vng-card p-4">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="certificate_id" class="form-label fw-semibold small">
+                            Certificate ID <span class="text-danger">*</span>
+                        </label>
+                        <input
+                            type="text"
+                            id="certificate_id"
+                            name="certificate_id"
+                            class="form-control font-monospace"
+                            placeholder="e.g. VNG-2026-A7F2B9C1"
+                            required
+                            autocomplete="off"
+                        >
+                        <div class="form-text text-muted">The certificate ID is printed on the VerifyNG certificate document.</div>
+                    </div>
+                    <button type="submit" class="btn btn-vng-primary w-100">Search Certificate</button>
+                </form>
+            </div>
+
+            <div class="vng-card p-4 mt-3">
+                <h2 class="h6 fw-semibold mb-2">What is a VerifyNG Certificate?</h2>
+                <p class="small text-muted mb-0">
+                    A VerifyNG Verification Certificate is issued to individuals who have completed an identity or background verification.
+                    It is not a government-issued document. Always verify the certificate ID on this page before making employment or tenancy decisions.
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+

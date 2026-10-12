@@ -1,0 +1,84 @@
+
+{% extends 'public/base.html' %}
+{% load static %}
+
+{% block title %}Certificate Result | {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-md-5">
+
+    <div class="mb-4">
+        <a href="{% url 'verification:certificate_query_landing' %}" class="text-decoration-none small text-muted">&larr; Search Another Certificate</a>
+        <h1 class="h3 fw-bold mt-1 mb-0">Certificate Verification Result</h1>
+        <p class="small text-muted mb-0">This query has been logged for audit purposes.</p>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+
+            <!-- Status banner -->
+            <div class="vng-card p-4 mb-4">
+                <div class="d-flex align-items-center gap-3">
+                    {% if certificate.is_active %}
+                        <div class="rounded-circle bg-success d-flex align-items-center justify-content-center flex-shrink-0" style="width:48px;height:48px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="white" viewBox="0 0 16 16">
+                                <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="fw-bold text-success">Certificate Active</div>
+                            <div class="small text-muted">This certificate is valid and currently active in the VerifyNG system.</div>
+                        </div>
+                    {% else %}
+                        <div class="rounded-circle bg-danger d-flex align-items-center justify-content-center flex-shrink-0" style="width:48px;height:48px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="white" viewBox="0 0 16 16">
+                                <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="fw-bold text-danger">Certificate Inactive</div>
+                            <div class="small text-muted">This certificate is no longer active. Do not rely on it for verification purposes.</div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Certificate details -->
+            <div class="vng-card p-4">
+                <h2 class="h6 fw-semibold mb-3 text-uppercase text-muted" style="letter-spacing:.05em;">Certificate Details</h2>
+                <dl class="row mb-0">
+                    <dt class="col-sm-4 small text-muted fw-normal">Certificate ID</dt>
+                    <dd class="col-sm-8 font-monospace fw-semibold small">{{ certificate.certificate_id }}</dd>
+
+                    <dt class="col-sm-4 small text-muted fw-normal">Issued To</dt>
+                    <dd class="col-sm-8 small">{{ certificate.issued_to_name }}</dd>
+
+                    <dt class="col-sm-4 small text-muted fw-normal">Certificate Type</dt>
+                    <dd class="col-sm-8 small">{{ certificate.get_certificate_type_display }}</dd>
+
+                    <dt class="col-sm-4 small text-muted fw-normal">Outcome Summary</dt>
+                    <dd class="col-sm-8 small">{{ certificate.outcome_summary }}</dd>
+
+                    <dt class="col-sm-4 small text-muted fw-normal">Date Issued</dt>
+                    <dd class="col-sm-8 small">{{ certificate.created_at|date:"j F Y" }}</dd>
+
+                    <dt class="col-sm-4 small text-muted fw-normal">Issued By</dt>
+                    <dd class="col-sm-8 small">VerifyNG Trust &amp; Safety Platform</dd>
+                </dl>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="vng-card p-4 border-warning">
+                <h2 class="h6 fw-semibold mb-2 text-warning">Important Notice</h2>
+                <p class="small text-muted mb-0">
+                    This is a <strong>VerifyNG Verification Certificate</strong> and is not a government-issued document.
+                    It reflects information verified at the time of issue and may not reflect subsequent changes.
+                    Always use this result alongside your own due diligence.
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
