@@ -499,7 +499,7 @@ class CertificateQueryResultView(LoginRequiredMixin, View):
             return redirect('verification:certificate_query_landing')
 
         certificate = get_object_or_404(
-            VerificationCertificate.objects.select_related('holder_subject', 'verification_request'),
+            VerificationCertificate.objects.select_related('subject', 'holder'),
             certificate_id=cert_id,
             is_active=True
         )
@@ -509,7 +509,7 @@ class CertificateQueryResultView(LoginRequiredMixin, View):
             certificate=certificate,
             queried_by=request.user,
             ip_address=ip_addr,
-            transaction_reference=tx_ref,
+            payment=tx,
             purpose=purpose,
         )
 
@@ -522,13 +522,13 @@ class CertificateQueryResultView(LoginRequiredMixin, View):
                 "certificate_id": cert_id,
                 "transaction_reference": tx_ref,
                 "purpose": purpose,
-                "is_valid": certificate.is_valid(),
+                "is_valid": certificate.is_valid,
             }
         )
 
         return render(request, self.template_name, {
             'certificate': certificate,
-            'is_valid': certificate.is_valid(),
+            'is_valid': certificate.is_valid,
             'query_purpose': purpose,
         })
 
