@@ -1,6 +1,17 @@
 
 {% load static %}
-<div class="col-lg-3 col-md-4 mb-4 mb-md-0">
+<!-- Mobile: horizontal pill tabs (visible only on small screens) -->
+<div class="col-12 d-md-none mb-3">
+    <div class="d-flex gap-2 overflow-auto pb-1" style="scrollbar-width:none;">
+        <a href="{% url 'users:profile' %}" class="btn btn-vng-sm {% if active_section == 'profile' %}btn-vng-primary{% else %}btn-vng-outline{% endif %} flex-shrink-0">Profile</a>
+        <a href="{% url 'users:password_change' %}" class="btn btn-vng-sm {% if active_section == 'settings' %}btn-vng-primary{% else %}btn-vng-outline{% endif %} flex-shrink-0">Settings</a>
+        <a href="{% url 'notifications:list' %}" class="btn btn-vng-sm {% if active_section == 'notifications' %}btn-vng-primary{% else %}btn-vng-outline{% endif %} flex-shrink-0">Notifications</a>
+        <a href="{% url 'users:delete_account' %}" class="btn btn-vng-sm {% if active_section == 'delete' %}btn-vng-outline{% else %}btn-vng-outline{% endif %} flex-shrink-0" style="color:#DC2626;border-color:#DC2626;">Delete</a>
+    </div>
+</div>
+
+<!-- Desktop: vertical sidebar (hidden on mobile) -->
+<div class="col-lg-3 col-md-4 mb-4 mb-md-0 d-none d-md-block">
     <div class="vng-card p-3">
         <div class="d-flex align-items-center gap-3 p-2 mb-3 border-bottom pb-3">
             <div class="vng-avatar-circle flex-shrink-0" style="width:44px;height:44px;font-size:18px;">

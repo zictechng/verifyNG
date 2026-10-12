@@ -507,7 +507,7 @@
 
         <!-- Tab 5: Account -->
         {% if user.is_authenticated %}
-            <a href="{% url 'dashboard:index' %}" class="vng-bottom-tab {% if request.resolver_match.app_name == 'dashboard' or request.resolver_match.url_name == 'profile' %}active{% endif %}">
+            <a href="{% url 'users:profile' %}" class="vng-bottom-tab {% if request.resolver_match.app_name == 'dashboard' or request.resolver_match.url_name == 'profile' %}active{% endif %}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
                     <circle cx="12" cy="7" r="4"/>
