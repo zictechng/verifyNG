@@ -191,6 +191,22 @@ DEFAULT_FROM_EMAIL = env('MAILTRAP_FROM_EMAIL', default='noreply@verifyng.com')
 PAYSTACK_SECRET_KEY = env('PAYSTACK_SECRET_KEY', default='')
 PAYSTACK_PUBLIC_KEY = env('PAYSTACK_PUBLIC_KEY', default='')
 
+# ==============================================================================
+# WhatsApp Business API (Meta Cloud API)
+# ==============================================================================
+WHATSAPP_VERIFY_TOKEN = env('WHATSAPP_VERIFY_TOKEN', default='')
+WHATSAPP_API_TOKEN = env('WHATSAPP_API_TOKEN', default='')
+WHATSAPP_PHONE_NUMBER_ID = env('WHATSAPP_PHONE_NUMBER_ID', default='')
+WHATSAPP_APP_SECRET = env('WHATSAPP_APP_SECRET', default='')
+WHATSAPP_API_VERSION = env('WHATSAPP_API_VERSION', default='v19.0')
+
+# ==============================================================================
+# Africa's Talking SMS
+# ==============================================================================
+AFRICASTALKING_USERNAME = env('AFRICASTALKING_USERNAME', default='')
+AFRICASTALKING_API_KEY = env('AFRICASTALKING_API_KEY', default='')
+AFRICASTALKING_SENDER_ID = env('AFRICASTALKING_SENDER_ID', default='')
+
 # Full base URL used to build Paystack callback URLs.
 # Override in production: SITE_BASE_URL=https://verifyng.com
 SITE_BASE_URL = env('SITE_BASE_URL', default='http://localhost:8000')

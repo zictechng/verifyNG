@@ -19,6 +19,10 @@ logger = logging.getLogger(__name__)
 
 api = NinjaAPI(urls_namespace='verifyng_api')
 
+# WhatsApp Business API webhook router
+from api.webhooks import router as whatsapp_router
+api.add_router("/webhooks/", whatsapp_router)
+
 class CheckResponse(Schema):
     # Preserved existing fields (backward compatibility with Phase 6 test suite)
     subject_name: str
