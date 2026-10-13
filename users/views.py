@@ -39,8 +39,7 @@ logger = logging.getLogger(__name__)
 
 class RegisterView(CreateView):
     """
-    Public registration view. Uses CustomUserCreationForm to register individual users.
-    Sends a branded welcome email via Celery on successful registration.
+    Public registration view. Sends a branded welcome email via Celery on success.
     """
     form_class = CustomUserCreationForm
     template_name = 'users/register.html'
@@ -49,17 +48,14 @@ class RegisterView(CreateView):
     def form_valid(self, form):
         response = super().form_valid(form)
         user = self.object
-
-        # Send welcome email via Celery
         try:
             html_body, text_body = render_email('generic_notification', {
                 'user_name': user.get_full_name() or user.username,
-                'heading': 'Welcome to VerifyNG! 🎉',
+                'heading': 'Welcome to VerifyNG!',
                 'body_html': (
                     f'<p>Hi <strong>{user.get_full_name() or user.username}</strong>,</p>'
                     f'<p>Your VerifyNG account has been created successfully. '
-                    f'You can now sign in and start using the platform to check, '
-                    f'report, and verify.</p>'
+                    f'You can now sign in and start using the platform.</p>'
                     f'<p>Your username is: <strong>{user.username}</strong></p>'
                     f'<p>If you did not create this account, please contact us immediately.</p>'
                 ),
@@ -76,10 +72,9 @@ class RegisterView(CreateView):
 
         messages.success(
             self.request,
-            f'Account created successfully! Welcome, {user.get_full_name() or user.username}. Please sign in.'
+            f'Account created! Welcome, {user.get_full_name() or user.username}. Please sign in.'
         )
         return response
-
 
 class UserLoginView(LoginView):
     """
