@@ -395,6 +395,10 @@ class MyCertificateView(LoginRequiredMixin, DetailView):
         ctx = super().get_context_data(**kwargs)
         ctx['pdf_url'] = get_certificate_pdf_url(self.object)
         ctx['is_valid'] = self.object.is_valid
+        ctx['is_officer'] = (
+            is_verification_officer(self.request.user)
+            or self.request.user.is_superuser
+        )
         return ctx
 
 
