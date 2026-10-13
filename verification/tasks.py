@@ -1,11 +1,35 @@
-
 # verification/tasks.py
 import io
+import base64
 import logging
 
 from celery import shared_task
 
 logger = logging.getLogger(__name__)
+
+
+def _generate_qr_base64(url: str) -> str:
+    """
+    Returns a base64-encoded PNG of a QR code pointing to `url`.
+    Suitable for embedding directly in an HTML <img src="data:..."> tag.
+    """
+    import qrcode
+    from PIL import Image
+
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_M,
+        box_size=6,
+        border=2,
+    )
+    qr.add_data(url)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color='#006D5B', back_color='white')
+
+    buffer = io.BytesIO()
+    img.save(buffer, format='PNG')
+    buffer.seek(0)
+    return base64.b64encode(buffer.read()).decode('utf-8')
 
 
 @shared_task(bind=True, name='verification.tasks.generate_certificate_pdf', max_retries=3, default_retry_delay=60)
@@ -18,7 +42,7 @@ def generate_certificate_pdf(self, certificate_id: str):
     try:
         from django.template.loader import render_to_string
         from django.conf import settings
-        from weasyprint import HTML, CSS
+        from weasyprint import HTML
         from verification.models import VerificationCertificate
         from verification.services import upload_certificate_pdf
 
@@ -26,14 +50,18 @@ def generate_certificate_pdf(self, certificate_id: str):
             'subject', 'holder'
         ).get(certificate_id=certificate_id)
 
-        # Build absolute base URL for WeasyPrint to resolve static assets
         base_url = getattr(settings, 'SITE_BASE_URL', 'http://localhost:8000')
+        verification_url = f"{base_url}/verification/certificate/{certificate_id}/"
+
+        qr_base64 = _generate_qr_base64(verification_url)
 
         html_string = render_to_string(
             'verification/certificate_pdf.html',
             {
                 'certificate': certificate,
                 'base_url': base_url,
+                'verification_url': verification_url,
+                'qr_base64': qr_base64,
             }
         )
 
@@ -61,5 +89,3 @@ def generate_certificate_pdf(self, certificate_id: str):
         )
         raise self.retry(exc=exc)
 
-
-    

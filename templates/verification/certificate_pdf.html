@@ -219,16 +219,35 @@
     </div>
 
     <!-- Issuer -->
-    <div class="section-heading">Issuer</div>
-    <div class="field-grid">
-        <div>
-            <div class="field-label">Issued By</div>
-            <div class="field-value">VerifyNG</div>
+        <!-- Issuer + QR -->
+    <div class="section-heading">Issuer &amp; Verification</div>
+    <div style="display:flex; gap:20pt; align-items:flex-start; margin-bottom:6pt;">
+
+        <!-- QR code -->
+        <div style="flex-shrink:0; text-align:center;">
+            {% if qr_base64 %}
+            <img src="data:image/png;base64,{{ qr_base64 }}"
+                 alt="Scan to verify certificate"
+                 style="width:80pt; height:80pt; display:block;">
+            <div style="font-size:7pt; color:#777; margin-top:3pt;">Scan to verify</div>
+            {% endif %}
         </div>
-        <div>
-            <div class="field-label">Verification URL</div>
-            <div class="verification-url">
-                {{ base_url }}/verification/certificate/{{ certificate.certificate_id }}/
+
+        <!-- Issuer details -->
+        <div style="flex:1;">
+            <div class="field-grid">
+                <div>
+                    <div class="field-label">Issued By</div>
+                    <div class="field-value">VerifyNG</div>
+                </div>
+                <div>
+                    <div class="field-label">Verification Type</div>
+                    <div class="field-value">{{ certificate.get_check_level_display }} Check</div>
+                </div>
+                <div style="grid-column:1/-1;">
+                    <div class="field-label">Verification URL</div>
+                    <div class="verification-url">{{ verification_url }}</div>
+                </div>
             </div>
         </div>
     </div>
