@@ -9,6 +9,7 @@ from dashboard.admin_views import (
     AdminCommunicationsView,
     # Users — extended
     AdminUserDetailView,
+    AdminUserActivityExportView,
     AdminUserHardDeleteView,
     AdminUserBlockView,
     # Reports moderation
@@ -55,6 +56,7 @@ urlpatterns = [
     path('users/<int:user_id>/change-role/', AdminUserChangeRoleView.as_view(), name='user_change_role'),
     path('users/<int:user_id>/block/', AdminUserBlockView.as_view(), name='user_block'),
     path('users/<int:user_id>/hard-delete/', AdminUserHardDeleteView.as_view(), name='user_hard_delete'),
+    path('users/<int:user_id>/export/', AdminUserActivityExportView.as_view(), name='user_activity_export'),
 
     # ── Reports Moderation ─────────────────────────────────────────────────
     path('reports/', AdminReportsView.as_view(), name='reports'),

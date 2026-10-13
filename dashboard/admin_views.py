@@ -21,6 +21,7 @@ from core.tasks import send_email_notification_task
 from django.core.paginator import Paginator
 from django.http import HttpResponseForbidden
 from django.conf import settings
+from django.shortcuts import render as drender
 import os
 
 # Import models needed for extended admin
@@ -315,21 +316,100 @@ class AdminCommunicationsView(SuperAdminRequiredMixin, TemplateView):
 class AdminUserDetailView(SuperAdminRequiredMixin, TemplateView):
     """Full user profile: all fields, login history, reports, verifications, subscriptions."""
     template_name = "admin_portal/user_detail.html"
-
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         target_user = get_object_or_404(User, id=self.kwargs['user_id'])
         ctx['target_user'] = target_user
         ctx['role_choices'] = User.ROLE_CHOICES
-        ctx['login_history'] = LoginAudit.objects.filter(user=target_user).order_by('-timestamp')[:20]
-        ctx['user_reports'] = FraudReport.objects.filter(reporter=target_user).order_by('-created_at')[:10]
-        ctx['user_verifications'] = VerificationRequest.objects.filter(requester=target_user).order_by('-created_at')[:10] if VerificationRequest else []
-        ctx['user_audit_logs'] = AuditLog.objects.filter(performed_by=target_user).order_by('-timestamp')[:20]
+
+        # Login history — paginated
+        login_qs = LoginAudit.objects.filter(user=target_user).order_by('-timestamp')
+        login_paginator = Paginator(login_qs, 15)
+        ctx['login_history'] = login_paginator.get_page(
+            self.request.GET.get('login_page', 1)
+        )
+
+        # System activity (AuditLog) — paginated
+        from django.db.models import Q
+        activity_qs = AuditLog.objects.filter(performed_by=target_user).order_by('-timestamp')
+        activity_paginator = Paginator(activity_qs, 15)
+        ctx['user_activity'] = activity_paginator.get_page(
+            self.request.GET.get('activity_page', 1)
+        )
+
+        # Active tab (preserved across pagination clicks)
+        ctx['active_tab'] = self.request.GET.get('tab', 'login')
+
+        # Other sections — keep as slices (not paginated, shown in full)
+        ctx['user_reports'] = FraudReport.objects.filter(
+            reporter=target_user).order_by('-created_at')[:10]
+        ctx['user_verifications'] = VerificationRequest.objects.filter(
+            requester=target_user).order_by('-created_at')[:10] if VerificationRequest else []
         if Subscription:
-            ctx['user_subscriptions'] = Subscription.objects.filter(user=target_user).order_by('-created_at')[:5]
+            ctx['user_subscriptions'] = Subscription.objects.filter(
+                user=target_user).order_by('-created_at')[:5]
         else:
             ctx['user_subscriptions'] = []
         return ctx
+
+
+class AdminUserActivityExportView(SuperAdminRequiredMixin, View):
+    """
+    Generates a printable HTML activity statement for a user.
+    ?type=login|activity  &date_from=YYYY-MM-DD  &date_to=YYYY-MM-DD
+    """
+    def get(self, request, user_id):
+        from django.utils.dateparse import parse_date
+        from django.utils import timezone as tz
+        import datetime
+
+        target_user = get_object_or_404(User, id=user_id)
+        export_type = request.GET.get('type', 'login')  # 'login' or 'activity'
+
+        date_from_str = request.GET.get('date_from', '')
+        date_to_str   = request.GET.get('date_to', '')
+
+        date_from = parse_date(date_from_str) if date_from_str else None
+        date_to   = parse_date(date_to_str)   if date_to_str   else None
+
+        if export_type == 'login':
+            qs = LoginAudit.objects.filter(user=target_user).order_by('-timestamp')
+            if date_from:
+                qs = qs.filter(timestamp__date__gte=date_from)
+            if date_to:
+                qs = qs.filter(timestamp__date__lte=date_to)
+            records = list(qs[:500])  # hard cap for safety
+        else:
+            qs = AuditLog.objects.filter(performed_by=target_user).order_by('-timestamp')
+            if date_from:
+                qs = qs.filter(timestamp__date__gte=date_from)
+            if date_to:
+                qs = qs.filter(timestamp__date__lte=date_to)
+            records = list(qs[:500])
+
+        AuditLog.objects.create(
+            action="ADMIN_USER_ACTIVITY_EXPORT",
+            performed_by=request.user,
+            details={
+                "target_user_id": target_user.id,
+                "export_type": export_type,
+                "date_from": date_from_str,
+                "date_to": date_to_str,
+                "record_count": len(records),
+            }
+        )
+
+        
+        return drender(request, 'admin_portal/user_activity_export.html', {
+            'target_user': target_user,
+            'records': records,
+            'export_type': export_type,
+            'date_from': date_from,
+            'date_to': date_to,
+            'generated_at': tz.now(),
+            'generated_by': request.user,
+            'total_records': len(records),
+        })
 
 
 class AdminUserHardDeleteView(SuperAdminRequiredMixin, View):

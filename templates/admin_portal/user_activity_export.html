@@ -1,0 +1,505 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VerifyNG — Activity Report — {{ target_user.username }}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink: #0D1117;
+    --ink-muted: #6B7280;
+    --ink-faint: #9CA3AF;
+    --border: #E5E7EB;
+    --accent: #2457D6;
+    --green: #16A34A;
+    --red: #DC2626;
+    --amber: #D97706;
+    --bg: #ffffff;
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    font-size: 10pt;
+    color: var(--ink);
+    background: var(--bg);
+    line-height: 1.5;
+  }
+
+  /* ── Page layout ── */
+  .page {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 2.5rem 2rem 3rem;
+  }
+
+  /* ── Letterhead ── */
+  .letterhead {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding-bottom: 1.5rem;
+    border-bottom: 3px solid var(--accent);
+    margin-bottom: 1.75rem;
+  }
+
+  .brand-mark {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .brand-seal {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: 3px solid var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    position: relative;
+    background: #EEF3FF;
+  }
+
+  .brand-seal svg { color: var(--accent); }
+
+  .brand-name {
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: var(--accent);
+    letter-spacing: -0.5px;
+  }
+
+  .brand-tagline {
+    font-size: 0.72rem;
+    color: var(--ink-muted);
+    margin-top: 2px;
+    letter-spacing: 0.3px;
+  }
+
+  .report-meta {
+    text-align: right;
+    font-size: 0.78rem;
+    color: var(--ink-muted);
+    line-height: 1.7;
+  }
+
+  .report-meta .doc-id {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--ink-faint);
+    display: block;
+    margin-top: 4px;
+  }
+
+  /* ── Report title block ── */
+  .report-title-block {
+    background: linear-gradient(135deg, #EEF3FF 0%, #F8FAFF 100%);
+    border: 1px solid #D1DEFF;
+    border-radius: 10px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.75rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .report-title-block h1 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 0.5rem;
+  }
+
+  .field-row {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+    margin-top: 0.25rem;
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .field-label {
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--ink-muted);
+  }
+
+  .field-value {
+    font-size: 0.845rem;
+    font-weight: 600;
+    color: var(--ink);
+  }
+
+  .field-value.mono {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+  }
+
+  /* ── Summary strip ── */
+  .summary-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 1px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 1.75rem;
+    background: var(--border);
+  }
+
+  .summary-cell {
+    background: #fff;
+    padding: 0.85rem 1rem;
+    text-align: center;
+  }
+
+  .summary-cell .num {
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: var(--ink);
+    display: block;
+  }
+
+  .summary-cell .lbl {
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--ink-muted);
+    display: block;
+    margin-top: 2px;
+  }
+
+  .summary-cell .num.green { color: var(--green); }
+  .summary-cell .num.red   { color: var(--red);   }
+  .summary-cell .num.amber { color: var(--amber);  }
+
+  /* ── Table ── */
+  .records-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1.75rem;
+    font-size: 0.82rem;
+  }
+
+  .records-table thead tr {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .records-table thead th {
+    padding: 0.55rem 0.75rem;
+    font-weight: 600;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-align: left;
+    border: none;
+  }
+
+  .records-table tbody tr { border-bottom: 1px solid var(--border); }
+  .records-table tbody tr:nth-child(even) { background: #F9FAFB; }
+
+  .records-table tbody td {
+    padding: 0.5rem 0.75rem;
+    vertical-align: middle;
+  }
+
+  .records-table tbody tr:last-child { border-bottom: none; }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 7px;
+    border-radius: 20px;
+    font-size: 0.68rem;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .badge.green { background: #DCFCE7; color: #15803D; }
+  .badge.red   { background: #FEE2E2; color: #B91C1C; }
+  .badge.amber { background: #FEF3C7; color: #92400E; }
+  .badge.gray  { background: #F3F4F6; color: #4B5563; }
+
+  .mono { font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; }
+
+  /* ── Footer ── */
+  .report-footer {
+    margin-top: 2rem;
+    padding-top: 1.25rem;
+    border-top: 2px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .footer-seal {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .seal-ring {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    border: 2.5px dashed var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    opacity: 0.7;
+  }
+
+  .seal-ring::before {
+    content: 'VERIFIED EXTRACT';
+    position: absolute;
+    font-size: 5px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: var(--accent);
+    top: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+  }
+
+  .seal-inner {
+    font-size: 0.5rem;
+    font-weight: 800;
+    color: var(--accent);
+    text-align: center;
+    line-height: 1.2;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .footer-text {
+    font-size: 0.7rem;
+    color: var(--ink-muted);
+    line-height: 1.7;
+    max-width: 480px;
+  }
+
+  .footer-text strong { color: var(--ink); }
+
+  /* ── Print ── */
+  @media print {
+    body { font-size: 9pt; }
+    .page { padding: 1.5rem; }
+    .no-print { display: none !important; }
+    thead { display: table-header-group; }
+    tr { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- Print / Close bar (hidden on print) -->
+  <div class="no-print" style="display:flex;justify-content:flex-end;gap:.75rem;margin-bottom:1.5rem;">
+    <button onclick="window.print()"
+      style="background:var(--accent);color:#fff;border:none;border-radius:7px;padding:.5rem 1.1rem;font-size:.845rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+      Print / Save PDF
+    </button>
+    <button onclick="window.close()"
+      style="background:#fff;color:var(--ink-muted);border:1px solid var(--border);border-radius:7px;padding:.5rem 1.1rem;font-size:.845rem;cursor:pointer;">
+      Close
+    </button>
+  </div>
+
+  <!-- ── Letterhead ── -->
+  <div class="letterhead">
+    <div class="brand-mark">
+      <div class="brand-seal">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+      </div>
+      <div>
+        <div class="brand-name">VerifyNG</div>
+        <div class="brand-tagline">Nigeria's Public Trust &amp; Safety Platform</div>
+      </div>
+    </div>
+    <div class="report-meta">
+      <strong>Activity Statement</strong><br>
+      Generated: {{ generated_at|date:"d M Y, H:i:s" }} WAT<br>
+      Prepared by: {{ generated_by.username }}<br>
+      <span class="doc-id">REF: VNG-EXP-{{ target_user.id }}-{{ generated_at|date:"YmdHis" }}</span>
+    </div>
+  </div>
+
+  <!-- ── Report title block ── -->
+  <div class="report-title-block">
+    <div>
+      <h1>{% if export_type == 'login' %}Login History Report{% else %}System Activity Report{% endif %}</h1>
+      <div class="field-row">
+        <div class="field">
+          <span class="field-label">Account</span>
+          <span class="field-value">{{ target_user.get_full_name|default:target_user.username }}</span>
+        </div>
+        <div class="field">
+          <span class="field-label">Username</span>
+          <span class="field-value mono">@{{ target_user.username }}</span>
+        </div>
+        <div class="field">
+          <span class="field-label">Email</span>
+          <span class="field-value">{{ target_user.email }}</span>
+        </div>
+        <div class="field">
+          <span class="field-label">Account ID</span>
+          <span class="field-value mono">#{{ target_user.id }}</span>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="field-row">
+        <div class="field" style="text-align:right;">
+          <span class="field-label">Period</span>
+          <span class="field-value">
+            {% if date_from %}{{ date_from|date:"d M Y" }}{% else %}All time{% endif %}
+            {% if date_to %} – {{ date_to|date:"d M Y" }}{% endif %}
+          </span>
+        </div>
+        <div class="field" style="text-align:right;">
+          <span class="field-label">Total Records</span>
+          <span class="field-value" style="color:var(--accent);">{{ total_records }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Summary strip (login only) ── -->
+  {% if export_type == 'login' %}
+  {% with success_count=records|length %}
+  <div class="summary-strip">
+    <div class="summary-cell">
+      <span class="num">{{ total_records }}</span>
+      <span class="lbl">Total Events</span>
+    </div>
+    <div class="summary-cell">
+      <span class="num green">
+        {% with cnt=0 %}
+          {% for r in records %}{% if r.status == 'success' %}{% with cnt=cnt|add:1 %}{% endwith %}{% endif %}{% endfor %}
+          {{ records|dictsort:"status"|length }}
+        {% endwith %}
+      </span>
+      <span class="lbl">Successful</span>
+    </div>
+    <div class="summary-cell">
+      <span class="num red">—</span>
+      <span class="lbl">Failed</span>
+    </div>
+    <div class="summary-cell">
+      <span class="num amber">—</span>
+      <span class="lbl">Blocked</span>
+    </div>
+  </div>
+  {% endwith %}
+  {% endif %}
+
+  <!-- ── Records table — Login ── -->
+  {% if export_type == 'login' %}
+  <table class="records-table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Timestamp</th>
+        <th>Outcome</th>
+        <th>IP Address</th>
+        <th>Device / Browser</th>
+        <th>OS</th>
+        <th>Location</th>
+        <th>Failure Reason</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for l in records %}
+      <tr>
+        <td class="mono" style="color:var(--ink-faint);">{{ forloop.counter }}</td>
+        <td class="mono" style="white-space:nowrap;">{{ l.timestamp|date:"d M Y, H:i:s" }}</td>
+        <td>
+          {% if l.status == 'success' %}<span class="badge green">● Success</span>
+          {% elif l.status == 'failed' %}<span class="badge red">● Failed</span>
+          {% else %}<span class="badge amber">● Blocked</span>{% endif %}
+        </td>
+        <td class="mono">{{ l.ip_address|default:"—" }}</td>
+        <td>{{ l.device_type|default:"—" }} / {{ l.browser|default:"—" }}</td>
+        <td>{{ l.os|default:"—" }}</td>
+        <td>{{ l.location_city|default:"—" }}{% if l.location_city and l.location_country %}, {% endif %}{{ l.location_country|default:"" }}</td>
+        <td style="color:var(--ink-muted);">{{ l.failure_reason|default:"—" }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--ink-muted);">No records in the selected period.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  <!-- ── Records table — System Activity ── -->
+  {% if export_type == 'activity' %}
+  <table class="records-table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Timestamp</th>
+        <th>Action</th>
+        <th>IP Address</th>
+        <th>Details</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for a in records %}
+      <tr>
+        <td class="mono" style="color:var(--ink-faint);">{{ forloop.counter }}</td>
+        <td class="mono" style="white-space:nowrap;">{{ a.timestamp|date:"d M Y, H:i:s" }}</td>
+        <td><span class="mono" style="font-size:0.75rem;">{{ a.action }}</span></td>
+        <td class="mono">{{ a.ip_address|default:"—" }}</td>
+        <td style="color:var(--ink-muted);font-size:0.78rem;">{{ a.details }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--ink-muted);">No records in the selected period.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  <!-- ── Footer ── -->
+  <div class="report-footer">
+    <div class="footer-text">
+      <strong>VerifyNG Platform — Official Activity Extract</strong><br>
+      This document is a VerifyNG-generated activity statement and does not constitute a government-issued certificate or legal record.
+      Data is sourced from VerifyNG platform logs. All times are in West Africa Time (WAT, UTC+1).<br>
+      For verification of this document, contact <strong>support@verifyng.com</strong>
+    </div>
+    <div class="footer-seal">
+      <div class="seal-ring">
+        <div class="seal-inner">VERIFY<br>NG</div>
+      </div>
+      <span style="font-size:0.65rem;color:var(--ink-faint);margin-top:2px;">Official Extract</span>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

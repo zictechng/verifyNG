@@ -1,41 +1,45 @@
 {% extends "admin_portal/base_admin.html" %}
 {% block title %}User: {{ target_user.username }} — Admin{% endblock %}
+
 {% block admin_body %}
-<div class="adm-page-header">
+<div class="adm-page-header" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem;">
   <div>
     <h1 class="adm-page-title">{{ target_user.get_full_name|default:target_user.username }}</h1>
     <p class="adm-page-sub">@{{ target_user.username }} · {{ target_user.email }}</p>
   </div>
-  <a href="{% url 'admin_portal:users' %}" class="btn btn-adm-outline">← All Users</a>
+  <a href="{% url 'admin_portal:users' %}" class="btn-adm-outline">← All Users</a>
 </div>
 
 {% include "admin_portal/_messages.html" %}
 
 <div class="row g-4">
-  <!-- Profile & Actions -->
+
+  <!-- ── Left column: profile + actions ── -->
   <div class="col-lg-4">
+
     <div class="adm-card mb-4">
       <div class="adm-card-header">Account Details</div>
-      <table class="table table-sm mb-0">
-        <tr><th>ID</th><td>{{ target_user.id }}</td></tr>
-        <tr><th>Username</th><td>{{ target_user.username }}</td></tr>
-        <tr><th>Email</th><td>{{ target_user.email }}</td></tr>
-        <tr><th>Role</th><td><span class="adm-badge adm-badge-blue">{{ target_user.get_role_display }}</span></td></tr>
-        <tr><th>Status</th><td>{% if target_user.is_active %}<span class="adm-badge adm-badge-green">Active</span>{% else %}<span class="adm-badge adm-badge-red">Suspended</span>{% endif %}</td></tr>
-        <tr><th>Identity Verified</th><td>{% if target_user.identity_verified %}<span class="adm-badge adm-badge-green">Yes</span>{% else %}<span class="adm-badge adm-badge-gray">No</span>{% endif %}</td></tr>
-        <tr><th>Staff</th><td>{% if target_user.is_staff %}Yes{% else %}No{% endif %}</td></tr>
-        <tr><th>Superuser</th><td>{% if target_user.is_superuser %}Yes{% else %}No{% endif %}</td></tr>
-        <tr><th>Joined</th><td>{{ target_user.date_joined|date:"d M Y H:i" }}</td></tr>
-        <tr><th>Last Login</th><td>{{ target_user.last_login|date:"d M Y H:i"|default:"Never" }}</td></tr>
+      <table class="table table-sm mb-0 small">
+        <tr><th style="width:45%;color:var(--adm-muted);font-weight:500;">ID</th><td class="mono">{{ target_user.id }}</td></tr>
+        <tr><th style="color:var(--adm-muted);font-weight:500;">Username</th><td class="fw-semibold">{{ target_user.username }}</td></tr>
+        <tr><th style="color:var(--adm-muted);font-weight:500;">Email</th><td>{{ target_user.email }}</td></tr>
+        <tr><th style="color:var(--adm-muted);font-weight:500;">Role</th><td><span class="adm-badge blue">{{ target_user.get_role_display }}</span></td></tr>
+        <tr><th style="color:var(--adm-muted);font-weight:500;">Status</th>
+          <td>{% if target_user.is_active %}<span class="adm-badge green"><span class="dot"></span>Active</span>{% else %}<span class="adm-badge red"><span class="dot"></span>Suspended</span>{% endif %}</td>
+        </tr>
+        <tr><th style="color:var(--adm-muted);font-weight:500;">Identity Verified</th>
+          <td>{% if target_user.identity_verified %}<span class="adm-badge green">Yes</span>{% else %}<span class="adm-badge gray">No</span>{% endif %}</td>
+        </tr>
+        <tr><th style="color:var(--adm-muted);font-weight:500;">Staff</th><td>{% if target_user.is_staff %}Yes{% else %}No{% endif %}</td></tr>
+        <tr><th style="color:var(--adm-muted);font-weight:500;">Superuser</th><td>{% if target_user.is_superuser %}Yes{% else %}No{% endif %}</td></tr>
+        <tr><th style="color:var(--adm-muted);font-weight:500;">Joined</th><td>{{ target_user.date_joined|date:"d M Y H:i" }}</td></tr>
+        <tr><th style="color:var(--adm-muted);font-weight:500;">Last Login</th><td>{{ target_user.last_login|date:"d M Y H:i"|default:"Never" }}</td></tr>
       </table>
     </div>
 
-    <!-- Quick Actions -->
     <div class="adm-card mb-4">
       <div class="adm-card-header">Quick Actions</div>
       <div class="p-3 d-grid gap-2">
-
-        <!-- Toggle suspend -->
         <form method="post" action="{% url 'admin_portal:user_toggle_status' target_user.id %}">
           {% csrf_token %}
           {% if target_user.is_active %}
@@ -44,8 +48,6 @@
           <button class="btn btn-adm-success w-100">Reactivate Account</button>
           {% endif %}
         </form>
-
-        <!-- Block / Unblock -->
         <form method="post" action="{% url 'admin_portal:user_block' target_user.id %}">
           {% csrf_token %}
           {% if target_user.is_active %}
@@ -56,8 +58,6 @@
           <button class="btn btn-adm-success w-100">Unblock User</button>
           {% endif %}
         </form>
-
-        <!-- Change role -->
         <form method="post" action="{% url 'admin_portal:user_change_role' target_user.id %}">
           {% csrf_token %}
           <div class="input-group">
@@ -72,29 +72,33 @@
       </div>
     </div>
 
-    <!-- Hard Delete — requires typing username to confirm -->
-    <div class="adm-card border border-danger">
-      <div class="adm-card-header" style="color:var(--adm-danger)">Danger Zone</div>
+    <div class="adm-card border border-danger mb-4">
+      <div class="adm-card-header" style="color:#dc3545;">Danger Zone</div>
       <div class="p-3">
-        <p class="small text-danger mb-2">Permanently deletes this user and all associated data. This cannot be undone.</p>
+        <p class="small text-danger mb-2">Permanently deletes this user and all associated data. Cannot be undone.</p>
         <form method="post" action="{% url 'admin_portal:user_hard_delete' target_user.id %}"
               onsubmit="return confirm('FINAL WARNING: permanently delete {{ target_user.username }}?')">
           {% csrf_token %}
           <div class="mb-2">
             <input type="text" name="confirm_delete" class="form-control form-control-sm border-danger"
-                   placeholder="Type username to confirm: {{ target_user.username }}" required>
+                   placeholder="Type username: {{ target_user.username }}" required>
           </div>
           <button type="submit" class="btn btn-adm-danger w-100 btn-sm">Permanently Delete</button>
         </form>
       </div>
     </div>
+
   </div>
 
-  <!-- Activity panels -->
+  <!-- ── Right column: activity panels ── -->
   <div class="col-lg-8">
-    <!-- Reports submitted by user -->
+
+    <!-- Reports submitted -->
     <div class="adm-card mb-4">
-      <div class="adm-card-header">Reports Submitted ({{ user_reports.count }})</div>
+      <div class="adm-card-header">
+        Reports Submitted
+        <span class="adm-badge gray ms-2">{{ user_reports|length }}</span>
+      </div>
       {% if user_reports %}
       <table class="adm-table">
         <thead><tr><th>Reference</th><th>Title</th><th>State</th><th>Date</th><th></th></tr></thead>
@@ -103,19 +107,22 @@
           <tr>
             <td><code>{{ r.reference_number }}</code></td>
             <td>{{ r.title|truncatechars:40 }}</td>
-            <td><span class="adm-badge adm-badge-blue">{{ r.get_state_display }}</span></td>
+            <td><span class="adm-badge blue">{{ r.get_state_display }}</span></td>
             <td>{{ r.created_at|date:"d M Y" }}</td>
-            <td><a href="{% url 'admin_portal:report_detail' r.pk %}" class="btn btn-adm-sm btn-adm-outline">View</a></td>
+            <td><a href="{% url 'admin_portal:report_detail' r.pk %}" class="btn-adm-outline" style="font-size:0.75rem;">View</a></td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
-      {% else %}<div class="adm-empty">No reports submitted.</div>{% endif %}
+      {% else %}<div class="adm-empty"><p>No reports submitted.</p></div>{% endif %}
     </div>
 
     <!-- Verifications -->
     <div class="adm-card mb-4">
-      <div class="adm-card-header">Verifications ({{ user_verifications.count }})</div>
+      <div class="adm-card-header">
+        Verifications
+        <span class="adm-badge gray ms-2">{{ user_verifications|length }}</span>
+      </div>
       {% if user_verifications %}
       <table class="adm-table">
         <thead><tr><th>Reference</th><th>Type</th><th>Status</th><th>Date</th></tr></thead>
@@ -124,13 +131,13 @@
           <tr>
             <td><code>{{ v.reference_number }}</code></td>
             <td>{{ v.get_verification_type_display }}</td>
-            <td><span class="adm-badge adm-badge-blue">{{ v.get_status_display }}</span></td>
+            <td><span class="adm-badge blue">{{ v.get_status_display }}</span></td>
             <td>{{ v.created_at|date:"d M Y" }}</td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
-      {% else %}<div class="adm-empty">No verifications.</div>{% endif %}
+      {% else %}<div class="adm-empty"><p>No verifications on record.</p></div>{% endif %}
     </div>
 
     <!-- Subscriptions -->
@@ -143,7 +150,7 @@
           {% for s in user_subscriptions %}
           <tr>
             <td>{{ s.plan.name|default:"—" }}</td>
-            <td><span class="adm-badge adm-badge-green">{{ s.get_status_display }}</span></td>
+            <td><span class="adm-badge green">{{ s.get_status_display }}</span></td>
             <td>{{ s.created_at|date:"d M Y" }}</td>
           </tr>
           {% endfor %}
@@ -152,58 +159,262 @@
     </div>
     {% endif %}
 
-    <!-- Login history -->
-    <div class="adm-card">
-      <div class="adm-card-header">
-        Login History
-        <span class="adm-badge gray ms-2">{{ login_history.paginator.count }}</span>
+    <!-- ── Activity Tabs (Alpine.js) ── -->
+    <div class="adm-card" x-data="activityTabs('{{ active_tab }}')">
+
+      <!-- Tab header -->
+      <div class="adm-card-header" style="padding:0;border-bottom:1px solid var(--adm-border);">
+        <div class="d-flex align-items-stretch justify-content-between" style="min-height:52px;">
+
+          <!-- Tab buttons -->
+          <div class="d-flex" style="gap:0;">
+            <button
+              @click="setTab('login')"
+              :class="tab === 'login' ? 'tab-active' : 'tab-btn'"
+              class="tab-btn"
+              style="border:none;background:none;padding:0 1.25rem;font-size:0.845rem;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;"
+              :style="tab === 'login' ? 'border-bottom-color:var(--adm-accent);color:var(--adm-accent);' : 'color:var(--adm-muted);'"
+            >
+              Login History
+              <span class="adm-badge gray ms-1" style="font-size:0.68rem;">{{ login_history.paginator.count }}</span>
+            </button>
+            <button
+              @click="setTab('activity')"
+              class="tab-btn"
+              style="border:none;background:none;padding:0 1.25rem;font-size:0.845rem;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;"
+              :style="tab === 'activity' ? 'border-bottom-color:var(--adm-accent);color:var(--adm-accent);' : 'color:var(--adm-muted);'"
+            >
+              System Activity
+              <span class="adm-badge gray ms-1" style="font-size:0.68rem;">{{ user_activity.paginator.count }}</span>
+            </button>
+          </div>
+
+          <!-- Export button -->
+          <div class="d-flex align-items-center pe-3">
+            <button
+              @click="openExport()"
+              class="btn-adm-outline"
+              style="font-size:0.78rem;gap:5px;"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Export
+            </button>
+          </div>
+        </div>
       </div>
-      <table class="adm-table">
-        <thead><tr><th>Time</th><th>Status</th><th>IP</th><th>Device</th><th>Location</th></tr></thead>
-        <tbody>
-          {% for l in login_history %}
-          <tr>
-            <td>{{ l.timestamp|date:"d M Y H:i" }}</td>
-            <td>
-              {% if l.status == 'success' %}<span class="adm-badge adm-badge-green">Success</span>
-              {% elif l.status == 'failed' %}<span class="adm-badge adm-badge-red">Failed</span>
-              {% else %}<span class="adm-badge adm-badge-gray">Blocked</span>{% endif %}
-            </td>
-            <td><code>{{ l.ip_address|default:"—" }}</code></td>
-            <td>{{ l.device_type }} / {{ l.browser }}</td>
-            <td>{{ l.location_city }}, {{ l.location_country }}</td>
-          </tr>
-          {% empty %}
-          <tr><td colspan="5" class="text-center text-muted py-3">No login history.</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      {# Add this between </table> and </div> on line 179 #}
+
+      <!-- ── Login History tab ── -->
+      <div x-show="tab === 'login'" x-transition>
+        <div class="table-responsive">
+          <table class="adm-table">
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>Outcome</th>
+                <th>IP Address</th>
+                <th>Device / Browser</th>
+                <th>Location</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for l in login_history %}
+              <tr>
+                <td class="mono td-muted" style="white-space:nowrap;">{{ l.timestamp|date:"d M Y, H:i:s" }}</td>
+                <td>
+                  {% if l.status == 'success' %}<span class="adm-badge green"><span class="dot"></span>Success</span>
+                  {% elif l.status == 'failed'  %}<span class="adm-badge red"><span class="dot"></span>Failed</span>
+                  {% else %}<span class="adm-badge amber"><span class="dot"></span>Blocked</span>{% endif %}
+                </td>
+                <td class="mono">{{ l.ip_address|default:"—" }}</td>
+                <td class="td-muted">{{ l.device_type|default:"—" }} / {{ l.browser|default:"—" }}</td>
+                <td class="td-muted">
+                  {% if l.location_city or l.location_country %}
+                    {{ l.location_city|default:"" }}{% if l.location_city and l.location_country %}, {% endif %}{{ l.location_country|default:"" }}
+                  {% else %}—{% endif %}
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="5"><div class="adm-empty"><p>No login history found.</p></div></td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Login pagination -->
         {% if login_history.has_other_pages %}
-        <nav class="px-4 py-3 border-top" style="border-color:var(--adm-border)!important;">
-            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-                <span style="font-size:0.78rem;color:var(--adm-muted);">
-                    Showing {{ login_history.start_index }}–{{ login_history.end_index }} of {{ login_history.paginator.count }}
-                </span>
-                <ul class="pagination pagination-sm mb-0">
-                    {% if login_history.has_previous %}
-                    <li class="page-item">
-                        <a class="page-link" href="?login_page={{ login_history.previous_page_number }}">‹ Prev</a>
-                    </li>
-                    {% endif %}
-                    <li class="page-item disabled">
-                        <span class="page-link">{{ login_history.number }} / {{ login_history.paginator.num_pages }}</span>
-                    </li>
-                    {% if login_history.has_next %}
-                    <li class="page-item">
-                        <a class="page-link" href="?login_page={{ login_history.next_page_number }}">Next ›</a>
-                    </li>
-                    {% endif %}
-                </ul>
-            </div>
-        </nav>
+        <div class="px-4 py-3 border-top d-flex align-items-center justify-content-between flex-wrap gap-2" style="border-color:var(--adm-border)!important;">
+          <span style="font-size:0.78rem;color:var(--adm-muted);">
+            Showing {{ login_history.start_index }}–{{ login_history.end_index }} of {{ login_history.paginator.count }}
+          </span>
+          <ul class="pagination pagination-sm mb-0">
+            {% if login_history.has_previous %}
+            <li class="page-item">
+              <a class="page-link" href="?tab=login&login_page={{ login_history.previous_page_number }}&activity_page={{ user_activity.number }}">‹ Prev</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">‹ Prev</span></li>
+            {% endif %}
+            <li class="page-item disabled">
+              <span class="page-link">{{ login_history.number }} / {{ login_history.paginator.num_pages }}</span>
+            </li>
+            {% if login_history.has_next %}
+            <li class="page-item">
+              <a class="page-link" href="?tab=login&login_page={{ login_history.next_page_number }}&activity_page={{ user_activity.number }}">Next ›</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">Next ›</span></li>
+            {% endif %}
+          </ul>
+        </div>
         {% endif %}
+      </div>
+
+      <!-- ── System Activity tab ── -->
+      <div x-show="tab === 'activity'" x-transition>
+        <div class="table-responsive">
+          <table class="adm-table">
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>Action</th>
+                <th>IP Address</th>
+                <th>Details</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for a in user_activity %}
+              <tr>
+                <td class="mono td-muted" style="white-space:nowrap;">{{ a.timestamp|date:"d M Y, H:i:s" }}</td>
+                <td><code class="small">{{ a.action }}</code></td>
+                <td class="mono">{{ a.ip_address|default:"—" }}</td>
+                <td class="td-muted small">{{ a.details|truncatechars:80 }}</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="4"><div class="adm-empty"><p>No system activity recorded.</p></div></td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Activity pagination -->
+        {% if user_activity.has_other_pages %}
+        <div class="px-4 py-3 border-top d-flex align-items-center justify-content-between flex-wrap gap-2" style="border-color:var(--adm-border)!important;">
+          <span style="font-size:0.78rem;color:var(--adm-muted);">
+            Showing {{ user_activity.start_index }}–{{ user_activity.end_index }} of {{ user_activity.paginator.count }}
+          </span>
+          <ul class="pagination pagination-sm mb-0">
+            {% if user_activity.has_previous %}
+            <li class="page-item">
+              <a class="page-link" href="?tab=activity&activity_page={{ user_activity.previous_page_number }}&login_page={{ login_history.number }}">‹ Prev</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">‹ Prev</span></li>
+            {% endif %}
+            <li class="page-item disabled">
+              <span class="page-link">{{ user_activity.number }} / {{ user_activity.paginator.num_pages }}</span>
+            </li>
+            {% if user_activity.has_next %}
+            <li class="page-item">
+              <a class="page-link" href="?tab=activity&activity_page={{ user_activity.next_page_number }}&login_page={{ login_history.number }}">Next ›</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">Next ›</span></li>
+            {% endif %}
+          </ul>
+        </div>
+        {% endif %}
+      </div>
+
+    </div><!-- /adm-card Alpine -->
+
+  </div><!-- /col-lg-8 -->
+</div><!-- /row -->
+
+<!-- ── Export Modal ── -->
+<div x-data="activityTabs('{{ active_tab }}')" style="display:contents;">
+  <div
+    x-show="exportOpen"
+    x-cloak
+    style="position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45);"
+    @click.self="exportOpen = false"
+  >
+    <div style="background:#fff;border-radius:12px;width:440px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,.2);overflow:hidden;">
+      <div style="padding:1.25rem 1.5rem;border-bottom:1px solid var(--adm-border);display:flex;justify-content:space-between;align-items:center;">
+        <h3 style="margin:0;font-size:1rem;font-weight:700;">Export Activity Report</h3>
+        <button @click="exportOpen=false" style="border:none;background:none;cursor:pointer;color:var(--adm-muted);">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div style="padding:1.5rem;">
+        <p style="font-size:0.845rem;color:var(--adm-muted);margin-bottom:1.25rem;">
+          Choose what to export. Leave dates empty to export all records.
+        </p>
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">Report Type</label>
+          <select x-model="exportType" class="form-select form-select-sm">
+            <option value="login">Login History</option>
+            <option value="activity">System Activity</option>
+          </select>
+        </div>
+        <div class="row g-2 mb-4">
+          <div class="col-6">
+            <label class="form-label small fw-semibold">From Date</label>
+            <input type="date" x-model="exportFrom" class="form-control form-control-sm">
+          </div>
+          <div class="col-6">
+            <label class="form-label small fw-semibold">To Date</label>
+            <input type="date" x-model="exportTo" class="form-control form-control-sm">
+          </div>
+        </div>
+        <div class="d-flex gap-2 justify-content-end">
+          <button @click="exportOpen=false" class="btn-adm-outline">Cancel</button>
+          <button @click="doExport({{ target_user.id }})" class="btn-adm-primary">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Generate Report
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
-{% endblock %}
+
+{% endblock admin_body %}
+
+{% block admin_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js" defer></script>
+<script>
+  function activityTabs(initialTab) {
+    return {
+      tab: initialTab || 'login',
+      exportOpen: false,
+      exportType: initialTab === 'activity' ? 'activity' : 'login',
+      exportFrom: '',
+      exportTo: '',
+
+      setTab(name) {
+        this.tab = name;
+        this.exportType = name;
+        // Update URL so pagination links carry the correct tab
+        const url = new URL(window.location.href);
+        url.searchParams.set('tab', name);
+        window.history.replaceState(null, '', url.toString());
+      },
+
+      openExport() {
+        this.exportType = this.tab;
+        this.exportOpen = true;
+      },
+
+      doExport(userId) {
+        const params = new URLSearchParams();
+        params.set('type', this.exportType);
+        if (this.exportFrom) params.set('date_from', this.exportFrom);
+        if (this.exportTo)   params.set('date_to',   this.exportTo);
+        window.open(`/admin-portal/users/${userId}/export/?${params.toString()}`, '_blank');
+        this.exportOpen = false;
+      }
+    }
+  }
+</script>
+{% endblock admin_scripts %}
+
