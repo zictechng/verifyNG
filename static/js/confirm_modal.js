@@ -25,8 +25,10 @@
   var _actionType      = null;
   var _deleteUsername  = null;
 
-  /* ── Wire up all buttons on page load ─────────────────────── */
-  document.addEventListener('DOMContentLoaded', function () {
+  /* ── Wire up all buttons ───────────────────────────────────── */
+  /* This script loads at end-of-body so the DOM is already ready.
+     DOMContentLoaded has already fired — call init() directly.    */
+  function init() {
 
     /* Confirm button click → submit */
     var confirmBtn = document.getElementById('confirmModalBtn');
@@ -40,7 +42,7 @@
         openFromButton(btn);
       });
     });
-  });
+  }
 
   /* ── Open modal from a button's data attributes ───────────── */
   function openFromButton(btn) {
@@ -104,7 +106,7 @@
     /* Loading state — prevent double submit */
     var confirmBtn = document.getElementById('confirmModalBtn');
     confirmBtn.disabled = true;
-    confirmBtn.querySelector('.confirm-btn-label').textContent = 'Processing…';
+    confirmBtn.querySelector('.confirm-btn-label').textContent = 'Processing\u2026';
     document.getElementById('confirmModalSpinner').classList.remove('d-none');
 
     /* Submit */
@@ -121,17 +123,29 @@
   }
 
   function showModalAlert(msg) {
-    /* Inject a dismissible alert inside the modal body */
     var body  = document.getElementById('confirmModalBody');
     var alert = document.createElement('div');
     alert.className = 'alert alert-danger alert-sm mt-2 mb-0 py-2 px-3';
     alert.textContent = msg;
-    /* Remove any previous alert */
     var prev = body.querySelector('.alert');
     if (prev) prev.remove();
     body.appendChild(alert);
   }
 
+  /* Run immediately — DOM is fully parsed at end-of-body */
+  init();
+
+})();
+
+
+/* Show a subtle top progress bar while the page is loading after submit */
+(function () {
+  var form = document.getElementById('confirmActionForm');
+  if (!form) return;
+  form.addEventListener('submit', function () {
+    var bar = document.getElementById('pageLoadingBar');
+    if (bar) bar.classList.remove('d-none');
+  });
 })();
 
 
