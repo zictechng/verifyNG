@@ -20,6 +20,10 @@ class User(AbstractUser):
         db_index=True,
         help_text="Primary RBAC role assignment"
     )
+    email = models.EmailField(
+    unique=True,
+    help_text="Required. Must be unique across all accounts.",
+    )
     identity_verified = models.BooleanField(
         default=False,
         help_text="User identity verification status"
