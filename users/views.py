@@ -53,7 +53,6 @@ class RegisterView(CreateView):
                 'user_name': user.get_full_name() or user.username,
                 'heading': 'Welcome to VerifyNG!',
                 'body_html': (
-                    f'<p>Hi <strong>{user.get_full_name() or user.username}</strong>,</p>'
                     f'<p>Your VerifyNG account has been created successfully. '
                     f'You can now sign in and start using the platform.</p>'
                     f'<p>Your username is: <strong>{user.username}</strong></p>'
