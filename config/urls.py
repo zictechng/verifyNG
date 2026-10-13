@@ -24,6 +24,7 @@ urlpatterns = [
     path('verification/', include('verification.urls', namespace='verification')),
     path('notifications/', include('notifications.urls', namespace='notifications')),
     path('payments/', include('payments.urls', namespace='payments')),
+    path('employer/', include('employer.urls')),
     path('', include('public_website.urls')),
 ]
 

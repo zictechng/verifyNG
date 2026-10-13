@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     'core',
     'notifications',
     'payments',
+    'employer',
     'django_otp',
     'django_otp.plugins.otp_totp',
 ]
