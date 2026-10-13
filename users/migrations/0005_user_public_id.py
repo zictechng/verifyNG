@@ -13,19 +13,16 @@ def assign_public_ids(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('users', '0004_rename_is_verified'),  # ← keep your actual previous migration name
+        ('users', '0004_rename_is_verified'),
     ]
 
     operations = [
-        # Step 1: add the column WITHOUT the unique constraint, nullable so existing rows don't conflict
         migrations.AddField(
             model_name='user',
             name='public_id',
             field=models.UUIDField(null=True, editable=False),
         ),
-        # Step 2: populate every existing row with its own fresh UUID
         migrations.RunPython(assign_public_ids, migrations.RunPython.noop),
-        # Step 3: now enforce unique + not null
         migrations.AlterField(
             model_name='user',
             name='public_id',

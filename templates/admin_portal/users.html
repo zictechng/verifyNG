@@ -92,7 +92,7 @@
                                 {{ u.username|slice:":2"|upper }}
                             </div>
                             <div>
-                                <a href="{% url 'admin_portal:user_detail' u.id %}" class="fw-semibold text-decoration-none" style="font-size:0.845rem;color:var(--adm-accent);">{{ u.username }}</a>
+                                <a href="{% url 'admin_portal:user_detail' u.public_id %}" class="fw-semibold text-decoration-none" style="font-size:0.845rem;color:var(--adm-accent);">{{ u.username }}</a>
                                 {% if u.is_superuser %}
                                     <span class="adm-badge red ms-1">Superuser</span>
                                 {% endif %}
@@ -112,7 +112,7 @@
                     <td style="text-align:right;">
                         <div style="display:inline-flex;gap:6px;align-items:center;">
                             <!-- Toggle status -->
-                            <form method="post" action="{% url 'admin_portal:user_toggle_status' u.id %}" style="display:inline;">
+                            <form method="post" action="{% url 'admin_portal:user_toggle_status' u.public_id %}" style="display:inline;">
                                 {% csrf_token %}
                                 {% if u.is_active %}
                                     <button type="submit" class="btn-adm-danger btn-adm-sm"
@@ -125,19 +125,19 @@
                             </form>
                             <!-- Role change trigger -->
                             <button type="button" class="btn-adm-outline btn-adm-sm"
-                                    data-bs-toggle="modal" data-bs-target="#roleModal{{ u.id }}">
+                                    data-bs-toggle="modal" data-bs-target="#roleModal{{ u.public_id }}">
                                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                                 Role
                             </button>
                         </div>
 
                         <!-- Role modal -->
-                        <div class="modal fade text-start" id="roleModal{{ u.id }}" tabindex="-1" aria-labelledby="roleModalLabel{{ u.id }}" aria-hidden="true">
+                        <div class="modal fade text-start" id="roleModal{{ u.public_id }}" tabindex="-1" aria-labelledby="roleModalLabel{{ u.public_id }}" aria-hidden="true">
                             <div class="modal-dialog modal-dialog-centered" style="max-width:400px;">
                                 <div class="modal-content" style="border-radius:12px;border:1px solid var(--adm-border);box-shadow:0 20px 60px rgba(0,0,0,0.15);">
                                     <div class="modal-header border-bottom" style="border-color:var(--adm-border)!important;padding:18px 22px 14px;">
                                         <div>
-                                            <h5 class="modal-title fw-bold" id="roleModalLabel{{ u.id }}" style="font-size:0.95rem;margin:0 0 2px;">
+                                            <h5 class="modal-title fw-bold" id="roleModalLabel{{ u.public_id }}" style="font-size:0.95rem;margin:0 0 2px;">
                                                 Change Role
                                             </h5>
                                             <p class="mb-0" style="font-size:0.78rem;color:var(--adm-muted);">
@@ -147,7 +147,7 @@
                                         </div>
                                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                     </div>
-                                    <form method="post" action="{% url 'admin_portal:user_change_role' u.id %}">
+                                    <form method="post" action="{% url 'admin_portal:user_change_role' u.public_id %}">
                                         {% csrf_token %}
                                         <div class="modal-body" style="padding:18px 22px;">
                                             <label class="form-label" style="font-size:0.78rem;font-weight:600;color:var(--adm-muted);">New Role</label>

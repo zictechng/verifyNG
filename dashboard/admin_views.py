@@ -166,7 +166,7 @@ class AdminUserListView(SuperAdminRequiredMixin, TemplateView):
 class AdminUserToggleStatusView(SuperAdminRequiredMixin, View):
     """Suspends or Reactivates a user account."""
     def post(self, request, user_id):
-        target_user = get_object_or_404(User, id=user_id)
+        target_user = get_object_or_404(User, public_id=self.kwargs['public_id'])
         if target_user == request.user:
             messages.error(request, "You cannot suspend your own superuser account.")
             return redirect('admin_portal:users')
@@ -189,7 +189,7 @@ class AdminUserToggleStatusView(SuperAdminRequiredMixin, View):
 class AdminUserChangeRoleView(SuperAdminRequiredMixin, View):
     """Reassigns a user's role (e.g. Moderator, Verification Officer, Business)."""
     def post(self, request, user_id):
-        target_user = get_object_or_404(User, id=user_id)
+        target_user = get_object_or_404(User, public_id=self.kwargs['public_id'])
         new_role = request.POST.get('role')
         valid_roles = dict(User.ROLE_CHOICES)
 
@@ -319,7 +319,7 @@ class AdminUserDetailView(SuperAdminRequiredMixin, TemplateView):
     template_name = "admin_portal/user_detail.html"
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        target_user = get_object_or_404(User, id=self.kwargs['user_id'])
+        target_user = get_object_or_404(User, public_id=self.kwargs['public_id'])
         ctx['target_user'] = target_user
         ctx['role_choices'] = User.ROLE_CHOICES
 
@@ -378,7 +378,7 @@ class AdminUserActivityExportView(SuperAdminRequiredMixin, View):
         from django.utils import timezone as tz
         import datetime
 
-        target_user = get_object_or_404(User, id=user_id)
+        target_user = get_object_or_404(User, public_id=self.kwargs['public_id'])
         export_type = request.GET.get('type', 'login')  # 'login' or 'activity'
 
         date_from_str = request.GET.get('date_from', '')
@@ -430,7 +430,7 @@ class AdminUserActivityExportView(SuperAdminRequiredMixin, View):
 class AdminUserHardDeleteView(SuperAdminRequiredMixin, View):
     """Permanently deletes a user and all their data. Requires confirmation token."""
     def post(self, request, user_id):
-        target_user = get_object_or_404(User, id=user_id)
+        target_user = get_object_or_404(User, public_id=self.kwargs['public_id'])
         if target_user == request.user:
             messages.error(request, "You cannot delete your own superuser account.")
             return redirect('admin_portal:users')
@@ -454,7 +454,7 @@ class AdminUserHardDeleteView(SuperAdminRequiredMixin, View):
 class AdminUserBlockView(SuperAdminRequiredMixin, View):
     """Blocks a user (deactivates + marks staff=False, strips role to 'individual')."""
     def post(self, request, user_id):
-        target_user = get_object_or_404(User, id=user_id)
+        target_user = get_object_or_404(User, public_id=self.kwargs['public_id'])
         if target_user == request.user:
             messages.error(request, "You cannot block your own account.")
             return redirect('admin_portal:user_detail', user_id=user_id)

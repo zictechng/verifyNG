@@ -51,13 +51,12 @@ urlpatterns = [
 
     # ── User Management ────────────────────────────────────────────────────
     path('users/', AdminUserListView.as_view(), name='users'),
-    path('users/<int:user_id>/', AdminUserDetailView.as_view(), name='user_detail'),
-    path('users/<int:user_id>/toggle-status/', AdminUserToggleStatusView.as_view(), name='user_toggle_status'),
-    path('users/<int:user_id>/change-role/', AdminUserChangeRoleView.as_view(), name='user_change_role'),
-    path('users/<int:user_id>/block/', AdminUserBlockView.as_view(), name='user_block'),
-    path('users/<int:user_id>/hard-delete/', AdminUserHardDeleteView.as_view(), name='user_hard_delete'),
-    path('users/<int:user_id>/export/', AdminUserActivityExportView.as_view(), name='user_activity_export'),
-
+    path('users/<uuid:public_id>/', AdminUserDetailView.as_view(), name='user_detail'),
+    path('users/<uuid:public_id>/toggle-status/', AdminUserToggleStatusView.as_view(), name='user_toggle_status'),
+    path('users/<uuid:public_id>/change-role/', AdminUserChangeRoleView.as_view(), name='user_change_role'),
+    path('users/<uuid:public_id>/block/', AdminUserBlockView.as_view(), name='user_block'),
+    path('users/<uuid:public_id>/hard-delete/', AdminUserHardDeleteView.as_view(), name='user_hard_delete'),
+    path('users/<uuid:public_id>/export/', AdminUserActivityExportView.as_view(), name='user_activity_export'),
     # ── Reports Moderation ─────────────────────────────────────────────────
     path('reports/', AdminReportsView.as_view(), name='reports'),
     path('reports/<int:pk>/', AdminReportDetailView.as_view(), name='report_detail'),
