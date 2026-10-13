@@ -7,6 +7,7 @@ from django.contrib import messages
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.http import HttpResponseRedirect, Http404
 from django.urls import reverse
+from verification.tasks import generate_certificate_pdf
 
 from verification.models import VerificationRequest, VerificationResult
 from reports.models import AuditLog
@@ -643,6 +644,10 @@ class CertificateActivateView(LoginRequiredMixin, View):
                     "expires_at": certificate.expires_at.isoformat() if certificate.expires_at else None,
                 }
             )
+            # Generate PDF asynchronously — runs in background via Celery
+            
+            generate_certificate_pdf.delay(certificate_id)
+
             messages.success(
                 request,
                 f"Certificate [{certificate_id}] activated successfully. "

@@ -1,0 +1,259 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>VerifyNG Certificate — {{ certificate.certificate_id }}</title>
+    <style>
+        /* ── Reset ── */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        @page {
+            size: A4;
+            margin: 20mm 18mm 20mm 18mm;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-size: 11pt;
+            color: #1a1a2e;
+            background: #fff;
+        }
+
+        /* ── Header ── */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 3px solid #006D5B;
+            padding-bottom: 12pt;
+            margin-bottom: 20pt;
+        }
+
+        .brand-name {
+            font-size: 22pt;
+            font-weight: 800;
+            color: #006D5B;
+            letter-spacing: -0.5pt;
+        }
+
+        .brand-tagline {
+            font-size: 8pt;
+            color: #555;
+            margin-top: 2pt;
+        }
+
+        .doc-type {
+            text-align: right;
+        }
+
+        .doc-type-label {
+            font-size: 9pt;
+            color: #777;
+            text-transform: uppercase;
+            letter-spacing: 1pt;
+        }
+
+        .doc-type-title {
+            font-size: 14pt;
+            font-weight: 700;
+            color: #1a1a2e;
+        }
+
+        /* ── Status banner ── */
+        .status-banner {
+            padding: 8pt 14pt;
+            border-radius: 4pt;
+            font-weight: 700;
+            font-size: 10pt;
+            text-align: center;
+            margin-bottom: 20pt;
+            text-transform: uppercase;
+            letter-spacing: 1pt;
+        }
+
+        .status-active   { background: #e6f4f1; color: #006D5B; border: 1.5pt solid #006D5B; }
+        .status-pending  { background: #fff8e1; color: #856404; border: 1.5pt solid #ffc107; }
+        .status-revoked  { background: #fdecea; color: #c0392b; border: 1.5pt solid #e74c3c; }
+        .status-suspended{ background: #f3f3f3; color: #555;    border: 1.5pt solid #999; }
+
+        /* ── Section headings ── */
+        .section-heading {
+            font-size: 8pt;
+            font-weight: 700;
+            color: #006D5B;
+            text-transform: uppercase;
+            letter-spacing: 1pt;
+            border-bottom: 1pt solid #d0ece7;
+            padding-bottom: 4pt;
+            margin-bottom: 12pt;
+            margin-top: 18pt;
+        }
+
+        /* ── Field grid ── */
+        .field-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12pt 24pt;
+            margin-bottom: 6pt;
+        }
+
+        .field-label {
+            font-size: 8pt;
+            color: #777;
+            text-transform: uppercase;
+            letter-spacing: 0.5pt;
+            margin-bottom: 2pt;
+        }
+
+        .field-value {
+            font-size: 11pt;
+            font-weight: 600;
+            color: #1a1a2e;
+        }
+
+        .field-value-mono {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 10pt;
+            font-weight: 700;
+            color: #006D5B;
+        }
+
+        /* ── Disclaimer ── */
+        .disclaimer {
+            margin-top: 28pt;
+            padding: 10pt 12pt;
+            background: #f8f8f8;
+            border-left: 3pt solid #ccc;
+            font-size: 8pt;
+            color: #666;
+            line-height: 1.5;
+        }
+
+        /* ── Footer ── */
+        .footer {
+            margin-top: 20pt;
+            padding-top: 10pt;
+            border-top: 1pt solid #ddd;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            font-size: 8pt;
+            color: #999;
+        }
+
+        .verification-url {
+            font-size: 8pt;
+            color: #006D5B;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <div class="header">
+        <div>
+            <div class="brand-name">VerifyNG</div>
+            <div class="brand-tagline">Nigeria's Public Trust &amp; Safety Platform</div>
+        </div>
+        <div class="doc-type">
+            <div class="doc-type-label">Document Type</div>
+            <div class="doc-type-title">Verification Certificate</div>
+        </div>
+    </div>
+
+    <!-- Status banner -->
+    {% if certificate.status == 'active' %}
+        <div class="status-banner status-active">✓ Valid Certificate</div>
+    {% elif certificate.status == 'pending' %}
+        <div class="status-banner status-pending">Pending Review</div>
+    {% elif certificate.status == 'revoked' %}
+        <div class="status-banner status-revoked">⚠ Revoked</div>
+    {% else %}
+        <div class="status-banner status-suspended">Suspended</div>
+    {% endif %}
+
+    <!-- Certificate Details -->
+    <div class="section-heading">Certificate Details</div>
+    <div class="field-grid">
+        <div>
+            <div class="field-label">Certificate ID</div>
+            <div class="field-value-mono">{{ certificate.certificate_id }}</div>
+        </div>
+        <div>
+            <div class="field-label">Verification Type</div>
+            <div class="field-value">{{ certificate.get_check_level_display }} Check</div>
+        </div>
+        <div>
+            <div class="field-label">Status</div>
+            <div class="field-value">{{ certificate.get_status_display }}</div>
+        </div>
+        <div>
+            <div class="field-label">Verification Date</div>
+            <div class="field-value">
+                {% if certificate.issued_at %}{{ certificate.issued_at|date:"j F Y" }}{% else %}—{% endif %}
+            </div>
+        </div>
+        {% if certificate.expires_at %}
+        <div>
+            <div class="field-label">Valid Until</div>
+            <div class="field-value">{{ certificate.expires_at|date:"j F Y" }}</div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Subject Information -->
+    <div class="section-heading">Subject Information</div>
+    <div class="field-grid">
+        <div>
+            <div class="field-label">Full Name</div>
+            <div class="field-value">{{ certificate.subject.name|default:"—" }}</div>
+        </div>
+        <div>
+            <div class="field-label">Certificate Holder</div>
+            <div class="field-value">
+                {{ certificate.holder.get_full_name|default:certificate.holder.username }}
+            </div>
+        </div>
+    </div>
+
+    <!-- Issuer -->
+    <div class="section-heading">Issuer</div>
+    <div class="field-grid">
+        <div>
+            <div class="field-label">Issued By</div>
+            <div class="field-value">VerifyNG</div>
+        </div>
+        <div>
+            <div class="field-label">Verification URL</div>
+            <div class="verification-url">
+                {{ base_url }}/verification/certificate/{{ certificate.certificate_id }}/
+            </div>
+        </div>
+    </div>
+
+    <!-- Disclaimer -->
+    <div class="disclaimer">
+        <strong>Important:</strong> This document is a <strong>VerifyNG Verification Certificate</strong>
+        and is <strong>not</strong> a government-issued certificate, DBS certificate, or Police Clearance
+        Certificate. VerifyNG is an independent trust and safety platform. This certificate reflects
+        information verified by VerifyNG at the time of issue and may be subject to change.
+        To verify the current status of this certificate, visit the Verification URL above.
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <div>
+            Document ID: {{ certificate.certificate_id }}<br>
+            Generated: {{ certificate.issued_at|date:"j F Y" }}
+        </div>
+        <div style="text-align:right;">
+            VerifyNG · Nigeria's Public Trust &amp; Safety Platform<br>
+            verify.ng
+        </div>
+    </div>
+
+</body>
+</html>
+
