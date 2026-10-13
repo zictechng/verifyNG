@@ -1,0 +1,80 @@
+
+{% extends 'public/base.html' %}
+{% load static %}
+
+{% block title %}Company Profile | VerifyNG{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-md-5">
+
+    <div class="row justify-content-center">
+        <div class="col-lg-7">
+
+            <div class="mb-4">
+                <a href="{% url 'employer:dashboard' %}" class="small text-muted text-decoration-none">← Employer Portal</a>
+                <h1 class="h3 fw-bold mt-2 mb-1">Company Profile</h1>
+                <p class="text-muted small mb-0">Keep your company details accurate for verification purposes.</p>
+            </div>
+
+            {% if profile.is_verified %}
+            <div class="alert d-flex align-items-center gap-2 mb-4"
+                 style="background:var(--vng-success-light);border:1px solid #BBF7D0;border-radius:var(--vng-radius-md);">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--vng-success)" stroke-width="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10" stroke-width="2.5"/>
+                </svg>
+                <span class="small fw-semibold" style="color:#166534;">Company verified by VerifyNG</span>
+            </div>
+            {% endif %}
+
+            {% if messages %}
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }} mb-4" style="border-radius:var(--vng-radius-md);">
+                {{ message }}
+            </div>
+            {% endfor %}
+            {% endif %}
+
+            <div class="vng-card p-4">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Company Name <span class="text-danger">*</span></label>
+                        <input type="text" name="company_name" class="form-control"
+                               value="{{ profile.company_name }}" required maxlength="200">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">CAC Registration Number (RC/BN)</label>
+                        <input type="text" name="company_rc_number" class="form-control"
+                               value="{{ profile.company_rc_number }}" maxlength="50"
+                               placeholder="e.g. RC123456">
+                        <div class="form-text">Required for company verification.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Industry</label>
+                        <input type="text" name="industry" class="form-control"
+                               value="{{ profile.industry }}" maxlength="100"
+                               placeholder="e.g. Financial Services, Healthcare, Technology">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Company Address</label>
+                        <textarea name="company_address" class="form-control" rows="3"
+                                  placeholder="Full registered address">{{ profile.company_address }}</textarea>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold small">Contact Phone</label>
+                        <input type="tel" name="contact_phone" class="form-control"
+                               value="{{ profile.contact_phone }}" maxlength="20"
+                               placeholder="+234 800 000 0000">
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-vng-primary">Save Profile</button>
+                        <a href="{% url 'employer:dashboard' %}" class="btn btn-vng-outline">Cancel</a>
+                    </div>
+                </form>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}
+

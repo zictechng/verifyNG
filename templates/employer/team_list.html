@@ -1,0 +1,95 @@
+
+{% extends 'public/base.html' %}
+{% load static %}
+
+{% block title %}Team Members | VerifyNG{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-md-5">
+
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <a href="{% url 'employer:dashboard' %}" class="small text-muted text-decoration-none">← Employer Portal</a>
+            <h1 class="h3 fw-bold mt-2 mb-1">Team Members</h1>
+            <p class="text-muted small mb-0">Manage who can run checks on behalf of {{ profile.company_name }}.</p>
+        </div>
+    </div>
+
+    <div class="vng-card">
+        {% if members %}
+        <div class="table-responsive">
+            <table class="table mb-0" style="font-size:0.875rem;">
+                <thead>
+                    <tr style="color:var(--vng-muted); border-bottom:2px solid var(--vng-border);">
+                        <th class="fw-semibold px-4 py-3">Member</th>
+                        <th class="fw-semibold py-3">Role</th>
+                        <th class="fw-semibold py-3">Invited By</th>
+                        <th class="fw-semibold py-3">Joined</th>
+                        <th class="fw-semibold py-3">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for member in members %}
+                    <tr style="border-bottom:1px solid var(--vng-border);">
+                        <td class="px-4 py-3">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                                     style="width:32px;height:32px;background:var(--vng-primary-light);color:var(--vng-primary);font-weight:700;font-size:13px;">
+                                    {{ member.user.get_full_name|default:member.user.username|slice:":1"|upper }}
+                                </div>
+                                <div>
+                                    <div class="fw-semibold" style="color:var(--vng-ink);">
+                                        {{ member.user.get_full_name|default:member.user.username }}
+                                    </div>
+                                    <div class="text-muted" style="font-size:12px;">{{ member.user.email }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="py-3">
+                            {% if member.team_role == 'admin' %}
+                                <span class="badge" style="background:var(--vng-primary-light);color:var(--vng-primary);">
+                                    Team Admin
+                                </span>
+                            {% elif member.team_role == 'checker' %}
+                                <span class="badge" style="background:var(--vng-teal-light);color:var(--vng-teal);">
+                                    Checker
+                                </span>
+                            {% else %}
+                                <span class="badge bg-light text-dark">Viewer</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 text-muted">
+                            {{ member.invited_by.get_full_name|default:member.invited_by.username|default:"—" }}
+                        </td>
+                        <td class="py-3 text-muted">
+                            {{ member.joined_at|date:"d M Y"|default:"Pending" }}
+                        </td>
+                        <td class="py-3">
+                            {% if member.is_active %}
+                                <span class="badge bg-success">Active</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Inactive</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5 text-muted">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="mb-3 opacity-40">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+            <div class="fw-semibold mb-1">No team members yet</div>
+            <p class="small mb-0">Team member invitations are coming in a future update.</p>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}
+

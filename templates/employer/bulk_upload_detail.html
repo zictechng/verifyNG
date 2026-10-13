@@ -1,0 +1,121 @@
+
+{% extends 'public/base.html' %}
+{% load static %}
+
+{% block title %}{{ upload.original_filename }} | VerifyNG{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-md-5">
+
+    <div class="mb-4">
+        <a href="{% url 'employer:bulk_upload_list' %}" class="small text-muted text-decoration-none">← Bulk Uploads</a>
+        <h1 class="h4 fw-bold mt-2 mb-1">{{ upload.original_filename }}</h1>
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+            {% if upload.status == 'completed' %}
+                <span class="badge bg-success">Completed</span>
+            {% elif upload.status == 'processing' %}
+                <span class="badge bg-primary">Processing</span>
+            {% elif upload.status == 'failed' %}
+                <span class="badge bg-danger">Failed</span>
+            {% else %}
+                <span class="badge bg-secondary">Pending</span>
+            {% endif %}
+            <span class="small text-muted">Uploaded {{ upload.created_at|date:"d M Y, H:i" }}</span>
+            <span class="small text-muted">{{ upload.processed_count }} / {{ upload.row_count }} rows processed</span>
+        </div>
+    </div>
+
+    {% if upload.status == 'failed' and upload.error_summary %}
+    <div class="alert alert-danger mb-4" style="border-radius:var(--vng-radius-md);">
+        <strong>Error:</strong> {{ upload.error_summary }}
+    </div>
+    {% endif %}
+
+    {# Progress bar #}
+    {% if upload.status == 'processing' %}
+    <div class="vng-card p-4 mb-4">
+        <div class="d-flex justify-content-between small fw-semibold mb-2">
+            <span>Processing…</span>
+            <span>{{ upload.progress_pct }}%</span>
+        </div>
+        <div class="progress" style="height:8px;">
+            <div class="progress-bar bg-primary progress-bar-striped progress-bar-animated"
+                 style="width:{{ upload.progress_pct }}%"></div>
+        </div>
+    </div>
+    {% endif %}
+
+    {# Rows table #}
+    <div class="vng-card">
+        <div class="p-4 pb-0">
+            <h2 class="h6 fw-bold mb-0">Candidate Rows</h2>
+        </div>
+        {% if page_obj.object_list %}
+        <div class="table-responsive">
+            <table class="table mb-0" style="font-size:0.875rem;">
+                <thead>
+                    <tr style="color:var(--vng-muted); border-bottom:2px solid var(--vng-border);">
+                        <th class="fw-semibold px-4 py-3">#</th>
+                        <th class="fw-semibold py-3">Name</th>
+                        <th class="fw-semibold py-3">Phone</th>
+                        <th class="fw-semibold py-3">Status</th>
+                        <th class="fw-semibold py-3">Result</th>
+                        <th class="fw-semibold py-3">Checked</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in page_obj %}
+                    <tr style="border-bottom:1px solid var(--vng-border);">
+                        <td class="px-4 py-2 text-muted">{{ row.row_number }}</td>
+                        <td class="py-2 fw-semibold" style="color:var(--vng-ink);">{{ row.full_name|default:"—" }}</td>
+                        <td class="py-2 text-muted">{{ row.phone_number|default:"—" }}</td>
+                        <td class="py-2">
+                            {% if row.status == 'completed' %}
+                                <span class="badge bg-success">Done</span>
+                            {% elif row.status == 'checking' %}
+                                <span class="badge bg-primary">Checking</span>
+                            {% elif row.status == 'failed' %}
+                                <span class="badge bg-danger">Failed</span>
+                            {% elif row.status == 'skipped' %}
+                                <span class="badge bg-secondary">Skipped</span>
+                            {% else %}
+                                <span class="badge bg-light text-dark">Pending</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-2 text-muted" style="max-width:200px;">
+                            {{ row.result_summary|truncatechars:60|default:"—" }}
+                        </td>
+                        <td class="py-2 text-muted">
+                            {{ row.checked_at|date:"d M, H:i"|default:"—" }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if page_obj.has_other_pages %}
+        <div class="d-flex justify-content-center py-3 gap-2">
+            {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}" class="btn btn-vng-outline btn-sm">← Previous</a>
+            {% endif %}
+            <span class="btn btn-sm disabled" style="color:var(--vng-muted);">
+                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+            </span>
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}" class="btn btn-vng-outline btn-sm">Next →</a>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% else %}
+        <div class="text-center py-5 text-muted">
+            <div class="fw-semibold mb-1">No rows found</div>
+            <div class="small">Rows will appear here once the file is processed.</div>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}
+
