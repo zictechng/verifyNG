@@ -5,15 +5,26 @@
   <h1 class="adm-page-title">Subscriptions</h1>
 </div>
 {% include "admin_portal/_messages.html" %}
-<form class="adm-filter-bar mb-4" method="get">
-  <select name="status" class="form-select adm-filter-select">
-    <option value="">All Statuses</option>
-    {% for key, label in status_choices %}
-    <option value="{{ key }}" {% if key == selected_status %}selected{% endif %}>{{ label }}</option>
-    {% endfor %}
-  </select>
-  <input type="text" name="q" value="{{ q }}" class="form-control adm-filter-input" placeholder="Username or email…">
-  <button type="submit" class="btn btn-adm-primary">Filter</button>
+<form class="adm-filter-bar" method="get">
+  <div class="row g-2 align-items-end w-100">
+    <div class="col-md-5">
+      <label class="form-label small fw-semibold mb-1" style="color:var(--adm-muted);">Status</label>
+      <select name="status" class="form-select form-select-sm" style="height:38px;">
+        <option value="">All Statuses</option>
+        {% for key, label in status_choices %}
+        <option value="{{ key }}" {% if key == selected_status %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-5">
+      <label class="form-label small fw-semibold mb-1" style="color:var(--adm-muted);">Search</label>
+      <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="Username or email…" style="height:38px;">
+    </div>
+    <div class="col-md-2">
+      <label class="form-label small mb-1" style="color:transparent;">x</label>
+      <button type="submit" class="btn-adm-primary w-100" style="justify-content:center;">Filter</button>
+    </div>
+  </div>
 </form>
 {% if page_obj.object_list %}
 <div class="adm-card">

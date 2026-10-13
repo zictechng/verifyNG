@@ -223,19 +223,25 @@ class AdminAuditLogsView(SuperAdminRequiredMixin, TemplateView):
         status_filter = self.request.GET.get('status', '')
         search_query = self.request.GET.get('q', '').strip()
 
-        logs = LoginAudit.objects.select_related('user').all()
+        logs = LoginAudit.objects.select_related('user').order_by('-timestamp')
 
         if status_filter:
             logs = logs.filter(status=status_filter)
 
         if search_query:
-            logs = logs.filter(username_attempted__icontains=search_query) | logs.filter(ip_address__icontains=search_query)
+            logs = logs.filter(username_attempted__icontains=search_query) | \
+                logs.filter(ip_address__icontains=search_query)
 
-        ctx['logs'] = logs[:100]
+        per_page = int(self.request.GET.get('per_page', 15))
+        if per_page not in (15, 25, 50, 100):
+            per_page = 15
+        paginator = Paginator(logs, per_page)
+        ctx['page_obj'] = paginator.get_page(self.request.GET.get('page', 1))
+        ctx['per_page'] = per_page
+        ctx['per_page_options'] = [15, 25, 50, 100]
         ctx['selected_status'] = status_filter
         ctx['search_query'] = search_query
         return ctx
-
 
 class AdminCommunicationsView(SuperAdminRequiredMixin, TemplateView):
     """Email Broadcasting and Targeted Message Dispatch Center."""

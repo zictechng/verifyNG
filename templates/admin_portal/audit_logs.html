@@ -1,15 +1,15 @@
 {% extends 'admin_portal/base_admin.html' %}
 
-{% block title %}Security Audit Logs | VerifyNG Admin Portal{% endblock %}
+{% block title %}Security Audit logs | VerifyNG Admin Portal{% endblock %}
 
 {% block breadcrumb %}
 <li class="breadcrumb-item"><a href="{% url 'admin_portal:overview' %}">Overview</a></li>
-<li class="breadcrumb-item active">Audit Logs</li>
+<li class="breadcrumb-item active">Audit logs</li>
 {% endblock %}
 
 {% block admin_body %}
 <div class="adm-page-heading">
-    <h1>Security &amp; Audit Logs</h1>
+    <h1>Security &amp; Audit logs</h1>
     <p>Forensic trail of all login attempts, authentication outcomes, client IPs, and device information.</p>
 </div>
 
@@ -43,7 +43,7 @@
                     Apply
                 </button>
                 {% if search_query or selected_status %}
-                <a href="{% url 'admin_portal:audit_logs' %}" class="btn-adm-outline" title="Clear">
+                <a href="{% url 'admin_portal:audit_page_obj' %}" class="btn-adm-outline" title="Clear">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </a>
                 {% endif %}
@@ -57,8 +57,8 @@
     <div class="adm-card-header">
         <h2 class="adm-card-title">
             Login Audit Events
-            {% if logs %}
-                <span class="adm-badge gray ms-2">{{ logs|length }}{% if logs|length == 100 %}+{% endif %}</span>
+            {% if page_obj %}
+                <span class="adm-badge gray ms-2">{{ page_obj|length }}{% if page_obj|length == 100 %}+{% endif %}</span>
             {% endif %}
         </h2>
         <span style="font-size:0.75rem;color:var(--adm-muted);">Immutable &mdash; append-only record</span>
@@ -78,7 +78,7 @@
                 </tr>
             </thead>
             <tbody>
-                {% for log in logs %}
+                {% for log in page_obj %}
                 <tr>
                     <td>
                         <span class="fw-semibold" style="font-size:0.845rem;">{{ log.username_attempted }}</span>
@@ -119,7 +119,7 @@
                     <td colspan="8">
                         <div class="adm-empty">
                             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                            <p>No security audit logs found for the applied filters.</p>
+                            <p>No security audit page_obj found for the applied filters.</p>
                         </div>
                     </td>
                 </tr>

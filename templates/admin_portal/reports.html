@@ -15,10 +15,18 @@
   {% endfor %}
 </div>
 
-<form class="adm-filter-bar mb-4" method="get">
+<form class="adm-filter-bar" method="get">
   {% if selected_state %}<input type="hidden" name="state" value="{{ selected_state }}">{% endif %}
-  <input type="text" name="q" value="{{ q }}" class="form-control adm-filter-input" placeholder="Search reference, title, reporter…">
-  <button type="submit" class="btn btn-adm-primary">Search</button>
+  <div class="row g-2 align-items-end w-100">
+    <div class="col-md-10">
+      <label class="form-label small fw-semibold mb-1" style="color:var(--adm-muted);">Search</label>
+      <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="Search reference, title, reporter…" style="height:38px;">
+    </div>
+    <div class="col-md-2">
+      <label class="form-label small mb-1" style="color:transparent;">x</label>
+      <button type="submit" class="btn-adm-primary w-100" style="justify-content:center;">Search</button>
+    </div>
+  </div>
 </form>
 
 {% if page_obj.object_list %}

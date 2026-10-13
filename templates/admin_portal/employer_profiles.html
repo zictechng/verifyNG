@@ -5,14 +5,25 @@
   <h1 class="adm-page-title">Employer Profiles</h1>
 </div>
 {% include "admin_portal/_messages.html" %}
-<form class="adm-filter-bar mb-4" method="get">
-  <select name="verified" class="form-select adm-filter-select">
-    <option value="">All</option>
-    <option value="yes" {% if verified_filter == 'yes' %}selected{% endif %}>Verified</option>
-    <option value="no" {% if verified_filter == 'no' %}selected{% endif %}>Unverified</option>
-  </select>
-  <input type="text" name="q" value="{{ q }}" class="form-control adm-filter-input" placeholder="Company name or email…">
-  <button type="submit" class="btn btn-adm-primary">Filter</button>
+<form class="adm-filter-bar" method="get">
+  <div class="row g-2 align-items-end w-100">
+    <div class="col-md-4">
+      <label class="form-label small fw-semibold mb-1" style="color:var(--adm-muted);">Verified</label>
+      <select name="verified" class="form-select form-select-sm" style="height:38px;">
+        <option value="">All</option>
+        <option value="yes" {% if verified_filter == 'yes' %}selected{% endif %}>Verified</option>
+        <option value="no" {% if verified_filter == 'no' %}selected{% endif %}>Unverified</option>
+      </select>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label small fw-semibold mb-1" style="color:var(--adm-muted);">Search</label>
+      <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="Company name or email…" style="height:38px;">
+    </div>
+    <div class="col-md-2">
+      <label class="form-label small mb-1" style="color:transparent;">x</label>
+      <button type="submit" class="btn-adm-primary w-100" style="justify-content:center;">Filter</button>
+    </div>
+  </div>
 </form>
 {% if page_obj.object_list %}
 <div class="adm-card">
@@ -47,7 +58,7 @@
     </tbody>
   </table>
 </div>
-{% include "admin_portal/_pagination.html" with page=page_obj %}
+{% include "admin_portal/_pagination.html" %}
 {% else %}
 <div class="adm-empty">No employer profiles found.</div>
 {% endif %}
