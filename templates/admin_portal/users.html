@@ -62,8 +62,8 @@
     <div class="adm-card-header">
         <h2 class="adm-card-title">
             Users
-            {% if users_list %}
-                <span class="adm-badge gray ms-2">{{ users_list|length }}{% if users_list|length == 50 %}+{% endif %}</span>
+            {% if page_obj %}
+                <span class="adm-badge gray ms-2">{{ page_obj|length }}{% if page_obj|length == 50 %}+{% endif %}</span>
             {% endif %}
         </h2>
     </div>
@@ -80,7 +80,7 @@
                 </tr>
             </thead>
             <tbody>
-                {% for u in users_list %}
+                {% for u in page_obj %}
                 <tr>
                     <td>
                         <div class="d-flex align-items-center gap-2">
@@ -186,12 +186,6 @@
             </tbody>
         </table>
     </div>
-    {% if users_list|length == 50 %}
-    <div class="px-4 py-3 border-top" style="border-color:var(--adm-border)!important;">
-        <p class="mb-0" style="font-size:0.78rem;color:var(--adm-muted);">
-            Showing first 50 results. Refine your search to narrow results further.
-        </p>
-    </div>
-    {% endif %}
 </div>
+{% include "admin_portal/_pagination.html" %}
 {% endblock %}

@@ -127,13 +127,8 @@
             </tbody>
         </table>
     </div>
-    {% if logs|length == 100 %}
-    <div class="px-4 py-3 border-top" style="border-color:var(--adm-border)!important;">
-        <p class="mb-0" style="font-size:0.78rem;color:var(--adm-muted);">
-            Showing most recent 100 events. Use search or outcome filter to narrow results.
-        </p>
-    </div>
-    {% endif %}
+    
 </div>
+{% include "admin_portal/_pagination.html" %}
 {% endblock %}
 
