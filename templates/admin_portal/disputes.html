@@ -28,7 +28,7 @@
       {% for d in page_obj %}
       <tr>
         <td><code>{{ d.report.reference_number }}</code></td>
-        <td>{{ d.disputed_by.username|default:"—" }}</td>
+        <td>{{ d.disputant.username|default:"—" }}</td>
         <td><span class="adm-badge adm-badge-amber">{{ d.get_status_display }}</span></td>
         <td>{{ d.created_at|date:"d M Y" }}</td>
         <td>
@@ -52,4 +52,4 @@
 {% else %}
 <div class="adm-empty">No disputes found.</div>
 {% endif %}
-{% endblock %}
+{% block admin_body %}

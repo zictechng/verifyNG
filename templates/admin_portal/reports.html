@@ -7,10 +7,10 @@
 
 <!-- State filter tabs -->
 <div class="d-flex gap-2 flex-wrap mb-3">
-  <a href="{% url 'admin_portal:reports' %}" class="btn btn-adm-outline {% if not selected_state %}btn-adm-primary{% endif %}">All ({{ counts.values|sum }})</a>
-  {% for state_key, state_label in state_choices %}
+  <a href="{% url 'admin_portal:reports' %}" class="btn btn-adm-outline {% if not selected_state %}btn-adm-primary{% endif %}">All ({{ total_count }})</a>
+  {% for state_key, state_label, state_count in state_choices %}
   <a href="?state={{ state_key }}" class="btn btn-adm-outline {% if selected_state == state_key %}btn-adm-primary{% endif %}">
-    {{ state_label }} ({{ counts|dictsort:state_key }})
+    {{ state_label }} ({{ state_count }})
   </a>
   {% endfor %}
 </div>
@@ -60,4 +60,4 @@
 {% else %}
 <div class="adm-empty">No reports match your filters.</div>
 {% endif %}
-{% endblock %}
+{% endblock admin_body %}

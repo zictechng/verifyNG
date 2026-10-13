@@ -401,10 +401,12 @@ class AdminReportsView(SuperAdminRequiredMixin, TemplateView):
         paginator = Paginator(reports, 25)
         page = self.request.GET.get('page', 1)
         ctx['page_obj'] = paginator.get_page(page)
-        ctx['state_choices'] = FraudReport.STATES
+        counts = {s[0]: FraudReport.objects.filter(state=s[0]).count() for s in FraudReport.STATES}
+        ctx['counts'] = counts
+        ctx['total_count'] = sum(counts.values())
+        ctx['state_choices'] = [(key, label, counts.get(key, 0)) for key, label in FraudReport.STATES]
         ctx['selected_state'] = state_filter
         ctx['q'] = q
-        ctx['counts'] = {s[0]: FraudReport.objects.filter(state=s[0]).count() for s in FraudReport.STATES}
         return ctx
 
 
@@ -482,7 +484,7 @@ class AdminDisputesView(SuperAdminRequiredMixin, TemplateView):
         status_filter = self.request.GET.get('status', '')
         q = self.request.GET.get('q', '').strip()
 
-        disputes = Dispute.objects.select_related('report', 'disputed_by').order_by('-created_at') if Dispute else Dispute.objects.none()
+        disputes = Dispute.objects.select_related('report', 'disputant').order_by('-created_at')
 
         if status_filter:
             disputes = disputes.filter(status=status_filter)
@@ -491,8 +493,9 @@ class AdminDisputesView(SuperAdminRequiredMixin, TemplateView):
 
         paginator = Paginator(disputes, 25)
         ctx['page_obj'] = paginator.get_page(self.request.GET.get('page', 1))
-        ctx['status_choices'] = Dispute.DISPUTE_STATES if Dispute else []
+        ctx['status_choices'] = Dispute.DISPUTE_STATES
         ctx['selected_status'] = status_filter
+        ctx['q'] = q
         return ctx
 
 
