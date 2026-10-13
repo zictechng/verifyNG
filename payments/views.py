@@ -182,6 +182,9 @@ def payment_callback(request):
 
     # If already verified (e.g. webhook beat us here), show result immediately
     if transaction.status == 'success':
+        # Route certificate query payments to the dedicated result view
+        if request.session.get('pending_cert_query', {}).get('transaction_reference') == reference:
+            return redirect('verification:certificate_query_result')
         return render(request, 'payments/callback.html', {
             'success': True,
             'transaction': transaction,
@@ -217,6 +220,11 @@ def payment_callback(request):
         ip_address=get_client_ip(request),
         details={'reference': reference, 'plan_name': transaction.plan.name if transaction.plan else ''},
     )
+
+    # If this payment was for a certificate query, route to the cert result view
+    if success and request.session.get('pending_cert_query', {}).get('transaction_reference') == reference:
+        return redirect('verification:certificate_query_result')
+
     context = {
         'success': success,
         'transaction': transaction,
