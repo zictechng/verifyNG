@@ -17,6 +17,7 @@ from verification.models import VerificationRequest
 from identities.models import Identifier, SubjectEntity
 from core.permissions import is_superadmin
 from core.tasks import send_email_notification_task
+from django.db.models import Q
 
 from django.core.paginator import Paginator
 from django.http import HttpResponseForbidden
@@ -330,7 +331,7 @@ class AdminUserDetailView(SuperAdminRequiredMixin, TemplateView):
         )
 
         # System activity (AuditLog) — paginated
-        from django.db.models import Q
+        
         activity_qs = AuditLog.objects.filter(performed_by=target_user).order_by('-timestamp')
         activity_paginator = Paginator(activity_qs, 15)
         ctx['user_activity'] = activity_paginator.get_page(
@@ -341,10 +342,24 @@ class AdminUserDetailView(SuperAdminRequiredMixin, TemplateView):
         ctx['active_tab'] = self.request.GET.get('tab', 'login')
 
         # Other sections — keep as slices (not paginated, shown in full)
-        ctx['user_reports'] = FraudReport.objects.filter(
-            reporter=target_user).order_by('-created_at')[:10]
-        ctx['user_verifications'] = VerificationRequest.objects.filter(
-            requester=target_user).order_by('-created_at')[:10] if VerificationRequest else []
+                # Reports — paginated (10 per page)
+        reports_qs = FraudReport.objects.filter(
+            reporter=target_user).order_by('-created_at')
+        ctx['user_reports'] = Paginator(reports_qs, 10).get_page(
+            self.request.GET.get('reports_page', 1)
+        )
+
+        # Verifications — paginated (10 per page)
+        if VerificationRequest:
+            verif_qs = VerificationRequest.objects.filter(
+                requester=target_user).order_by('-created_at')
+            ctx['user_verifications'] = Paginator(verif_qs, 10).get_page(
+                self.request.GET.get('verif_page', 1)
+            )
+        else:
+            ctx['user_verifications'] = []
+
+        # Subscriptions — small number expected, keep as slice
         if Subscription:
             ctx['user_subscriptions'] = Subscription.objects.filter(
                 user=target_user).order_by('-created_at')[:5]

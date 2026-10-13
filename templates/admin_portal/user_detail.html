@@ -20,7 +20,6 @@
     <div class="adm-card mb-4">
       <div class="adm-card-header">Account Details</div>
       <table class="table table-sm mb-0 small">
-        <tr><th style="width:45%;color:var(--adm-muted);font-weight:500;">ID</th><td class="mono">{{ target_user.id }}</td></tr>
         <tr><th style="color:var(--adm-muted);font-weight:500;">Username</th><td class="fw-semibold">{{ target_user.username }}</td></tr>
         <tr><th style="color:var(--adm-muted);font-weight:500;">Email</th><td>{{ target_user.email }}</td></tr>
         <tr><th style="color:var(--adm-muted);font-weight:500;">Role</th><td><span class="adm-badge blue">{{ target_user.get_role_display }}</span></td></tr>
@@ -94,10 +93,11 @@
   <div class="col-lg-8">
 
     <!-- Reports submitted -->
+        
     <div class="adm-card mb-4">
       <div class="adm-card-header">
         Reports Submitted
-        <span class="adm-badge gray ms-2">{{ user_reports|length }}</span>
+        <span class="adm-badge gray ms-2">{{ user_reports.paginator.count }}</span>
       </div>
       {% if user_reports %}
       <table class="adm-table">
@@ -114,14 +114,25 @@
           {% endfor %}
         </tbody>
       </table>
+      {% if user_reports.has_other_pages %}
+      <div class="px-4 py-3 d-flex align-items-center justify-content-between flex-wrap gap-2" style="border-top:1px solid var(--adm-border);">
+        <span style="font-size:0.78rem;color:var(--adm-muted);">Showing {{ user_reports.start_index }}–{{ user_reports.end_index }} of {{ user_reports.paginator.count }}</span>
+        <ul class="pagination pagination-sm mb-0">
+          {% if user_reports.has_previous %}<li class="page-item"><a class="page-link" href="?reports_page={{ user_reports.previous_page_number }}&verif_page={{ user_verifications.number|default:1 }}&tab={{ active_tab }}&login_page={{ login_history.number }}&activity_page={{ user_activity.number }}">‹ Prev</a></li>{% else %}<li class="page-item disabled"><span class="page-link">‹ Prev</span></li>{% endif %}
+          <li class="page-item disabled"><span class="page-link">{{ user_reports.number }} / {{ user_reports.paginator.num_pages }}</span></li>
+          {% if user_reports.has_next %}<li class="page-item"><a class="page-link" href="?reports_page={{ user_reports.next_page_number }}&verif_page={{ user_verifications.number|default:1 }}&tab={{ active_tab }}&login_page={{ login_history.number }}&activity_page={{ user_activity.number }}">Next ›</a></li>{% else %}<li class="page-item disabled"><span class="page-link">Next ›</span></li>{% endif %}
+        </ul>
+      </div>
+      {% endif %}
       {% else %}<div class="adm-empty"><p>No reports submitted.</p></div>{% endif %}
     </div>
 
     <!-- Verifications -->
+        <!-- Verifications -->
     <div class="adm-card mb-4">
       <div class="adm-card-header">
         Verifications
-        <span class="adm-badge gray ms-2">{{ user_verifications|length }}</span>
+        <span class="adm-badge gray ms-2">{% if user_verifications.paginator %}{{ user_verifications.paginator.count }}{% else %}0{% endif %}</span>
       </div>
       {% if user_verifications %}
       <table class="adm-table">
@@ -137,6 +148,16 @@
           {% endfor %}
         </tbody>
       </table>
+      {% if user_verifications.has_other_pages %}
+      <div class="px-4 py-3 d-flex align-items-center justify-content-between flex-wrap gap-2" style="border-top:1px solid var(--adm-border);">
+        <span style="font-size:0.78rem;color:var(--adm-muted);">Showing {{ user_verifications.start_index }}–{{ user_verifications.end_index }} of {{ user_verifications.paginator.count }}</span>
+        <ul class="pagination pagination-sm mb-0">
+          {% if user_verifications.has_previous %}<li class="page-item"><a class="page-link" href="?verif_page={{ user_verifications.previous_page_number }}&reports_page={{ user_reports.number }}&tab={{ active_tab }}&login_page={{ login_history.number }}&activity_page={{ user_activity.number }}">‹ Prev</a></li>{% else %}<li class="page-item disabled"><span class="page-link">‹ Prev</span></li>{% endif %}
+          <li class="page-item disabled"><span class="page-link">{{ user_verifications.number }} / {{ user_verifications.paginator.num_pages }}</span></li>
+          {% if user_verifications.has_next %}<li class="page-item"><a class="page-link" href="?verif_page={{ user_verifications.next_page_number }}&reports_page={{ user_reports.number }}&tab={{ active_tab }}&login_page={{ login_history.number }}&activity_page={{ user_activity.number }}">Next ›</a></li>{% else %}<li class="page-item disabled"><span class="page-link">Next ›</span></li>{% endif %}
+        </ul>
+      </div>
+      {% endif %}
       {% else %}<div class="adm-empty"><p>No verifications on record.</p></div>{% endif %}
     </div>
 
