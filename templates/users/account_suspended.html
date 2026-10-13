@@ -1,0 +1,39 @@
+
+{% extends "base.html" %}
+{% block title %}Account Suspended — {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-6 text-center">
+
+      <div class="mb-4">
+        <i class="bi bi-slash-circle text-warning" style="font-size: 4rem;"></i>
+      </div>
+
+      <h1 class="h3 fw-bold mb-3">Your Account Has Been Suspended</h1>
+
+      <p class="text-muted mb-4">
+        Your account has been temporarily suspended by an administrator.
+        While suspended, you cannot perform any actions on the platform.
+      </p>
+
+      <p class="text-muted mb-4">
+        If you believe this is an error or would like to appeal,
+        please contact our support team.
+      </p>
+
+      <a href="mailto:{{ SUPPORT_EMAIL|default:'support@verifyng.com' }}"
+         class="btn btn-primary me-2">
+        Contact Support
+      </a>
+
+      <a href="{% url 'account_logout' %}" class="btn btn-outline-secondary">
+        Sign Out
+      </a>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
+

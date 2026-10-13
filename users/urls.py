@@ -13,6 +13,7 @@ from users.views import (
     CustomPasswordChangeView,
 )
 from django.contrib.auth.views import PasswordChangeDoneView
+from django.views.generic import TemplateView
 
 app_name = 'users'
 
@@ -22,6 +23,11 @@ urlpatterns = [
     path('logout/', UserLogoutView.as_view(), name='logout'),
     path('profile/', UserProfileUpdateView.as_view(), name='profile'),
     path('delete-account/', DeleteAccountView.as_view(), name='delete_account'),
+    path(
+        'suspended/',
+        TemplateView.as_view(template_name='users/account_suspended.html'),
+        name='account_suspended',
+    ),
 
     # Password Reset (unauthenticated — forgot password)
     path('password-reset/', CustomPasswordResetView.as_view(), name='password_reset'),

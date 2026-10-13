@@ -36,38 +36,105 @@
       </table>
     </div>
 
-    <div class="adm-card mb-4">
-      <div class="adm-card-header">Quick Actions</div>
-      <div class="p-3 d-grid gap-2">
-        <form method="post" action="{% url 'admin_portal:user_toggle_status' target_user.public_id %}">
-          {% csrf_token %}
-          {% if target_user.is_active %}
-          <button class="btn btn-adm-danger w-100">Suspend Account</button>
-          {% else %}
-          <button class="btn btn-adm-success w-100">Reactivate Account</button>
-          {% endif %}
-        </form>
-        <form method="post" action="{% url 'admin_portal:user_block' target_user.public_id %}">
-          {% csrf_token %}
-          {% if target_user.is_active %}
-          <input type="hidden" name="action" value="block">
-          <button class="btn btn-adm-danger w-100">Block User</button>
-          {% else %}
-          <input type="hidden" name="action" value="unblock">
-          <button class="btn btn-adm-success w-100">Unblock User</button>
-          {% endif %}
-        </form>
-        <form method="post" action="{% url 'admin_portal:user_change_role' target_user.public_id %}">
-          {% csrf_token %}
-          <div class="input-group">
-            <select name="role" class="form-select">
-              {% for key, label in role_choices %}
-              <option value="{{ key }}" {% if key == target_user.role %}selected{% endif %}>{{ label }}</option>
-              {% endfor %}
-            </select>
-            <button class="btn btn-adm-primary">Set Role</button>
-          </div>
-        </form>
+    <!-- ── Quick Actions ──────────────────────────────────────── -->
+    <div class="card shadow-sm mb-4">
+      <div class="card-header bg-white fw-semibold py-3">
+        <i class="bi bi-lightning-charge me-2 text-primary"></i>Quick Actions
+      </div>
+      <div class="card-body d-grid gap-2">
+
+        {# ── Suspend / Reactivate (soft — user can still log in) ── #}
+        {% if target_user.is_suspended %}
+          <button type="button" class="btn btn-success btn-sm"
+                  onclick="openConfirmModal({
+                    title: 'Reactivate Account',
+                    body:  'This will lift the suspension for <strong>{{ target_user.username }}</strong>. They will regain full platform access.',
+                    confirmLabel: 'Yes, Reactivate',
+                    confirmClass: 'btn-success',
+                    formAction: '{% url "admin_portal:user_toggle_status" target_user.public_id %}',
+                    hiddenFields: {}
+                  })">
+            <i class="bi bi-check-circle me-1"></i>Reactivate Account
+          </button>
+        {% else %}
+          <button type="button" class="btn btn-warning btn-sm"
+                  onclick="openConfirmModal({
+                    title: 'Suspend Account',
+                    body:  'Suspending <strong>{{ target_user.username }}</strong> will prevent them from performing any platform actions. They can still log in and will see a suspended notice.',
+                    confirmLabel: 'Yes, Suspend',
+                    confirmClass: 'btn-warning',
+                    formAction: '{% url "admin_portal:user_toggle_status" target_user.public_id %}',
+                    hiddenFields: {}
+                  })">
+            <i class="bi bi-pause-circle me-1"></i>Suspend Account
+          </button>
+        {% endif %}
+
+        {# ── Block / Unblock (hard — prevents login entirely) ── #}
+        {% if not target_user.is_active %}
+          <button type="button" class="btn btn-success btn-sm"
+                  onclick="openConfirmModal({
+                    title: 'Unblock Account',
+                    body:  'This will restore login access for <strong>{{ target_user.username }}</strong>.',
+                    confirmLabel: 'Yes, Unblock',
+                    confirmClass: 'btn-success',
+                    formAction: '{% url "admin_portal:user_block" target_user.public_id %}',
+                    hiddenFields: { action: 'unblock' }
+                  })">
+            <i class="bi bi-unlock me-1"></i>Unblock Account
+          </button>
+        {% else %}
+          <button type="button" class="btn btn-danger btn-sm"
+                  onclick="openConfirmModal({
+                    title: 'Block Account',
+                    body:  '<strong>{{ target_user.username }}</strong> will be completely blocked and will not be able to log in at all. This is stronger than suspension.',
+                    confirmLabel: 'Yes, Block',
+                    confirmClass: 'btn-danger',
+                    formAction: '{% url "admin_portal:user_block" target_user.public_id %}',
+                    hiddenFields: { action: 'block' }
+                  })">
+            <i class="bi bi-lock me-1"></i>Block Account
+          </button>
+        {% endif %}
+
+        {# ── Change Role ── #}
+        <button type="button" class="btn btn-outline-secondary btn-sm"
+                onclick="openConfirmModal({
+                  title: 'Change Role',
+                  body:  'Select a new role for <strong>{{ target_user.username }}</strong>.<br><br><select name=\"role\" id=\"modalRoleSelect\" class=\"form-select form-select-sm mt-2\">{% for val, label in role_choices %}<option value=\"{{ val }}\">{{ label }}</option>{% endfor %}</select>',
+                  confirmLabel: 'Apply Role',
+                  confirmClass: 'btn-secondary',
+                  formAction: '{% url "admin_portal:user_change_role" target_user.public_id %}',
+                  hiddenFields: {},
+                  extraFieldsCallback: function() {
+                    var sel = document.getElementById(\"modalRoleSelect\");
+                    return sel ? { role: sel.value } : {};
+                  }
+                })">
+          <i class="bi bi-person-gear me-1"></i>Change Role
+        </button>
+
+        {# ── Hard Delete (irreversible) ── #}
+        <button type="button" class="btn btn-outline-danger btn-sm mt-2"
+                onclick="openConfirmModal({
+                  title: 'Permanently Delete Account',
+                  body:  '⚠️ This action <strong>cannot be undone</strong>. All data for <strong>{{ target_user.username }}</strong> will be permanently erased. Type the username to confirm:<br><br><input type=\"text\" id=\"deleteConfirmInput\" class=\"form-control form-control-sm mt-2\" placeholder=\"{{ target_user.username }}\">',
+                  confirmLabel: 'Delete Permanently',
+                  confirmClass: 'btn-danger',
+                  formAction: '{% url "admin_portal:user_hard_delete" target_user.public_id %}',
+                  hiddenFields: {},
+                  preSubmitCheck: function() {
+                    var inp = document.getElementById(\"deleteConfirmInput\");
+                    if (!inp || inp.value !== \"{{ target_user.username }}\") {
+                      alert(\"Username does not match. Deletion cancelled.\");
+                      return false;
+                    }
+                    return true;
+                  }
+                })">
+          <i class="bi bi-trash3 me-1"></i>Hard Delete
+        </button>
+
       </div>
     </div>
 
@@ -361,6 +428,86 @@
     </div>
   </div>
 </div>
+
+<!-- ── Reusable Confirmation Modal ──────────────────────────── -->
+<div class="modal fade" id="confirmActionModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content shadow">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-bold" id="confirmModalLabel"></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body pt-2" id="confirmModalBody"></div>
+      <div class="modal-footer border-0 pt-0">
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-sm" id="confirmModalBtn"></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Hidden form that the modal submits -->
+<form id="confirmActionForm" method="post" style="display:none;">
+  {% csrf_token %}
+  <div id="confirmActionHiddenFields"></div>
+</form>
+
+<script>
+(function () {
+  var _extraCallback = null;
+  var _preSubmitCheck = null;
+
+  window.openConfirmModal = function (opts) {
+    _extraCallback = opts.extraFieldsCallback || null;
+    _preSubmitCheck = opts.preSubmitCheck || null;
+
+    document.getElementById('confirmModalLabel').innerHTML = opts.title || 'Confirm Action';
+    document.getElementById('confirmModalBody').innerHTML  = opts.body  || 'Are you sure?';
+
+    var btn = document.getElementById('confirmModalBtn');
+    btn.textContent = opts.confirmLabel || 'Confirm';
+    btn.className   = 'btn btn-sm ' + (opts.confirmClass || 'btn-primary');
+
+    // Set form action
+    document.getElementById('confirmActionForm').action = opts.formAction || '';
+
+    // Inject hidden fields
+    var hf = document.getElementById('confirmActionHiddenFields');
+    hf.innerHTML = '';
+    var fields = opts.hiddenFields || {};
+    Object.keys(fields).forEach(function (k) {
+      var inp = document.createElement('input');
+      inp.type  = 'hidden';
+      inp.name  = k;
+      inp.value = fields[k];
+      hf.appendChild(inp);
+    });
+
+    var modal = new bootstrap.Modal(document.getElementById('confirmActionModal'));
+    modal.show();
+  };
+
+  document.getElementById('confirmModalBtn').addEventListener('click', function () {
+    // Optional pre-submit validation (e.g. username match for hard delete)
+    if (_preSubmitCheck && !_preSubmitCheck()) return;
+
+    // Optional dynamic field extraction (e.g. role select)
+    if (_extraCallback) {
+      var extra = _extraCallback();
+      var hf = document.getElementById('confirmActionHiddenFields');
+      Object.keys(extra).forEach(function (k) {
+        var inp = document.createElement('input');
+        inp.type  = 'hidden';
+        inp.name  = k;
+        inp.value = extra[k];
+        hf.appendChild(inp);
+      });
+    }
+
+    document.getElementById('confirmActionForm').submit();
+  });
+})();
+</script>
 
 {% endblock admin_body %}
 

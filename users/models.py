@@ -24,6 +24,13 @@ class User(AbstractUser):
         default=False,
         help_text="User identity verification status"
     )
+    is_suspended = models.BooleanField(
+        default=False,
+        help_text=(
+            "Suspended users can still log in but cannot perform any platform actions. "
+            "Use is_active=False to fully block login."
+        ),
+    )
     public_id = models.UUIDField(
         default=uuid.uuid4,
         editable=False,

@@ -18,6 +18,8 @@ from identities.models import Identifier, SubjectEntity
 from core.permissions import is_superadmin
 from core.tasks import send_email_notification_task
 from django.db.models import Q
+from core.email_utils import render_email
+from notifications.tasks import send_broadcast_email_task
 
 from django.core.paginator import Paginator
 from django.http import HttpResponseForbidden
@@ -164,26 +166,74 @@ class AdminUserListView(SuperAdminRequiredMixin, TemplateView):
         return ctx
 
 class AdminUserToggleStatusView(SuperAdminRequiredMixin, View):
-    """Suspends or Reactivates a user account."""
+    """Suspends or reactivates a user account.
+
+    Suspension is a soft action: the user can still log in but is blocked
+    from performing any platform actions by SuspendedUserMiddleware.
+    This is semantically different from blocking (is_active=False) which
+    prevents login entirely.
+    """
+
     def post(self, request, public_id):
-        target_user = get_object_or_404(User, public_id=self.kwargs['public_id'])
+        target_user = get_object_or_404(User, public_id=public_id)
+
         if target_user == request.user:
-            messages.error(request, "You cannot suspend your own superuser account.")
-            return redirect('admin_portal:users')
+            messages.error(request, "You cannot suspend your own account.")
+            return redirect('admin_portal:user_detail', public_id=public_id)
 
-        new_status = not target_user.is_active
-        target_user.is_active = new_status
-        target_user.save(update_fields=['is_active'])
+        # Toggle is_suspended (NOT is_active)
+        new_suspended = not target_user.is_suspended
+        target_user.is_suspended = new_suspended
+        target_user.save(update_fields=['is_suspended'])
 
-        action_name = "Activated" if new_status else "Suspended"
-        messages.success(request, f"User '{target_user.username}' has been successfully {action_name}.")
+        if new_suspended:
+            action_label = "suspended"
+            email_heading = "Your Account Has Been Suspended"
+            email_body = (
+                f"<p>Your VerifyNG account (<strong>{target_user.email}</strong>) "
+                f"has been <strong>suspended</strong> by an administrator.</p>"
+                f"<p>While your account is suspended, you can still sign in but "
+                f"you will not be able to perform any actions on the platform.</p>"
+                f"<p>If you believe this is an error, please contact our support team.</p>"
+            )
+            audit_action = "ADMIN_USER_SUSPENDED"
+        else:
+            action_label = "reactivated"
+            email_heading = "Your Account Has Been Reactivated"
+            email_body = (
+                f"<p>Good news! Your VerifyNG account (<strong>{target_user.email}</strong>) "
+                f"suspension has been <strong>lifted</strong> by an administrator.</p>"
+                f"<p>You now have full access to the platform again.</p>"
+            )
+            audit_action = "ADMIN_USER_REACTIVATED"
+
+        # Send email notification to user
+        try:
+            html_body, text_body = render_email('generic_notification', {
+                'user_name': target_user.get_full_name() or target_user.username,
+                'heading': email_heading,
+                'body_html': email_body,
+                'subject': email_heading,
+            })
+            send_broadcast_email_task.delay(
+                to_email=target_user.email,
+                subject=email_heading,
+                html_body=html_body,
+                text_body=text_body,
+            )
+        except Exception as exc:
+            logger.warning("Failed to send suspension email to %s: %s", target_user.email, exc)
 
         AuditLog.objects.create(
-            action=f"ADMIN_USER_{action_name.upper()}",
+            action=audit_action,
             performed_by=request.user,
-            details={"target_public_id": target_user.id, "target_username": target_user.username}
+            details={
+                "target_public_id": str(target_user.public_id),
+                "target_username": target_user.username,
+            }
         )
-        return redirect('admin_portal:users')
+        messages.success(request, f"User '{target_user.username}' has been {action_label}.")
+        return redirect('admin_portal:user_detail', public_id=public_id)
 
 
 class AdminUserChangeRoleView(SuperAdminRequiredMixin, View):
@@ -452,33 +502,81 @@ class AdminUserHardDeleteView(SuperAdminRequiredMixin, View):
 
 
 class AdminUserBlockView(SuperAdminRequiredMixin, View):
-    """Blocks a user (deactivates + marks staff=False, strips role to 'individual')."""
+    """Hard-blocks or unblocks a user account.
+
+    Blocking sets is_active=False which prevents Django from authenticating
+    the user entirely — they cannot log in at all.
+    This is the strongest action short of hard deletion.
+    """
+
     def post(self, request, public_id):
-        target_user = get_object_or_404(User, public_id=self.kwargs['public_id'])
+        target_user = get_object_or_404(User, public_id=public_id)
+
         if target_user == request.user:
             messages.error(request, "You cannot block your own account.")
             return redirect('admin_portal:user_detail', public_id=public_id)
 
         action = request.POST.get('action', 'block')
+
         if action == 'block':
             target_user.is_active = False
             target_user.is_staff = False
             target_user.save(update_fields=['is_active', 'is_staff'])
-            AuditLog.objects.create(
-                action="ADMIN_USER_BLOCKED",
-                performed_by=request.user,
-                details={"target_public_id": target_user.id, "target_username": target_user.username}
+
+            email_heading = "Your Account Has Been Blocked"
+            email_body = (
+                f"<p>Your VerifyNG account (<strong>{target_user.email}</strong>) "
+                f"has been <strong>blocked</strong> by an administrator.</p>"
+                f"<p>You will no longer be able to sign in to the platform.</p>"
+                f"<p>If you believe this is an error or wish to appeal, "
+                f"please contact our support team directly.</p>"
             )
-            messages.success(request, f"User '{target_user.username}' has been blocked.")
+            audit_action = "ADMIN_USER_BLOCKED"
+            action_label = "blocked"
+
         elif action == 'unblock':
             target_user.is_active = True
             target_user.save(update_fields=['is_active'])
-            AuditLog.objects.create(
-                action="ADMIN_USER_UNBLOCKED",
-                performed_by=request.user,
-                details={"target_public_id": target_user.id, "target_username": target_user.username}
+
+            email_heading = "Your Account Has Been Unblocked"
+            email_body = (
+                f"<p>Your VerifyNG account (<strong>{target_user.email}</strong>) "
+                f"has been <strong>unblocked</strong> by an administrator.</p>"
+                f"<p>You can now sign in and use the platform again.</p>"
             )
-            messages.success(request, f"User '{target_user.username}' has been unblocked.")
+            audit_action = "ADMIN_USER_UNBLOCKED"
+            action_label = "unblocked"
+
+        else:
+            messages.error(request, "Invalid action.")
+            return redirect('admin_portal:user_detail', public_id=public_id)
+
+        # Send email notification to user
+        try:
+            html_body, text_body = render_email('generic_notification', {
+                'user_name': target_user.get_full_name() or target_user.username,
+                'heading': email_heading,
+                'body_html': email_body,
+                'subject': email_heading,
+            })
+            send_broadcast_email_task.delay(
+                to_email=target_user.email,
+                subject=email_heading,
+                html_body=html_body,
+                text_body=text_body,
+            )
+        except Exception as exc:
+            logger.warning("Failed to send block email to %s: %s", target_user.email, exc)
+
+        AuditLog.objects.create(
+            action=audit_action,
+            performed_by=request.user,
+            details={
+                "target_public_id": str(target_user.public_id),
+                "target_username": target_user.username,
+            }
+        )
+        messages.success(request, f"User '{target_user.username}' has been {action_label}.")
         return redirect('admin_portal:user_detail', public_id=public_id)
 
 
