@@ -245,17 +245,24 @@ def transition_report_state(report, new_state, actor=None, ip_address=None, mode
         }
     )
 
-    # Dispatch Celery email notification on successful transaction commit
+    # Dispatch branded HTML email notification on successful transaction commit
     reporter_email = getattr(report.reporter, 'email', None)
     if reporter_email:
         ref = report.reference_number
-        username = getattr(report.reporter, 'get_full_name', lambda: report.reporter.username)() or report.reporter.username
+        username = (
+            getattr(report.reporter, 'get_full_name', lambda: '')() or
+            report.reporter.username
+        )
         if new_state == 'published':
             subject, html_body, text_body = email_templates.build_report_published(ref, username)
-            transaction.on_commit(lambda: send_email_notification_task.delay(reporter_email, subject, text_body, html_body))
+            transaction.on_commit(
+                lambda: send_email_notification_task.delay(reporter_email, subject, text_body, html_body)
+            )
         elif new_state == 'rejected':
             subject, html_body, text_body = email_templates.build_report_rejected(ref, username)
-            transaction.on_commit(lambda: send_email_notification_task.delay(reporter_email, subject, text_body, html_body))
+            transaction.on_commit(
+                lambda: send_email_notification_task.delay(reporter_email, subject, text_body, html_body)
+            )
 
     return report
 
@@ -288,9 +295,14 @@ def file_dispute_for_report(report, disputant, reason, counter_evidence=None, ip
     reporter_email = getattr(report.reporter, 'email', None)
     if reporter_email:
         ref = report.reference_number
-        username = getattr(report.reporter, 'get_full_name', lambda: report.reporter.username)() or report.reporter.username
+        username = (
+            getattr(report.reporter, 'get_full_name', lambda: '')() or
+            report.reporter.username
+        )
         subject, html_body, text_body = email_templates.build_dispute_opened(ref, username)
-        transaction.on_commit(lambda: send_email_notification_task.delay(reporter_email, subject, text_body, html_body))
+        transaction.on_commit(
+            lambda: send_email_notification_task.delay(reporter_email, subject, text_body, html_body)
+        )
 
     return dispute
 
@@ -322,13 +334,18 @@ def resolve_dispute(dispute, outcome, actor, resolution_notes, ip_address=None):
         moderation_notes=f"Dispute #{dispute.id} {outcome}: {resolution_notes}"
     )
 
-    # Transactional notifications to disputant and reporter
+    # Transactional branded HTML notifications to disputant and reporter
     disputant_email = getattr(dispute.disputant, 'email', None)
     if disputant_email:
         ref = report.reference_number
-        username = getattr(dispute.disputant, 'get_full_name', lambda: dispute.disputant.username)() or dispute.disputant.username
+        username = (
+            getattr(dispute.disputant, 'get_full_name', lambda: '')() or
+            dispute.disputant.username
+        )
         subject, html_body, text_body = email_templates.build_dispute_resolved(ref, username, outcome)
-        transaction.on_commit(lambda: send_email_notification_task.delay(disputant_email, subject, text_body, html_body))
+        transaction.on_commit(
+            lambda: send_email_notification_task.delay(disputant_email, subject, text_body, html_body)
+        )
 
     return dispute
 
