@@ -36,7 +36,7 @@ except ImportError:
     VerificationCertificate = None
 
 try:
-    from employer.models import EmployerProfile
+    from employer.models import EmployerProfile, EmployerTeamMember
 except ImportError:
     EmployerProfile = None
 
@@ -640,6 +640,21 @@ class AdminEmployerProfilesView(SuperAdminRequiredMixin, TemplateView):
         ctx['verified_filter'] = verified_filter
         return ctx
 
+
+class AdminEmployerDetailView(SuperAdminRequiredMixin, TemplateView):
+    """Detail view for a single employer profile."""
+    template_name = 'admin_portal/employer_detail.html'
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        profile = get_object_or_404(EmployerProfile, pk=self.kwargs['pk'])
+        team_members = EmployerTeamMember.objects.select_related('user').filter(
+            employer=profile
+        ).order_by('team_role', 'user__username')
+        ctx['profile'] = profile
+        ctx['team_members'] = team_members
+        return ctx
+    
 
 class AdminEmployerActionView(SuperAdminRequiredMixin, View):
     """POST: verify or unverify an employer profile."""

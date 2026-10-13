@@ -24,6 +24,7 @@ from dashboard.admin_views import (
     # Employer Profiles
     AdminEmployerProfilesView,
     AdminEmployerActionView,
+    AdminEmployerDetailView,
     # Subscriptions
     AdminSubscriptionsView,
     AdminSubscriptionCancelView,
@@ -71,6 +72,7 @@ urlpatterns = [
     # ── Employer Profiles ───────────────────────────────────────────────────
     path('employers/', AdminEmployerProfilesView.as_view(), name='employer_profiles'),
     path('employers/<int:pk>/action/', AdminEmployerActionView.as_view(), name='employer_action'),
+    path('employers/<int:pk>/', AdminEmployerDetailView.as_view(), name='employer_detail'),
 
     # ── Subscriptions / Payments ────────────────────────────────────────────
     path('subscriptions/', AdminSubscriptionsView.as_view(), name='subscriptions'),
