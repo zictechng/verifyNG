@@ -40,11 +40,18 @@ def ping_celery_task(self):
     max_retries=3,
     default_retry_delay=60,
 )
-def send_email_notification_task(self, recipient_email: str, subject: str, message_body: str):
+def send_email_notification_task(
+    self,
+    recipient_email: str,
+    subject: str,
+    message_body: str,
+    html_message: str = None,
+):
     """
     Asynchronous task for delivering transactional notifications and broadcasts.
     Dispatches via Django's send_mail (which respects the configured EMAIL_BACKEND
     and populates mail.outbox during test runs).
+    When html_message is provided, sends a multipart email with HTML and plain-text fallback.
     Retries up to 3 times on transient transport/network failures.
     """
     from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'webmaster@localhost')
@@ -55,6 +62,7 @@ def send_email_notification_task(self, recipient_email: str, subject: str, messa
             message=message_body,
             from_email=from_email,
             recipient_list=[recipient_email],
+            html_message=html_message,
             fail_silently=False,
         )
         logger.info(

@@ -7,6 +7,7 @@ from identities.models import SubjectEntity, Identifier, BusinessProfile
 from identities.utils import hash_identifier_value
 from reports.storage_services import get_storage_service, StorageError
 from core.tasks import send_email_notification_task
+from notifications import email_templates
 
 
 def generate_report_reference_number():
@@ -248,14 +249,13 @@ def transition_report_state(report, new_state, actor=None, ip_address=None, mode
     reporter_email = getattr(report.reporter, 'email', None)
     if reporter_email:
         ref = report.reference_number
+        username = getattr(report.reporter, 'get_full_name', lambda: report.reporter.username)() or report.reporter.username
         if new_state == 'published':
-            subject = f"VerifyNG Notice: Report {ref} Published"
-            body = f"Your fraud report [{ref}] has been reviewed by moderators and published to the VerifyNG registry."
-            transaction.on_commit(lambda: send_email_notification_task.delay(reporter_email, subject, body))
+            subject, html_body, text_body = email_templates.build_report_published(ref, username)
+            transaction.on_commit(lambda: send_email_notification_task.delay(reporter_email, subject, text_body, html_body))
         elif new_state == 'rejected':
-            subject = f"VerifyNG Notice: Report {ref} Declined"
-            body = f"Your fraud report [{ref}] was declined during moderation review.\nReason: {moderation_notes or 'Not specified'}"
-            transaction.on_commit(lambda: send_email_notification_task.delay(reporter_email, subject, body))
+            subject, html_body, text_body = email_templates.build_report_rejected(ref, username)
+            transaction.on_commit(lambda: send_email_notification_task.delay(reporter_email, subject, text_body, html_body))
 
     return report
 
@@ -288,9 +288,9 @@ def file_dispute_for_report(report, disputant, reason, counter_evidence=None, ip
     reporter_email = getattr(report.reporter, 'email', None)
     if reporter_email:
         ref = report.reference_number
-        subject = f"VerifyNG Notice: Dispute Filed on Report {ref}"
-        body = f"A formal dispute has been filed against report [{ref}]. The report status is marked as Disputed during review."
-        transaction.on_commit(lambda: send_email_notification_task.delay(reporter_email, subject, body))
+        username = getattr(report.reporter, 'get_full_name', lambda: report.reporter.username)() or report.reporter.username
+        subject, html_body, text_body = email_templates.build_dispute_opened(ref, username)
+        transaction.on_commit(lambda: send_email_notification_task.delay(reporter_email, subject, text_body, html_body))
 
     return dispute
 
@@ -326,9 +326,9 @@ def resolve_dispute(dispute, outcome, actor, resolution_notes, ip_address=None):
     disputant_email = getattr(dispute.disputant, 'email', None)
     if disputant_email:
         ref = report.reference_number
-        subject = f"VerifyNG Notice: Dispute #{dispute.id} {outcome.capitalize()}"
-        body = f"Your dispute for report [{ref}] was marked as {outcome}.\nNotes: {resolution_notes}"
-        transaction.on_commit(lambda: send_email_notification_task.delay(disputant_email, subject, body))
+        username = getattr(dispute.disputant, 'get_full_name', lambda: dispute.disputant.username)() or dispute.disputant.username
+        subject, html_body, text_body = email_templates.build_dispute_resolved(ref, username, outcome)
+        transaction.on_commit(lambda: send_email_notification_task.delay(disputant_email, subject, text_body, html_body))
 
     return dispute
 
