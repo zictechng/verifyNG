@@ -37,101 +37,77 @@
     </div>
 
     <!-- ── Quick Actions ──────────────────────────────────────── -->
+    <!-- ── Quick Actions ──────────────────────────────────────── -->
     <div class="card shadow-sm mb-4">
       <div class="card-header bg-white fw-semibold py-3">
         <i class="bi bi-lightning-charge me-2 text-primary"></i>Quick Actions
       </div>
       <div class="card-body d-grid gap-2">
 
-        {# ── Suspend / Reactivate (soft — user can still log in) ── #}
         {% if target_user.is_suspended %}
-          <button type="button" class="btn btn-success btn-sm"
-                  onclick="openConfirmModal({
-                    title: 'Reactivate Account',
-                    body:  'This will lift the suspension for <strong>{{ target_user.username }}</strong>. They will regain full platform access.',
-                    confirmLabel: 'Yes, Reactivate',
-                    confirmClass: 'btn-success',
-                    formAction: '{% url "admin_portal:user_toggle_status" target_user.public_id %}',
-                    hiddenFields: {}
-                  })">
+          <button type="button" class="btn btn-success btn-sm w-100"
+                  data-confirm-action
+                  data-title="Reactivate Account"
+                  data-body="This will lift the suspension for <strong>{{ target_user.username }}</strong>. They will regain full platform access."
+                  data-confirm-label="Yes, Reactivate"
+                  data-confirm-class="btn-success"
+                  data-form-action="{% url 'admin_portal:user_toggle_status' target_user.public_id %}">
             <i class="bi bi-check-circle me-1"></i>Reactivate Account
           </button>
         {% else %}
-          <button type="button" class="btn btn-warning btn-sm"
-                  onclick="openConfirmModal({
-                    title: 'Suspend Account',
-                    body:  'Suspending <strong>{{ target_user.username }}</strong> will prevent them from performing any platform actions. They can still log in and will see a suspended notice.',
-                    confirmLabel: 'Yes, Suspend',
-                    confirmClass: 'btn-warning',
-                    formAction: '{% url "admin_portal:user_toggle_status" target_user.public_id %}',
-                    hiddenFields: {}
-                  })">
+          <button type="button" class="btn btn-warning btn-sm w-100"
+                  data-confirm-action
+                  data-title="Suspend Account"
+                  data-body="Suspending <strong>{{ target_user.username }}</strong> will prevent them from performing any platform actions. They can still log in and will see a suspended notice."
+                  data-confirm-label="Yes, Suspend"
+                  data-confirm-class="btn-warning"
+                  data-form-action="{% url 'admin_portal:user_toggle_status' target_user.public_id %}">
             <i class="bi bi-pause-circle me-1"></i>Suspend Account
           </button>
         {% endif %}
 
-        {# ── Block / Unblock (hard — prevents login entirely) ── #}
         {% if not target_user.is_active %}
-          <button type="button" class="btn btn-success btn-sm"
-                  onclick="openConfirmModal({
-                    title: 'Unblock Account',
-                    body:  'This will restore login access for <strong>{{ target_user.username }}</strong>.',
-                    confirmLabel: 'Yes, Unblock',
-                    confirmClass: 'btn-success',
-                    formAction: '{% url "admin_portal:user_block" target_user.public_id %}',
-                    hiddenFields: { action: 'unblock' }
-                  })">
+          <button type="button" class="btn btn-success btn-sm w-100"
+                  data-confirm-action
+                  data-title="Unblock Account"
+                  data-body="This will restore login access for <strong>{{ target_user.username }}</strong>."
+                  data-confirm-label="Yes, Unblock"
+                  data-confirm-class="btn-success"
+                  data-form-action="{% url 'admin_portal:user_block' target_user.public_id %}"
+                  data-hidden-action="unblock">
             <i class="bi bi-unlock me-1"></i>Unblock Account
           </button>
         {% else %}
-          <button type="button" class="btn btn-danger btn-sm"
-                  onclick="openConfirmModal({
-                    title: 'Block Account',
-                    body:  '<strong>{{ target_user.username }}</strong> will be completely blocked and will not be able to log in at all. This is stronger than suspension.',
-                    confirmLabel: 'Yes, Block',
-                    confirmClass: 'btn-danger',
-                    formAction: '{% url "admin_portal:user_block" target_user.public_id %}',
-                    hiddenFields: { action: 'block' }
-                  })">
+          <button type="button" class="btn btn-danger btn-sm w-100"
+                  data-confirm-action
+                  data-title="Block Account"
+                  data-body="<strong>{{ target_user.username }}</strong> will be completely blocked and will not be able to log in at all."
+                  data-confirm-label="Yes, Block"
+                  data-confirm-class="btn-danger"
+                  data-form-action="{% url 'admin_portal:user_block' target_user.public_id %}"
+                  data-hidden-action="block">
             <i class="bi bi-lock me-1"></i>Block Account
           </button>
         {% endif %}
 
-        {# ── Change Role ── #}
-        <button type="button" class="btn btn-outline-secondary btn-sm"
-                onclick="openConfirmModal({
-                  title: 'Change Role',
-                  body:  'Select a new role for <strong>{{ target_user.username }}</strong>.<br><br><select name=\"role\" id=\"modalRoleSelect\" class=\"form-select form-select-sm mt-2\">{% for val, label in role_choices %}<option value=\"{{ val }}\">{{ label }}</option>{% endfor %}</select>',
-                  confirmLabel: 'Apply Role',
-                  confirmClass: 'btn-secondary',
-                  formAction: '{% url "admin_portal:user_change_role" target_user.public_id %}',
-                  hiddenFields: {},
-                  extraFieldsCallback: function() {
-                    var sel = document.getElementById(\"modalRoleSelect\");
-                    return sel ? { role: sel.value } : {};
-                  }
-                })">
+        <button type="button" class="btn btn-outline-secondary btn-sm w-100"
+                data-confirm-action="role"
+                data-title="Change Role"
+                data-body="Select a new role for <strong>{{ target_user.username }}</strong>:<br><br><select id='modalRoleSelect' class='form-select form-select-sm mt-2'>{% for val, label in role_choices %}<option value='{{ val }}'>{{ label }}</option>{% endfor %}</select>"
+                data-confirm-label="Apply Role"
+                data-confirm-class="btn-secondary"
+                data-form-action="{% url 'admin_portal:user_change_role' target_user.public_id %}">
           <i class="bi bi-person-gear me-1"></i>Change Role
         </button>
 
-        {# ── Hard Delete (irreversible) ── #}
-        <button type="button" class="btn btn-outline-danger btn-sm mt-2"
-                onclick="openConfirmModal({
-                  title: 'Permanently Delete Account',
-                  body:  '⚠️ This action <strong>cannot be undone</strong>. All data for <strong>{{ target_user.username }}</strong> will be permanently erased. Type the username to confirm:<br><br><input type=\"text\" id=\"deleteConfirmInput\" class=\"form-control form-control-sm mt-2\" placeholder=\"{{ target_user.username }}\">',
-                  confirmLabel: 'Delete Permanently',
-                  confirmClass: 'btn-danger',
-                  formAction: '{% url "admin_portal:user_hard_delete" target_user.public_id %}',
-                  hiddenFields: {},
-                  preSubmitCheck: function() {
-                    var inp = document.getElementById(\"deleteConfirmInput\");
-                    if (!inp || inp.value !== \"{{ target_user.username }}\") {
-                      alert(\"Username does not match. Deletion cancelled.\");
-                      return false;
-                    }
-                    return true;
-                  }
-                })">
+        <button type="button" class="btn btn-outline-danger btn-sm w-100 mt-2"
+                data-confirm-action="delete"
+                data-title="Permanently Delete Account"
+                data-body="This <strong>cannot be undone</strong>. All data for <strong>{{ target_user.username }}</strong> will be erased.<br><br>Type the username to confirm:<br><input type='text' id='deleteConfirmInput' class='form-control form-control-sm mt-2' placeholder='{{ target_user.username }}'>"
+                data-confirm-label="Delete Permanently"
+                data-confirm-class="btn-danger"
+                data-form-action="{% url 'admin_portal:user_hard_delete' target_user.public_id %}"
+                data-delete-username="{{ target_user.username }}">
           <i class="bi bi-trash3 me-1"></i>Hard Delete
         </button>
 
@@ -428,9 +404,6 @@
     </div>
   </div>
 </div>
-
-<!-- ── Reusable Confirmation Modal ──────────────────────────── -->
-{% include "includes/confirm_modal.html" %}
 
 {% endblock admin_body %}
 
