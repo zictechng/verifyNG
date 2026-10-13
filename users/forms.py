@@ -33,6 +33,15 @@ class CustomUserCreationForm(UserCreationForm):
         model = User
         fields = ('username', 'email', 'first_name', 'last_name')
 
+    def clean_email(self):
+        email = self.cleaned_data.get('email', '').strip().lower()
+        if User.objects.filter(email__iexact=email).exists():
+            raise forms.ValidationError(
+                "An account with this email address already exists. "
+                "Please sign in or use a different email."
+            )
+        return email
+
     def save(self, commit=True):
         user = super().save(commit=False)
         user.email = self.cleaned_data['email']
