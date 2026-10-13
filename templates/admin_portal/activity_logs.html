@@ -32,7 +32,7 @@
         <tbody>
           {% for u in recent_users %}
           <tr>
-            <td><a href="{% url 'admin_portal:user_detail' u.id %}">{{ u.username }}</a></td>
+            <td><a href="{% url 'admin_portal:user_detail' u.public_id %}">{{ u.username }}</a></td>
             <td><span class="adm-badge adm-badge-gray small">{{ u.get_role_display }}</span></td>
             <td class="small">{{ u.date_joined|date:"d M H:i" }}</td>
           </tr>
