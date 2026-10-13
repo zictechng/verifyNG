@@ -165,7 +165,7 @@ class AdminUserListView(SuperAdminRequiredMixin, TemplateView):
 
 class AdminUserToggleStatusView(SuperAdminRequiredMixin, View):
     """Suspends or Reactivates a user account."""
-    def post(self, request, user_id):
+    def post(self, request, public_id):
         target_user = get_object_or_404(User, public_id=self.kwargs['public_id'])
         if target_user == request.user:
             messages.error(request, "You cannot suspend your own superuser account.")
@@ -181,14 +181,14 @@ class AdminUserToggleStatusView(SuperAdminRequiredMixin, View):
         AuditLog.objects.create(
             action=f"ADMIN_USER_{action_name.upper()}",
             performed_by=request.user,
-            details={"target_user_id": target_user.id, "target_username": target_user.username}
+            details={"target_public_id": target_user.id, "target_username": target_user.username}
         )
         return redirect('admin_portal:users')
 
 
 class AdminUserChangeRoleView(SuperAdminRequiredMixin, View):
     """Reassigns a user's role (e.g. Moderator, Verification Officer, Business)."""
-    def post(self, request, user_id):
+    def post(self, request, public_id):
         target_user = get_object_or_404(User, public_id=self.kwargs['public_id'])
         new_role = request.POST.get('role')
         valid_roles = dict(User.ROLE_CHOICES)
@@ -207,7 +207,7 @@ class AdminUserChangeRoleView(SuperAdminRequiredMixin, View):
             action="ADMIN_USER_ROLE_CHANGE",
             performed_by=request.user,
             details={
-                "target_user_id": target_user.id,
+                "target_public_id": target_user.id,
                 "target_username": target_user.username,
                 "old_role": old_role,
                 "new_role": new_role
@@ -373,7 +373,7 @@ class AdminUserActivityExportView(SuperAdminRequiredMixin, View):
     Generates a printable HTML activity statement for a user.
     ?type=login|activity  &date_from=YYYY-MM-DD  &date_to=YYYY-MM-DD
     """
-    def get(self, request, user_id):
+    def get(self, request, public_id):
         from django.utils.dateparse import parse_date
         from django.utils import timezone as tz
         import datetime
@@ -406,7 +406,7 @@ class AdminUserActivityExportView(SuperAdminRequiredMixin, View):
             action="ADMIN_USER_ACTIVITY_EXPORT",
             performed_by=request.user,
             details={
-                "target_user_id": target_user.id,
+                "target_public_id": target_user.id,
                 "export_type": export_type,
                 "date_from": date_from_str,
                 "date_to": date_to_str,
@@ -429,7 +429,7 @@ class AdminUserActivityExportView(SuperAdminRequiredMixin, View):
 
 class AdminUserHardDeleteView(SuperAdminRequiredMixin, View):
     """Permanently deletes a user and all their data. Requires confirmation token."""
-    def post(self, request, user_id):
+    def post(self, request, public_id):
         target_user = get_object_or_404(User, public_id=self.kwargs['public_id'])
         if target_user == request.user:
             messages.error(request, "You cannot delete your own superuser account.")
@@ -438,13 +438,13 @@ class AdminUserHardDeleteView(SuperAdminRequiredMixin, View):
         confirm = request.POST.get('confirm_delete', '').strip()
         if confirm != target_user.username:
             messages.error(request, "Confirmation username did not match. Hard delete cancelled.")
-            return redirect('admin_portal:user_detail', user_id=user_id)
+            return redirect('admin_portal:user_detail', public_id=public_id)
 
         username = target_user.username
         AuditLog.objects.create(
             action="ADMIN_USER_HARD_DELETE",
             performed_by=request.user,
-            details={"deleted_user_id": target_user.id, "deleted_username": username}
+            details={"deleted_public_id": target_user.id, "deleted_username": username}
         )
         target_user.delete()
         messages.success(request, f"User '{username}' and all associated data permanently deleted.")
@@ -453,11 +453,11 @@ class AdminUserHardDeleteView(SuperAdminRequiredMixin, View):
 
 class AdminUserBlockView(SuperAdminRequiredMixin, View):
     """Blocks a user (deactivates + marks staff=False, strips role to 'individual')."""
-    def post(self, request, user_id):
+    def post(self, request, public_id):
         target_user = get_object_or_404(User, public_id=self.kwargs['public_id'])
         if target_user == request.user:
             messages.error(request, "You cannot block your own account.")
-            return redirect('admin_portal:user_detail', user_id=user_id)
+            return redirect('admin_portal:user_detail', public_id=public_id)
 
         action = request.POST.get('action', 'block')
         if action == 'block':
@@ -467,7 +467,7 @@ class AdminUserBlockView(SuperAdminRequiredMixin, View):
             AuditLog.objects.create(
                 action="ADMIN_USER_BLOCKED",
                 performed_by=request.user,
-                details={"target_user_id": target_user.id, "target_username": target_user.username}
+                details={"target_public_id": target_user.id, "target_username": target_user.username}
             )
             messages.success(request, f"User '{target_user.username}' has been blocked.")
         elif action == 'unblock':
@@ -476,10 +476,10 @@ class AdminUserBlockView(SuperAdminRequiredMixin, View):
             AuditLog.objects.create(
                 action="ADMIN_USER_UNBLOCKED",
                 performed_by=request.user,
-                details={"target_user_id": target_user.id, "target_username": target_user.username}
+                details={"target_public_id": target_user.id, "target_username": target_user.username}
             )
             messages.success(request, f"User '{target_user.username}' has been unblocked.")
-        return redirect('admin_portal:user_detail', user_id=user_id)
+        return redirect('admin_portal:user_detail', public_id=public_id)
 
 
 # ── Reports Moderation ─────────────────────────────────────────────────────
