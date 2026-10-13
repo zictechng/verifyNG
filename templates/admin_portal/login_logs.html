@@ -12,16 +12,40 @@
   <div class="col-md-3"><div class="kpi-card"><div class="kpi-value text-danger">{{ blocked_logins }}</div><div class="kpi-label">Blocked</div></div></div>
 </div>
 
-<form class="adm-filter-bar mb-4" method="get">
-  <select name="status" class="form-select adm-filter-select">
-    <option value="">All Statuses</option>
-    {% for key, label in status_choices %}
-    <option value="{{ key }}" {% if key == selected_status %}selected{% endif %}>{{ label }}</option>
-    {% endfor %}
-  </select>
-  <input type="text" name="q" value="{{ q }}" class="form-control adm-filter-input" placeholder="Username…">
-  <input type="text" name="ip" value="{{ ip_filter }}" class="form-control adm-filter-input" placeholder="IP address…">
-  <button type="submit" class="btn btn-adm-primary">Filter</button>
+<form class="adm-filter-bar" method="get">
+  <div class="row g-2 align-items-end w-100">
+    <div class="col-md-3">
+      <label class="form-label small fw-semibold mb-1" style="color:var(--adm-muted);">Status</label>
+      <select name="status" class="form-select form-select-sm" style="height:38px;">
+        <option value="">All Statuses</option>
+        {% for key, label in status_choices %}
+        <option value="{{ key }}" {% if key == selected_status %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label small fw-semibold mb-1" style="color:var(--adm-muted);">Username</label>
+      <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="Username…" style="height:38px;">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label small fw-semibold mb-1" style="color:var(--adm-muted);">IP Address</label>
+      <input type="text" name="ip" value="{{ ip_filter }}" class="form-control form-control-sm" placeholder="IP address…" style="height:38px;">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label small mb-1" style="color:transparent;">x</label>
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn-adm-primary w-100" style="justify-content:center;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          Filter
+        </button>
+        {% if selected_status or q or ip_filter %}
+        <a href="{% url 'admin_portal:login_logs' %}" class="btn-adm-outline" title="Clear filters">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
 </form>
 
 {% if page_obj.object_list %}
