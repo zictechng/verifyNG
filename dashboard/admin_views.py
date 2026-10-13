@@ -38,7 +38,7 @@ except ImportError:
     VerificationCertificate = None
 
 try:
-    from employer.models import EmployerProfile, EmployerTeamMember
+    from employer.models import EmployerProfile, TeamMember
 except ImportError:
     EmployerProfile = None
 
@@ -743,12 +743,75 @@ class AdminEmployerDetailView(SuperAdminRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         profile = get_object_or_404(EmployerProfile, pk=self.kwargs['pk'])
-        team_members = EmployerTeamMember.objects.select_related('user').filter(
+
+        # Team members (no pagination — usually small number)
+        team_members = TeamMember.objects.select_related('user').filter(
             employer=profile
         ).order_by('team_role', 'user__username')
+
+        # Login history — paginated
+        login_qs = LoginAudit.objects.filter(user=profile.user).order_by('-timestamp')
+        ctx['login_history'] = Paginator(login_qs, 15).get_page(
+            self.request.GET.get('login_page', 1)
+        )
+
+        # System activity — paginated
+        activity_qs = AuditLog.objects.filter(performed_by=profile.user).order_by('-timestamp')
+        ctx['user_activity'] = Paginator(activity_qs, 15).get_page(
+            self.request.GET.get('activity_page', 1)
+        )
+
+        # Bulk upload history — paginated
+        from employer.models import BulkCheckUpload
+        bulk_qs = BulkCheckUpload.objects.filter(employer=profile).order_by('-created_at')
+        ctx['bulk_uploads'] = Paginator(bulk_qs, 10).get_page(
+            self.request.GET.get('bulk_page', 1)
+        )
+
         ctx['profile'] = profile
         ctx['team_members'] = team_members
+        ctx['active_tab'] = self.request.GET.get('tab', 'login')
         return ctx
+
+
+class AdminEmployerActivityExportView(SuperAdminRequiredMixin, View):
+    """Printable activity export for an employer account."""
+    def get(self, request, pk):
+        from django.utils.dateparse import parse_date
+        from django.utils import timezone as tz
+
+        profile = get_object_or_404(EmployerProfile, pk=pk)
+        export_type = request.GET.get('type', 'login')
+        date_from = parse_date(request.GET.get('date_from', '') or '')
+        date_to   = parse_date(request.GET.get('date_to', '')   or '')
+
+        if export_type == 'login':
+            qs = LoginAudit.objects.filter(user=profile.user).order_by('-timestamp')
+        else:
+            qs = AuditLog.objects.filter(performed_by=profile.user).order_by('-timestamp')
+
+        if date_from:
+            qs = qs.filter(timestamp__date__gte=date_from)
+        if date_to:
+            qs = qs.filter(timestamp__date__lte=date_to)
+        records = list(qs[:500])
+
+        AuditLog.objects.create(
+            action="ADMIN_EMPLOYER_ACTIVITY_EXPORT",
+            performed_by=request.user,
+            details={"employer_profile_id": profile.id, "company": profile.company_name,
+                     "export_type": export_type, "record_count": len(records)}
+        )
+        return drender(request, 'admin_portal/user_activity_export.html', {
+            'target_user': profile.user,
+            'records': records,
+            'export_type': export_type,
+            'date_from': date_from,
+            'date_to': date_to,
+            'generated_at': tz.now(),
+            'generated_by': request.user,
+            'total_records': len(records),
+        })
     
 
 class AdminEmployerActionView(SuperAdminRequiredMixin, View):
