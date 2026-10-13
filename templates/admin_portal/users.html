@@ -92,7 +92,7 @@
                                 {{ u.username|slice:":2"|upper }}
                             </div>
                             <div>
-                                <span class="fw-semibold" style="font-size:0.845rem;">{{ u.username }}</span>
+                                <a href="{% url 'admin_portal:user_detail' u.id %}" class="fw-semibold text-decoration-none" style="font-size:0.845rem;color:var(--adm-accent);">{{ u.username }}</a>
                                 {% if u.is_superuser %}
                                     <span class="adm-badge red ms-1">Superuser</span>
                                 {% endif %}
