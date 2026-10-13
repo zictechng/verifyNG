@@ -374,6 +374,54 @@
         </div>
     </div>
 
+    {# ── My Certificates ── #}
+    <div class="vng-card p-4 mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="h6 fw-bold mb-0">My Certificates</h2>
+            <a href="{% url 'verification:my_certificates' %}" class="btn btn-vng-outline btn-vng-sm">View All</a>
+        </div>
+        {% if user_certificates %}
+        <div class="table-responsive">
+            <table class="table table-sm mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="fw-semibold small">Certificate ID</th>
+                        <th class="fw-semibold small d-none d-md-table-cell">Subject</th>
+                        <th class="fw-semibold small">Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cert in user_certificates %}
+                    <tr>
+                        <td class="font-monospace small">{{ cert.certificate_id }}</td>
+                        <td class="small d-none d-md-table-cell">{{ cert.subject.name|default:"—" }}</td>
+                        <td>
+                            {% if cert.status == 'active' and cert.is_valid %}
+                                <span class="badge bg-success">Active</span>
+                            {% elif cert.status == 'pending' %}
+                                <span class="badge bg-warning text-dark">Pending</span>
+                            {% elif cert.status == 'revoked' %}
+                                <span class="badge bg-danger">Revoked</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ cert.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <a href="{% url 'verification:my_certificate' cert.certificate_id %}"
+                            class="btn btn-sm btn-outline-secondary">View</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="small text-muted mb-2">You have no certificates yet.</p>
+        <a href="{% url 'verification:certificate_apply' %}" class="btn btn-vng-outline btn-vng-sm">Apply for Certificate</a>
+        {% endif %}
+    </div>
+
     {# ── My Filed Disputes ────────────────────────────────────────────────── #}
     {% if user_disputes.object_list or user_disputes.paginator.count > 0 %}
     <div class="card border-0 shadow-sm mb-4">

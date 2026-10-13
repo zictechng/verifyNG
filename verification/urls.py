@@ -12,6 +12,7 @@ urlpatterns = [
     # ── W-08: Certificate routes (MUST precede the catch-all below) ────
     path('certificate/apply/', views.CertificateApplyView.as_view(), name='certificate_apply'),
     path('certificate/query/', views.CertificateQueryLandingView.as_view(), name='certificate_query_landing'),
+    path('certificate/', views.MyCertificatesListView.as_view(), name='my_certificates'),
     path('certificate/query/result/', views.CertificateQueryResultView.as_view(), name='certificate_query_result'),
     path('certificate/<str:certificate_id>/', views.MyCertificateView.as_view(), name='my_certificate'),
     path('certificate/<str:certificate_id>/log/', views.CertificateQueryLogView.as_view(), name='query_log'),

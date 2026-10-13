@@ -5,6 +5,7 @@ from django.views.generic import TemplateView
 from reports.models import FraudReport, Dispute
 from verification.models import VerificationRequest
 from core.permissions import is_moderator, is_verification_officer
+from verification.models import VerificationRequest, VerificationCertificate
 
 
 # ─── Reusable helpers ────────────────────────────────────────────────────────
@@ -99,7 +100,14 @@ class DashboardIndexView(LoginRequiredMixin, TemplateView):
         ctx["user_reports"] = _paginate(self.request, reports_qs, per_page=10, param="rpage")
         ctx["user_verifications"] = _paginate(self.request, verifications_qs, per_page=10, param="vpage")
         ctx["user_disputes"] = _paginate(self.request, disputes_qs, per_page=5, param="dpage")
-
+        
+        # User's certificates (most recent 5 for dashboard preview)
+        ctx['user_certificates'] = (
+            VerificationCertificate.objects
+            .filter(holder=user)
+            .select_related('subject')
+            .order_by('-created_at')[:5]
+        )
         # Summary stat strip
         ctx.update(_get_user_summary_counts(user))
 

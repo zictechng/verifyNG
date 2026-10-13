@@ -402,6 +402,39 @@ class MyCertificateView(LoginRequiredMixin, DetailView):
         return ctx
 
 
+class MyCertificatesListView(LoginRequiredMixin, ListView):
+    """
+    Lists all certificates belonging to the logged-in user.
+    Officers and superusers see all certificates.
+    """
+    model = VerificationCertificate
+    template_name = 'verification/my_certificates_list.html'
+    context_object_name = 'certificates'
+    paginate_by = 20
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_superuser or is_verification_officer(user):
+            return (
+                VerificationCertificate.objects
+                .select_related('subject', 'holder')
+                .order_by('-created_at')
+            )
+        return (
+            VerificationCertificate.objects
+            .filter(holder=user)
+            .select_related('subject', 'holder')
+            .order_by('-created_at')
+        )
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['is_officer'] = (
+            is_verification_officer(self.request.user)
+            or self.request.user.is_superuser
+        )
+        return ctx
+
+
 class CertificateQueryLandingView(View):
     """
     Public GET: Landing page for third-party employers/landlords to query a certificate.
