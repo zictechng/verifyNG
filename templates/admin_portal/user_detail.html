@@ -1,7 +1,6 @@
-
 {% extends "admin_portal/base_admin.html" %}
 {% block title %}User: {{ target_user.username }} — Admin{% endblock %}
-{% block content %}
+{% block admin_body %}
 <div class="adm-page-header">
   <div>
     <h1 class="adm-page-title">{{ target_user.get_full_name|default:target_user.username }}</h1>
@@ -180,4 +179,3 @@
   </div>
 </div>
 {% endblock %}
-
