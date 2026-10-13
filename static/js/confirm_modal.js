@@ -79,9 +79,9 @@
     }
 
     /* Show */
-    bootstrap.Modal.getOrCreate(
-      document.getElementById('confirmActionModal')
-    ).show();
+    var modalEl = document.getElementById('confirmActionModal');
+    var bsModal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+    bsModal.show();
   }
 
   /* ── Handle confirm button click ──────────────────────────── */
