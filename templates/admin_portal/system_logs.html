@@ -25,7 +25,7 @@
         <td><code class="small">{{ log.action }}</code></td>
         <td>{{ log.performed_by.username|default:"System" }}</td>
         <td class="small text-muted">{{ log.details|truncatechars:80 }}</td>
-        <td class="small">{{ log.created_at|date:"d M Y H:i" }}</td>
+        <td class="small">{{ log.timestamp|date:"d M Y H:i" }}</td>
       </tr>
       {% endfor %}
     </tbody>

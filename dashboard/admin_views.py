@@ -315,7 +315,7 @@ class AdminUserDetailView(SuperAdminRequiredMixin, TemplateView):
         ctx['login_history'] = LoginAudit.objects.filter(user=target_user).order_by('-timestamp')[:20]
         ctx['user_reports'] = FraudReport.objects.filter(reporter=target_user).order_by('-created_at')[:10]
         ctx['user_verifications'] = VerificationRequest.objects.filter(requester=target_user).order_by('-created_at')[:10] if VerificationRequest else []
-        ctx['user_audit_logs'] = AuditLog.objects.filter(performed_by=target_user).order_by('-created_at')[:20]
+        ctx['user_audit_logs'] = AuditLog.objects.filter(performed_by=target_user).order_by('-timestamp')[:20]
         if Subscription:
             ctx['user_subscriptions'] = Subscription.objects.filter(user=target_user).order_by('-created_at')[:5]
         else:
@@ -423,7 +423,7 @@ class AdminReportDetailView(SuperAdminRequiredMixin, TemplateView):
         ctx['disputes'] = report.disputes.order_by('-created_at') if hasattr(report, 'disputes') else []
         ctx['audit_trail'] = AuditLog.objects.filter(
             details__contains=str(report.id)
-        ).order_by('-created_at')[:20]
+        ).order_by('-timestamp')[:20]
         ctx['state_choices'] = FraudReport.STATES
         return ctx
 
@@ -749,7 +749,7 @@ class AdminSystemLogsView(SuperAdminRequiredMixin, TemplateView):
         action_filter = self.request.GET.get('action', '').strip()
         q = self.request.GET.get('q', '').strip()
 
-        logs = AuditLog.objects.select_related('performed_by').order_by('-created_at')
+        logs = AuditLog.objects.select_related('performed_by').order_by('-timestamp')
 
         if action_filter:
             logs = logs.filter(action__icontains=action_filter)
@@ -777,7 +777,7 @@ class AdminActivityLogsView(SuperAdminRequiredMixin, TemplateView):
         ctx['recent_reports'] = FraudReport.objects.select_related('reporter').order_by('-created_at')[:30]
         ctx['recent_verifications'] = VerificationRequest.objects.select_related('requester').order_by('-created_at')[:30] if VerificationRequest else []
         ctx['recent_users'] = User.objects.order_by('-date_joined')[:20]
-        ctx['recent_audit'] = AuditLog.objects.select_related('performed_by').order_by('-created_at')[:50]
+        ctx['recent_audit'] = AuditLog.objects.select_related('performed_by').order_by('-timestamp')[:50]
         return ctx
 
 
