@@ -1,0 +1,70 @@
+
+{% extends "admin_portal/base_admin.html" %}
+{% block title %}Verifications — VerifyNG Admin{% endblock %}
+{% block content %}
+<div class="adm-page-header">
+  <h1 class="adm-page-title">Verifications Queue</h1>
+</div>
+
+{% include "admin_portal/_messages.html" %}
+
+<form class="adm-filter-bar mb-4" method="get">
+  <select name="status" class="form-select adm-filter-select">
+    <option value="">All Statuses</option>
+    {% for key, label in status_choices %}
+    <option value="{{ key }}" {% if key == selected_status %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  <select name="type" class="form-select adm-filter-select">
+    <option value="">All Types</option>
+    {% for key, label in type_choices %}
+    <option value="{{ key }}" {% if key == selected_type %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  <button type="submit" class="btn btn-adm-primary">Filter</button>
+</form>
+
+{% if page_obj.object_list %}
+<div class="adm-card">
+  <table class="adm-table">
+    <thead>
+      <tr><th>Reference</th><th>Type</th><th>Requester</th><th>Status</th><th>Date</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+      {% for v in page_obj %}
+      <tr>
+        <td><code>{{ v.reference_number }}</code></td>
+        <td>{{ v.get_verification_type_display }}</td>
+        <td>{{ v.requester.username|default:"—" }}</td>
+        <td>
+          {% if v.status == 'completed' %}<span class="adm-badge adm-badge-green">{{ v.get_status_display }}</span>
+          {% elif v.status == 'pending' %}<span class="adm-badge adm-badge-amber">{{ v.get_status_display }}</span>
+          {% elif v.status == 'rejected' %}<span class="adm-badge adm-badge-red">{{ v.get_status_display }}</span>
+          {% else %}<span class="adm-badge adm-badge-blue">{{ v.get_status_display }}</span>{% endif %}
+        </td>
+        <td>{{ v.created_at|date:"d M Y" }}</td>
+        <td class="d-flex gap-1">
+          <form method="post" action="{% url 'admin_portal:verification_action' v.pk %}">
+            {% csrf_token %}<input type="hidden" name="action" value="in_progress">
+            <button class="btn btn-adm-sm btn-adm-outline">In Progress</button>
+          </form>
+          <form method="post" action="{% url 'admin_portal:verification_action' v.pk %}">
+            {% csrf_token %}<input type="hidden" name="action" value="complete">
+            <button class="btn btn-adm-sm btn-adm-success">Complete</button>
+          </form>
+          <form method="post" action="{% url 'admin_portal:verification_action' v.pk %}">
+            {% csrf_token %}<input type="hidden" name="action" value="reject">
+            <button class="btn btn-adm-sm btn-adm-danger">Reject</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% include "admin_portal/_pagination.html" with page=page_obj %}
+{% else %}
+<div class="adm-empty">No verification requests found.</div>
+{% endif %}
+{% endblock %}
+

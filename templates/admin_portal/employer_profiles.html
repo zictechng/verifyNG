@@ -1,0 +1,56 @@
+
+{% extends "admin_portal/base_admin.html" %}
+{% block title %}Employer Profiles — Admin{% endblock %}
+{% block content %}
+<div class="adm-page-header">
+  <h1 class="adm-page-title">Employer Profiles</h1>
+</div>
+{% include "admin_portal/_messages.html" %}
+<form class="adm-filter-bar mb-4" method="get">
+  <select name="verified" class="form-select adm-filter-select">
+    <option value="">All</option>
+    <option value="yes" {% if verified_filter == 'yes' %}selected{% endif %}>Verified</option>
+    <option value="no" {% if verified_filter == 'no' %}selected{% endif %}>Unverified</option>
+  </select>
+  <input type="text" name="q" value="{{ q }}" class="form-control adm-filter-input" placeholder="Company name or email…">
+  <button type="submit" class="btn btn-adm-primary">Filter</button>
+</form>
+{% if page_obj.object_list %}
+<div class="adm-card">
+  <table class="adm-table">
+    <thead><tr><th>Company</th><th>Account</th><th>Verified</th><th>Joined</th><th>Actions</th></tr></thead>
+    <tbody>
+      {% for ep in page_obj %}
+      <tr>
+        <td>{{ ep.company_name }}</td>
+        <td>{{ ep.user.email }}</td>
+        <td>{% if ep.is_verified %}<span class="adm-badge adm-badge-green">Verified</span>{% else %}<span class="adm-badge adm-badge-gray">Pending</span>{% endif %}</td>
+        <td>{{ ep.created_at|date:"d M Y" }}</td>
+        <td class="d-flex gap-1">
+          {% if not ep.is_verified %}
+          <form method="post" action="{% url 'admin_portal:employer_action' ep.pk %}">
+            {% csrf_token %}<input type="hidden" name="action" value="verify">
+            <button class="btn btn-adm-sm btn-adm-success">Verify</button>
+          </form>
+          {% else %}
+          <form method="post" action="{% url 'admin_portal:employer_action' ep.pk %}">
+            {% csrf_token %}<input type="hidden" name="action" value="unverify">
+            <button class="btn btn-adm-sm btn-adm-outline">Unverify</button>
+          </form>
+          {% endif %}
+          <form method="post" action="{% url 'admin_portal:employer_action' ep.pk %}">
+            {% csrf_token %}<input type="hidden" name="action" value="suspend">
+            <button class="btn btn-adm-sm btn-adm-danger">Suspend</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% include "admin_portal/_pagination.html" with page=page_obj %}
+{% else %}
+<div class="adm-empty">No employer profiles found.</div>
+{% endif %}
+{% endblock %}
+

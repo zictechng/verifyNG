@@ -1,0 +1,53 @@
+
+{% extends "admin_portal/base_admin.html" %}
+{% block title %}Subscriptions — Admin{% endblock %}
+{% block content %}
+<div class="adm-page-header">
+  <h1 class="adm-page-title">Subscriptions</h1>
+</div>
+{% include "admin_portal/_messages.html" %}
+<form class="adm-filter-bar mb-4" method="get">
+  <select name="status" class="form-select adm-filter-select">
+    <option value="">All Statuses</option>
+    {% for key, label in status_choices %}
+    <option value="{{ key }}" {% if key == selected_status %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  <input type="text" name="q" value="{{ q }}" class="form-control adm-filter-input" placeholder="Username or email…">
+  <button type="submit" class="btn btn-adm-primary">Filter</button>
+</form>
+{% if page_obj.object_list %}
+<div class="adm-card">
+  <table class="adm-table">
+    <thead><tr><th>User</th><th>Plan</th><th>Status</th><th>Started</th><th>Actions</th></tr></thead>
+    <tbody>
+      {% for s in page_obj %}
+      <tr>
+        <td>{{ s.user.username }} <small class="text-muted">&lt;{{ s.user.email }}&gt;</small></td>
+        <td>{{ s.plan.name|default:"—" }}</td>
+        <td>
+          {% if s.status == 'active' %}<span class="adm-badge adm-badge-green">Active</span>
+          {% elif s.status == 'cancelled' %}<span class="adm-badge adm-badge-red">Cancelled</span>
+          {% else %}<span class="adm-badge adm-badge-gray">{{ s.get_status_display }}</span>{% endif %}
+        </td>
+        <td>{{ s.created_at|date:"d M Y" }}</td>
+        <td>
+          {% if s.status == 'active' %}
+          <form method="post" action="{% url 'admin_portal:subscription_cancel' s.pk %}">
+            {% csrf_token %}
+            <input type="hidden" name="reason" value="Admin cancellation">
+            <button class="btn btn-adm-sm btn-adm-danger">Cancel</button>
+          </form>
+          {% else %}—{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% include "admin_portal/_pagination.html" with page=page_obj %}
+{% else %}
+<div class="adm-empty">No subscriptions found.</div>
+{% endif %}
+{% endblock %}
+

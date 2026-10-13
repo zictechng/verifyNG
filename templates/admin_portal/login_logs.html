@@ -1,0 +1,58 @@
+
+{% extends "admin_portal/base_admin.html" %}
+{% block title %}Login Logs — Admin{% endblock %}
+{% block content %}
+<div class="adm-page-header">
+  <h1 class="adm-page-title">Login Logs</h1>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-3"><div class="kpi-card"><div class="kpi-value">{{ total_logins }}</div><div class="kpi-label">Total Attempts</div></div></div>
+  <div class="col-md-3"><div class="kpi-card"><div class="kpi-value text-success">{{ success_logins }}</div><div class="kpi-label">Successful</div></div></div>
+  <div class="col-md-3"><div class="kpi-card"><div class="kpi-value text-warning">{{ failed_logins }}</div><div class="kpi-label">Failed</div></div></div>
+  <div class="col-md-3"><div class="kpi-card"><div class="kpi-value text-danger">{{ blocked_logins }}</div><div class="kpi-label">Blocked</div></div></div>
+</div>
+
+<form class="adm-filter-bar mb-4" method="get">
+  <select name="status" class="form-select adm-filter-select">
+    <option value="">All Statuses</option>
+    {% for key, label in status_choices %}
+    <option value="{{ key }}" {% if key == selected_status %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  <input type="text" name="q" value="{{ q }}" class="form-control adm-filter-input" placeholder="Username…">
+  <input type="text" name="ip" value="{{ ip_filter }}" class="form-control adm-filter-input" placeholder="IP address…">
+  <button type="submit" class="btn btn-adm-primary">Filter</button>
+</form>
+
+{% if page_obj.object_list %}
+<div class="adm-card">
+  <table class="adm-table">
+    <thead>
+      <tr><th>Username</th><th>Status</th><th>IP</th><th>Device</th><th>OS</th><th>Location</th><th>Time</th></tr>
+    </thead>
+    <tbody>
+      {% for l in page_obj %}
+      <tr>
+        <td>{{ l.username_attempted }}</td>
+        <td>
+          {% if l.status == 'success' %}<span class="adm-badge adm-badge-green">Success</span>
+          {% elif l.status == 'failed' %}<span class="adm-badge adm-badge-red">Failed</span>
+          {% else %}<span class="adm-badge adm-badge-gray">Blocked</span>{% endif %}
+        </td>
+        <td><code class="small">{{ l.ip_address|default:"—" }}</code></td>
+        <td class="small">{{ l.device_type }} / {{ l.browser }}</td>
+        <td class="small">{{ l.os }}</td>
+        <td class="small">{{ l.location_city }}, {{ l.location_country }}</td>
+        <td class="small">{{ l.timestamp|date:"d M Y H:i" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% include "admin_portal/_pagination.html" with page=page_obj %}
+{% else %}
+<div class="adm-empty">No login records match your filters.</div>
+{% endif %}
+{% endblock %}
+

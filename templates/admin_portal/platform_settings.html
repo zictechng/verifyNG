@@ -1,0 +1,154 @@
+
+{% extends "admin_portal/base_admin.html" %}
+{% block title %}Platform Configuration — Admin{% endblock %}
+{% block content %}
+<div class="adm-page-header">
+  <h1 class="adm-page-title">Platform Configuration</h1>
+  <p class="adm-page-sub">Branding, company details, social links, and maintenance settings.</p>
+</div>
+
+{% include "admin_portal/_messages.html" %}
+
+<form method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+  <div class="row g-4">
+
+    <!-- Branding -->
+    <div class="col-lg-8">
+      <div class="adm-card mb-4">
+        <div class="adm-card-header">Branding</div>
+        <div class="p-4">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Platform Name</label>
+              <input type="text" name="platform_name" class="form-control" value="{{ config.platform_name }}" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Tagline</label>
+              <input type="text" name="tagline" class="form-control" value="{{ config.tagline }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Logo <small class="text-muted">(PNG/SVG recommended)</small></label>
+              {% if config.logo %}
+              <div class="mb-2"><img src="{{ config.logo.url }}" alt="Current logo" style="max-height:60px;border-radius:4px;border:1px solid #eee"></div>
+              {% endif %}
+              <input type="file" name="logo" class="form-control" accept="image/*">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Favicon <small class="text-muted">(32×32 ICO or PNG)</small></label>
+              {% if config.favicon %}
+              <div class="mb-2"><img src="{{ config.favicon.url }}" alt="Current favicon" style="max-height:32px"></div>
+              {% endif %}
+              <input type="file" name="favicon" class="form-control" accept="image/*,.ico">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Footer Copyright Text</label>
+              <input type="text" name="footer_copyright_text" class="form-control" value="{{ config.footer_copyright_text }}">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Company & Contact -->
+      <div class="adm-card mb-4">
+        <div class="adm-card-header">Company & Contact</div>
+        <div class="p-4">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Company Name</label>
+              <input type="text" name="company_name" class="form-control" value="{{ config.company_name }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">CAC Reg. Number</label>
+              <input type="text" name="company_reg_number" class="form-control" value="{{ config.company_reg_number }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Support Email</label>
+              <input type="email" name="support_email" class="form-control" value="{{ config.support_email }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Contact Phone</label>
+              <input type="text" name="contact_phone" class="form-control" value="{{ config.contact_phone }}" placeholder="+234…">
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Contact Address</label>
+              <textarea name="contact_address" class="form-control" rows="3">{{ config.contact_address }}</textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Social Links -->
+      <div class="adm-card mb-4">
+        <div class="adm-card-header">Social Links</div>
+        <div class="p-4">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Twitter / X URL</label>
+              <input type="url" name="twitter_url" class="form-control" value="{{ config.twitter_url }}" placeholder="https://twitter.com/…">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Instagram URL</label>
+              <input type="url" name="instagram_url" class="form-control" value="{{ config.instagram_url }}" placeholder="https://instagram.com/…">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Facebook URL</label>
+              <input type="url" name="facebook_url" class="form-control" value="{{ config.facebook_url }}" placeholder="https://facebook.com/…">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">LinkedIn URL</label>
+              <input type="url" name="linkedin_url" class="form-control" value="{{ config.linkedin_url }}" placeholder="https://linkedin.com/…">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">WhatsApp Business Number</label>
+              <input type="text" name="whatsapp_number" class="form-control" value="{{ config.whatsapp_number }}" placeholder="+2349012345678">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SEO -->
+      <div class="adm-card mb-4">
+        <div class="adm-card-header">SEO / Meta Tags</div>
+        <div class="p-4">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Meta Description <small class="text-muted">(max 160 chars)</small></label>
+            <textarea name="meta_description" class="form-control" rows="2" maxlength="160">{{ config.meta_description }}</textarea>
+          </div>
+          <div class="mb-0">
+            <label class="form-label fw-semibold">Meta Keywords <small class="text-muted">(comma-separated)</small></label>
+            <input type="text" name="meta_keywords" class="form-control" value="{{ config.meta_keywords }}">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar: maintenance + save -->
+    <div class="col-lg-4">
+      <div class="adm-card mb-4 border {% if config.maintenance_mode %}border-danger{% endif %}">
+        <div class="adm-card-header {% if config.maintenance_mode %}text-danger{% endif %}">Maintenance Mode</div>
+        <div class="p-4">
+          <div class="form-check form-switch mb-3">
+            <input class="form-check-input" type="checkbox" name="maintenance_mode" id="maintenanceToggle" {% if config.maintenance_mode %}checked{% endif %}>
+            <label class="form-check-label fw-semibold" for="maintenanceToggle">
+              {% if config.maintenance_mode %}🔴 Platform is in Maintenance Mode{% else %}🟢 Platform is Live{% endif %}
+            </label>
+          </div>
+          <div class="mb-0">
+            <label class="form-label fw-semibold">Maintenance Message</label>
+            <textarea name="maintenance_message" class="form-control" rows="4">{{ config.maintenance_message }}</textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="adm-card">
+        <div class="p-4">
+          <button type="submit" class="btn btn-adm-primary w-100 py-2">Save Platform Configuration</button>
+          <div class="text-muted small mt-2 text-center">Last saved: {{ config.updated_at|date:"d M Y H:i" }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}
+

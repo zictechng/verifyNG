@@ -1,0 +1,40 @@
+
+{% extends "admin_portal/base_admin.html" %}
+{% block title %}System Logs — Admin{% endblock %}
+{% block content %}
+<div class="adm-page-header">
+  <h1 class="adm-page-title">System Logs</h1>
+  <p class="adm-page-sub">All internal AuditLog events across the platform.</p>
+</div>
+<form class="adm-filter-bar mb-4" method="get">
+  <select name="action" class="form-select adm-filter-select">
+    <option value="">All Actions</option>
+    {% for a in action_types %}
+    <option value="{{ a }}" {% if a == action_filter %}selected{% endif %}>{{ a }}</option>
+    {% endfor %}
+  </select>
+  <input type="text" name="q" value="{{ q }}" class="form-control adm-filter-input" placeholder="Performed by username…">
+  <button type="submit" class="btn btn-adm-primary">Filter</button>
+</form>
+{% if page_obj.object_list %}
+<div class="adm-card">
+  <table class="adm-table">
+    <thead><tr><th>Action</th><th>Performed By</th><th>Details</th><th>Timestamp</th></tr></thead>
+    <tbody>
+      {% for log in page_obj %}
+      <tr>
+        <td><code class="small">{{ log.action }}</code></td>
+        <td>{{ log.performed_by.username|default:"System" }}</td>
+        <td class="small text-muted">{{ log.details|truncatechars:80 }}</td>
+        <td class="small">{{ log.created_at|date:"d M Y H:i" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% include "admin_portal/_pagination.html" with page=page_obj %}
+{% else %}
+<div class="adm-empty">No system logs found.</div>
+{% endif %}
+{% endblock %}
+

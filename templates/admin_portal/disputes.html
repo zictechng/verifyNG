@@ -1,0 +1,57 @@
+
+{% extends "admin_portal/base_admin.html" %}
+{% block title %}Disputes — VerifyNG Admin{% endblock %}
+{% block content %}
+<div class="adm-page-header">
+  <h1 class="adm-page-title">Disputes Queue</h1>
+</div>
+
+{% include "admin_portal/_messages.html" %}
+
+<form class="adm-filter-bar mb-4" method="get">
+  <select name="status" class="form-select adm-filter-select">
+    <option value="">All Statuses</option>
+    {% for key, label in status_choices %}
+    <option value="{{ key }}" {% if key == selected_status %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  <input type="text" name="q" value="{{ q|default:'' }}" class="form-control adm-filter-input" placeholder="Search report reference…">
+  <button type="submit" class="btn btn-adm-primary">Filter</button>
+</form>
+
+{% if page_obj.object_list %}
+<div class="adm-card">
+  <table class="adm-table">
+    <thead>
+      <tr><th>Report Ref</th><th>Disputed By</th><th>Status</th><th>Filed</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+      {% for d in page_obj %}
+      <tr>
+        <td><code>{{ d.report.reference_number }}</code></td>
+        <td>{{ d.disputed_by.username|default:"—" }}</td>
+        <td><span class="adm-badge adm-badge-amber">{{ d.get_status_display }}</span></td>
+        <td>{{ d.created_at|date:"d M Y" }}</td>
+        <td>
+          <form method="post" action="{% url 'admin_portal:dispute_action' d.pk %}" class="d-inline">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="accept">
+            <button class="btn btn-adm-sm btn-adm-success">Uphold</button>
+          </form>
+          <form method="post" action="{% url 'admin_portal:dispute_action' d.pk %}" class="d-inline ms-1">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="reject">
+            <button class="btn btn-adm-sm btn-adm-danger">Reject</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% include "admin_portal/_pagination.html" with page=page_obj %}
+{% else %}
+<div class="adm-empty">No disputes found.</div>
+{% endif %}
+{% endblock %}
+

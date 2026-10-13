@@ -1,0 +1,8 @@
+
+{% if messages %}
+{% for message in messages %}
+<div class="adm-flash adm-flash-{{ message.tags }} mb-3" role="alert">
+  {{ message }}
+</div>
+{% endfor %}
+{% endif %}

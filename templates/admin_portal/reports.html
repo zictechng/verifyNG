@@ -1,0 +1,65 @@
+
+{% extends "admin_portal/base_admin.html" %}
+{% block title %}Reports Moderation — VerifyNG Admin{% endblock %}
+{% block content %}
+<div class="adm-page-header">
+  <h1 class="adm-page-title">Reports Moderation Queue</h1>
+</div>
+
+<!-- State filter tabs -->
+<div class="d-flex gap-2 flex-wrap mb-3">
+  <a href="{% url 'admin_portal:reports' %}" class="btn btn-adm-outline {% if not selected_state %}btn-adm-primary{% endif %}">All ({{ counts.values|sum }})</a>
+  {% for state_key, state_label in state_choices %}
+  <a href="?state={{ state_key }}" class="btn btn-adm-outline {% if selected_state == state_key %}btn-adm-primary{% endif %}">
+    {{ state_label }} ({{ counts|dictsort:state_key }})
+  </a>
+  {% endfor %}
+</div>
+
+<form class="adm-filter-bar mb-4" method="get">
+  {% if selected_state %}<input type="hidden" name="state" value="{{ selected_state }}">{% endif %}
+  <input type="text" name="q" value="{{ q }}" class="form-control adm-filter-input" placeholder="Search reference, title, reporter…">
+  <button type="submit" class="btn btn-adm-primary">Search</button>
+</form>
+
+{% if page_obj.object_list %}
+<div class="adm-card">
+  <table class="adm-table">
+    <thead>
+      <tr>
+        <th>Reference</th>
+        <th>Title</th>
+        <th>Reporter</th>
+        <th>State</th>
+        <th>Date</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in page_obj %}
+      <tr>
+        <td><code>{{ r.reference_number }}</code></td>
+        <td>{{ r.title|truncatechars:50 }}</td>
+        <td>{{ r.reporter.username|default:"—" }}</td>
+        <td>
+          {% if r.state == 'published' %}<span class="adm-badge adm-badge-green">{{ r.get_state_display }}</span>
+          {% elif r.state in 'submitted under_review' %}<span class="adm-badge adm-badge-amber">{{ r.get_state_display }}</span>
+          {% elif r.state in 'rejected archived restricted' %}<span class="adm-badge adm-badge-gray">{{ r.get_state_display }}</span>
+          {% elif r.state == 'disputed' %}<span class="adm-badge adm-badge-red">{{ r.get_state_display }}</span>
+          {% else %}<span class="adm-badge adm-badge-blue">{{ r.get_state_display }}</span>{% endif %}
+        </td>
+        <td>{{ r.created_at|date:"d M Y" }}</td>
+        <td>
+          <a href="{% url 'admin_portal:report_detail' r.pk %}" class="btn btn-adm-sm btn-adm-outline">Review</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% include "admin_portal/_pagination.html" with page=page_obj %}
+{% else %}
+<div class="adm-empty">No reports match your filters.</div>
+{% endif %}
+{% endblock %}
+

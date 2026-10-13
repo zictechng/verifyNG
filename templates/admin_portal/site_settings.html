@@ -1,0 +1,60 @@
+
+{% extends "admin_portal/base_admin.html" %}
+{% block title %}Site Settings — Admin{% endblock %}
+{% block content %}
+<div class="adm-page-header">
+  <h1 class="adm-page-title">Site Settings</h1>
+  <p class="adm-page-sub">Free-tier check limits, payment system flags, and plan management.</p>
+</div>
+
+{% include "admin_portal/_messages.html" %}
+
+<div class="row g-4">
+  <div class="col-lg-6">
+    <div class="adm-card">
+      <div class="adm-card-header">Free Tier Configuration</div>
+      <form method="post" class="p-4">
+        {% csrf_token %}
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Free Checks Per Window</label>
+          <input type="number" name="free_check_limit" class="form-control" value="{{ settings_obj.free_check_limit }}" min="0" max="100">
+          <div class="form-text">Number of free lookups per user per rolling window.</div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Window Duration (Days)</label>
+          <input type="number" name="free_check_window_days" class="form-control" value="{{ settings_obj.free_check_window_days }}" min="1" max="365">
+        </div>
+        <div class="mb-3">
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" name="maintenance_mode" id="payMaintenance" {% if settings_obj.maintenance_mode %}checked{% endif %}>
+            <label class="form-check-label fw-semibold" for="payMaintenance">Disable Checkout (Maintenance)</label>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-adm-primary w-100">Save Site Settings</button>
+      </form>
+    </div>
+  </div>
+
+  {% if plans %}
+  <div class="col-lg-6">
+    <div class="adm-card">
+      <div class="adm-card-header">Subscription Plans</div>
+      <table class="adm-table">
+        <thead><tr><th>Plan</th><th>Price</th><th>Interval</th><th>Active</th></tr></thead>
+        <tbody>
+          {% for plan in plans %}
+          <tr>
+            <td>{{ plan.name }}</td>
+            <td>₦{{ plan.price_kobo|floatformat:0 }} kobo</td>
+            <td>{{ plan.get_interval_display }}</td>
+            <td>{% if plan.is_active %}<span class="adm-badge adm-badge-green">Yes</span>{% else %}<span class="adm-badge adm-badge-gray">No</span>{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+

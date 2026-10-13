@@ -1,0 +1,117 @@
+
+{% extends "admin_portal/base_admin.html" %}
+{% block title %}Report {{ report.reference_number }} — Admin{% endblock %}
+{% block content %}
+<div class="adm-page-header">
+  <div>
+    <h1 class="adm-page-title">{{ report.reference_number }}</h1>
+    <p class="adm-page-sub">{{ report.title }}</p>
+  </div>
+  <a href="{% url 'admin_portal:reports' %}" class="btn btn-adm-outline">← Back to Queue</a>
+</div>
+
+{% include "admin_portal/_messages.html" %}
+
+<div class="row g-4">
+  <!-- Report details -->
+  <div class="col-lg-8">
+    <div class="adm-card mb-4">
+      <div class="adm-card-header">Report Details</div>
+      <table class="table table-sm mb-0">
+        <tr><th style="width:160px">Reference</th><td><code>{{ report.reference_number }}</code></td></tr>
+        <tr><th>State</th><td><span class="adm-badge adm-badge-blue">{{ report.get_state_display }}</span></td></tr>
+        <tr><th>Reporter</th><td>{{ report.reporter.username|default:"—" }} &lt;{{ report.reporter.email|default:"" }}&gt;</td></tr>
+        <tr><th>Subject</th><td>{{ report.target_subject }}</td></tr>
+        <tr><th>Incident Date</th><td>{{ report.incident_date|default:"Not specified" }}</td></tr>
+        <tr><th>Submitted</th><td>{{ report.created_at|date:"d M Y H:i" }}</td></tr>
+        <tr><th>Last Updated</th><td>{{ report.updated_at|date:"d M Y H:i" }}</td></tr>
+      </table>
+    </div>
+
+    <div class="adm-card mb-4">
+      <div class="adm-card-header">Allegation</div>
+      <div class="p-3" style="white-space:pre-wrap;font-size:0.92rem">{{ report.allegation }}</div>
+    </div>
+
+    {% if report.moderation_notes %}
+    <div class="adm-card mb-4">
+      <div class="adm-card-header">Moderation Notes</div>
+      <div class="p-3" style="white-space:pre-wrap;font-size:0.9rem;color:var(--adm-text-muted)">{{ report.moderation_notes }}</div>
+    </div>
+    {% endif %}
+
+    {% if evidence_list %}
+    <div class="adm-card mb-4">
+      <div class="adm-card-header">Evidence ({{ evidence_list.count }})</div>
+      <table class="adm-table">
+        <thead><tr><th>Type</th><th>Description</th><th>Confidential</th><th>File</th></tr></thead>
+        <tbody>
+          {% for ev in evidence_list %}
+          <tr>
+            <td>{{ ev.get_file_type_display }}</td>
+            <td>{{ ev.description|default:"—" }}</td>
+            <td>{% if ev.is_confidential %}<span class="adm-badge adm-badge-red">Yes</span>{% else %}<span class="adm-badge adm-badge-gray">No</span>{% endif %}</td>
+            <td><a href="{{ ev.file.url }}" target="_blank" class="btn btn-adm-sm btn-adm-outline">View</a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Actions sidebar -->
+  <div class="col-lg-4">
+    <div class="adm-card mb-4">
+      <div class="adm-card-header">Transition State</div>
+      <div class="p-3">
+        <form method="post" action="{% url 'admin_portal:report_transition' report.pk %}">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label class="form-label fw-semibold">New State</label>
+            <select name="new_state" class="form-select" required>
+              <option value="">— select —</option>
+              {% for state_key, state_label in state_choices %}
+              {% if state_key != report.state %}
+              <option value="{{ state_key }}">{{ state_label }}</option>
+              {% endif %}
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Moderation Notes</label>
+            <textarea name="moderation_notes" class="form-control" rows="4" placeholder="Internal notes (not public)…">{{ report.moderation_notes }}</textarea>
+          </div>
+          <button type="submit" class="btn btn-adm-primary w-100">Apply Transition</button>
+        </form>
+      </div>
+    </div>
+
+    {% if disputes %}
+    <div class="adm-card mb-4">
+      <div class="adm-card-header">Disputes ({{ disputes.count }})</div>
+      {% for d in disputes %}
+      <div class="p-3 border-bottom">
+        <div class="fw-semibold">{{ d.get_status_display }}</div>
+        <div class="small text-muted">{{ d.created_at|date:"d M Y" }}</div>
+        <div class="small mt-1">{{ d.reason|truncatechars:100 }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="adm-card">
+      <div class="adm-card-header">Audit Trail</div>
+      {% for log in audit_trail %}
+      <div class="p-2 border-bottom small">
+        <span class="fw-semibold">{{ log.action }}</span> by {{ log.performed_by.username|default:"System" }}
+        <div class="text-muted">{{ log.created_at|date:"d M Y H:i" }}</div>
+      </div>
+      {% empty %}
+      <div class="p-3 text-muted small">No audit entries.</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+

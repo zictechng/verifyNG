@@ -1,0 +1,64 @@
+
+{% extends "admin_portal/base_admin.html" %}
+{% block title %}Activity Logs — Admin{% endblock %}
+{% block content %}
+<div class="adm-page-header">
+  <h1 class="adm-page-title">Platform Activity</h1>
+  <p class="adm-page-sub">Recent cross-platform activity: registrations, reports, verifications, admin events.</p>
+</div>
+<div class="row g-4">
+  <div class="col-lg-6">
+    <div class="adm-card">
+      <div class="adm-card-header">Recent Reports (30)</div>
+      <table class="adm-table">
+        <thead><tr><th>Reference</th><th>Reporter</th><th>State</th><th>Date</th></tr></thead>
+        <tbody>
+          {% for r in recent_reports %}
+          <tr>
+            <td><a href="{% url 'admin_portal:report_detail' r.pk %}"><code>{{ r.reference_number }}</code></a></td>
+            <td>{{ r.reporter.username|default:"—" }}</td>
+            <td><span class="adm-badge adm-badge-blue small">{{ r.get_state_display }}</span></td>
+            <td class="small">{{ r.created_at|date:"d M H:i" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="adm-card">
+      <div class="adm-card-header">Recent Registrations (20)</div>
+      <table class="adm-table">
+        <thead><tr><th>Username</th><th>Role</th><th>Joined</th></tr></thead>
+        <tbody>
+          {% for u in recent_users %}
+          <tr>
+            <td><a href="{% url 'admin_portal:user_detail' u.id %}">{{ u.username }}</a></td>
+            <td><span class="adm-badge adm-badge-gray small">{{ u.get_role_display }}</span></td>
+            <td class="small">{{ u.date_joined|date:"d M H:i" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="col-lg-12">
+    <div class="adm-card">
+      <div class="adm-card-header">Recent Admin Events (50)</div>
+      <table class="adm-table">
+        <thead><tr><th>Action</th><th>By</th><th>Time</th></tr></thead>
+        <tbody>
+          {% for log in recent_audit %}
+          <tr>
+            <td><code class="small">{{ log.action }}</code></td>
+            <td>{{ log.performed_by.username|default:"System" }}</td>
+            <td class="small text-muted">{{ log.created_at|date:"d M Y H:i" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

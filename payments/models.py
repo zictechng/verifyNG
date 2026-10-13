@@ -41,6 +41,61 @@ class SiteSettings(models.Model):
         return obj
 
 
+class PlatformConfiguration(models.Model):
+    """
+    Singleton — platform-wide branding and configuration.
+    One row only; use PlatformConfiguration.get() everywhere.
+    """
+    # Branding
+    platform_name = models.CharField(max_length=100, default='VerifyNG')
+    tagline = models.CharField(max_length=255, blank=True, default='Nigeria\'s Public Trust & Safety Platform')
+    logo = models.ImageField(upload_to='platform/branding/', null=True, blank=True, help_text='Main platform logo')
+    favicon = models.ImageField(upload_to='platform/branding/', null=True, blank=True, help_text='Browser favicon (32x32 ICO or PNG)')
+    logo_alt_text = models.CharField(max_length=100, blank=True, default='VerifyNG Logo')
+
+    # Contact & Identity
+    company_name = models.CharField(max_length=200, blank=True, default='VerifyNG Limited')
+    company_reg_number = models.CharField(max_length=50, blank=True, help_text='CAC Registration Number')
+    support_email = models.EmailField(blank=True, default='support@verifyng.com')
+    contact_phone = models.CharField(max_length=20, blank=True)
+    contact_address = models.TextField(blank=True)
+
+    # Social Links
+    twitter_url = models.URLField(blank=True)
+    instagram_url = models.URLField(blank=True)
+    facebook_url = models.URLField(blank=True)
+    linkedin_url = models.URLField(blank=True)
+    whatsapp_number = models.CharField(max_length=20, blank=True, help_text='WhatsApp business number (e.g. +2349012345678)')
+
+    # SEO / Meta
+    meta_description = models.TextField(blank=True, max_length=160)
+    meta_keywords = models.TextField(blank=True, help_text='Comma-separated keywords')
+
+    # System
+    maintenance_mode = models.BooleanField(default=False)
+    maintenance_message = models.TextField(blank=True, default='Platform undergoing scheduled maintenance. We\'ll be back shortly.')
+    footer_copyright_text = models.CharField(max_length=255, blank=True, default='© 2024 VerifyNG Limited. All rights reserved.')
+
+    updated_at = models.DateTimeField(auto_now=True)
+    updated_by = models.ForeignKey(
+        'users.User', null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='platform_config_updates'
+    )
+
+    class Meta:
+        verbose_name = 'Platform Configuration'
+        verbose_name_plural = 'Platform Configuration'
+
+    def __str__(self):
+        return f"Platform Config: {self.platform_name}"
+
+    @classmethod
+    def get(cls):
+        """Returns the singleton instance, creating defaults if absent."""
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+
 class Plan(models.Model):
     INTERVAL_CHOICES = (
         ('one_time', 'One-Time'),

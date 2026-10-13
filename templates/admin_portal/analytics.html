@@ -1,0 +1,98 @@
+
+{% extends "admin_portal/base_admin.html" %}
+{% block title %}Analytics — VerifyNG Admin{% endblock %}
+{% block content %}
+<div class="adm-page-header">
+  <h1 class="adm-page-title">Platform Analytics</h1>
+  <p class="adm-page-sub">30-day growth trends, user roles, and report distribution.</p>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-3">
+    <div class="kpi-card">
+      <div class="kpi-value">{{ new_users_30d }}</div>
+      <div class="kpi-label">New Users (30d)</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="kpi-card">
+      <div class="kpi-value">{{ new_reports_30d }}</div>
+      <div class="kpi-label">New Reports (30d)</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="kpi-card">
+      <div class="kpi-value">{{ verified_users_total }}</div>
+      <div class="kpi-label">Verified Users (All Time)</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="kpi-card">
+      <div class="kpi-value">{{ active_subscriptions }}</div>
+      <div class="kpi-label">Active Subscriptions</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-12">
+    <div class="adm-card">
+      <div class="adm-card-header">30-Day Activity Trends</div>
+      <canvas id="trendChart" height="80"></canvas>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="adm-card">
+      <div class="adm-card-header">User Role Distribution</div>
+      <canvas id="roleChart" height="160"></canvas>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="adm-card">
+      <div class="adm-card-header">Report State Breakdown</div>
+      <canvas id="stateChart" height="160"></canvas>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+const labels = {{ chart_labels|safe }};
+const usersData = {{ chart_users|safe }};
+const reportsData = {{ chart_reports|safe }};
+const verificationsData = {{ chart_verifications|safe }};
+
+new Chart(document.getElementById('trendChart'), {
+  type: 'line',
+  data: {
+    labels,
+    datasets: [
+      { label: 'Users', data: usersData, borderColor: '#2457D6', backgroundColor: 'rgba(36,87,214,0.08)', tension: 0.4, fill: true },
+      { label: 'Reports', data: reportsData, borderColor: '#DC2626', backgroundColor: 'rgba(220,38,38,0.08)', tension: 0.4, fill: true },
+      { label: 'Verifications', data: verificationsData, borderColor: '#16A34A', backgroundColor: 'rgba(22,163,74,0.08)', tension: 0.4, fill: true },
+    ]
+  },
+  options: { responsive: true, plugins: { legend: { position: 'top' } } }
+});
+
+new Chart(document.getElementById('roleChart'), {
+  type: 'doughnut',
+  data: {
+    labels: {{ role_labels|safe }},
+    datasets: [{ data: {{ role_counts|safe }}, backgroundColor: ['#2457D6','#16A34A','#D97706','#DC2626','#6366F1','#0891B2'] }]
+  },
+  options: { responsive: true }
+});
+
+new Chart(document.getElementById('stateChart'), {
+  type: 'bar',
+  data: {
+    labels: {{ state_labels|safe }},
+    datasets: [{ label: 'Reports', data: {{ state_counts|safe }}, backgroundColor: '#2457D6' }]
+  },
+  options: { responsive: true, plugins: { legend: { display: false } } }
+});
+</script>
+{% endblock %}
+

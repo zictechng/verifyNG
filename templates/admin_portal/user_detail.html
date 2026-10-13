@@ -1,0 +1,183 @@
+
+{% extends "admin_portal/base_admin.html" %}
+{% block title %}User: {{ target_user.username }} — Admin{% endblock %}
+{% block content %}
+<div class="adm-page-header">
+  <div>
+    <h1 class="adm-page-title">{{ target_user.get_full_name|default:target_user.username }}</h1>
+    <p class="adm-page-sub">@{{ target_user.username }} · {{ target_user.email }}</p>
+  </div>
+  <a href="{% url 'admin_portal:users' %}" class="btn btn-adm-outline">← All Users</a>
+</div>
+
+{% include "admin_portal/_messages.html" %}
+
+<div class="row g-4">
+  <!-- Profile & Actions -->
+  <div class="col-lg-4">
+    <div class="adm-card mb-4">
+      <div class="adm-card-header">Account Details</div>
+      <table class="table table-sm mb-0">
+        <tr><th>ID</th><td>{{ target_user.id }}</td></tr>
+        <tr><th>Username</th><td>{{ target_user.username }}</td></tr>
+        <tr><th>Email</th><td>{{ target_user.email }}</td></tr>
+        <tr><th>Role</th><td><span class="adm-badge adm-badge-blue">{{ target_user.get_role_display }}</span></td></tr>
+        <tr><th>Status</th><td>{% if target_user.is_active %}<span class="adm-badge adm-badge-green">Active</span>{% else %}<span class="adm-badge adm-badge-red">Suspended</span>{% endif %}</td></tr>
+        <tr><th>Identity Verified</th><td>{% if target_user.identity_verified %}<span class="adm-badge adm-badge-green">Yes</span>{% else %}<span class="adm-badge adm-badge-gray">No</span>{% endif %}</td></tr>
+        <tr><th>Staff</th><td>{% if target_user.is_staff %}Yes{% else %}No{% endif %}</td></tr>
+        <tr><th>Superuser</th><td>{% if target_user.is_superuser %}Yes{% else %}No{% endif %}</td></tr>
+        <tr><th>Joined</th><td>{{ target_user.date_joined|date:"d M Y H:i" }}</td></tr>
+        <tr><th>Last Login</th><td>{{ target_user.last_login|date:"d M Y H:i"|default:"Never" }}</td></tr>
+      </table>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="adm-card mb-4">
+      <div class="adm-card-header">Quick Actions</div>
+      <div class="p-3 d-grid gap-2">
+
+        <!-- Toggle suspend -->
+        <form method="post" action="{% url 'admin_portal:user_toggle_status' target_user.id %}">
+          {% csrf_token %}
+          {% if target_user.is_active %}
+          <button class="btn btn-adm-danger w-100">Suspend Account</button>
+          {% else %}
+          <button class="btn btn-adm-success w-100">Reactivate Account</button>
+          {% endif %}
+        </form>
+
+        <!-- Block / Unblock -->
+        <form method="post" action="{% url 'admin_portal:user_block' target_user.id %}">
+          {% csrf_token %}
+          {% if target_user.is_active %}
+          <input type="hidden" name="action" value="block">
+          <button class="btn btn-adm-danger w-100">Block User</button>
+          {% else %}
+          <input type="hidden" name="action" value="unblock">
+          <button class="btn btn-adm-success w-100">Unblock User</button>
+          {% endif %}
+        </form>
+
+        <!-- Change role -->
+        <form method="post" action="{% url 'admin_portal:user_change_role' target_user.id %}">
+          {% csrf_token %}
+          <div class="input-group">
+            <select name="role" class="form-select">
+              {% for key, label in role_choices %}
+              <option value="{{ key }}" {% if key == target_user.role %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+            <button class="btn btn-adm-primary">Set Role</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Hard Delete — requires typing username to confirm -->
+    <div class="adm-card border border-danger">
+      <div class="adm-card-header" style="color:var(--adm-danger)">Danger Zone</div>
+      <div class="p-3">
+        <p class="small text-danger mb-2">Permanently deletes this user and all associated data. This cannot be undone.</p>
+        <form method="post" action="{% url 'admin_portal:user_hard_delete' target_user.id %}"
+              onsubmit="return confirm('FINAL WARNING: permanently delete {{ target_user.username }}?')">
+          {% csrf_token %}
+          <div class="mb-2">
+            <input type="text" name="confirm_delete" class="form-control form-control-sm border-danger"
+                   placeholder="Type username to confirm: {{ target_user.username }}" required>
+          </div>
+          <button type="submit" class="btn btn-adm-danger w-100 btn-sm">Permanently Delete</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Activity panels -->
+  <div class="col-lg-8">
+    <!-- Reports submitted by user -->
+    <div class="adm-card mb-4">
+      <div class="adm-card-header">Reports Submitted ({{ user_reports.count }})</div>
+      {% if user_reports %}
+      <table class="adm-table">
+        <thead><tr><th>Reference</th><th>Title</th><th>State</th><th>Date</th><th></th></tr></thead>
+        <tbody>
+          {% for r in user_reports %}
+          <tr>
+            <td><code>{{ r.reference_number }}</code></td>
+            <td>{{ r.title|truncatechars:40 }}</td>
+            <td><span class="adm-badge adm-badge-blue">{{ r.get_state_display }}</span></td>
+            <td>{{ r.created_at|date:"d M Y" }}</td>
+            <td><a href="{% url 'admin_portal:report_detail' r.pk %}" class="btn btn-adm-sm btn-adm-outline">View</a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}<div class="adm-empty">No reports submitted.</div>{% endif %}
+    </div>
+
+    <!-- Verifications -->
+    <div class="adm-card mb-4">
+      <div class="adm-card-header">Verifications ({{ user_verifications.count }})</div>
+      {% if user_verifications %}
+      <table class="adm-table">
+        <thead><tr><th>Reference</th><th>Type</th><th>Status</th><th>Date</th></tr></thead>
+        <tbody>
+          {% for v in user_verifications %}
+          <tr>
+            <td><code>{{ v.reference_number }}</code></td>
+            <td>{{ v.get_verification_type_display }}</td>
+            <td><span class="adm-badge adm-badge-blue">{{ v.get_status_display }}</span></td>
+            <td>{{ v.created_at|date:"d M Y" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}<div class="adm-empty">No verifications.</div>{% endif %}
+    </div>
+
+    <!-- Subscriptions -->
+    {% if user_subscriptions %}
+    <div class="adm-card mb-4">
+      <div class="adm-card-header">Subscriptions</div>
+      <table class="adm-table">
+        <thead><tr><th>Plan</th><th>Status</th><th>Started</th></tr></thead>
+        <tbody>
+          {% for s in user_subscriptions %}
+          <tr>
+            <td>{{ s.plan.name|default:"—" }}</td>
+            <td><span class="adm-badge adm-badge-green">{{ s.get_status_display }}</span></td>
+            <td>{{ s.created_at|date:"d M Y" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+    <!-- Login history -->
+    <div class="adm-card">
+      <div class="adm-card-header">Login History (last 20)</div>
+      <table class="adm-table">
+        <thead><tr><th>Time</th><th>Status</th><th>IP</th><th>Device</th><th>Location</th></tr></thead>
+        <tbody>
+          {% for l in login_history %}
+          <tr>
+            <td>{{ l.timestamp|date:"d M Y H:i" }}</td>
+            <td>
+              {% if l.status == 'success' %}<span class="adm-badge adm-badge-green">Success</span>
+              {% elif l.status == 'failed' %}<span class="adm-badge adm-badge-red">Failed</span>
+              {% else %}<span class="adm-badge adm-badge-gray">Blocked</span>{% endif %}
+            </td>
+            <td><code>{{ l.ip_address|default:"—" }}</code></td>
+            <td>{{ l.device_type }} / {{ l.browser }}</td>
+            <td>{{ l.location_city }}, {{ l.location_country }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="5" class="text-center text-muted py-3">No login history.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
