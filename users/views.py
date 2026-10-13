@@ -40,10 +40,45 @@ logger = logging.getLogger(__name__)
 class RegisterView(CreateView):
     """
     Public registration view. Uses CustomUserCreationForm to register individual users.
+    Sends a branded welcome email via Celery on successful registration.
     """
     form_class = CustomUserCreationForm
     template_name = 'users/register.html'
     success_url = reverse_lazy('users:login')
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        user = self.object
+
+        # Send welcome email via Celery
+        try:
+            html_body, text_body = render_email('generic_notification', {
+                'user_name': user.get_full_name() or user.username,
+                'heading': 'Welcome to VerifyNG! 🎉',
+                'body_html': (
+                    f'<p>Hi <strong>{user.get_full_name() or user.username}</strong>,</p>'
+                    f'<p>Your VerifyNG account has been created successfully. '
+                    f'You can now sign in and start using the platform to check, '
+                    f'report, and verify.</p>'
+                    f'<p>Your username is: <strong>{user.username}</strong></p>'
+                    f'<p>If you did not create this account, please contact us immediately.</p>'
+                ),
+                'subject': 'Welcome to VerifyNG — Your account is ready',
+            })
+            send_broadcast_email_task.delay(
+                to_email=user.email,
+                subject='Welcome to VerifyNG — Your account is ready',
+                html_body=html_body,
+                text_body=text_body,
+            )
+        except Exception:
+            logger.warning("Failed to send welcome email to new user %s", user.pk)
+
+        messages.success(
+            self.request,
+            f'Account created successfully! Welcome, {user.get_full_name() or user.username}. Please sign in.'
+        )
+        return response
 
 
 class UserLoginView(LoginView):
