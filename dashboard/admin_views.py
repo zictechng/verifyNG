@@ -141,22 +141,25 @@ class AdminUserListView(SuperAdminRequiredMixin, TemplateView):
 
         if query:
             users = users.filter(username__icontains=query) | users.filter(email__icontains=query)
-
         if role_filter:
             users = users.filter(role=role_filter)
-
         if status_filter == 'active':
             users = users.filter(is_active=True)
         elif status_filter == 'suspended':
             users = users.filter(is_active=False)
 
-        ctx['users_list'] = users[:50]
+        per_page = int(self.request.GET.get('per_page', 15))
+        if per_page not in (15, 25, 50, 100):
+            per_page = 15
+        paginator = Paginator(users, per_page)
+        ctx['page_obj'] = paginator.get_page(self.request.GET.get('page', 1))
+        ctx['per_page'] = per_page
+        ctx['per_page_options'] = [15, 25, 50, 100]
         ctx['role_choices'] = User.ROLE_CHOICES
         ctx['query'] = query
         ctx['selected_role'] = role_filter
         ctx['selected_status'] = status_filter
         return ctx
-
 
 class AdminUserToggleStatusView(SuperAdminRequiredMixin, View):
     """Suspends or Reactivates a user account."""
@@ -398,17 +401,20 @@ class AdminReportsView(SuperAdminRequiredMixin, TemplateView):
                       reports.filter(title__icontains=q) | \
                       reports.filter(reporter__username__icontains=q)
 
-        paginator = Paginator(reports, 25)
-        page = self.request.GET.get('page', 1)
-        ctx['page_obj'] = paginator.get_page(page)
         counts = {s[0]: FraudReport.objects.filter(state=s[0]).count() for s in FraudReport.STATES}
+        per_page = int(self.request.GET.get('per_page', 15))
+        if per_page not in (15, 25, 50, 100):
+            per_page = 15
+        paginator = Paginator(reports, per_page)
+        ctx['page_obj'] = paginator.get_page(self.request.GET.get('page', 1))
+        ctx['per_page'] = per_page
+        ctx['per_page_options'] = [15, 25, 50, 100]
         ctx['counts'] = counts
         ctx['total_count'] = sum(counts.values())
         ctx['state_choices'] = [(key, label, counts.get(key, 0)) for key, label in FraudReport.STATES]
         ctx['selected_state'] = state_filter
         ctx['q'] = q
         return ctx
-
 
 class AdminReportDetailView(SuperAdminRequiredMixin, TemplateView):
     """Full detail view for a single fraud report: evidence, audit trail, state actions."""
@@ -491,13 +497,17 @@ class AdminDisputesView(SuperAdminRequiredMixin, TemplateView):
         if q:
             disputes = disputes.filter(report__reference_number__icontains=q)
 
-        paginator = Paginator(disputes, 25)
+        per_page = int(self.request.GET.get('per_page', 15))
+        if per_page not in (15, 25, 50, 100):
+            per_page = 15
+        paginator = Paginator(disputes, per_page)
         ctx['page_obj'] = paginator.get_page(self.request.GET.get('page', 1))
+        ctx['per_page'] = per_page
+        ctx['per_page_options'] = [15, 25, 50, 100]
         ctx['status_choices'] = Dispute.DISPUTE_STATES
         ctx['selected_status'] = status_filter
         ctx['q'] = q
         return ctx
-
 
 class AdminDisputeActionView(SuperAdminRequiredMixin, View):
     """POST: Accept (uphold) or Reject a dispute."""
@@ -548,8 +558,13 @@ class AdminVerificationsView(SuperAdminRequiredMixin, TemplateView):
         if type_filter and qs:
             qs = qs.filter(verification_type=type_filter)
 
-        paginator = Paginator(qs, 25)
+        per_page = int(self.request.GET.get('per_page', 15))
+        if per_page not in (15, 25, 50, 100):
+            per_page = 15
+        paginator = Paginator(qs, per_page)
         ctx['page_obj'] = paginator.get_page(self.request.GET.get('page', 1))
+        ctx['per_page'] = per_page
+        ctx['per_page_options'] = [15, 25, 50, 100]
         ctx['status_choices'] = VerificationRequest.STATUS_CHOICES if VerificationRequest else []
         ctx['type_choices'] = VerificationRequest.VERIFICATION_TYPES if VerificationRequest else []
         ctx['selected_status'] = status_filter
@@ -597,6 +612,10 @@ class AdminEmployerProfilesView(SuperAdminRequiredMixin, TemplateView):
         q = self.request.GET.get('q', '').strip()
         verified_filter = self.request.GET.get('verified', '')
 
+        per_page = int(self.request.GET.get('per_page', 15))
+        if per_page not in (15, 25, 50, 100):
+            per_page = 15
+
         if EmployerProfile:
             qs = EmployerProfile.objects.select_related('user').order_by('-created_at')
             if q:
@@ -605,10 +624,12 @@ class AdminEmployerProfilesView(SuperAdminRequiredMixin, TemplateView):
                 qs = qs.filter(is_verified=True)
             elif verified_filter == 'no':
                 qs = qs.filter(is_verified=False)
-            paginator = Paginator(qs, 25)
+            paginator = Paginator(qs, per_page)
             ctx['page_obj'] = paginator.get_page(self.request.GET.get('page', 1))
         else:
             ctx['page_obj'] = []
+        ctx['per_page'] = per_page
+        ctx['per_page_options'] = [15, 25, 50, 100]
         ctx['q'] = q
         ctx['verified_filter'] = verified_filter
         return ctx
@@ -650,11 +671,14 @@ class AdminEmployerActionView(SuperAdminRequiredMixin, View):
 class AdminSubscriptionsView(SuperAdminRequiredMixin, TemplateView):
     """All subscriptions management."""
     template_name = "admin_portal/subscriptions.html"
-
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         status_filter = self.request.GET.get('status', '')
         q = self.request.GET.get('q', '').strip()
+
+        per_page = int(self.request.GET.get('per_page', 15))
+        if per_page not in (15, 25, 50, 100):
+            per_page = 15
 
         if Subscription:
             qs = Subscription.objects.select_related('user', 'plan').order_by('-created_at')
@@ -662,16 +686,17 @@ class AdminSubscriptionsView(SuperAdminRequiredMixin, TemplateView):
                 qs = qs.filter(status=status_filter)
             if q:
                 qs = qs.filter(user__email__icontains=q) | qs.filter(user__username__icontains=q)
-            paginator = Paginator(qs, 25)
+            paginator = Paginator(qs, per_page)
             ctx['page_obj'] = paginator.get_page(self.request.GET.get('page', 1))
             ctx['status_choices'] = Subscription.STATUS_CHOICES
         else:
             ctx['page_obj'] = []
             ctx['status_choices'] = []
+        ctx['per_page'] = per_page
+        ctx['per_page_options'] = [15, 25, 50, 100]
         ctx['selected_status'] = status_filter
         ctx['q'] = q
         return ctx
-
 
 class AdminSubscriptionCancelView(SuperAdminRequiredMixin, View):
     """POST: cancel a subscription."""
@@ -759,11 +784,15 @@ class AdminSystemLogsView(SuperAdminRequiredMixin, TemplateView):
         if q:
             logs = logs.filter(performed_by__username__icontains=q)
 
-        # Distinct action types for filter dropdown
         ctx['action_types'] = AuditLog.objects.values_list('action', flat=True).distinct().order_by('action')[:50]
 
-        paginator = Paginator(logs, 50)
+        per_page = int(self.request.GET.get('per_page', 15))
+        if per_page not in (15, 25, 50, 100):
+            per_page = 15
+        paginator = Paginator(logs, per_page)
         ctx['page_obj'] = paginator.get_page(self.request.GET.get('page', 1))
+        ctx['per_page'] = per_page
+        ctx['per_page_options'] = [15, 25, 50, 100]
         ctx['action_filter'] = action_filter
         ctx['q'] = q
         return ctx
@@ -803,14 +832,18 @@ class AdminLoginLogsView(SuperAdminRequiredMixin, TemplateView):
         if ip_filter:
             logs = logs.filter(ip_address__icontains=ip_filter)
 
-        # Stats
         ctx['total_logins'] = LoginAudit.objects.count()
         ctx['failed_logins'] = LoginAudit.objects.filter(status='failed').count()
         ctx['blocked_logins'] = LoginAudit.objects.filter(status='blocked').count()
         ctx['success_logins'] = LoginAudit.objects.filter(status='success').count()
 
-        paginator = Paginator(logs, 50)
+        per_page = int(self.request.GET.get('per_page', 15))
+        if per_page not in (15, 25, 50, 100):
+            per_page = 15
+        paginator = Paginator(logs, per_page)
         ctx['page_obj'] = paginator.get_page(self.request.GET.get('page', 1))
+        ctx['per_page'] = per_page
+        ctx['per_page_options'] = [15, 25, 50, 100]
         ctx['status_choices'] = LoginAudit.STATUS_CHOICES
         ctx['selected_status'] = status_filter
         ctx['q'] = q
