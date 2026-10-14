@@ -74,18 +74,22 @@
         <tr>
           <td style="white-space:nowrap;font-size:0.78rem;">{{ log.timestamp|date:"d M Y H:i" }}</td>
           <td>
-            {% if log.action_type == 'admin' %}
-              <span class="adm-badge blue">Admin</span>
-            {% elif log.action_type == 'report' %}
-              <span class="adm-badge orange">Report</span>
-            {% elif log.action_type == 'verification' %}
-              <span class="adm-badge green">Verification</span>
-            {% elif log.action_type == 'auth' %}
-              <span class="adm-badge gray">Auth</span>
-            {% elif log.action_type == 'payment' %}
-              <span class="adm-badge purple">Payment</span>
+            {% if log.action_type == 'ADMIN' %}
+                <span class="adm-badge blue">Admin</span>
+            {% elif log.action_type == 'REPORT' %}
+                <span class="adm-badge amber">Report</span>
+            {% elif log.action_type == 'VERIFICATION' %}
+                <span class="adm-badge green">Verification</span>
+            {% elif log.action_type == 'AUTH' %}
+                <span class="adm-badge gray">Auth</span>
+            {% elif log.action_type == 'PAYMENT' %}
+                <span class="adm-badge blue">Payment</span>
+            {% elif log.action_type == 'USER_MGMT' %}
+                <span class="adm-badge amber">User Mgmt</span>
+            {% elif log.action_type == 'SYSTEM' %}
+                <span class="adm-badge gray">System</span>
             {% else %}
-              <span class="adm-badge gray">{{ log.action_type|default:"—" }}</span>
+                <span class="adm-badge gray">{{ log.action_type|default:"—" }}</span>
             {% endif %}
           </td>
           <td style="font-size:0.82rem;max-width:200px;word-break:break-word;">{{ log.action }}</td>
