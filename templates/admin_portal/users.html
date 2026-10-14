@@ -123,8 +123,10 @@
                             <form method="post" action="{% url 'admin_portal:user_toggle_status' u.public_id %}" style="display:inline;">
                                 {% csrf_token %}
                                 {% if u.is_active %}
-                                    <button type="submit" class="btn-adm-danger btn-adm-sm"
-                                            onclick="return confirm('Suspend {{ u.username }}? They will not be able to log in.');">
+                                    <button type="button" class="btn-adm-danger btn-adm-sm"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#suspendModal{{ u.public_id }}"
+                                            data-username="{{ u.username }}">
                                         Suspend
                                     </button>
                                 {% else %}
@@ -195,5 +197,29 @@
         </table>
     </div>
 </div>
+    <!-- Suspend confirmation modal for {{ u.username }} -->
+    <div class="modal fade" id="suspendModal{{ u.public_id }}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content" style="border-radius:12px;border:none;box-shadow:0 8px 32px rgba(0,0,0,.15);">
+            <div class="modal-header border-0 pb-0">
+            <h6 class="modal-title fw-semibold">Suspend User</h6>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body pt-2">
+            <div class="alert alert-warning d-flex align-items-center gap-2 mb-2">
+                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/></svg>
+                <span class="small"><strong>{{ u.username }}</strong> will not be able to log in.</span>
+            </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+            <button type="button" class="btn btn-adm-sm btn-adm-secondary" data-bs-dismiss="modal">Cancel</button>
+            <form method="post" action="{% url 'admin_portal:user_toggle_status' u.public_id %}" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-adm-sm btn-adm-danger">Suspend</button>
+            </form>
+            </div>
+        </div>
+        </div>
+    </div>
 {% include "admin_portal/_pagination.html" %}
 {% endblock %}

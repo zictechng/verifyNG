@@ -248,14 +248,19 @@
       <div class="adm-card-header" style="color:#dc3545;">Danger Zone</div>
       <div class="p-3">
         <p class="small text-danger mb-2">Permanently deletes this user and all associated data. Cannot be undone.</p>
-        <form method="post" action="{% url 'admin_portal:user_hard_delete' target_user.public_id %}"
-              onsubmit="return confirm('FINAL WARNING: permanently delete {{ target_user.username }}?')">
+        <form method="post" id="hardDeleteForm"
+              action="{% url 'admin_portal:user_hard_delete' target_user.public_id %}">
           {% csrf_token %}
           <div class="mb-2">
-            <input type="text" name="confirm_delete" class="form-control form-control-sm border-danger"
+            <input type="text" name="confirm_delete" id="hardDeleteInput"
+                   class="form-control form-control-sm border-danger"
                    placeholder="Type username: {{ target_user.username }}" required>
           </div>
-          <button type="submit" class="btn btn-adm-danger w-100 btn-sm">Permanently Delete</button>
+          <button type="button" class="btn btn-adm-danger w-100 btn-sm"
+                  id="hardDeleteTrigger"
+                  data-bs-toggle="modal" data-bs-target="#hardDeleteModal">
+            Permanently Delete
+          </button>
         </form>
       </div>
     </div>
@@ -599,6 +604,28 @@
   </div>
 </div>
 
+
+<!-- Hard delete confirmation modal -->
+<div class="modal fade" id="hardDeleteModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content" style="border-radius:12px;border:none;box-shadow:0 8px 32px rgba(0,0,0,.15);">
+      <div class="modal-header border-0 pb-0 border-bottom border-danger">
+        <h6 class="modal-title fw-semibold text-danger">⚠ Final Warning</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-danger small mb-2">
+          Permanently deleting <strong>{{ target_user.username }}</strong> cannot be undone. All data will be erased.
+        </div>
+      </div>
+      <div class="modal-footer border-0 pt-0">
+        <button type="button" class="btn btn-adm-sm btn-adm-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" id="hardDeleteConfirmBtn" class="btn btn-adm-sm btn-adm-danger">Yes, Delete Permanently</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 {% endblock admin_body %}
 
 {% block admin_scripts %}
@@ -742,5 +769,25 @@
   });
 })();
 </script>
+
+
+<script>
+(function () {
+  // Prevent modal opening if username field is empty/wrong
+  document.getElementById('hardDeleteTrigger').addEventListener('click', function (e) {
+    const input = document.getElementById('hardDeleteInput');
+    if (!input.checkValidity()) {
+      input.reportValidity();
+      // Stop Bootstrap from opening modal
+      e.stopImmediatePropagation();
+      return false;
+    }
+  });
+  document.getElementById('hardDeleteConfirmBtn').addEventListener('click', function () {
+    document.getElementById('hardDeleteForm').submit();
+  });
+})();
+</script>
+
 {% endblock admin_scripts %}
 
