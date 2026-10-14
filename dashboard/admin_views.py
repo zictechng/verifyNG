@@ -464,11 +464,18 @@ class AdminUserDetailView(SuperAdminRequiredMixin, TemplateView):
                 user=target_user).order_by('-created_at')[:5]
         else:
             ctx['user_subscriptions'] = []
+
         # Available plans for credit subscription modal
         if Plan:
             ctx['available_plans'] = Plan.objects.filter(is_active=True).order_by('display_order', 'price_kobo')
+            # Pass current active plan ID so modal can warn on duplicate selection
+            active_sub = Subscription.objects.filter(
+                user=target_user, status='active'
+            ).select_related('plan').first()
+            ctx['user_active_plan_id'] = active_sub.plan.pk if active_sub else None
         else:
             ctx['available_plans'] = []
+            ctx['user_active_plan_id'] = None
         return ctx
 
 
@@ -1189,7 +1196,21 @@ class AdminCreditSubscriptionView(SuperAdminRequiredMixin, View):
             days = 30
 
         now = tz.now()
-        # Cancel any existing active subscription for this user
+
+        # Block assigning the same plan if already active
+        existing_active = Subscription.objects.filter(
+            user=user, plan=plan, status='active'
+        ).first()
+        if existing_active:
+            messages.error(
+                request,
+                f"'{user.username}' already has an active '{plan.name}' subscription "
+                f"(expires {existing_active.current_period_end.strftime('%d %b %Y')}). "
+                f"Cancel it first or choose a different plan."
+            )
+            return redirect('admin_portal:user_detail', public_id=public_id)
+
+        # Cancel any other active subscription before assigning new one
         Subscription.objects.filter(user=user, status='active').update(
             status='cancelled',
             cancel_at_period_end=False,

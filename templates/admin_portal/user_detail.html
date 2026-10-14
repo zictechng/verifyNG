@@ -151,12 +151,14 @@
               <div class="mb-3">
                 <label class="form-label fw-semibold small" for="creditPlanSelect">Plan <span class="text-danger">*</span></label>
                 <select id="creditPlanSelect" name="plan_id"
-                        class="form-select form-select-sm" required>
+                    class="form-select form-select-sm" required>
                   <option value="">— Select a plan —</option>
                   {% for plan in available_plans %}
-                  <option value="{{ plan.pk }}">
+                  <option value="{{ plan.pk }}"
+                    {% if plan.pk == user_active_plan_id %}data-active="true"{% endif %}>
                     {{ plan.name }}
                     {% if plan.price_kobo == 0 %}(Free){% else %}— ₦{{ plan.price_naira|floatformat:0 }}/{{ plan.get_interval_display }}{% endif %}
+                    {% if plan.pk == user_active_plan_id %} ✓ Already Active{% endif %}
                   </option>
                   {% endfor %}
                 </select>
@@ -184,15 +186,58 @@
             </form>
           </div>
 
+          <!-- Duplicate plan warning — shown by JS when same active plan selected -->
+          <div id="creditDuplicateWarning"
+               class="mx-4 mb-0 alert alert-warning py-2 px-3 small d-none"
+               role="alert">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="me-1"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            This user already has this plan <strong>active</strong>. Assigning it again will reset their period. Continue?
+          </div>
+
           <div class="modal-footer border-top px-4 py-3 gap-2">
             <button type="button" class="btn btn-outline-secondary btn-sm"
                     data-bs-dismiss="modal">Cancel</button>
             <button type="submit" form="creditSubscriptionForm"
+                    id="creditSubmitBtn"
                     class="btn btn-primary btn-sm px-4">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="me-1"><polyline points="20 6 9 17 4 12"/></svg>
-              Assign Plan
+              <span id="creditBtnIdle">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="me-1"><polyline points="20 6 9 17 4 12"/></svg>
+                Assign Plan
+              </span>
+              <span id="creditBtnLoading" class="d-none">
+                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                Assigning…
+              </span>
             </button>
           </div>
+
+          <script>
+          (function () {
+            const activePlanId = "{{ user_active_plan_id|default:'' }}";
+            const form         = document.getElementById('creditSubscriptionForm');
+            const select       = document.getElementById('creditPlanSelect');
+            const warning      = document.getElementById('creditDuplicateWarning');
+            const submitBtn    = document.getElementById('creditSubmitBtn');
+            const idleSpan     = document.getElementById('creditBtnIdle');
+            const loadingSpan  = document.getElementById('creditBtnLoading');
+
+            // Show/hide duplicate warning when plan selection changes
+            select.addEventListener('change', function () {
+              if (activePlanId && this.value === activePlanId) {
+                warning.classList.remove('d-none');
+              } else {
+                warning.classList.add('d-none');
+              }
+            });
+
+            // Loading state on submit
+            form.addEventListener('submit', function () {
+              submitBtn.disabled = true;
+              idleSpan.classList.add('d-none');
+              loadingSpan.classList.remove('d-none');
+            });
+          })();
+          </script>
 
         </div>
       </div>
@@ -231,7 +276,8 @@
 
           <div>
             <div class="fw-semibold small">{{ service_label }}</div>
-            <div class="small" style="color:var(--adm-muted);" x-text="statusText"></div>
+            <div class="small mt-1" x-text="statusText"
+                 :class="isRestricted ? 'text-danger fw-semibold' : 'text-success'"></div>
           </div>
 
           <div class="form-check form-switch mb-0 ms-3">
