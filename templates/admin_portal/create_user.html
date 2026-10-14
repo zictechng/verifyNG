@@ -18,7 +18,7 @@
     <div class="adm-card">
       <div class="adm-card-header">Account Details</div>
       <div class="p-4">
-        <form method="post" x-data="createUserForm()" @submit="handleSubmit">
+        <form method="post" x-data="createUserForm()" @submit="handleSubmit($event, $el)">
           {% csrf_token %}
 
           <div class="row g-3 mb-3">
@@ -120,9 +120,31 @@
 function createUserForm() {
   return {
     loading: false,
+
     handleSubmit(e) {
+      // Basic client-side validation before setting spinner
+      const username = document.querySelector('[name=username]').value.trim();
+      const email    = document.querySelector('[name=email]').value.trim();
+      const password = document.querySelector('[name=password]').value;
+
+      if (!username || !email || password.length < 8) {
+        // Let browser native validation handle it — don't spin
+        return;
+      }
+
       this.loading = true;
-      // Allow natural form submission — loading state just shows spinner
+
+      // Safety net: if the page doesn't unload within 15s, reset the spinner.
+      // This covers cases where the server returns a validation error and
+      // re-renders the same page (bfcache or slow network).
+      setTimeout(() => { this.loading = false; }, 15000);
+    },
+
+    init() {
+      // Reset spinner if user navigates back to this page via bfcache
+      window.addEventListener('pageshow', (e) => {
+        if (e.persisted) { this.loading = false; }
+      });
     }
   }
 }
