@@ -11,7 +11,6 @@ from django.db.models import Count
 from django.db import connection
 from django.core.cache import cache
 
-from users.models import User, LoginAudit
 from reports.models import FraudReport, Dispute, AuditLog
 from verification.models import VerificationRequest
 from identities.models import Identifier, SubjectEntity
@@ -21,12 +20,15 @@ from django.db.models import Q
 from core.email_utils import render_email
 from notifications.tasks import send_broadcast_email_task
 
+from users.models import User, LoginAudit, UserServiceAccess
+from core.audit_utils import log_admin_action
+
 from django.core.paginator import Paginator
 from django.http import HttpResponseForbidden
 from django.conf import settings
 from django.shortcuts import render as drender
 import os
-
+from users.models import UserServiceAccess
 # Import models needed for extended admin
 try:
     from reports.models import Dispute
@@ -375,6 +377,17 @@ class AdminUserDetailView(SuperAdminRequiredMixin, TemplateView):
         target_user = get_object_or_404(User, public_id=self.kwargs['public_id'])
         ctx['target_user'] = target_user
         ctx['role_choices'] = User.ROLE_CHOICES
+
+        # Inside the view's get() method, add to ctx:
+        service_rules = UserServiceAccess.objects.filter(user=target_user)
+        service_access_rules_json = json.dumps([
+            {'service': r.service, 'is_restricted': r.is_restricted}
+            for r in service_rules
+        ])
+
+        ctx['service_access_rules'] = service_rules
+        ctx['service_access_rules_json'] = service_access_rules_json
+        ctx['service_choices'] = UserServiceAccess.SERVICE_CHOICES
 
         # Login history — paginated
         login_qs = LoginAudit.objects.filter(user=target_user).order_by('-timestamp')
@@ -1220,5 +1233,178 @@ class AdminSiteSettingsView(SuperAdminRequiredMixin, TemplateView):
         )
         messages.success(request, "Site settings updated.")
         return redirect('admin_portal:site_settings')
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Admin: Create New User
+# ─────────────────────────────────────────────────────────────────────────────
+
+class AdminCreateUserView(LoginRequiredMixin, UserPassesTestMixin, View):
+    """
+    Admin can register any new user directly from the portal.
+    Assigns role, sets staff/superuser flags, sends welcome email.
+    """
+    template_name = 'admin_portal/create_user.html'
+
+    def test_func(self):
+        return is_superadmin(self.request.user)
+
+    def get(self, request):
+        return render(request, self.template_name, {
+            'role_choices': User.ROLE_CHOICES,
+        })
+
+    def post(self, request):
+        first_name  = request.POST.get('first_name', '').strip()
+        last_name   = request.POST.get('last_name', '').strip()
+        username    = request.POST.get('username', '').strip()
+        email       = request.POST.get('email', '').strip().lower()
+        role        = request.POST.get('role', 'individual')
+        password    = request.POST.get('password', '').strip()
+        is_staff    = request.POST.get('is_staff') == 'on'
+        is_superuser = request.POST.get('is_superuser') == 'on'
+        send_welcome = request.POST.get('send_welcome') == 'on'
+
+        errors = []
+
+        if not username:
+            errors.append('Username is required.')
+        if not email:
+            errors.append('Email is required.')
+        if not password or len(password) < 8:
+            errors.append('Password must be at least 8 characters.')
+        if User.objects.filter(username=username).exists():
+            errors.append(f'Username "{username}" is already taken.')
+        if User.objects.filter(email=email).exists():
+            errors.append(f'Email "{email}" is already registered.')
+        if role not in dict(User.ROLE_CHOICES):
+            errors.append('Invalid role selected.')
+
+        if errors:
+            for e in errors:
+                messages.error(request, e)
+            return render(request, self.template_name, {
+                'role_choices': User.ROLE_CHOICES,
+                'form_data': request.POST,
+            })
+
+        from django.db import transaction as db_transaction
+        from django.db import transaction
+
+        with db_transaction.atomic():
+            user = User.objects.create_user(
+                username=username,
+                email=email,
+                password=password,
+                first_name=first_name,
+                last_name=last_name,
+                role=role,
+                is_staff=is_staff,
+                is_superuser=is_superuser,
+                is_active=True,
+            )
+
+            log_admin_action(
+                action='USER_CREATED_BY_ADMIN',
+                action_type='USER_MGMT',
+                performed_by=request.user,
+                target_user=user,
+                request=request,
+                details={
+                    'username': username,
+                    'email': email,
+                    'role': role,
+                    'is_staff': is_staff,
+                    'is_superuser': is_superuser,
+                },
+            )
+
+        if send_welcome:
+            try:
+                transaction.on_commit(lambda: send_email_notification_task.delay(
+                    recipient_email=email,
+                    subject='Welcome to VerifyNG',
+                    template_name='emails/welcome.html',
+                    context={
+                        'user': {'username': username, 'first_name': first_name or username},
+                        'login_url': request.build_absolute_uri('/accounts/login/'),
+                        'temp_password': password,
+                    },
+                ))
+            except Exception:
+                pass  # Welcome email failure must not block user creation
+
+        messages.success(
+            request,
+            f'User "{username}" created successfully with role "{role}".'
+        )
+        return redirect('admin_portal:user_detail', public_id=user.public_id)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Admin: Toggle Per-User Service Access Restriction
+# ─────────────────────────────────────────────────────────────────────────────
+
+class AdminUserServiceAccessView(LoginRequiredMixin, UserPassesTestMixin, View):
+    """
+    Toggle a user's access to a specific platform service.
+    POST with: service (str), action ('restrict' | 'allow'), reason (str)
+    Returns JSON for Alpine.js to update the toggle UI.
+    """
+
+    def test_func(self):
+        return is_superadmin(self.request.user)
+
+    def post(self, request, public_id):
+        from django.http import JsonResponse
+        from django.utils import timezone as tz
+
+        target_user = get_object_or_404(User, public_id=public_id)
+        service  = request.POST.get('service', '').strip()
+        action   = request.POST.get('action', '').strip()   # 'restrict' or 'allow'
+        reason   = request.POST.get('reason', '').strip()
+
+        valid_services = [s[0] for s in UserServiceAccess.SERVICE_CHOICES]
+        if service not in valid_services:
+            return JsonResponse({'ok': False, 'error': 'Invalid service.'}, status=400)
+        if action not in ('restrict', 'allow'):
+            return JsonResponse({'ok': False, 'error': 'Invalid action.'}, status=400)
+
+        is_restricted = action == 'restrict'
+
+        rule, _ = UserServiceAccess.objects.get_or_create(
+            user=target_user,
+            service=service,
+            defaults={
+                'is_restricted': False,
+                'restricted_by': None,
+                'restricted_at': None,
+                'reason': '',
+            },
+        )
+        rule.is_restricted  = is_restricted
+        rule.restricted_by  = request.user if is_restricted else None
+        rule.restricted_at  = tz.now() if is_restricted else None
+        rule.reason         = reason if is_restricted else ''
+        rule.save()
+
+        log_admin_action(
+            action='SERVICE_RESTRICTED' if is_restricted else 'SERVICE_UNRESTRICTED',
+            action_type='USER_MGMT',
+            performed_by=request.user,
+            target_user=target_user,
+            request=request,
+            details={'service': service, 'reason': reason},
+        )
+
+        service_label = dict(UserServiceAccess.SERVICE_CHOICES).get(service, service)
+        status_label  = 'restricted' if is_restricted else 'unrestricted'
+        return JsonResponse({
+            'ok': True,
+            'is_restricted': is_restricted,
+            'message': f'{service_label} {status_label} for {target_user.username}.',
+        })
+
+
 
 

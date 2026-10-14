@@ -143,3 +143,53 @@ class LoginAudit(models.Model):
         return f"{self.username_attempted} ({self.status}) at {self.timestamp}"
 
 
+class UserServiceAccess(models.Model):
+    """
+    Per-user service-level access control.
+    When is_restricted=True for a service, that user cannot use that service
+    even if their account is otherwise active.
+    This is separate from full account suspension.
+    """
+
+    SERVICE_CHOICES = (
+        ('check',        'Search / Check'),
+        ('fraud_report', 'Fraud Reporting'),
+        ('verification', 'Identity Verification'),
+        ('certificate',  'Certificate Application'),
+    )
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='service_access_rules',
+    )
+    service = models.CharField(
+        max_length=30,
+        choices=SERVICE_CHOICES,
+        db_index=True,
+    )
+    is_restricted = models.BooleanField(
+        default=False,
+        help_text='True = user is blocked from this service only.',
+    )
+    restricted_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='service_restrictions_applied',
+    )
+    restricted_at = models.DateTimeField(null=True, blank=True)
+    reason = models.TextField(blank=True, default='')
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'User Service Access'
+        verbose_name_plural = 'User Service Access Rules'
+        unique_together = [('user', 'service')]
+        ordering = ['user', 'service']
+
+    def __str__(self):
+        state = 'RESTRICTED' if self.is_restricted else 'allowed'
+        return f"{self.user.username} → {self.service}: {state}"
+

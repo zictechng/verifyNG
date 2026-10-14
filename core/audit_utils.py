@@ -1,0 +1,128 @@
+
+# core/audit_utils.py
+"""
+Single entry point for writing to the platform-wide AuditLog.
+Import and call this from any view, service, or task.
+"""
+from __future__ import annotations
+
+import logging
+from django.utils import timezone
+
+logger = logging.getLogger(__name__)
+
+
+def _parse_user_agent(ua_string: str) -> dict:
+    """
+    Basic user-agent parsing without an external library.
+    Returns device_type, browser, os.
+    """
+    ua = ua_string.lower()
+
+    # Device
+    if 'mobile' in ua or 'android' in ua:
+        device_type = 'Mobile'
+    elif 'tablet' in ua or 'ipad' in ua:
+        device_type = 'Tablet'
+    else:
+        device_type = 'Desktop'
+
+    # Browser
+    if 'edg/' in ua or 'edge/' in ua:
+        browser = 'Edge'
+    elif 'opr/' in ua or 'opera' in ua:
+        browser = 'Opera'
+    elif 'chrome/' in ua and 'safari/' in ua:
+        browser = 'Chrome'
+    elif 'firefox/' in ua:
+        browser = 'Firefox'
+    elif 'safari/' in ua and 'chrome/' not in ua:
+        browser = 'Safari'
+    else:
+        browser = 'Unknown'
+
+    # OS
+    if 'windows' in ua:
+        os_name = 'Windows'
+    elif 'mac os' in ua or 'macos' in ua:
+        os_name = 'macOS'
+    elif 'android' in ua:
+        os_name = 'Android'
+    elif 'iphone' in ua or 'ipad' in ua or 'ios' in ua:
+        os_name = 'iOS'
+    elif 'linux' in ua:
+        os_name = 'Linux'
+    else:
+        os_name = 'Unknown'
+
+    return {'device_type': device_type, 'browser': browser, 'os': os_name}
+
+
+def log_admin_action(
+    *,
+    action: str,
+    action_type: str = 'ADMIN',
+    performed_by=None,
+    target_user=None,
+    report=None,
+    request=None,
+    details: dict | None = None,
+    description: str = '',
+) -> None:
+    """
+    Write a single immutable row to AuditLog.
+
+    Usage:
+        from core.audit_utils import log_admin_action
+        log_admin_action(
+            action='USER_SUSPENDED',
+            action_type='USER_MGMT',
+            performed_by=request.user,
+            target_user=user,
+            request=request,
+            details={'reason': 'Terms violation'},
+        )
+    """
+    try:
+        from reports.models import AuditLog
+        from core.rate_limiting import get_client_ip
+
+        ip_address = None
+        url_path = ''
+        http_method = ''
+        user_agent = ''
+        device_type = ''
+        browser = ''
+        os_name = ''
+
+        if request is not None:
+            ip_address = get_client_ip(request)
+            url_path = request.path[:500]
+            http_method = request.method
+            user_agent = request.META.get('HTTP_USER_AGENT', '')[:1000]
+            parsed = _parse_user_agent(user_agent)
+            device_type = parsed['device_type']
+            browser = parsed['browser']
+            os_name = parsed['os']
+
+        AuditLog.objects.create(
+            action=action,
+            action_type=action_type,
+            performed_by=performed_by,
+            target_user=target_user,
+            report=report,
+            ip_address=ip_address,
+            url_path=url_path,
+            http_method=http_method,
+            user_agent=user_agent,
+            device_type=device_type,
+            browser=browser,
+            os=os_name,
+            location_country='',   # GeoIP not required yet — leave blank
+            location_city='',
+            details=details or {},
+        )
+    except Exception:
+        # Audit logging must never crash the main request
+        logger.exception("Failed to write AuditLog entry for action=%s", action)
+

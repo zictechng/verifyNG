@@ -39,6 +39,9 @@ from dashboard.admin_views import (
     # Platform Settings
     AdminPlatformSettingsView,
     AdminSiteSettingsView,
+
+    AdminCreateUserView,
+    AdminUserServiceAccessView,
 )
 
 app_name = 'admin_portal'
@@ -58,6 +61,13 @@ urlpatterns = [
     path('users/<uuid:public_id>/block/', AdminUserBlockView.as_view(), name='user_block'),
     path('users/<uuid:public_id>/hard-delete/', AdminUserHardDeleteView.as_view(), name='user_hard_delete'),
     path('users/<uuid:public_id>/export/', AdminUserActivityExportView.as_view(), name='user_activity_export'),
+
+        # ── User Creation ────────────────────────────────────────────────────────
+    path('users/create/', AdminCreateUserView.as_view(), name='user_create'),
+
+    # ── Per-user service access ──────────────────────────────────────────────
+    path('users/<uuid:public_id>/service-access/', AdminUserServiceAccessView.as_view(), name='user_service_access'),
+    
     # ── Reports Moderation ─────────────────────────────────────────────────
     path('reports/', AdminReportsView.as_view(), name='reports'),
     path('reports/<int:pk>/', AdminReportDetailView.as_view(), name='report_detail'),
@@ -95,5 +105,6 @@ urlpatterns = [
     # ── Platform Settings ────────────────────────────────────────────────────
     path('settings/platform/', AdminPlatformSettingsView.as_view(), name='platform_settings'),
     path('settings/site/', AdminSiteSettingsView.as_view(), name='site_settings'),
+
 ]
 

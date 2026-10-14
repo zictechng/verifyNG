@@ -190,37 +190,91 @@ class Dispute(models.Model):
 
 
 class AuditLog(models.Model):
+    """
+    Single platform-wide immutable audit trail.
+    Covers all admin actions, user actions, verification events,
+    payment events, authentication events, and system events.
+    Append-only — never delete or update rows.
+    """
+
+    ACTION_TYPE_CHOICES = (
+        ('AUTH',         'Authentication'),
+        ('USER_MGMT',    'User Management'),
+        ('REPORT',       'Fraud Report'),
+        ('VERIFICATION', 'Verification'),
+        ('PAYMENT',      'Payment'),
+        ('ADMIN',        'Admin Action'),
+        ('SYSTEM',       'System Event'),
+        ('GENERAL',      'General'),
+    )
+
+    # What type of action
+    action_type = models.CharField(
+        max_length=30,
+        choices=ACTION_TYPE_CHOICES,
+        default='GENERAL',
+        db_index=True,
+    )
+
+    # The human-readable action name, e.g. "USER_SUSPENDED", "REPORT_APPROVED"
+    action = models.CharField(max_length=255)
+
+    # Who did it
+    performed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='audit_logs_performed',
+    )
+
+    # Who it was done to (optional — for user management actions)
+    target_user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='audit_logs_as_target',
+    )
+
+    # Linked report (optional — for report-related actions)
     report = models.ForeignKey(
         FraudReport,
         on_delete=models.PROTECT,
         null=True,
         blank=True,
-        related_name='audit_logs'
+        related_name='audit_logs',
     )
-    action = models.CharField(
-        max_length=255
-    )
-    performed_by = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True
-    )
-    ip_address = models.GenericIPAddressField(
-        null=True,
-        blank=True
-    )
-    details = models.JSONField(
-        default=dict,
-        blank=True
-    )
-    timestamp = models.DateTimeField(
-        default=timezone.now
-    )
+
+    # Request context
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    url_path = models.CharField(max_length=500, blank=True, default='')
+    http_method = models.CharField(max_length=10, blank=True, default='')
+    user_agent = models.TextField(blank=True, default='')
+
+    # Device / browser context (parsed from user_agent)
+    device_type = models.CharField(max_length=50, blank=True, default='')
+    browser = models.CharField(max_length=80, blank=True, default='')
+    os = models.CharField(max_length=80, blank=True, default='')
+
+    # Location context
+    location_country = models.CharField(max_length=100, blank=True, default='')
+    location_city = models.CharField(max_length=100, blank=True, default='')
+
+    # Flexible extra data (old field — keep for backward compat)
+    details = models.JSONField(default=dict, blank=True)
+
+    timestamp = models.DateTimeField(default=timezone.now, db_index=True)
 
     class Meta:
         verbose_name = 'Audit Log'
         verbose_name_plural = 'Audit Logs'
         ordering = ['-timestamp']
+        index_together = [('action_type', 'timestamp')]
 
     def __str__(self):
-        return f"{self.action} by {self.performed_by} at {self.timestamp}"
+        actor = self.performed_by.username if self.performed_by else 'system'
+        return f"[{self.action_type}] {self.action} by {actor} at {self.timestamp:%Y-%m-%d %H:%M}"
+
+
+

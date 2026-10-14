@@ -1,0 +1,131 @@
+
+{% extends "admin_portal/base_admin.html" %}
+{% block title %}Create User — Admin{% endblock %}
+
+{% block admin_body %}
+<div class="adm-page-header" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem;">
+  <div>
+    <h1 class="adm-page-title">Create New User</h1>
+    <p class="adm-page-sub">Register a new user account from the admin portal.</p>
+  </div>
+  <a href="{% url 'admin_portal:users' %}" class="btn-adm-outline">← All Users</a>
+</div>
+
+{% include "admin_portal/_messages.html" %}
+
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+    <div class="adm-card">
+      <div class="adm-card-header">Account Details</div>
+      <div class="p-4">
+        <form method="post" x-data="createUserForm()" @submit="handleSubmit">
+          {% csrf_token %}
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold small">First Name</label>
+              <input type="text" name="first_name" class="form-control"
+                     value="{{ form_data.first_name|default:'' }}" placeholder="e.g. Emeka">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold small">Last Name</label>
+              <input type="text" name="last_name" class="form-control"
+                     value="{{ form_data.last_name|default:'' }}" placeholder="e.g. Okafor">
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold small">Username <span class="text-danger">*</span></label>
+            <input type="text" name="username" class="form-control" required
+                   value="{{ form_data.username|default:'' }}" placeholder="e.g. emeka.okafor">
+            <div class="form-text">Letters, digits, and underscore only. Used for login.</div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold small">Email Address <span class="text-danger">*</span></label>
+            <input type="email" name="email" class="form-control" required
+                   value="{{ form_data.email|default:'' }}" placeholder="user@example.com">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold small">Role <span class="text-danger">*</span></label>
+            <select name="role" class="form-select" required>
+              {% for val, label in role_choices %}
+              <option value="{{ val }}" {% if form_data.role == val %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold small">Password <span class="text-danger">*</span></label>
+            <div class="input-group" x-data="{ show: false }">
+              <input :type="show ? 'text' : 'password'" name="password" class="form-control"
+                     required minlength="8" placeholder="Minimum 8 characters">
+              <button class="btn btn-outline-secondary" type="button" @click="show = !show">
+                <i :class="show ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
+              </button>
+            </div>
+            <div class="form-text">You should share this with the user securely, or let them reset via email.</div>
+          </div>
+
+          <hr class="my-4">
+          <p class="fw-semibold small mb-3" style="color:var(--adm-muted);">PERMISSIONS</p>
+
+          <div class="row g-3 mb-4">
+            <div class="col-md-6">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" name="is_staff" id="is_staff"
+                       {% if form_data.is_staff %}checked{% endif %}>
+                <label class="form-check-label small" for="is_staff">
+                  <strong>Staff</strong><br>
+                  <span style="color:var(--adm-muted);font-size:0.78rem;">Can access Django admin.</span>
+                </label>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" name="is_superuser" id="is_superuser"
+                       {% if form_data.is_superuser %}checked{% endif %}>
+                <label class="form-check-label small" for="is_superuser">
+                  <strong>Superuser</strong><br>
+                  <span style="color:var(--adm-muted);font-size:0.78rem;">Full platform admin access.</span>
+                </label>
+              </div>
+            </div>
+            <div class="col-12">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" name="send_welcome" id="send_welcome" checked>
+                <label class="form-check-label small" for="send_welcome">
+                  <strong>Send welcome email</strong><br>
+                  <span style="color:var(--adm-muted);font-size:0.78rem;">Sends login link and temporary password to the user.</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="d-flex gap-3 justify-content-end">
+            <a href="{% url 'admin_portal:users' %}" class="btn btn-outline-secondary">Cancel</a>
+            <button type="submit" class="btn btn-adm-primary" :disabled="loading">
+              <span x-show="loading" class="spinner-border spinner-border-sm me-2" role="status"></span>
+              <span x-text="loading ? 'Creating...' : 'Create User'"></span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function createUserForm() {
+  return {
+    loading: false,
+    handleSubmit(e) {
+      this.loading = true;
+      // Allow natural form submission — loading state just shows spinner
+    }
+  }
+}
+</script>
+{% endblock %}
+
