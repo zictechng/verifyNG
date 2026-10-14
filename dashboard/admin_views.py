@@ -72,7 +72,7 @@ class AdminOverviewView(SuperAdminRequiredMixin, TemplateView):
 
         # 1. Platform KPI Metrics
         ctx['total_users'] = User.objects.count()
-        ctx['active_users'] = User.objects.filter(is_active=True).count()
+        ctx['active_users'] = User.objects.filter(is_active=True, is_suspended=False).count()
         ctx['suspended_users'] = User.objects.filter(is_suspended=True, is_active=True).count()
         ctx['blocked_users'] = User.objects.filter(is_active=False).count()
         ctx['total_reports'] = FraudReport.objects.count()
@@ -149,8 +149,10 @@ class AdminUserListView(SuperAdminRequiredMixin, TemplateView):
         if role_filter:
             users = users.filter(role=role_filter)
         if status_filter == 'active':
-            users = users.filter(is_active=True)
+            users = users.filter(is_active=True, is_suspended=False)
         elif status_filter == 'suspended':
+            users = users.filter(is_suspended=True, is_active=True)
+        elif status_filter == 'blocked':
             users = users.filter(is_active=False)
 
         per_page = int(self.request.GET.get('per_page', 15))

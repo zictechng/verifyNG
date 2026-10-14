@@ -38,6 +38,7 @@
                 <option value="">All Statuses</option>
                 <option value="active"    {% if selected_status == 'active'    %}selected{% endif %}>Active</option>
                 <option value="suspended" {% if selected_status == 'suspended' %}selected{% endif %}>Suspended</option>
+                <option value="blocked"   {% if selected_status == 'blocked'   %}selected{% endif %}>Blocked</option>
             </select>
         </div>
         <div class="col-md-2">
@@ -102,10 +103,12 @@
                     <td class="td-muted">{{ u.email|default:"—" }}</td>
                     <td><span class="adm-badge gray">{{ u.get_role_display }}</span></td>
                     <td>
-                        {% if u.is_active %}
-                            <span class="adm-badge green"><span class="dot"></span>Active</span>
+                        {% if not u.is_active %}
+                            <span class="adm-badge red"><span class="dot"></span>Blocked</span>
+                        {% elif u.is_suspended %}
+                            <span class="adm-badge orange"><span class="dot"></span>Suspended</span>
                         {% else %}
-                            <span class="adm-badge red"><span class="dot"></span>Suspended</span>
+                            <span class="adm-badge green"><span class="dot"></span>Active</span>
                         {% endif %}
                     </td>
                     <td class="td-muted">{{ u.date_joined|date:"M d, Y" }}</td>
