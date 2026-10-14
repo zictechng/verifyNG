@@ -2133,6 +2133,56 @@ class AdminCertificateDetailView(SuperAdminRequiredMixin, TemplateView):
         return ctx
 
 
+class AdminMenuAccessView(SuperAdminRequiredMixin, View):
+    """
+    Manage which Django permission groups apply to moderator/officer sub-admins.
+    Lists all non-superuser staff users and their assigned groups.
+    Super-admin can add or remove users from groups via this view.
+    No new model required — uses Django's built-in auth.Group system.
+    """
+    template_name = "admin_portal/menu_access.html"
+
+    def get(self, request):
+        from django.contrib.auth.models import Group
+        staff_users = User.objects.filter(
+            role__in=['moderator', 'officer']
+        ).prefetch_related('groups').order_by('role', 'username')
+        all_groups = Group.objects.all().order_by('name')
+        return render(request, self.template_name, {
+            'staff_users': staff_users,
+            'all_groups': all_groups,
+        })
+
+    def post(self, request):
+        from django.contrib.auth.models import Group
+        user_id = request.POST.get('user_id')
+        group_id = request.POST.get('group_id')
+        action = request.POST.get('action', '')  # 'add' or 'remove'
+
+        if not user_id or not group_id or action not in ('add', 'remove'):
+            messages.error(request, "Invalid request.")
+            return redirect('admin_portal:menu_access')
+
+        target_user = get_object_or_404(User, pk=user_id)
+        group = get_object_or_404(Group, pk=group_id)
+
+        if action == 'add':
+            target_user.groups.add(group)
+            messages.success(request, f"Added '{target_user.username}' to group '{group.name}'.")
+        else:
+            target_user.groups.remove(group)
+            messages.success(request, f"Removed '{target_user.username}' from group '{group.name}'.")
+
+        AuditLog.objects.create(
+            action=f"ADMIN_GROUP_{action.upper()}",
+            performed_by=request.user,
+            details={
+                'target_username': target_user.username,
+                'group': group.name,
+                'action': action,
+            }
+        )
+        return redirect('admin_portal:menu_access')
 
     
 

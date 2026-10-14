@@ -1,6 +1,7 @@
 from django.urls import path
 from dashboard.admin_views import (
     # Existing
+    AdminMenuAccessView,
     AdminOverviewView,
     AdminPlanToggleView,
     AdminSubscriptionActionView,
@@ -111,6 +112,7 @@ urlpatterns = [
     # ── Logs ────────────────────────────────────────────────────────────────
     path('logs/system/', AdminSystemLogsView.as_view(), name='system_logs'),
     path('logs/activity/', AdminActivityLogsView.as_view(), name='activity_logs'),
+    path('access/menu/', AdminMenuAccessView.as_view(), name='menu_access'),
     path('logs/login/', AdminLoginLogsView.as_view(), name='login_logs'),
     path('notifications/', AdminNotificationsView.as_view(), name='notifications'),
     # ── Communications ──────────────────────────────────────────────────────

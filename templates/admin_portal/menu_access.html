@@ -1,0 +1,104 @@
+
+{% extends "admin_portal/base_admin.html" %}
+{% block title %}Menu Access — Admin{% endblock %}
+
+{% block admin_body %}
+<div class="adm-page-header d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4">
+  <div>
+    <h1 class="adm-page-title">Sub-Admin Menu Access</h1>
+    <p class="adm-page-sub mb-0">Manage Django permission groups for moderators and verification officers.</p>
+  </div>
+</div>
+
+{% include "admin_portal/_messages.html" %}
+
+{% if not staff_users %}
+<div class="adm-card p-5 text-center">
+  <i class="bi bi-person-badge fs-2 d-block mb-2 text-muted"></i>
+  <p class="text-muted small">No moderator or officer accounts found. Assign the moderator or officer role to a user first.</p>
+  <a href="{% url 'admin_portal:users' %}" class="btn btn-adm-primary btn-sm">Go to Users</a>
+</div>
+{% else %}
+
+<div class="adm-card">
+  <div class="table-responsive">
+    <table class="table adm-table mb-0">
+      <thead>
+        <tr>
+          <th>User</th>
+          <th>Role</th>
+          <th>Current Groups</th>
+          <th>Add Group</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for user in staff_users %}
+        <tr>
+          <td>
+            <a href="{% url 'admin_portal:user_detail' user.public_id %}"
+               class="fw-semibold small text-decoration-none">{{ user.get_full_name|default:user.username }}</a>
+            <div class="text-muted" style="font-size:0.75rem;">{{ user.email }}</div>
+          </td>
+          <td>
+            {% if user.role == 'moderator' %}
+              <span class="adm-badge adm-badge-blue">Moderator</span>
+            {% elif user.role == 'officer' %}
+              <span class="adm-badge adm-badge-gray">Officer</span>
+            {% else %}
+              <span class="adm-badge adm-badge-gray">{{ user.get_role_display }}</span>
+            {% endif %}
+          </td>
+          <td>
+            {% for grp in user.groups.all %}
+            <span class="badge bg-secondary me-1 mb-1">
+              {{ grp.name }}
+              <form method="post" class="d-inline ms-1">
+                {% csrf_token %}
+                <input type="hidden" name="user_id" value="{{ user.pk }}">
+                <input type="hidden" name="group_id" value="{{ grp.pk }}">
+                <input type="hidden" name="action" value="remove">
+                <button type="submit" class="btn btn-link p-0 text-white" style="font-size:0.7rem;line-height:1;"
+                        title="Remove from group">×</button>
+              </form>
+            </span>
+            {% empty %}
+            <span class="text-muted small">No groups</span>
+            {% endfor %}
+          </td>
+          <td>
+            {% if all_groups %}
+            <form method="post" class="d-flex gap-2 align-items-center">
+              {% csrf_token %}
+              <input type="hidden" name="user_id" value="{{ user.pk }}">
+              <input type="hidden" name="action" value="add">
+              <select name="group_id" class="form-select form-select-sm" style="min-width:140px;" required>
+                <option value="">Select group…</option>
+                {% for grp in all_groups %}
+                <option value="{{ grp.pk }}">{{ grp.name }}</option>
+                {% endfor %}
+              </select>
+              <button type="submit" class="btn btn-adm-primary btn-sm px-3">Add</button>
+            </form>
+            {% else %}
+            <span class="text-muted small">No groups defined.</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="adm-card p-4 mt-4">
+  <h6 class="fw-semibold mb-2"><i class="bi bi-info-circle me-2"></i>How Groups Work</h6>
+  <p class="small text-muted mb-0">
+    Django permission groups control which model-level actions a sub-admin user can perform.
+    Create groups in <a href="/django-admin/auth/group/" target="_blank">Django Admin → Groups</a>,
+    assign permissions to each group, then assign users here.
+    Group membership is reflected immediately — no restart required.
+  </p>
+</div>
+
+{% endif %}
+{% endblock %}
