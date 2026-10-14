@@ -5,9 +5,11 @@
 {% block breadcrumb %}<li class="breadcrumb-item active">User Operations</li>{% endblock %}
 
 {% block admin_body %}
-<div class="adm-page-heading">
+<div class="adm-page-heading" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem;">
+    <div>
     <h1>User Management &amp; Access Control</h1>
     <p>Search, filter, assign roles, and manage account status for all platform users.</p>
+    </div>
     <a href="{% url 'admin_portal:user_create' %}" class="btn btn-adm-primary">
         <i class="bi bi-person-plus me-1"></i>Create User
     </a>

@@ -270,7 +270,9 @@ class AuditLog(models.Model):
         verbose_name = 'Audit Log'
         verbose_name_plural = 'Audit Logs'
         ordering = ['-timestamp']
-        index_together = [('action_type', 'timestamp')]
+        indexes = [
+            models.Index(fields=['action_type', 'timestamp'], name='auditlog_type_ts_idx'),
+        ]
 
     def __str__(self):
         actor = self.performed_by.username if self.performed_by else 'system'

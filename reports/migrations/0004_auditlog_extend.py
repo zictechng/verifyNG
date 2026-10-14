@@ -84,9 +84,9 @@ class Migration(migrations.Migration):
             name='location_city',
             field=models.CharField(max_length=100, blank=True, default=''),
         ),
-        migrations.AlterIndexTogether(
-            name='auditlog',
-            index_together={('action_type', 'timestamp')},
+        migrations.AddIndex(
+            model_name='auditlog',
+            index=models.Index(fields=['action_type', 'timestamp'], name='auditlog_type_ts_idx'),
         ),
     ]
 
