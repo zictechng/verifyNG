@@ -73,7 +73,8 @@ class AdminOverviewView(SuperAdminRequiredMixin, TemplateView):
         # 1. Platform KPI Metrics
         ctx['total_users'] = User.objects.count()
         ctx['active_users'] = User.objects.filter(is_active=True).count()
-        ctx['suspended_users'] = User.objects.filter(is_active=False).count()
+        ctx['suspended_users'] = User.objects.filter(is_suspended=True, is_active=True).count()
+        ctx['blocked_users'] = User.objects.filter(is_active=False).count()
         ctx['total_reports'] = FraudReport.objects.count()
         ctx['pending_reports'] = FraudReport.objects.filter(state__in=['submitted', 'under_review']).count()
         ctx['published_reports'] = FraudReport.objects.filter(state='published').count()
