@@ -1,13 +1,14 @@
 {% extends "admin_portal/base_admin.html" %}
 {% block title %}Audit Logs — VerifyNG Admin{% endblock %}
 
-{% block content %}
+{% block admin_body %}
 <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
   <div>
     <h1 class="adm-page-title mb-0">Platform Audit Log</h1>
-    <p class="small mb-0" style="color:var(--adm-muted);">All admin and platform actions — {{ total_count }} record{{ total_count|pluralize }}</p>
+    <p class="small mb-0" style="color:var(--adm-muted);">All admin and platform logs — {{ total_count }} record{{ total_count|pluralize }}</p>
   </div>
 </div>
+
 
 <!-- Filter bar -->
 <div class="adm-card mb-4">
@@ -158,5 +159,5 @@
   <div class="adm-empty"><p>No audit log entries found.</p></div>
   {% endif %}
 </div>
-{% endblock %}
+{% endblock admin_body %}
 
