@@ -675,6 +675,7 @@ function serviceToggle(service, rulesJson) {
           const reason = document.getElementById('rsModalReason').value.trim();
           document.getElementById('rsModalSpinner').classList.remove('d-none');
           newBtn.disabled = true;
+          this.pendingCheckbox = null;  // ← clear BEFORE hide so hidden.bs.modal doesn't revert
           bootstrap.Modal.getInstance(document.getElementById('restrictServiceModal')).hide();
           this.sendRequest('restrict', reason);
         });
