@@ -140,12 +140,73 @@
         </div>
       </div>
 
+      <!-- Service Control -->
+      
+            <!-- Service Control -->
+      <div class="adm-card mb-4">
+        <div class="adm-card-header d-flex align-items-center gap-2">
+          <i class="bi bi-toggles"></i> Service Control
+        </div>
+        <div class="p-3">
+          <p class="small text-muted mb-3">Suspend individual services platform-wide. Users see the suspension message below.</p>
+
+          <div class="d-flex align-items-center justify-content-between py-2" style="border-bottom:1px solid var(--adm-border);">
+            <label class="fw-semibold small mb-0" for="svcCheck">CHECK (Search / Lookup)</label>
+            <div class="form-check form-switch mb-0">
+              <input class="form-check-input" type="checkbox" role="switch"
+                     name="service_check_suspended" id="svcCheck"
+                     {% if config.service_check_suspended %}checked{% endif %}
+                     style="cursor:pointer;width:2.5em;height:1.3em;">
+            </div>
+          </div>
+
+          <div class="d-flex align-items-center justify-content-between py-2" style="border-bottom:1px solid var(--adm-border);">
+            <label class="fw-semibold small mb-0" for="svcReport">REPORT (Fraud Submission)</label>
+            <div class="form-check form-switch mb-0">
+              <input class="form-check-input" type="checkbox" role="switch"
+                     name="service_report_suspended" id="svcReport"
+                     {% if config.service_report_suspended %}checked{% endif %}
+                     style="cursor:pointer;width:2.5em;height:1.3em;">
+            </div>
+          </div>
+
+          <div class="d-flex align-items-center justify-content-between py-2" style="border-bottom:1px solid var(--adm-border);">
+            <label class="fw-semibold small mb-0" for="svcVerify">VERIFY (Trust Profiles)</label>
+            <div class="form-check form-switch mb-0">
+              <input class="form-check-input" type="checkbox" role="switch"
+                     name="service_verify_suspended" id="svcVerify"
+                     {% if config.service_verify_suspended %}checked{% endif %}
+                     style="cursor:pointer;width:2.5em;height:1.3em;">
+            </div>
+          </div>
+
+          <div class="d-flex align-items-center justify-content-between py-2" style="border-bottom:1px solid var(--adm-border);">
+            <label class="fw-semibold small mb-0" for="svcEmployment">EMPLOYMENT Verification</label>
+            <div class="form-check form-switch mb-0">
+              <input class="form-check-input" type="checkbox" role="switch"
+                     name="service_employment_suspended" id="svcEmployment"
+                     {% if config.service_employment_suspended %}checked{% endif %}
+                     style="cursor:pointer;width:2.5em;height:1.3em;">
+            </div>
+          </div>
+
+          <div class="mt-3">
+            <label class="form-label fw-semibold small">Suspension Message <small class="text-muted">(shown to users when a service is off)</small></label>
+            <textarea name="service_suspension_message" class="form-control form-control-sm" rows="2">{{ config.service_suspension_message }}</textarea>
+          </div>
+        </div>
+      </div>
+
       <div class="adm-card">
         <div class="p-4">
           <button type="submit" class="btn btn-adm-primary w-100 py-2">Save Platform Configuration</button>
           <div class="text-muted small mt-2 text-center">Last saved: {{ config.updated_at|date:"d M Y H:i" }}</div>
         </div>
       </div>
+
+      
+
+
     </div>
   </div>
 </form>

@@ -1,0 +1,257 @@
+
+{% extends "admin_portal/base_admin.html" %}
+{% block title %}Verification Certificates — Admin{% endblock %}
+
+{% block admin_body %}
+<div class="adm-page-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+  <div>
+    <h1 class="adm-page-title">Verification Certificates</h1>
+    <p class="adm-page-sub">Manage issued VerifyNG verification certificates.</p>
+  </div>
+  <span class="badge bg-secondary fs-6 fw-semibold">{{ total }} total</span>
+</div>
+
+{% include "admin_portal/_messages.html" %}
+
+{% if no_model %}
+<div class="alert alert-warning">VerificationCertificate model is not available in this environment.</div>
+{% else %}
+
+<!-- Filters -->
+<form method="get" class="adm-card p-3 mb-4 d-flex flex-wrap gap-2 align-items-end">
+  <div>
+    <label class="form-label fw-semibold small mb-1">Search</label>
+    <input type="text" name="q" class="form-control form-control-sm" placeholder="Cert ID, username, email…" value="{{ q }}">
+  </div>
+  <div>
+    <label class="form-label fw-semibold small mb-1">Status</label>
+    <select name="status" class="form-select form-select-sm">
+      <option value="">All Statuses</option>
+      {% for val, lbl in status_choices %}
+      <option value="{{ val }}" {% if status_filter == val %}selected{% endif %}>{{ lbl }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <label class="form-label fw-semibold small mb-1">Level</label>
+    <select name="level" class="form-select form-select-sm">
+      <option value="">All Levels</option>
+      {% for val, lbl in level_choices %}
+      <option value="{{ val }}" {% if level_filter == val %}selected{% endif %}>{{ lbl }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="d-flex gap-2">
+    <button type="submit" class="btn btn-adm-primary btn-sm px-4">Filter</button>
+    <a href="{% url 'admin_portal:certificates' %}" class="btn btn-outline-secondary btn-sm">Clear</a>
+  </div>
+</form>
+
+<!-- Table -->
+<div class="adm-card">
+  <div class="table-responsive">
+    <table class="table adm-table mb-0">
+      <thead>
+        <tr>
+          <th>Certificate ID</th>
+          <th>Holder</th>
+          <th>Level</th>
+          <th>Status</th>
+          <th>Issued</th>
+          <th>Expires</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for cert in certificates %}
+        <tr>
+          <td>
+            <span class="font-monospace fw-semibold small">{{ cert.certificate_id }}</span>
+          </td>
+          <td>
+            <div class="fw-semibold small">{{ cert.holder.get_full_name|default:cert.holder.username }}</div>
+            <div class="text-muted" style="font-size:0.75rem;">{{ cert.holder.email }}</div>
+          </td>
+          <td>
+            {% if cert.check_level == 'enhanced' %}
+            <span class="badge bg-purple text-white" style="background:#6f42c1!important;">Enhanced</span>
+            {% else %}
+            <span class="badge bg-info text-dark">Employment</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if cert.status == 'active' %}
+              <span class="badge bg-success">Active</span>
+            {% elif cert.status == 'pending' %}
+              <span class="badge bg-warning text-dark">Pending</span>
+            {% elif cert.status == 'suspended' %}
+              <span class="badge bg-warning text-dark">Suspended</span>
+            {% elif cert.status == 'revoked' %}
+              <span class="badge bg-danger">Revoked</span>
+            {% elif cert.status == 'expired' %}
+              <span class="badge bg-secondary">Expired</span>
+            {% else %}
+              <span class="badge bg-secondary">{{ cert.status }}</span>
+            {% endif %}
+          </td>
+          <td class="small">{{ cert.issued_at|date:"d M Y"|default:"—" }}</td>
+          <td class="small">
+            {% if cert.expires_at %}
+              {% if cert.expires_at < now %}
+                <span class="text-danger">{{ cert.expires_at|date:"d M Y" }}</span>
+              {% else %}
+                {{ cert.expires_at|date:"d M Y" }}
+              {% endif %}
+            {% else %}—{% endif %}
+          </td>
+          <td class="text-end">
+            <div class="d-flex gap-1 justify-content-end">
+              {% if cert.status != 'active' %}
+              <button class="btn btn-success btn-sm cert-action-btn"
+                      data-pk="{{ cert.pk }}"
+                      data-action="activate"
+                      data-cert-id="{{ cert.certificate_id }}"
+                      title="Activate">
+                <i class="bi bi-check-circle"></i>
+              </button>
+              {% endif %}
+              {% if cert.status == 'active' or cert.status == 'pending' %}
+              <button class="btn btn-warning btn-sm cert-action-btn"
+                      data-pk="{{ cert.pk }}"
+                      data-action="suspend"
+                      data-cert-id="{{ cert.certificate_id }}"
+                      title="Suspend">
+                <i class="bi bi-pause-circle"></i>
+              </button>
+              {% endif %}
+              {% if cert.status != 'revoked' %}
+              <button class="btn btn-danger btn-sm cert-action-btn"
+                      data-pk="{{ cert.pk }}"
+                      data-action="revoke"
+                      data-cert-id="{{ cert.certificate_id }}"
+                      title="Revoke">
+                <i class="bi bi-x-circle"></i>
+              </button>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7" class="text-center text-muted py-5">
+            <i class="bi bi-award fs-2 d-block mb-2"></i>
+            No certificates found{% if q or status_filter or level_filter %} matching your filters{% endif %}.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% include "admin_portal/_pagination.html" with page_obj=certificates %}
+
+{% endif %}
+
+<!-- Action Modal -->
+<div class="modal fade" id="certActionModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header py-3 px-4" style="background:#1e2a3a;">
+        <h5 class="modal-title fw-semibold text-white fs-6" id="certModalTitle">Certificate Action</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body px-4 py-3">
+        <p class="small mb-3 text-muted" id="certModalMsg"></p>
+        <div id="certReasonWrap">
+          <label class="form-label fw-semibold small">Reason <span class="text-muted">(optional)</span></label>
+          <textarea id="certModalReason" class="form-control form-control-sm" rows="3" placeholder="State reason…"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer border-top px-4 py-3 gap-2">
+        <button type="button" class="btn btn-outline-secondary btn-sm px-3" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-sm px-4 fw-semibold" id="certModalConfirmBtn">Confirm</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="certToast" class="alert small mb-0 shadow d-none"
+     style="position:fixed;bottom:1.5rem;right:1.5rem;z-index:1070;min-width:280px;"></div>
+
+<script>
+(function () {
+  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+  let pendingPk = null;
+  let pendingAction = null;
+  let pendingCertId = null;
+
+  function showToast(ok, msg) {
+    const t = document.getElementById('certToast');
+    t.textContent = msg;
+    t.className = 'alert small mb-0 shadow ' + (ok ? 'alert-success' : 'alert-danger');
+    t.style.cssText = 'position:fixed;bottom:1.5rem;right:1.5rem;z-index:1070;min-width:280px;';
+    setTimeout(function () { t.classList.add('d-none'); }, 4000);
+  }
+
+  document.querySelectorAll('.cert-action-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      pendingPk = btn.dataset.pk;
+      pendingAction = btn.dataset.action;
+      pendingCertId = btn.dataset.certId;
+
+      const actionLabels = { activate: 'Activate', suspend: 'Suspend', revoke: 'Revoke' };
+      const actionColors = { activate: 'btn-success', suspend: 'btn-warning', revoke: 'btn-danger' };
+      const label = actionLabels[pendingAction] || pendingAction;
+
+      document.getElementById('certModalTitle').textContent = label + ' Certificate';
+      document.getElementById('certModalMsg').innerHTML =
+        'You are about to <strong>' + label.toLowerCase() + '</strong> certificate <code>' + pendingCertId + '</code>.';
+      document.getElementById('certModalReason').value = '';
+
+      const confirmBtn = document.getElementById('certModalConfirmBtn');
+      confirmBtn.className = 'btn btn-sm px-4 fw-semibold ' + (actionColors[pendingAction] || 'btn-primary');
+      confirmBtn.textContent = label;
+
+      document.getElementById('certReasonWrap').style.display = pendingAction === 'activate' ? 'none' : '';
+
+      new bootstrap.Modal(document.getElementById('certActionModal')).show();
+    });
+  });
+
+  document.getElementById('certModalConfirmBtn').addEventListener('click', function () {
+    if (!pendingPk || !pendingAction) return;
+    const reason = document.getElementById('certModalReason').value.trim();
+    const btn = this;
+    btn.disabled = true;
+    btn.textContent = 'Processing…';
+
+    const fd = new FormData();
+    fd.append('action', pendingAction);
+    fd.append('reason', reason);
+    fd.append('csrfmiddlewaretoken', csrfToken);
+
+    const url = '/admin-portal/certificates/' + pendingPk + '/action/';
+
+    bootstrap.Modal.getInstance(document.getElementById('certActionModal')).hide();
+
+    fetch(url, { method: 'POST', body: fd })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.ok) {
+          showToast(true, data.message);
+          setTimeout(function () { location.reload(); }, 1200);
+        } else {
+          showToast(false, data.error || 'Action failed.');
+          btn.disabled = false;
+        }
+      })
+      .catch(function () {
+        showToast(false, 'Network error. Please try again.');
+        btn.disabled = false;
+      });
+  });
+})();
+</script>
+{% endblock %}
+

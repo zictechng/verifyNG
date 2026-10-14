@@ -45,6 +45,8 @@ from dashboard.admin_views import (
     AdminPlansView,
     AdminPlanCreateEditView,
     AdminCreditSubscriptionView,
+    AdminCertificatesView,
+    AdminCertificateActionView,
 )
 
 app_name = 'admin_portal'
@@ -112,6 +114,10 @@ urlpatterns = [
     # ── Platform Settings ────────────────────────────────────────────────────
     path('settings/platform/', AdminPlatformSettingsView.as_view(), name='platform_settings'),
     path('settings/site/', AdminSiteSettingsView.as_view(), name='site_settings'),
+
+    # ── Certificates ─────────────────────────────────────────────────────────
+    path('certificates/', AdminCertificatesView.as_view(), name='certificates'),
+    path('certificates/<int:pk>/action/', AdminCertificateActionView.as_view(), name='certificate_action'),
 
 ]
 

@@ -74,6 +74,28 @@ class PlatformConfiguration(models.Model):
     # System
     maintenance_mode = models.BooleanField(default=False)
     maintenance_message = models.TextField(blank=True, default='Platform undergoing scheduled maintenance. We\'ll be back shortly.')
+        # ── Per-service kill switches ─────────────────────────────────────────────
+    service_check_suspended = models.BooleanField(
+        default=False,
+        help_text="Suspend the public CHECK service platform-wide."
+    )
+    service_report_suspended = models.BooleanField(
+        default=False,
+        help_text="Suspend the REPORT (fraud report submission) service platform-wide."
+    )
+    service_verify_suspended = models.BooleanField(
+        default=False,
+        help_text="Suspend the VERIFY (trust profile) service platform-wide."
+    )
+    service_employment_suspended = models.BooleanField(
+        default=False,
+        help_text="Suspend the EMPLOYMENT verification service platform-wide."
+    )
+    service_suspension_message = models.TextField(
+        blank=True,
+        default='This service is temporarily unavailable. Please try again later.',
+        help_text="Message shown to users when a service is suspended."
+    )
     footer_copyright_text = models.CharField(max_length=255, blank=True, default='© 2024 VerifyNG Limited. All rights reserved.')
 
     updated_at = models.DateTimeField(auto_now=True)

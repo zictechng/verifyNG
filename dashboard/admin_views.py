@@ -21,6 +21,8 @@ from core.tasks import send_email_notification_task
 from django.db.models import Q
 from core.email_utils import render_email
 from notifications.tasks import send_broadcast_email_task
+from django.http import JsonResponse
+from django.utils import timezone as tz
 
 from users.models import User, LoginAudit, UserServiceAccess
 from core.audit_utils import log_admin_action
@@ -1418,6 +1420,13 @@ class AdminPlatformSettingsView(SuperAdminRequiredMixin, TemplateView):
         config.maintenance_mode = request.POST.get('maintenance_mode') == 'on'
         config.maintenance_message = request.POST.get('maintenance_message', config.maintenance_message).strip()
 
+        # Per-service kill switches
+        config.service_check_suspended = request.POST.get('service_check_suspended') == 'on'
+        config.service_report_suspended = request.POST.get('service_report_suspended') == 'on'
+        config.service_verify_suspended = request.POST.get('service_verify_suspended') == 'on'
+        config.service_employment_suspended = request.POST.get('service_employment_suspended') == 'on'
+        config.service_suspension_message = request.POST.get('service_suspension_message', config.service_suspension_message).strip()
+
         # File uploads
         if 'logo' in request.FILES:
             config.logo = request.FILES['logo']
@@ -1590,9 +1599,6 @@ class AdminUserServiceAccessView(LoginRequiredMixin, UserPassesTestMixin, View):
         return is_superadmin(self.request.user)
 
     def post(self, request, public_id):
-        from django.http import JsonResponse
-        from django.utils import timezone as tz
-
         target_user = get_object_or_404(User, public_id=public_id)
         service  = request.POST.get('service', '').strip()
         action   = request.POST.get('action', '').strip()   # 'restrict' or 'allow'
@@ -1638,6 +1644,101 @@ class AdminUserServiceAccessView(LoginRequiredMixin, UserPassesTestMixin, View):
             'is_restricted': is_restricted,
             'message': f'{service_label} {status_label} for {target_user.username}.',
         })
+
+
+
+# ── Certificate Admin ──────────────────────────────────────────────────────────
+
+class AdminCertificatesView(SuperAdminRequiredMixin, TemplateView):
+    """List all VerificationCertificates with filtering and bulk status management."""
+    template_name = "admin_portal/certificates.html"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        if not VerificationCertificate:
+            ctx['certificates'] = []
+            ctx['no_model'] = True
+            return ctx
+
+        qs = VerificationCertificate.objects.select_related('holder', 'subject').order_by('-created_at')
+
+        # Filters
+        status_filter = self.request.GET.get('status', '')
+        level_filter = self.request.GET.get('level', '')
+        q = self.request.GET.get('q', '').strip()
+
+        if status_filter:
+            qs = qs.filter(status=status_filter)
+        if level_filter:
+            qs = qs.filter(check_level=level_filter)
+        if q:
+            qs = qs.filter(
+                Q(certificate_id__icontains=q) |
+                Q(holder__username__icontains=q) |
+                Q(holder__email__icontains=q)
+            )
+
+        paginator = Paginator(qs, 30)
+        page = self.request.GET.get('page', 1)
+        ctx['certificates'] = paginator.get_page(page)
+        ctx['status_filter'] = status_filter
+        ctx['level_filter'] = level_filter
+        ctx['q'] = q
+        ctx['status_choices'] = VerificationCertificate.STATUS_CHOICES
+        ctx['level_choices'] = VerificationCertificate.CHECK_LEVEL_CHOICES
+        ctx['total'] = qs.count()
+        ctx['now'] = timezone.now()
+        return ctx
+
+
+class AdminCertificateActionView(SuperAdminRequiredMixin, View):
+    """Activate, suspend, or revoke a certificate."""
+
+    def post(self, request, pk):
+        if not VerificationCertificate:
+            return JsonResponse({'ok': False, 'error': 'Certificate model not available.'}, status=400)
+
+        cert = get_object_or_404(VerificationCertificate, pk=pk)
+        action = request.POST.get('action', '').strip()
+        reason = request.POST.get('reason', '').strip()
+
+        now = timezone.now()
+
+        if action == 'activate':
+            cert.status = 'active'
+            cert.issued_at = cert.issued_at or now
+            cert.revoked_at = None
+            cert.suspended_at = None
+            cert.revocation_reason = ''
+            cert.suspension_reason = ''
+        elif action == 'suspend':
+            cert.status = 'suspended'
+            cert.suspended_at = now
+            cert.suspension_reason = reason
+        elif action == 'revoke':
+            cert.status = 'revoked'
+            cert.revoked_at = now
+            cert.revocation_reason = reason
+        else:
+            return JsonResponse({'ok': False, 'error': 'Unknown action.'}, status=400)
+
+        cert.save()
+
+        log_admin_action(
+            action=f'CERTIFICATE_{action.upper()}',
+            action_type='CERTIFICATE_MGMT',
+            performed_by=request.user,
+            request=request,
+            details={'certificate_id': cert.certificate_id, 'reason': reason},
+        )
+
+        return JsonResponse({
+            'ok': True,
+            'status': cert.status,
+            'certificate_id': cert.certificate_id,
+            'message': f'Certificate {cert.certificate_id} {action}d successfully.',
+        })
+
 
 
 
