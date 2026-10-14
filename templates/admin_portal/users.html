@@ -128,13 +128,14 @@
                                         data-username="{{ u.username }}">
                                     Suspend
                                 </button>
-                            {% else %}
-                                <form method="post"
-                                      action="{% url 'admin_portal:user_toggle_status' u.public_id %}"
-                                      style="display:inline;">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn-adm-success btn-adm-sm">Reactivate</button>
-                                </form>
+                                {% else %}
+                                <button type="button" class="btn-adm-success btn-adm-sm"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#reactivateModal"
+                                        data-pk="{{ u.public_id }}"
+                                        data-username="{{ u.username }}">
+                                    Reactivate
+                                </button>
                             {% endif %}
                             <!-- Role change trigger -->
                             <button type="button" class="btn-adm-outline btn-adm-sm"
@@ -225,9 +226,38 @@
         </div>
     </div>
 
+        </div>
+</div>
+
+<!-- Single shared Reactivate modal -->
+<div class="modal fade" id="reactivateModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content" style="border-radius:12px;border:none;box-shadow:0 8px 32px rgba(0,0,0,.15);">
+            <div class="modal-header border-0 pb-0">
+                <h6 class="modal-title fw-semibold">Reactivate User</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body pt-2">
+                <div class="alert alert-success d-flex align-items-center gap-2 mb-2">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/></svg>
+                    <span class="small" id="reactivateModalText">This user will be able to log in again.</span>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-adm-sm btn-adm-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form method="post" id="reactivateModalForm" action="" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-adm-sm btn-adm-success">Reactivate</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
 <script>
 (function () {
-  // UUID placeholder approach — no {% url %} inside the loop
+  // UUID placeholder — URL built in JS, not in the Django template loop
   const BASE_URL = "{% url 'admin_portal:user_toggle_status' '00000000-0000-0000-0000-000000000000' %}";
   const modal = document.getElementById('suspendModal');
   modal.addEventListener('show.bs.modal', function (e) {
@@ -238,6 +268,19 @@
       '<strong>' + username + '</strong> will not be able to log in.';
     document.getElementById('suspendModalForm').action =
       BASE_URL.replace('00000000-0000-0000-0000-000000000000', pk);
+  });
+
+  // Reactivate modal
+  const BASE_URL_REACTIVATE = "{% url 'admin_portal:user_toggle_status' '00000000-0000-0000-0000-000000000000' %}";
+  const reactivateModal = document.getElementById('reactivateModal');
+  reactivateModal.addEventListener('show.bs.modal', function (e) {
+    const btn      = e.relatedTarget;
+    const pk       = btn.dataset.pk;
+    const username = btn.dataset.username;
+    document.getElementById('reactivateModalText').innerHTML =
+      '<strong>' + username + '</strong> will be able to log in again.';
+    document.getElementById('reactivateModalForm').action =
+      BASE_URL_REACTIVATE.replace('00000000-0000-0000-0000-000000000000', pk);
   });
 })();
 </script>
