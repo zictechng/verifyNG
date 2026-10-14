@@ -26,6 +26,7 @@
     </div>
   </div>
 </form>
+
 {% if page_obj.object_list %}
 <div class="adm-card">
   <table class="adm-table">
@@ -37,25 +38,35 @@
         <td>{{ s.plan.name|default:"—" }}</td>
         <td>
           {% if s.status == 'active' %}<span class="adm-badge adm-badge-green">Active</span>
+          {% elif s.status == 'past_due' %}<span class="adm-badge adm-badge-yellow">Past Due</span>
           {% elif s.status == 'cancelled' %}<span class="adm-badge adm-badge-red">Cancelled</span>
+          {% elif s.status == 'expired' %}<span class="adm-badge adm-badge-gray">Expired</span>
           {% else %}<span class="adm-badge adm-badge-gray">{{ s.get_status_display }}</span>{% endif %}
         </td>
         <td>{{ s.created_at|date:"d M Y" }}</td>
         <td>
           {% if s.status == 'active' or s.status == 'past_due' %}
-          <form method="post" action="{% url 'admin_portal:subscription_action' s.pk %}">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="cancel">
-            <button class="btn btn-adm-sm btn-adm-danger"
-                    onclick="return confirm('Cancel this subscription?')">Cancel</button>
-          </form>
+          <button type="button" class="btn btn-adm-sm btn-adm-danger"
+                  data-bs-toggle="modal"
+                  data-bs-target="#subActionModal"
+                  data-action="cancel"
+                  data-pk="{{ s.pk }}"
+                  data-user="{{ s.user.username }}"
+                  data-email="{{ s.user.email }}"
+                  data-plan="{{ s.plan.name|default:'—' }}">
+            Cancel
+          </button>
           {% elif s.status == 'cancelled' or s.status == 'expired' %}
-          <form method="post" action="{% url 'admin_portal:subscription_action' s.pk %}">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="reactivate">
-            <button class="btn btn-adm-sm btn-adm-success"
-                    onclick="return confirm('Reactivate this subscription?')">Reactivate</button>
-          </form>
+          <button type="button" class="btn btn-adm-sm btn-adm-success"
+                  data-bs-toggle="modal"
+                  data-bs-target="#subActionModal"
+                  data-action="reactivate"
+                  data-pk="{{ s.pk }}"
+                  data-user="{{ s.user.username }}"
+                  data-email="{{ s.user.email }}"
+                  data-plan="{{ s.plan.name|default:'—' }}">
+            Reactivate
+          </button>
           {% else %}—{% endif %}
         </td>
       </tr>
@@ -67,4 +78,95 @@
 {% else %}
 <div class="adm-empty">No subscriptions found.</div>
 {% endif %}
+
+<!-- Subscription Action Modal -->
+<div class="modal fade" id="subActionModal" tabindex="-1" aria-labelledby="subActionModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:12px; border:none; box-shadow:0 8px 32px rgba(0,0,0,.15);">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-semibold" id="subActionModalLabel">Confirm Action</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body pt-2">
+        <!-- Cancel warning -->
+        <div id="modalCancelWarning" class="alert alert-danger d-flex align-items-center gap-2 mb-3 d-none">
+          <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/></svg>
+          <span>This will immediately cancel the subscription. The user will lose access at the end of the current billing period.</span>
+        </div>
+        <!-- Reactivate info -->
+                <!-- Reactivate info -->
+        <div id="modalReactivateInfo" class="alert alert-success d-flex align-items-center gap-2 mb-3 d-none">
+          <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/></svg>
+          <span>This will reactivate the subscription and restore the user's access immediately.</span>
+        </div>
+        <div class="bg-light rounded p-3" style="font-size:.9rem;">
+          <div class="row g-1">
+            <div class="col-4 text-muted fw-semibold">User</div>
+            <div class="col-8" id="modalUser">—</div>
+            <div class="col-4 text-muted fw-semibold">Email</div>
+            <div class="col-8" id="modalEmail">—</div>
+            <div class="col-4 text-muted fw-semibold">Plan</div>
+            <div class="col-8" id="modalPlan">—</div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer border-0 pt-2">
+        <button type="button" class="btn btn-adm-sm btn-adm-secondary" data-bs-dismiss="modal">Cancel</button>
+        <form id="subActionForm" method="post" action="">
+          {% csrf_token %}
+          <input type="hidden" name="action" id="subActionInput" value="">
+          <button type="submit" class="btn btn-adm-sm" id="subActionConfirmBtn">Confirm</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const modal = document.getElementById('subActionModal');
+  modal.addEventListener('show.bs.modal', function (e) {
+    const btn = e.relatedTarget;
+    const action  = btn.dataset.action;
+    const pk      = btn.dataset.pk;
+    const user    = btn.dataset.user;
+    const email   = btn.dataset.email;
+    const plan    = btn.dataset.plan;
+
+    // Populate detail fields
+    document.getElementById('modalUser').textContent  = user;
+    document.getElementById('modalEmail').textContent = email;
+    document.getElementById('modalPlan').textContent  = plan;
+
+    // Toggle alert banners
+    const cancelWarn    = document.getElementById('modalCancelWarning');
+    const reactivateInfo = document.getElementById('modalReactivateInfo');
+    if (action === 'cancel') {
+      cancelWarn.classList.remove('d-none');
+      reactivateInfo.classList.add('d-none');
+    } else {
+      cancelWarn.classList.add('d-none');
+      reactivateInfo.classList.remove('d-none');
+    }
+
+    // Set form action URL and hidden input
+    const baseUrl = "{% url 'admin_portal:subscription_action' '00000000-0000-0000-0000-000000000000' %}";
+    document.getElementById('subActionForm').action = baseUrl.replace('00000000-0000-0000-0000-000000000000', pk);
+    document.getElementById('subActionInput').value = action;
+
+    // Style confirm button
+    const confirmBtn = document.getElementById('subActionConfirmBtn');
+    if (action === 'cancel') {
+      confirmBtn.className = 'btn btn-adm-sm btn-adm-danger';
+      confirmBtn.textContent = 'Yes, Cancel Subscription';
+      document.getElementById('subActionModalLabel').textContent = 'Cancel Subscription';
+    } else {
+      confirmBtn.className = 'btn btn-adm-sm btn-adm-success';
+      confirmBtn.textContent = 'Yes, Reactivate Subscription';
+      document.getElementById('subActionModalLabel').textContent = 'Reactivate Subscription';
+    }
+  });
+});
+</script>
 {% endblock %}
+

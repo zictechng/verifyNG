@@ -97,7 +97,7 @@ urlpatterns = [
 
     # ── Subscriptions / Payments ────────────────────────────────────────────
     path('subscriptions/', AdminSubscriptionsView.as_view(), name='subscriptions'),
-    path('subscriptions/<int:pk>/action/', AdminSubscriptionActionView.as_view(), name='subscription_action'),
+    path('subscriptions/<uuid:pk>/action/', AdminSubscriptionActionView.as_view(), name='subscription_action'),
     path('plans/', AdminPlansView.as_view(), name='plans'),
     path('plans/new/', AdminPlanCreateEditView.as_view(), name='plan_create'),
     path('plans/<int:pk>/edit/', AdminPlanCreateEditView.as_view(), name='plan_edit'),
