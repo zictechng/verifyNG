@@ -917,6 +917,51 @@ class AdminVerificationActionView(SuperAdminRequiredMixin, View):
         messages.success(request, f"Verification {req.reference_number} marked as '{action}'.")
         return redirect('admin_portal:verifications')
 
+# ── verification details ──────────────────────────────────────────────────────
+
+class AdminVerificationDetailView(SuperAdminRequiredMixin, TemplateView):
+    """Full detail page for a single verification request."""
+    template_name = "admin_portal/verification_detail.html"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        verification = get_object_or_404(
+            VerificationRequest.objects.select_related(
+                'requester', 'target_subject', 'result', 'result__verified_by'
+            ),
+            pk=kwargs['pk']
+        )
+        ctx['verification'] = verification
+        ctx['has_result'] = hasattr(verification, 'result') and verification.result is not None
+        return ctx
+
+    def post(self, request, pk):
+        verification = get_object_or_404(VerificationRequest, pk=pk)
+        action = request.POST.get('action', '')
+        notes  = request.POST.get('notes', '').strip()
+
+        if action not in ('in_progress', 'complete', 'reject'):
+            messages.error(request, "Invalid action.")
+            return redirect('admin_portal:verification_detail', pk=pk)
+
+        if action == 'complete':
+            verification.status = 'completed'
+        elif action == 'reject':
+            verification.status = 'rejected'
+        elif action == 'in_progress':
+            verification.status = 'in_progress'
+
+        if notes:
+            verification.notes = notes
+        verification.save(update_fields=['status', 'notes', 'updated_at'])
+
+        AuditLog.objects.create(
+            action=f"ADMIN_VERIFICATION_{action.upper()}",
+            performed_by=request.user,
+            details={"verification_id": verification.id, "reference": verification.reference_number}
+        )
+        messages.success(request, f"Verification {verification.reference_number} updated to '{action}'.")
+        return redirect('admin_portal:verification_detail', pk=pk)
 
 # ── Employer Profiles ──────────────────────────────────────────────────────
 

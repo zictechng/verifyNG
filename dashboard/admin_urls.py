@@ -49,6 +49,7 @@ from dashboard.admin_views import (
     AdminCertificateActionView,
     AdminDisputeDetailView,
     AdminNotificationsView,
+    AdminVerificationDetailView,
 )
 
 app_name = 'admin_portal'
@@ -88,6 +89,7 @@ urlpatterns = [
     # ── Verifications ───────────────────────────────────────────────────────
     path('verifications/', AdminVerificationsView.as_view(), name='verifications'),
     path('verifications/<int:pk>/action/', AdminVerificationActionView.as_view(), name='verification_action'),
+    path('verifications/<int:pk>/', AdminVerificationDetailView.as_view(), name='verification_detail'),
 
     # ── Employer Profiles ───────────────────────────────────────────────────
     path('employers/', AdminEmployerProfilesView.as_view(), name='employer_profiles'),

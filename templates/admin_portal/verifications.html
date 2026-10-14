@@ -57,7 +57,9 @@
         </td>
         <td>{{ v.created_at|date:"d M Y" }}</td>
         <td>
-          <div class="d-flex gap-1">
+            <div class="d-flex gap-1">
+            <a href="{% url 'admin_portal:verification_detail' v.pk %}"
+               class="btn btn-adm-sm btn-adm-outline">View</a>
             {% if v.status == 'pending' %}
             <button type="button" class="btn btn-adm-sm btn-adm-outline"
                     data-bs-toggle="modal" data-bs-target="#verifyActionModal"
