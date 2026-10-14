@@ -42,6 +42,9 @@ from dashboard.admin_views import (
 
     AdminCreateUserView,
     AdminUserServiceAccessView,
+    AdminPlansView,
+    AdminPlanCreateEditView,
+    AdminCreditSubscriptionView,
 )
 
 app_name = 'admin_portal'
@@ -67,7 +70,7 @@ urlpatterns = [
 
     # ── Per-user service access ──────────────────────────────────────────────
     path('users/<uuid:public_id>/service-access/', AdminUserServiceAccessView.as_view(), name='user_service_access'),
-    
+
     # ── Reports Moderation ─────────────────────────────────────────────────
     path('reports/', AdminReportsView.as_view(), name='reports'),
     path('reports/<int:pk>/', AdminReportDetailView.as_view(), name='report_detail'),
@@ -90,6 +93,10 @@ urlpatterns = [
     # ── Subscriptions / Payments ────────────────────────────────────────────
     path('subscriptions/', AdminSubscriptionsView.as_view(), name='subscriptions'),
     path('subscriptions/<int:pk>/cancel/', AdminSubscriptionCancelView.as_view(), name='subscription_cancel'),
+    path('plans/', AdminPlansView.as_view(), name='plans'),
+    path('plans/new/', AdminPlanCreateEditView.as_view(), name='plan_create'),
+    path('plans/<int:pk>/edit/', AdminPlanCreateEditView.as_view(), name='plan_edit'),
+    path('users/<uuid:public_id>/credit-subscription/', AdminCreditSubscriptionView.as_view(), name='credit_subscription'),
 
     # ── Logs ────────────────────────────────────────────────────────────────
     path('logs/system/', AdminSystemLogsView.as_view(), name='system_logs'),

@@ -1,5 +1,6 @@
 
 import json
+import json as _json
 import logging
 from datetime import timedelta
 from django.utils import timezone
@@ -23,6 +24,8 @@ from notifications.tasks import send_broadcast_email_task
 
 from users.models import User, LoginAudit, UserServiceAccess
 from core.audit_utils import log_admin_action
+from django.utils.text import slugify
+from payments.models import PlanFeature
 
 from django.core.paginator import Paginator
 from django.http import HttpResponseForbidden
@@ -461,6 +464,11 @@ class AdminUserDetailView(SuperAdminRequiredMixin, TemplateView):
                 user=target_user).order_by('-created_at')[:5]
         else:
             ctx['user_subscriptions'] = []
+        # Available plans for credit subscription modal
+        if Plan:
+            ctx['available_plans'] = Plan.objects.filter(is_active=True).order_by('display_order', 'price_kobo')
+        else:
+            ctx['available_plans'] = []
         return ctx
 
 
@@ -1036,6 +1044,184 @@ class AdminSubscriptionCancelView(SuperAdminRequiredMixin, View):
         messages.success(request, f"Subscription for '{sub.user.username}' cancelled.")
         return redirect('admin_portal:subscriptions')
 
+class AdminPlansView(SuperAdminRequiredMixin, TemplateView):
+    """List all subscription plans with management actions."""
+    template_name = "admin_portal/plans.html"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        if Plan:
+            ctx['plans'] = Plan.objects.prefetch_related('features').order_by('display_order', 'price_kobo')
+        else:
+            ctx['plans'] = []
+        return ctx
+
+
+class AdminPlanCreateEditView(SuperAdminRequiredMixin, View):
+    """Create or edit a Plan and its bullet-point features."""
+    template_name = "admin_portal/plan_form.html"
+
+    def _get_plan(self, pk):
+        if pk:
+            return get_object_or_404(Plan, pk=pk)
+        return None
+
+    def get(self, request, pk=None):
+        plan = self._get_plan(pk)
+        
+        features_json = _json.dumps([
+            {'text': f.feature_text, 'is_included': f.is_included}
+            for f in (plan.features.all() if plan else [])
+        ])
+        return render(request, self.template_name, {
+            'plan': plan,
+            'interval_choices': Plan.INTERVAL_CHOICES if Plan else [],
+            'features_json': features_json,
+        })
+
+    def post(self, request, pk=None):
+        plan = self._get_plan(pk)
+        is_new = plan is None
+
+        name         = request.POST.get('name', '').strip()
+        description  = request.POST.get('description', '').strip()
+        price_naira  = request.POST.get('price_naira', '0').strip()
+        interval     = request.POST.get('interval', 'monthly').strip()
+        check_limit  = request.POST.get('check_limit', '10').strip()
+        paystack_code= request.POST.get('paystack_plan_code', '').strip()
+        is_featured  = request.POST.get('is_featured') == 'on'
+        is_active    = request.POST.get('is_active') == 'on'
+        display_order= request.POST.get('display_order', '0').strip()
+
+        if not name:
+            messages.error(request, "Plan name is required.")
+            return render(request, self.template_name, {
+                'plan': plan,
+                'interval_choices': Plan.INTERVAL_CHOICES,
+            })
+
+        try:
+            price_kobo = int(float(price_naira) * 100)
+        except (ValueError, TypeError):
+            price_kobo = 0
+
+        try:
+            check_limit_int = int(check_limit)
+        except (ValueError, TypeError):
+            check_limit_int = 10
+
+        try:
+            display_order_int = int(display_order)
+        except (ValueError, TypeError):
+            display_order_int = 0
+
+        if is_new:
+            slug = slugify(name)
+            # Ensure unique slug
+            base_slug = slug
+            counter = 1
+            while Plan.objects.filter(slug=slug).exists():
+                slug = f"{base_slug}-{counter}"
+                counter += 1
+            plan = Plan(slug=slug)
+
+        plan.name          = name
+        plan.description   = description
+        plan.price_kobo    = price_kobo
+        plan.interval      = interval
+        plan.check_limit   = check_limit_int
+        plan.paystack_plan_code = paystack_code
+        plan.is_featured   = is_featured
+        plan.is_active     = is_active
+        plan.display_order = display_order_int
+        plan.save()
+
+        # Replace features: delete all, re-create from POST
+        
+        plan.features.all().delete()
+        feature_texts = request.POST.getlist('feature_text')
+        feature_included = request.POST.getlist('feature_included')
+        for i, text in enumerate(feature_texts):
+            text = text.strip()
+            if text:
+                included = str(i) in feature_included
+                PlanFeature.objects.create(
+                    plan=plan,
+                    feature_text=text,
+                    is_included=included,
+                    display_order=i,
+                )
+
+        log_admin_action(
+            action='PLAN_CREATED' if is_new else 'PLAN_UPDATED',
+            action_type='ADMIN',
+            performed_by=request.user,
+            request=request,
+            details={'plan_id': plan.pk, 'plan_name': plan.name},
+        )
+        messages.success(request, f"Plan '{ plan.name }' {'created' if is_new else 'updated'} successfully.")
+        return redirect('admin_portal:plans')
+
+
+class AdminCreditSubscriptionView(SuperAdminRequiredMixin, View):
+    """
+    POST: Manually credit (assign) a subscription plan to a user.
+    Called from the user detail quick-actions panel.
+    """
+    def post(self, request, public_id):
+        from django.utils import timezone as tz
+        user = get_object_or_404(User, public_id=public_id)
+        plan_id = request.POST.get('plan_id', '').strip()
+        duration_days = request.POST.get('duration_days', '30').strip()
+        reason = request.POST.get('reason', 'Admin credit').strip()
+
+        if not plan_id:
+            messages.error(request, "Please select a plan.")
+            return redirect('admin_portal:user_detail', public_id=public_id)
+
+        plan = get_object_or_404(Plan, pk=plan_id)
+
+        try:
+            days = int(duration_days)
+            if days < 1:
+                days = 30
+        except (ValueError, TypeError):
+            days = 30
+
+        now = tz.now()
+        # Cancel any existing active subscription for this user
+        Subscription.objects.filter(user=user, status='active').update(
+            status='cancelled',
+            cancel_at_period_end=False,
+        )
+
+        sub = Subscription.objects.create(
+            user=user,
+            plan=plan,
+            status='active',
+            current_period_start=now,
+            current_period_end=now + tz.timedelta(days=days),
+        )
+
+        log_admin_action(
+            action='SUBSCRIPTION_CREDITED',
+            action_type='ADMIN',
+            performed_by=request.user,
+            target_user=user,
+            request=request,
+            details={
+                'plan': plan.name,
+                'duration_days': days,
+                'subscription_id': str(sub.pk),
+                'reason': reason,
+            },
+        )
+        messages.success(
+            request,
+            f"Plan '{plan.name}' credited to {user.username} for {days} days."
+        )
+        return redirect('admin_portal:user_detail', public_id=public_id)
+    
 
 # ── Analytics ─────────────────────────────────────────────────────────────
 

@@ -1,0 +1,164 @@
+
+{% extends "admin_portal/base_admin.html" %}
+{% block title %}{% if plan %}Edit Plan{% else %}New Plan{% endif %} — VerifyNG Admin{% endblock %}
+
+{% block breadcrumb %}
+  <li class="breadcrumb-item"><a href="{% url 'admin_portal:overview' %}">Admin</a></li>
+  <li class="breadcrumb-item"><a href="{% url 'admin_portal:plans' %}">Plans</a></li>
+  <li class="breadcrumb-item active">{% if plan %}Edit {{ plan.name }}{% else %}New Plan{% endif %}</li>
+{% endblock %}
+
+{% block admin_body %}
+{% include "admin_portal/_messages.html" %}
+
+<div class="mb-4">
+  <h1 class="adm-page-title mb-0">{% if plan %}Edit Plan: {{ plan.name }}{% else %}Create New Plan{% endif %}</h1>
+</div>
+
+<form method="post" x-data="planFeatures()" x-init="init()">
+  {% csrf_token %}
+  <div class="row g-4">
+
+    <!-- Left: core fields -->
+    <div class="col-12 col-lg-7">
+      <div class="adm-card p-4">
+        <h6 class="fw-semibold mb-3" style="color:var(--adm-ink);">Plan Details</h6>
+
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">Plan Name <span class="text-danger">*</span></label>
+          <input type="text" name="name" value="{{ plan.name|default:'' }}"
+                 class="form-control form-control-sm" required placeholder="e.g. Basic, Pro, Enterprise">
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">Description</label>
+          <textarea name="description" rows="2"
+                    class="form-control form-control-sm"
+                    placeholder="Short description shown on the pricing page">{{ plan.description|default:'' }}</textarea>
+        </div>
+
+        <div class="row g-3 mb-3">
+          <div class="col-6">
+            <label class="form-label small fw-semibold">Price (₦)</label>
+            <input type="number" name="price_naira" min="0" step="0.01"
+                   value="{% if plan %}{{ plan.price_naira|floatformat:2 }}{% else %}0{% endif %}"
+                   class="form-control form-control-sm">
+            <small style="color:var(--adm-muted);">Enter 0 for a free plan.</small>
+          </div>
+          <div class="col-6">
+            <label class="form-label small fw-semibold">Billing Interval</label>
+            <select name="interval" class="form-select form-select-sm">
+              {% for val, label in interval_choices %}
+              <option value="{{ val }}" {% if plan and plan.interval == val %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+          <div class="col-6">
+            <label class="form-label small fw-semibold">Check Limit</label>
+            <input type="number" name="check_limit" min="-1"
+                   value="{{ plan.check_limit|default:10 }}"
+                   class="form-control form-control-sm">
+            <small style="color:var(--adm-muted);">Use -1 for unlimited checks.</small>
+          </div>
+          <div class="col-6">
+            <label class="form-label small fw-semibold">Display Order</label>
+            <input type="number" name="display_order" min="0"
+                   value="{{ plan.display_order|default:0 }}"
+                   class="form-control form-control-sm">
+            <small style="color:var(--adm-muted);">Lower = appears first.</small>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">Paystack Plan Code</label>
+          <input type="text" name="paystack_plan_code"
+                 value="{{ plan.paystack_plan_code|default:'' }}"
+                 class="form-control form-control-sm"
+                 placeholder="PLN_xxxxxxxxxxxx (auto-filled by Paystack)">
+          <small style="color:var(--adm-muted);">Required for recurring monthly/yearly subscriptions via Paystack.</small>
+        </div>
+
+        <div class="d-flex gap-4 mb-2">
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" name="is_active" id="isActive"
+                   {% if not plan or plan.is_active %}checked{% endif %}>
+            <label class="form-check-label small" for="isActive">Active (visible to users)</label>
+          </div>
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" name="is_featured" id="isFeatured"
+                   {% if plan and plan.is_featured %}checked{% endif %}>
+            <label class="form-check-label small" for="isFeatured">Featured (highlighted)</label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: features -->
+    <div class="col-12 col-lg-5">
+      <div class="adm-card p-4">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <h6 class="fw-semibold mb-0" style="color:var(--adm-ink);">Plan Features</h6>
+          <button type="button" class="btn btn-outline-secondary btn-sm"
+                  @click="addFeature()">+ Add</button>
+        </div>
+        <p class="small mb-3" style="color:var(--adm-muted);">
+          Feature bullets shown on the plan card. Toggle the checkbox to mark a feature as included or excluded.
+        </p>
+
+        <div id="featuresList">
+          <template x-for="(feat, idx) in features" :key="idx">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <!-- included checkbox — value = index so POST gives list of included indexes -->
+              <input type="checkbox" :name="'feature_included'" :value="idx"
+                     :checked="feat.is_included"
+                     @change="feat.is_included = $event.target.checked"
+                     class="form-check-input mt-0"
+                     title="Tick = included, untick = excluded">
+              <input type="text" :name="'feature_text'" x-model="feat.text"
+                     class="form-control form-control-sm flex-grow-1"
+                     placeholder="Feature description">
+              <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2"
+                      @click="removeFeature(idx)" title="Remove">✕</button>
+            </div>
+          </template>
+        </div>
+
+        <p x-show="features.length === 0" class="small" style="color:var(--adm-muted);">
+          No features yet — click "+ Add" to add bullet points.
+        </p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Actions -->
+  <div class="d-flex gap-2 mt-4">
+    <button type="submit" class="btn btn-adm-primary">
+      {% if plan %}Save Changes{% else %}Create Plan{% endif %}
+    </button>
+    <a href="{% url 'admin_portal:plans' %}" class="btn btn-outline-secondary">Cancel</a>
+  </div>
+</form>
+
+<script>
+function planFeatures() {
+  return {
+    features: [],
+    init() {
+      // Seed existing features from Django-rendered JSON
+      const existing = {{ features_json|safe }};
+      this.features = existing;
+    },
+    addFeature() {
+      this.features.push({ text: '', is_included: true });
+    },
+    removeFeature(idx) {
+      this.features.splice(idx, 1);
+    },
+  };
+}
+</script>
+{% endblock %}

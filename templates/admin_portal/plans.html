@@ -1,0 +1,107 @@
+
+{% extends "admin_portal/base_admin.html" %}
+{% block title %}Subscription Plans — VerifyNG Admin{% endblock %}
+
+{% block breadcrumb %}
+  <li class="breadcrumb-item"><a href="{% url 'admin_portal:overview' %}">Admin</a></li>
+  <li class="breadcrumb-item active">Plans</li>
+{% endblock %}
+
+{% block admin_body %}
+{% include "admin_portal/_messages.html" %}
+
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+  <div>
+    <h1 class="adm-page-title mb-0">Subscription Plans</h1>
+    <p class="small mb-0" style="color:var(--adm-muted);">Manage plans shown to users on the pricing page.</p>
+  </div>
+  <a href="{% url 'admin_portal:plan_create' %}" class="btn btn-adm-primary btn-sm">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="me-1"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    New Plan
+  </a>
+</div>
+
+{% if plans %}
+<div class="row g-3">
+  {% for plan in plans %}
+  <div class="col-12 col-md-6 col-xl-4">
+    <div class="adm-card h-100 d-flex flex-column" style="border:1px solid var(--adm-border);">
+      <div class="p-4 flex-grow-1">
+        <!-- Header -->
+        <div class="d-flex align-items-start justify-content-between mb-2">
+          <div>
+            <h5 class="mb-0 fw-semibold" style="color:var(--adm-ink);">{{ plan.name }}</h5>
+            <small style="color:var(--adm-muted);">{{ plan.get_interval_display }}</small>
+          </div>
+          <div class="d-flex gap-1 flex-wrap justify-content-end">
+            {% if plan.is_featured %}
+              <span class="adm-badge blue">Featured</span>
+            {% endif %}
+            {% if plan.is_active %}
+              <span class="adm-badge green">Active</span>
+            {% else %}
+              <span class="adm-badge gray">Inactive</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Price -->
+        <div class="mb-3">
+          {% if plan.is_free %}
+            <span class="fw-bold fs-4" style="color:var(--adm-accent);">Free</span>
+          {% else %}
+            <span class="fw-bold fs-4" style="color:var(--adm-accent);">₦{{ plan.price_naira|floatformat:0 }}</span>
+            <span style="color:var(--adm-muted);font-size:0.85rem;">/ {{ plan.get_interval_display|lower }}</span>
+          {% endif %}
+        </div>
+
+        <!-- Description -->
+        {% if plan.description %}
+        <p class="small mb-3" style="color:var(--adm-muted);">{{ plan.description }}</p>
+        {% endif %}
+
+        <!-- Check limit -->
+        <div class="mb-3 small" style="color:var(--adm-ink);">
+          <strong>Check limit:</strong>
+          {% if plan.has_unlimited_checks %}Unlimited{% else %}{{ plan.check_limit }} per period{% endif %}
+        </div>
+
+        <!-- Features -->
+        {% if plan.features.all %}
+        <ul class="list-unstyled mb-0" style="font-size:0.82rem;">
+          {% for feat in plan.features.all %}
+          <li class="mb-1" style="color:{% if feat.is_included %}var(--adm-ink){% else %}var(--adm-muted){% endif %};">
+            {% if feat.is_included %}
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.5" class="me-1"><polyline points="20 6 9 17 4 12"/></svg>
+            {% else %}
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2.5" class="me-1"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            {% endif %}
+            {{ feat.feature_text }}
+          </li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+      </div>
+
+      <!-- Footer actions -->
+      <div class="px-4 py-3 d-flex gap-2" style="border-top:1px solid var(--adm-border);">
+        <a href="{% url 'admin_portal:plan_edit' plan.pk %}"
+           class="btn btn-outline-secondary btn-sm flex-fill">Edit</a>
+        <span style="font-size:0.75rem;color:var(--adm-muted);align-self:center;">
+          {{ plan.subscriptions.count }} subscriber{{ plan.subscriptions.count|pluralize }}
+        </span>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% else %}
+<div class="adm-card">
+  <div class="adm-empty">
+    <p>No plans yet. <a href="{% url 'admin_portal:plan_create' %}">Create the first plan →</a></p>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

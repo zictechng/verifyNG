@@ -111,7 +111,57 @@
         </button>
 
       </div>
+       <!-- Credit Subscription -->
+  <div x-data="{ showCreditModal: false }" class="mt-2">
+    <button type="button" @click="showCreditModal = true"
+            class="w-100 btn btn-sm"
+            style="background:rgba(36,87,214,0.08);color:var(--adm-accent);border:1px solid rgba(36,87,214,0.2);border-radius:8px;padding:8px 12px;font-size:0.82rem;font-weight:500;">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="me-1"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+      Credit Subscription Plan
+    </button>
+
+    <!-- Modal -->
+    <div x-show="showCreditModal" x-cloak
+        style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1060;display:flex;align-items:center;justify-content:center;">
+      <div class="adm-card p-4" style="width:100%;max-width:420px;border-radius:12px;">
+        <h6 class="fw-semibold mb-3">Credit Subscription Plan</h6>
+        <p class="small mb-3" style="color:var(--adm-muted);">
+          Manually assign a plan to <strong>{{ user.username }}</strong>. Any active subscription will be replaced.
+        </p>
+        <form method="post" action="{% url 'admin_portal:credit_subscription' user.public_id %}">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Plan</label>
+            <select name="plan_id" class="form-select form-select-sm" required>
+              <option value="">— Select a plan —</option>
+              {% for plan in available_plans %}
+              <option value="{{ plan.pk }}">{{ plan.name }} — ₦{{ plan.price_naira|floatformat:0 }}/{{ plan.get_interval_display }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Duration (days)</label>
+            <input type="number" name="duration_days" value="30" min="1" max="3650"
+                  class="form-control form-control-sm">
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Reason / Note</label>
+            <input type="text" name="reason" value="Admin credit"
+                  class="form-control form-control-sm"
+                  placeholder="e.g. Promo, compensation, trial">
+          </div>
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-adm-primary btn-sm flex-fill">Assign Plan</button>
+            <button type="button" @click="showCreditModal = false"
+                    class="btn btn-outline-secondary btn-sm flex-fill">Cancel</button>
+          </div>
+        </form>
+      </div>
     </div>
+  </div>
+    </div>
+
+   
 
     <div class="adm-card border border-danger mb-4">
       <div class="adm-card-header" style="color:#dc3545;">Danger Zone</div>
