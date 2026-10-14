@@ -288,24 +288,53 @@
           </div>
 
           <!-- Reason modal — INSIDE each row's x-data scope -->
-          <div x-show="showReasonModal" x-cloak
-               style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1060;display:flex;align-items:center;justify-content:center;">
-            <div class="adm-card" style="width:420px;max-width:95vw;" @click.stop>
-              <div class="adm-card-header">Restrict Service</div>
-              <div class="p-4">
-                <p class="small mb-3">Enter a reason for restricting <strong>{{ target_user.username }}</strong> from <strong>{{ service_label }}</strong>.</p>
-                <textarea x-model="reason" class="form-control form-control-sm mb-3"
-                          rows="3" placeholder="Reason for restriction (optional)"></textarea>
-                <div class="d-flex gap-2 justify-content-end">
-                  <button type="button" class="btn btn-outline-secondary btn-sm" @click="cancelRestrict()">Cancel</button>
-                  <button type="button" class="btn btn-warning btn-sm" @click="confirmRestrict()" :disabled="submitting">
-                    <span x-show="submitting" class="spinner-border spinner-border-sm me-1" role="status"></span>
-                    <span x-text="submitting ? 'Saving...' : 'Restrict'"></span>
-                  </button>
+          <template x-teleport="body">
+            <div x-show="showReasonModal"
+                 x-transition:enter="transition ease-out duration-200"
+                 x-transition:enter-start="opacity-0"
+                 x-transition:enter-end="opacity-100"
+                 x-transition:leave="transition ease-in duration-150"
+                 x-transition:leave-start="opacity-100"
+                 x-transition:leave-end="opacity-0"
+                 style="position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1060;"
+                 class="d-flex align-items-center justify-content-center"
+                 @click="cancelRestrict()">
+              <div class="bg-white rounded-3 shadow-lg p-0 overflow-hidden"
+                   style="width:420px;max-width:95vw;" @click.stop>
+                <div class="px-4 py-3 border-bottom d-flex align-items-center justify-content-between"
+                     style="background:var(--adm-sidebar-bg,#1e2a3a);">
+                  <h6 class="mb-0 fw-semibold text-white">Restrict Service</h6>
+                  <button type="button" class="btn-close btn-close-white btn-sm"
+                          @click="cancelRestrict()" aria-label="Close"></button>
+                </div>
+                <div class="p-4">
+                  <p class="small mb-3 text-muted">
+                    Enter a reason for restricting
+                    <strong class="text-dark">{{ target_user.username }}</strong>
+                    from <strong class="text-dark" x-text="currentLabel"></strong>.
+                  </p>
+                  <textarea x-model="reason"
+                            class="form-control form-control-sm mb-4"
+                            rows="3"
+                            placeholder="Reason for restriction (optional)"></textarea>
+                  <div class="d-flex gap-2 justify-content-end">
+                    <button type="button"
+                            class="btn btn-outline-secondary btn-sm px-3"
+                            @click="cancelRestrict()">Cancel</button>
+                    <button type="button"
+                            class="btn btn-warning btn-sm px-4 fw-semibold"
+                            @click="confirmRestrict()"
+                            :disabled="submitting">
+                      <span x-show="submitting"
+                            class="spinner-border spinner-border-sm me-1"
+                            role="status"></span>
+                      <span x-text="submitting ? 'Saving…' : 'Restrict'"></span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          </template>
 
           <!-- Toast — also inside this row's scope -->
           <div x-show="toast.show" x-cloak x-transition
@@ -631,8 +660,8 @@ function serviceToggle(service, rulesJson) {
     showReasonModal: false,
     reason: '',
     submitting: false,
-    toast: { show: false, ok: true, message: '' },
     pendingCheckbox: null,
+    currentLabel: service,
 
     get statusText() {
       return this.isRestricted ? 'Currently restricted' : 'Access allowed';
