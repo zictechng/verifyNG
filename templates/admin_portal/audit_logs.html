@@ -1,134 +1,158 @@
-{% extends 'admin_portal/base_admin.html' %}
+{% extends "admin_portal/base_admin.html" %}
+{% block title %}Audit Logs — VerifyNG Admin{% endblock %}
 
-{% block title %}Security Audit logs | VerifyNG Admin Portal{% endblock %}
-
-{% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'admin_portal:overview' %}">Overview</a></li>
-<li class="breadcrumb-item active">Audit logs</li>
-{% endblock %}
-
-{% block admin_body %}
-<div class="adm-page-heading">
-    <h1>Security &amp; Audit logs</h1>
-    <p>Forensic trail of all login attempts, authentication outcomes, client IPs, and device information.</p>
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+  <div>
+    <h1 class="adm-page-title mb-0">Platform Audit Log</h1>
+    <p class="small mb-0" style="color:var(--adm-muted);">All admin and platform actions — {{ total_count }} record{{ total_count|pluralize }}</p>
+  </div>
 </div>
 
 <!-- Filter bar -->
-<div class="adm-filter-bar">
+<div class="adm-card mb-4">
+  <div class="p-3">
     <form method="get" class="row g-2 align-items-end">
-        <div class="col-md-6">
-            <label class="form-label small fw-semibold mb-1" style="color:var(--adm-muted);">Search</label>
-            <div class="input-group input-group-sm">
-                <span class="input-group-text border-end-0 bg-white">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                </span>
-                <input type="text" name="q" class="form-control border-start-0"
-                       placeholder="Username or IP address…" value="{{ search_query }}" style="height:38px;">
-            </div>
-        </div>
-        <div class="col-md-3">
-            <label class="form-label small fw-semibold mb-1" style="color:var(--adm-muted);">Outcome</label>
-            <select name="status" class="form-select form-select-sm" style="height:38px;">
-                <option value="">All Outcomes</option>
-                <option value="success" {% if selected_status == 'success' %}selected{% endif %}>Success</option>
-                <option value="failed"  {% if selected_status == 'failed'  %}selected{% endif %}>Failed</option>
-                <option value="blocked" {% if selected_status == 'blocked' %}selected{% endif %}>Blocked / Suspended</option>
-            </select>
-        </div>
-        <div class="col-md-3">
-            <label class="form-label small mb-1" style="color:transparent;">x</label>
-            <div class="d-flex gap-2">
-                <button type="submit" class="btn-adm-primary w-100" style="justify-content:center;">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
-                    Apply
-                </button>
-                {% if search_query or selected_status %}
-                <a href="{% url 'admin_portal:audit_page_obj' %}" class="btn-adm-outline" title="Clear">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                </a>
-                {% endif %}
-            </div>
-        </div>
+      <div class="col-12 col-md-3">
+        <label class="form-label small mb-1">Search</label>
+        <input type="text" name="q" value="{{ search_query }}"
+               class="form-control form-control-sm"
+               placeholder="Action, username, IP…">
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label small mb-1">Action Type</label>
+        <select name="action_type" class="form-select form-select-sm">
+          <option value="">All types</option>
+          {% for val, label in action_type_choices %}
+          <option value="{{ val }}" {% if action_type_filter == val %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label small mb-1">From</label>
+        <input type="date" name="date_from" value="{{ date_from }}" class="form-control form-control-sm">
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label small mb-1">To</label>
+        <input type="date" name="date_to" value="{{ date_to }}" class="form-control form-control-sm">
+      </div>
+      <div class="col-6 col-md-1">
+        <label class="form-label small mb-1">Per page</label>
+        <select name="per_page" class="form-select form-select-sm">
+          {% for n in per_page_options %}
+          <option value="{{ n }}" {% if per_page == n %}selected{% endif %}>{{ n }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-12 col-md-2 d-flex gap-2">
+        <button type="submit" class="btn btn-adm-primary btn-sm flex-fill">Filter</button>
+        <a href="{% url 'admin_portal:audit_logs' %}" class="btn btn-outline-secondary btn-sm flex-fill">Clear</a>
+      </div>
     </form>
+  </div>
 </div>
 
-<!-- Audit log table -->
+<!-- Log table -->
 <div class="adm-card">
-    <div class="adm-card-header">
-        <h2 class="adm-card-title">
-            Login Audit Events
-            {% if page_obj %}
-                <span class="adm-badge gray ms-2">{{ page_obj|length }}{% if page_obj|length == 100 %}+{% endif %}</span>
+  {% if page_obj %}
+  <div style="overflow-x:auto;">
+    <table class="adm-table" style="min-width:900px;">
+      <thead>
+        <tr>
+          <th>Timestamp</th>
+          <th>Type</th>
+          <th>Action</th>
+          <th>Performed By</th>
+          <th>Target User</th>
+          <th>IP Address</th>
+          <th>Device / Browser</th>
+          <th>Details</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in page_obj %}
+        <tr>
+          <td style="white-space:nowrap;font-size:0.78rem;">{{ log.timestamp|date:"d M Y H:i" }}</td>
+          <td>
+            {% if log.action_type == 'admin' %}
+              <span class="adm-badge blue">Admin</span>
+            {% elif log.action_type == 'report' %}
+              <span class="adm-badge orange">Report</span>
+            {% elif log.action_type == 'verification' %}
+              <span class="adm-badge green">Verification</span>
+            {% elif log.action_type == 'auth' %}
+              <span class="adm-badge gray">Auth</span>
+            {% elif log.action_type == 'payment' %}
+              <span class="adm-badge purple">Payment</span>
+            {% else %}
+              <span class="adm-badge gray">{{ log.action_type|default:"—" }}</span>
             {% endif %}
-        </h2>
-        <span style="font-size:0.75rem;color:var(--adm-muted);">Immutable &mdash; append-only record</span>
-    </div>
-    <div class="table-responsive">
-        <table class="adm-table">
-            <thead>
-                <tr>
-                    <th>Username Attempted</th>
-                    <th>Outcome</th>
-                    <th>IP Address</th>
-                    <th>Device &amp; OS</th>
-                    <th>Browser</th>
-                    <th>Location</th>
-                    <th>Timestamp</th>
-                    <th>Failure Reason</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for log in page_obj %}
-                <tr>
-                    <td>
-                        <span class="fw-semibold" style="font-size:0.845rem;">{{ log.username_attempted }}</span>
-                        {% if log.user %}
-                            <span class="adm-badge gray ms-1" style="font-size:0.65rem;">{{ log.user.get_role_display }}</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if log.status == 'success' %}
-                            <span class="adm-badge green"><span class="dot"></span>Success</span>
-                        {% elif log.status == 'blocked' %}
-                            <span class="adm-badge amber"><span class="dot"></span>Suspended</span>
-                        {% else %}
-                            <span class="adm-badge red"><span class="dot"></span>Failed</span>
-                        {% endif %}
-                    </td>
-                    <td class="mono">{{ log.ip_address|default:"—" }}</td>
-                    <td class="td-muted">{{ log.device_type|default:"—" }} &bull; {{ log.os|default:"—" }}</td>
-                    <td class="td-muted">{{ log.browser|default:"—" }}</td>
-                    <td class="td-muted">
-                        {% if log.location_city or log.location_country %}
-                            {{ log.location_city|default:"" }}{% if log.location_city and log.location_country %}, {% endif %}{{ log.location_country|default:"" }}
-                        {% else %}
-                            —
-                        {% endif %}
-                    </td>
-                    <td class="mono td-muted" style="white-space:nowrap;">{{ log.timestamp|date:"M d Y, H:i:s" }}</td>
-                    <td class="td-muted">
-                        {% if log.failure_reason %}
-                            <span class="adm-badge red" style="font-size:0.65rem;">{{ log.failure_reason }}</span>
-                        {% else %}
-                            <span style="color:#94A3B8;">—</span>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="8">
-                        <div class="adm-empty">
-                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                            <p>No security audit page_obj found for the applied filters.</p>
-                        </div>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-    
+          </td>
+          <td style="font-size:0.82rem;max-width:200px;word-break:break-word;">{{ log.action }}</td>
+          <td style="font-size:0.82rem;">
+            {% if log.performed_by %}
+              <a href="{% url 'admin_portal:user_detail' log.performed_by.public_id %}" style="color:var(--adm-accent);">{{ log.performed_by.username }}</a>
+            {% else %}—{% endif %}
+          </td>
+          <td style="font-size:0.82rem;">
+            {% if log.target_user %}
+              <a href="{% url 'admin_portal:user_detail' log.target_user.public_id %}" style="color:var(--adm-accent);">{{ log.target_user.username }}</a>
+            {% else %}—{% endif %}
+          </td>
+          <td style="font-size:0.78rem;font-family:monospace;">{{ log.ip_address|default:"—" }}</td>
+          <td style="font-size:0.78rem;">
+            {% if log.device_type %}{{ log.device_type }}{% endif %}
+            {% if log.browser %} · {{ log.browser }}{% endif %}
+            {% if log.os %} / {{ log.os }}{% endif %}
+            {% if not log.device_type and not log.browser %}—{% endif %}
+          </td>
+          <td style="font-size:0.78rem;max-width:180px;">
+            {% if log.details %}
+              <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2"
+                      style="font-size:0.7rem;"
+                      onclick="this.nextElementSibling.classList.toggle('d-none')">
+                View
+              </button>
+              <pre class="d-none mt-1 mb-0 p-2 rounded" style="font-size:0.7rem;background:var(--adm-bg-alt,#f8f9fa);max-height:120px;overflow:auto;white-space:pre-wrap;">{{ log.details|pprint }}</pre>
+            {% else %}—{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  {% if page_obj.has_other_pages %}
+  <div class="px-4 py-3 d-flex align-items-center justify-content-between flex-wrap gap-2" style="border-top:1px solid var(--adm-border);">
+    <span style="font-size:0.78rem;color:var(--adm-muted);">
+      Showing {{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ total_count }}
+    </span>
+    <ul class="pagination pagination-sm mb-0">
+      {% if page_obj.has_previous %}
+        <li class="page-item">
+          <a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ search_query }}&action_type={{ action_type_filter }}&date_from={{ date_from }}&date_to={{ date_to }}&per_page={{ per_page }}">‹ Prev</a>
+        </li>
+      {% else %}
+        <li class="page-item disabled"><span class="page-link">‹ Prev</span></li>
+      {% endif %}
+      <li class="page-item disabled">
+        <span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+      </li>
+      {% if page_obj.has_next %}
+        <li class="page-item">
+          <a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ search_query }}&action_type={{ action_type_filter }}&date_from={{ date_from }}&date_to={{ date_to }}&per_page={{ per_page }}">Next ›</a>
+        </li>
+      {% else %}
+        <li class="page-item disabled"><span class="page-link">Next ›</span></li>
+      {% endif %}
+    </ul>
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div class="adm-empty"><p>No audit log entries found.</p></div>
+  {% endif %}
 </div>
-{% include "admin_portal/_pagination.html" %}
 {% endblock %}
 

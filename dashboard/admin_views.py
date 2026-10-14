@@ -10,7 +10,8 @@ from django.contrib import messages
 from django.db.models import Count
 from django.db import connection
 from django.core.cache import cache
-
+from django.db.models import Q
+from django.db import models as db_models
 from reports.models import FraudReport, Dispute, AuditLog
 from verification.models import VerificationRequest
 from identities.models import Identifier, SubjectEntity
@@ -27,6 +28,8 @@ from django.core.paginator import Paginator
 from django.http import HttpResponseForbidden
 from django.conf import settings
 from django.shortcuts import render as drender
+from django.db import transaction as db_transaction
+from django.db import transaction
 import os
 from users.models import UserServiceAccess
 # Import models needed for extended admin
@@ -270,34 +273,61 @@ class AdminUserChangeRoleView(SuperAdminRequiredMixin, View):
         )
         return redirect('admin_portal:users')
 
-
 class AdminAuditLogsView(SuperAdminRequiredMixin, TemplateView):
-    """System & Security Audit Log Explorer: IP, System/OS, Location, Outcomes."""
+    """Platform-wide admin action audit log with filter, search and pagination."""
     template_name = "admin_portal/audit_logs.html"
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        status_filter = self.request.GET.get('status', '')
-        search_query = self.request.GET.get('q', '').strip()
 
-        logs = LoginAudit.objects.select_related('user').order_by('-timestamp')
+        action_type_filter = self.request.GET.get('action_type', '').strip()
+        search_query       = self.request.GET.get('q', '').strip()
+        date_from          = self.request.GET.get('date_from', '').strip()
+        date_to            = self.request.GET.get('date_to', '').strip()
 
-        if status_filter:
-            logs = logs.filter(status=status_filter)
+        qs = AuditLog.objects.select_related(
+            'performed_by', 'target_user', 'report'
+        ).order_by('-timestamp')
+
+        if action_type_filter:
+            qs = qs.filter(action_type=action_type_filter)
 
         if search_query:
-            logs = logs.filter(username_attempted__icontains=search_query) | \
-                logs.filter(ip_address__icontains=search_query)
+            qs = qs.filter(
+                Q(action__icontains=search_query)          |
+                Q(performed_by__username__icontains=search_query) |
+                Q(target_user__username__icontains=search_query)  |
+                Q(ip_address__icontains=search_query)
+            )
 
-        per_page = int(self.request.GET.get('per_page', 15))
-        if per_page not in (15, 25, 50, 100):
-            per_page = 15
-        paginator = Paginator(logs, per_page)
-        ctx['page_obj'] = paginator.get_page(self.request.GET.get('page', 1))
-        ctx['per_page'] = per_page
-        ctx['per_page_options'] = [15, 25, 50, 100]
-        ctx['selected_status'] = status_filter
-        ctx['search_query'] = search_query
+        if date_from:
+            try:
+                from datetime import datetime
+                qs = qs.filter(timestamp__date__gte=datetime.strptime(date_from, '%Y-%m-%d').date())
+            except ValueError:
+                pass
+
+        if date_to:
+            try:
+                from datetime import datetime
+                qs = qs.filter(timestamp__date__lte=datetime.strptime(date_to, '%Y-%m-%d').date())
+            except ValueError:
+                pass
+
+        per_page = int(self.request.GET.get('per_page', 25))
+        if per_page not in (25, 50, 100):
+            per_page = 25
+
+        paginator = Paginator(qs, per_page)
+        ctx['page_obj']          = paginator.get_page(self.request.GET.get('page', 1))
+        ctx['per_page']          = per_page
+        ctx['per_page_options']  = [25, 50, 100]
+        ctx['action_type_filter']= action_type_filter
+        ctx['search_query']      = search_query
+        ctx['date_from']         = date_from
+        ctx['date_to']           = date_to
+        ctx['action_type_choices'] = AuditLog.ACTION_TYPE_CHOICES
+        ctx['total_count']       = paginator.count
         return ctx
 
 class AdminCommunicationsView(SuperAdminRequiredMixin, TemplateView):
@@ -1288,9 +1318,6 @@ class AdminCreateUserView(LoginRequiredMixin, UserPassesTestMixin, View):
                 'form_data': request.POST,
             })
 
-        from django.db import transaction as db_transaction
-        from django.db import transaction
-
         with db_transaction.atomic():
             user = User.objects.create_user(
                 username=username,
@@ -1338,7 +1365,7 @@ class AdminCreateUserView(LoginRequiredMixin, UserPassesTestMixin, View):
             request,
             f'User "{username}" created successfully with role "{role}".'
         )
-        return redirect('admin_portal:user_detail', public_id=user.public_id)
+        return redirect('admin_portal:users')
 
 
 # ─────────────────────────────────────────────────────────────────────────────

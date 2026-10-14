@@ -92,9 +92,11 @@
     if (_actionType === 'delete') {
       var inp = document.getElementById('deleteConfirmInput');
       if (!inp || inp.value.trim() !== _deleteUsername) {
-        showModalAlert('Username does not match. Deletion cancelled.');
+        showModalAlert('Username does not match. Please type the exact username.');
         return;
       }
+      /* Pass the confirmed username to the POST form */
+      addHidden(hf, 'confirm_delete', inp.value.trim());
     }
 
     /* Role: extract selected role */
