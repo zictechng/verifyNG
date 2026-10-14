@@ -262,7 +262,7 @@
 
 
     <!-- ── Service Access Restrictions ──────────────────────────────── -->
-    <div class="adm-card mb-4">
+    <div class="adm-card mb-4" id="serviceAccessCard">
       <div class="adm-card-header">Service Access</div>
       <div class="p-3">
         <p class="small mb-3" style="color:var(--adm-muted);">
@@ -272,63 +272,57 @@
         {% for service_key, service_label in service_choices %}
         <div class="d-flex align-items-center justify-content-between py-2"
              style="border-bottom:1px solid var(--adm-border);"
-             x-data="serviceToggle('{{ service_key }}', {{ service_access_rules_json|safe }})">
+             id="svc-row-{{ service_key }}">
 
           <div>
             <div class="fw-semibold small">{{ service_label }}</div>
-            <div class="small mt-1" x-text="statusText"
-                 :class="isRestricted ? 'text-danger fw-semibold' : 'text-success'"></div>
+            <div class="small mt-1 svc-status-text" id="svc-status-{{ service_key }}"></div>
           </div>
 
           <div class="form-check form-switch mb-0 ms-3">
-            <input class="form-check-input" type="checkbox" role="switch"
-                   :checked="!isRestricted"
-                   @change="toggle($event)"
+            <input class="form-check-input svc-toggle"
+                   type="checkbox" role="switch"
+                   data-service="{{ service_key }}"
+                   data-label="{{ service_label }}"
                    style="cursor:pointer;width:2.5em;height:1.3em;">
           </div>
-
-          <!-- restrict modal is shared Bootstrap modal at bottom of page -->
-
-          <!-- Toast — also inside this row's scope -->
-          <div x-show="toast.show" x-cloak x-transition
-               style="position:fixed;bottom:1.5rem;right:1.5rem;z-index:1070;min-width:280px;"
-               class="alert small mb-0 shadow"
-               :class="toast.ok ? 'alert-success' : 'alert-danger'"
-               x-text="toast.message">
-          </div>
-
         </div>
         {% endfor %}
+
+        <!-- toast -->
+        <div id="svcToast" class="alert small mb-0 shadow mt-3 d-none"
+             style="position:fixed;bottom:1.5rem;right:1.5rem;z-index:1070;min-width:280px;"></div>
 
       </div>
     </div>
 
-    <!-- ── Shared Restrict Service Modal ───────────────────────────────── -->
-      <div class="modal fade" id="restrictServiceModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-          <div class="modal-content border-0 shadow">
-            <div class="modal-header py-3 px-4" style="background:#1e2a3a;">
-              <h5 class="modal-title fw-semibold text-white fs-6">Restrict Service</h5>
-              <button type="button" class="btn-close btn-close-white"
-                      data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body px-4 py-3">
-              <p class="small mb-3 text-muted" id="rsModalMsg"></p>
-              <textarea id="rsModalReason" class="form-control form-control-sm"
-                        rows="3" placeholder="Reason for restriction (optional)"></textarea>
-            </div>
-            <div class="modal-footer border-top px-4 py-3 gap-2">
-              <button type="button" class="btn btn-outline-secondary btn-sm px-3"
-                      data-bs-dismiss="modal">Cancel</button>
-              <button type="button" class="btn btn-warning btn-sm px-4 fw-semibold"
-                      id="rsModalConfirmBtn">
-                <span id="rsModalSpinner" class="spinner-border spinner-border-sm me-1 d-none"></span>
-                Restrict
-              </button>
-            </div>
+    <!-- ── Restrict Service Modal ───────────────────────────────────── -->
+    <div class="modal fade" id="restrictServiceModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+          <div class="modal-header py-3 px-4" style="background:#1e2a3a;">
+            <h5 class="modal-title fw-semibold text-white fs-6">Restrict Service</h5>
+            <button type="button" class="btn-close btn-close-white"
+                    data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body px-4 py-3">
+            <p class="small mb-3 text-muted" id="rsModalMsg"></p>
+            <textarea id="rsModalReason" class="form-control form-control-sm"
+                      rows="3" placeholder="Reason for restriction (optional)"></textarea>
+          </div>
+          <div class="modal-footer border-top px-4 py-3 gap-2">
+            <button type="button" class="btn btn-outline-secondary btn-sm px-3"
+                    data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-warning btn-sm px-4 fw-semibold"
+                    id="rsModalConfirmBtn">
+              <span id="rsModalSpinner"
+                    class="spinner-border spinner-border-sm me-1 d-none"></span>
+              Restrict
+            </button>
           </div>
         </div>
       </div>
+    </div>
 
   </div>
 
@@ -630,131 +624,123 @@
 </script>
 
 <script>
+(function () {
+  // Build a lookup of current restriction state from Django context
+  const rules = {{ service_access_rules_json|safe }};
+  const stateMap = {};
+  rules.forEach(r => { stateMap[r.service] = r.is_restricted; });
 
-function serviceToggle(service, rulesJson) {
-  const rules = Array.isArray(rulesJson) ? rulesJson : [];
-  const existing = rules.find(r => r.service === service);
-  return {
-    service,
-    isRestricted: existing ? existing.is_restricted : false,
-    showReasonModal: false,
-    reason: '',
-    submitting: false,
-    pendingCheckbox: null,
-    currentLabel: service,
+  // Set initial toggle state for every row
+  document.querySelectorAll('.svc-toggle').forEach(function (chk) {
+    const svc = chk.dataset.service;
+    const restricted = stateMap[svc] === true;
+    chk.checked = !restricted;
+    updateStatus(svc, restricted);
+  });
 
-    get statusText() {
-      return this.isRestricted ? 'Currently restricted' : 'Access allowed';
-    },
+  function updateStatus(svc, restricted) {
+    const el = document.getElementById('svc-status-' + svc);
+    if (!el) return;
+    if (restricted) {
+      el.textContent = 'Currently restricted';
+      el.className = 'small mt-1 text-danger fw-semibold';
+    } else {
+      el.textContent = 'Access allowed';
+      el.className = 'small mt-1 text-success';
+    }
+  }
 
-      toggle(event) {
-      const checkbox = event.target;
-      const willRestrict = !checkbox.checked;
+  function showToast(ok, msg) {
+    const t = document.getElementById('svcToast');
+    t.textContent = msg;
+    t.className = 'alert small mb-0 shadow mt-3 ' + (ok ? 'alert-success' : 'alert-danger');
+    t.style.cssText = 'position:fixed;bottom:1.5rem;right:1.5rem;z-index:1070;min-width:280px;';
+    setTimeout(() => { t.className += ' d-none'; }, 4000);
+  }
+
+  function sendRequest(svc, action, reason, chk) {
+    const csrf = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    const fd = new FormData();
+    fd.append('service', svc);
+    fd.append('action', action);
+    fd.append('reason', reason || '');
+    fd.append('csrfmiddlewaretoken', csrf);
+
+    fetch("{% url 'admin_portal:user_service_access' target_user.public_id %}", {
+      method: 'POST', body: fd
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.ok) {
+        stateMap[svc] = data.is_restricted;
+        chk.checked = !data.is_restricted;
+        updateStatus(svc, data.is_restricted);
+        showToast(true, data.message);
+      } else {
+        // Revert toggle
+        chk.checked = !(stateMap[svc] === true);
+        showToast(false, data.error || 'Something went wrong.');
+      }
+    })
+    .catch(() => {
+      chk.checked = !(stateMap[svc] === true);
+      showToast(false, 'Network error. Please try again.');
+    });
+  }
+
+  // Wire up each toggle
+  document.querySelectorAll('.svc-toggle').forEach(function (chk) {
+    chk.addEventListener('change', function () {
+      const svc = chk.dataset.service;
+      const label = chk.dataset.label;
+      const willRestrict = !chk.checked;
+
       if (willRestrict) {
-        this.pendingCheckbox = checkbox;
-        checkbox.checked = true;
+        // Revert visually while modal is open
+        chk.checked = true;
 
-        // Populate and open the shared Bootstrap modal
-        const labelMap = {
-          'search_check': 'Search / Check',
-          'fraud_reporting': 'Fraud Reporting',
-          'identity_verification': 'Identity Verification',
-          'certificate_application': 'Certificate Application',
-        };
-        const label = labelMap[this.service] || this.service;
+        // Populate modal
         document.getElementById('rsModalMsg').innerHTML =
           'Enter a reason for restricting <strong>{{ target_user.username }}</strong> from <strong>' + label + '</strong>.';
         document.getElementById('rsModalReason').value = '';
+        document.getElementById('rsModalSpinner').classList.add('d-none');
 
-        // Wire confirm button fresh each time (clone removes old listeners)
+        // Clone confirm button to remove old listeners
         const oldBtn = document.getElementById('rsModalConfirmBtn');
         const newBtn = oldBtn.cloneNode(true);
         oldBtn.parentNode.replaceChild(newBtn, oldBtn);
+        document.getElementById('rsModalSpinner').classList.add('d-none');
+        newBtn.disabled = false;
 
-        newBtn.addEventListener('click', () => {
+        newBtn.addEventListener('click', function () {
           const reason = document.getElementById('rsModalReason').value.trim();
           document.getElementById('rsModalSpinner').classList.remove('d-none');
           newBtn.disabled = true;
-          this.pendingCheckbox = null;  // ← clear BEFORE hide so hidden.bs.modal doesn't revert
           bootstrap.Modal.getInstance(document.getElementById('restrictServiceModal')).hide();
-          this.sendRequest('restrict', reason);
+          sendRequest(svc, 'restrict', reason, chk);
         });
 
-        // When modal closes via Cancel or ✕ — revert checkbox
-        document.getElementById('restrictServiceModal').addEventListener('hidden.bs.modal', () => {
+        // If cancelled — revert toggle back to ON (was allowed before)
+        document.getElementById('restrictServiceModal').addEventListener('hidden.bs.modal', function () {
+          if (chk.checked === true && stateMap[svc] !== true) {
+            // still showing ON but we haven't restricted yet — revert
+          }
+          // Always restore based on current known state
+          chk.checked = !(stateMap[svc] === true);
+          updateStatus(svc, stateMap[svc] === true);
           document.getElementById('rsModalSpinner').classList.add('d-none');
           document.getElementById('rsModalConfirmBtn').disabled = false;
-          if (this.pendingCheckbox) {
-            this.pendingCheckbox.checked = !this.isRestricted;
-            this.pendingCheckbox = null;
-          }
         }, { once: true });
 
         new bootstrap.Modal(document.getElementById('restrictServiceModal')).show();
+
       } else {
-        this.sendRequest('allow', '');
+        // Toggled ON → allow
+        sendRequest(svc, 'allow', '', chk);
       }
-    },
-
-    cancelRestrict() {
-      this.showReasonModal = false;
-      this.reason = '';
-      if (this.pendingCheckbox) {
-        this.pendingCheckbox.checked = !this.isRestricted;
-        this.pendingCheckbox = null;
-      }
-    },
-
-    confirmRestrict() {
-      this.showReasonModal = false;
-      this.sendRequest('restrict', this.reason);
-      this.reason = '';
-      this.pendingCheckbox = null;
-    },
-
-    sendRequest(action, reason) {
-      this.submitting = true;
-      const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-      const formData = new FormData();
-      formData.append('service', this.service);
-      formData.append('action', action);
-      formData.append('reason', reason);
-      formData.append('csrfmiddlewaretoken', csrfToken);
-
-      fetch("{% url 'admin_portal:user_service_access' target_user.public_id %}", {
-        method: 'POST',
-        body: formData,
-      })
-      .then(r => r.json())
-      .then(data => {
-        this.submitting = false;
-        if (data.ok) {
-          this.isRestricted = data.is_restricted;
-          this.showToast(true, data.message);
-        } else {
-          if (this.pendingCheckbox) {
-            this.pendingCheckbox.checked = !this.isRestricted;
-            this.pendingCheckbox = null;
-          }
-          this.showToast(false, data.error || 'Something went wrong.');
-        }
-      })
-      .catch(() => {
-        this.submitting = false;
-        if (this.pendingCheckbox) {
-          this.pendingCheckbox.checked = !this.isRestricted;
-          this.pendingCheckbox = null;
-        }
-        this.showToast(false, 'Network error. Please try again.');
-      });
-    },
-
-    showToast(ok, message) {
-      this.toast = { show: true, ok, message };
-      setTimeout(() => { this.toast.show = false; }, 4000);
-    },
-  };
-}
+    });
+  });
+})();
 </script>
 {% endblock admin_scripts %}
 
