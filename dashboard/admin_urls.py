@@ -2,6 +2,7 @@ from django.urls import path
 from dashboard.admin_views import (
     # Existing
     AdminOverviewView,
+    AdminSubscriptionActionView,
     AdminUserListView,
     AdminUserToggleStatusView,
     AdminUserChangeRoleView,
@@ -48,6 +49,7 @@ from dashboard.admin_views import (
     AdminCertificatesView,
     AdminCertificateActionView,
     AdminDisputeDetailView,
+    AdminNotificationsView,
 )
 
 app_name = 'admin_portal'
@@ -96,7 +98,7 @@ urlpatterns = [
 
     # ── Subscriptions / Payments ────────────────────────────────────────────
     path('subscriptions/', AdminSubscriptionsView.as_view(), name='subscriptions'),
-    path('subscriptions/<int:pk>/cancel/', AdminSubscriptionCancelView.as_view(), name='subscription_cancel'),
+    path('subscriptions/<int:pk>/action/', AdminSubscriptionActionView.as_view(), name='subscription_action'),
     path('plans/', AdminPlansView.as_view(), name='plans'),
     path('plans/new/', AdminPlanCreateEditView.as_view(), name='plan_create'),
     path('plans/<int:pk>/edit/', AdminPlanCreateEditView.as_view(), name='plan_edit'),
@@ -106,8 +108,9 @@ urlpatterns = [
     path('logs/system/', AdminSystemLogsView.as_view(), name='system_logs'),
     path('logs/activity/', AdminActivityLogsView.as_view(), name='activity_logs'),
     path('logs/login/', AdminLoginLogsView.as_view(), name='login_logs'),
-
+    path('notifications/', AdminNotificationsView.as_view(), name='notifications'),
     # ── Communications ──────────────────────────────────────────────────────
+
     path('communications/', AdminCommunicationsView.as_view(), name='communications'),
 
     # ── Audit Logs (legacy — keep working) ─────────────────────────────────

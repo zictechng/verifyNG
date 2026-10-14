@@ -43,11 +43,21 @@
         <td>{{ s.created_at|date:"d M Y" }}</td>
         <td>
           {% if s.status == 'active' %}
-          <form method="post" action="{% url 'admin_portal:subscription_cancel' s.pk %}">
-            {% csrf_token %}
-            <input type="hidden" name="reason" value="Admin cancellation">
-            <button class="btn btn-adm-sm btn-adm-danger">Cancel</button>
-          </form>
+              {% if sub.status == 'active' or sub.status == 'past_due' %}
+              <form method="post" action="{% url 'admin_portal:subscription_action' sub.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="cancel">
+                <button class="btn btn-adm-sm btn-adm-danger"
+                        onclick="return confirm('Cancel this subscription?')">Cancel</button>
+              </form>
+              {% elif sub.status == 'cancelled' or sub.status == 'expired' %}
+              <form method="post" action="{% url 'admin_portal:subscription_action' sub.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="reactivate">
+                <button class="btn btn-adm-sm btn-adm-success"
+                        onclick="return confirm('Reactivate this subscription?')">Reactivate</button>
+              </form>
+              {% endif %}
           {% else %}—{% endif %}
         </td>
       </tr>

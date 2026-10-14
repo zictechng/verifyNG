@@ -51,6 +51,14 @@
         Suspend Account
       </button>
     </form>
+    {% else %}
+    <form method="post" action="{% url 'admin_portal:employer_action' profile.pk %}">
+      {% csrf_token %}<input type="hidden" name="action" value="reinstate">
+      <button class="btn-adm-primary">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        Reinstate Account
+      </button>
+    </form>
     {% endif %}
   </div>
 </div>

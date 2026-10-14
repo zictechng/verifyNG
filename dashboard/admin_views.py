@@ -1048,6 +1048,10 @@ class AdminEmployerActionView(SuperAdminRequiredMixin, View):
             profile.user.is_active = False
             profile.user.save(update_fields=['is_active'])
             msg = f"Employer account '{profile.company_name}' suspended."
+        elif action == 'reinstate':
+            profile.user.is_active = True
+            profile.user.save(update_fields=['is_active'])
+            msg = f"Employer account '{profile.company_name}' reinstated."
         else:
             messages.error(request, "Invalid action.")
             return redirect('admin_portal:employer_profiles')
@@ -1093,20 +1097,35 @@ class AdminSubscriptionsView(SuperAdminRequiredMixin, TemplateView):
         ctx['q'] = q
         return ctx
 
-class AdminSubscriptionCancelView(SuperAdminRequiredMixin, View):
-    """POST: cancel a subscription."""
+class AdminSubscriptionActionView(SuperAdminRequiredMixin, View):
+    """POST: cancel or reactivate a subscription."""
     def post(self, request, pk):
         sub = get_object_or_404(Subscription, pk=pk)
-        reason = request.POST.get('reason', 'Admin cancellation').strip()
-        sub.status = 'cancelled'
-        sub.save(update_fields=['status'])
-        AuditLog.objects.create(
-            action="ADMIN_SUBSCRIPTION_CANCEL",
-            performed_by=request.user,
-            details={"subscription_id": sub.id, "user": sub.user.username, "reason": reason}
-        )
-        messages.success(request, f"Subscription for '{sub.user.username}' cancelled.")
+        action = request.POST.get('action', 'cancel')
+        reason = request.POST.get('reason', '').strip()
+
+        if action == 'cancel':
+            sub.status = 'cancelled'
+            sub.save(update_fields=['status'])
+            AuditLog.objects.create(
+                action="ADMIN_SUBSCRIPTION_CANCEL",
+                performed_by=request.user,
+                details={"subscription_id": sub.id, "user": sub.user.username, "reason": reason or "Admin cancellation"}
+            )
+            messages.success(request, f"Subscription for '{sub.user.username}' cancelled.")
+        elif action == 'reactivate':
+            sub.status = 'active'
+            sub.save(update_fields=['status'])
+            AuditLog.objects.create(
+                action="ADMIN_SUBSCRIPTION_REACTIVATE",
+                performed_by=request.user,
+                details={"subscription_id": sub.id, "user": sub.user.username}
+            )
+            messages.success(request, f"Subscription for '{sub.user.username}' reactivated.")
+        else:
+            messages.error(request, "Invalid action.")
         return redirect('admin_portal:subscriptions')
+    
 
 class AdminPlansView(SuperAdminRequiredMixin, TemplateView):
     """List all subscription plans with management actions."""
@@ -1371,9 +1390,80 @@ class AdminAnalyticsView(SuperAdminRequiredMixin, TemplateView):
 
         return ctx
 
+
+class AdminNotificationsView(SuperAdminRequiredMixin, TemplateView):
+    """Platform-wide admin notification digest — pending actions requiring attention."""
+    template_name = "admin_portal/notifications.html"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        from django.utils import timezone as tz
+
+        now = tz.now()
+
+        # Pending / in-review reports
+        ctx['pending_reports'] = FraudReport.objects.filter(
+            state__in=['submitted', 'under_review']
+        ).order_by('-created_at')[:20]
+        ctx['pending_reports_count'] = FraudReport.objects.filter(
+            state__in=['submitted', 'under_review']
+        ).count()
+
+        # Open disputes
+        ctx['open_disputes'] = Dispute.objects.filter(
+            status__in=['opened', 'under_review']
+        ).select_related('report', 'disputant').order_by('-created_at')[:20]
+        ctx['open_disputes_count'] = Dispute.objects.filter(
+            status__in=['opened', 'under_review']
+        ).count()
+
+        # Certificates expiring within 30 days
+        from verification.models import VerificationCertificate
+        thirty_days = now + timedelta(days=30)
+        ctx['expiring_certs'] = VerificationCertificate.objects.filter(
+            status='active',
+            expires_at__lte=thirty_days,
+            expires_at__gt=now
+        ).select_related('holder').order_by('expires_at')[:20]
+        ctx['expiring_certs_count'] = VerificationCertificate.objects.filter(
+            status='active',
+            expires_at__lte=thirty_days,
+            expires_at__gt=now
+        ).count()
+
+        # Unverified employer profiles
+        if EmployerProfile:
+            ctx['unverified_employers'] = EmployerProfile.objects.filter(
+                is_verified=False, user__is_active=True
+            ).select_related('user').order_by('-created_at')[:20]
+            ctx['unverified_employers_count'] = EmployerProfile.objects.filter(
+                is_verified=False, user__is_active=True
+            ).count()
+        else:
+            ctx['unverified_employers'] = []
+            ctx['unverified_employers_count'] = 0
+
+        # Failed transactions (last 7 days)
+        from payments.models import Transaction
+        seven_days_ago = now - timedelta(days=7)
+        ctx['failed_transactions'] = Transaction.objects.filter(
+            status='failed',
+            created_at__gte=seven_days_ago
+        ).select_related('user').order_by('-created_at')[:20]
+        ctx['failed_transactions_count'] = Transaction.objects.filter(
+            status='failed',
+            created_at__gte=seven_days_ago
+        ).count()
+
+        ctx['total_alerts'] = (
+            ctx['pending_reports_count'] +
+            ctx['open_disputes_count'] +
+            ctx['expiring_certs_count'] +
+            ctx['unverified_employers_count'] +
+            ctx['failed_transactions_count']
+        )
         return ctx
-
-
+    
 # ── System Logs ────────────────────────────────────────────────────────────
 
 class AdminSystemLogsView(SuperAdminRequiredMixin, TemplateView):

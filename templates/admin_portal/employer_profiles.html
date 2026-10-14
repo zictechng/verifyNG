@@ -48,10 +48,17 @@
             <button class="btn btn-adm-sm btn-adm-outline">Unverify</button>
           </form>
           {% endif %}
+          {% if ep.user.is_active %}
           <form method="post" action="{% url 'admin_portal:employer_action' ep.pk %}">
             {% csrf_token %}<input type="hidden" name="action" value="suspend">
             <button class="btn btn-adm-sm btn-adm-danger">Suspend</button>
           </form>
+          {% else %}
+          <form method="post" action="{% url 'admin_portal:employer_action' ep.pk %}">
+            {% csrf_token %}<input type="hidden" name="action" value="reinstate">
+            <button class="btn btn-adm-sm btn-adm-success">Reinstate</button>
+          </form>
+          {% endif %}
         </td>
       </tr>
       {% endfor %}

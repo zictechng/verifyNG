@@ -1,0 +1,188 @@
+
+{% extends "admin_portal/base_admin.html" %}
+{% block title %}Notifications — VerifyNG Admin{% endblock %}
+
+{% block admin_body %}
+<div class="adm-page-header d-flex align-items-center justify-content-between">
+  <div>
+    <h1 class="adm-page-title">Notifications &amp; Alerts</h1>
+    <p class="adm-page-sub mb-0">Items requiring your attention across the platform.</p>
+  </div>
+  {% if total_alerts %}
+  <span class="badge rounded-pill bg-danger fs-6 px-3 py-2">{{ total_alerts }} total</span>
+  {% else %}
+  <span class="badge rounded-pill bg-success fs-6 px-3 py-2">All clear</span>
+  {% endif %}
+</div>
+
+{% include "admin_portal/_messages.html" %}
+
+<div class="row g-4">
+
+  <!-- Pending Reports -->
+  <div class="col-12">
+    <div class="adm-card" style="border-left:4px solid #DC2626;">
+      <div class="adm-card-header d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center gap-2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <span class="fw-semibold">Pending Fraud Reports</span>
+          <span class="badge bg-danger rounded-pill">{{ pending_reports_count }}</span>
+        </div>
+        <a href="{% url 'admin_portal:reports' %}?state=submitted" class="btn btn-sm btn-outline-danger">View All</a>
+      </div>
+      {% if pending_reports %}
+      <div class="table-responsive">
+        <table class="adm-table">
+          <thead><tr><th>Reference</th><th>Title</th><th>State</th><th>Filed</th><th></th></tr></thead>
+          <tbody>
+            {% for r in pending_reports %}
+            <tr>
+              <td><code style="font-size:0.8rem;">{{ r.reference_number }}</code></td>
+              <td class="fw-semibold" style="font-size:0.85rem;">{{ r.title|truncatechars:45 }}</td>
+              <td><span class="adm-badge adm-badge-amber" style="font-size:0.72rem;">{{ r.state }}</span></td>
+              <td class="td-muted" style="font-size:0.8rem;">{{ r.created_at|date:"d M, H:i" }}</td>
+              <td><a href="{% url 'admin_portal:report_detail' r.pk %}" class="btn btn-sm btn-outline-secondary" style="font-size:0.75rem;">Review</a></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="px-4 py-3 text-muted small">No pending reports. ✓</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Open Disputes -->
+  <div class="col-12">
+    <div class="adm-card" style="border-left:4px solid #D97706;">
+      <div class="adm-card-header d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center gap-2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span class="fw-semibold">Open Disputes</span>
+          <span class="badge bg-warning text-dark rounded-pill">{{ open_disputes_count }}</span>
+        </div>
+        <a href="{% url 'admin_portal:disputes' %}" class="btn btn-sm btn-outline-warning">View All</a>
+      </div>
+      {% if open_disputes %}
+      <div class="table-responsive">
+        <table class="adm-table">
+          <thead><tr><th>Report Ref</th><th>Disputed By</th><th>Status</th><th>Filed</th><th></th></tr></thead>
+          <tbody>
+            {% for d in open_disputes %}
+            <tr>
+              <td><code style="font-size:0.8rem;">{{ d.report.reference_number }}</code></td>
+              <td style="font-size:0.85rem;">{{ d.disputant.username|default:"—" }}</td>
+              <td><span class="adm-badge adm-badge-amber" style="font-size:0.72rem;">{{ d.get_status_display }}</span></td>
+              <td class="td-muted" style="font-size:0.8rem;">{{ d.created_at|date:"d M, H:i" }}</td>
+              <td><a href="{% url 'admin_portal:dispute_detail' d.pk %}" class="btn btn-sm btn-outline-secondary" style="font-size:0.75rem;">Review</a></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="px-4 py-3 text-muted small">No open disputes. ✓</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Expiring Certificates -->
+  <div class="col-lg-6">
+    <div class="adm-card" style="border-left:4px solid #7C3AED;">
+      <div class="adm-card-header d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center gap-2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span class="fw-semibold">Expiring Certificates</span>
+          <span class="badge rounded-pill" style="background:#7C3AED;">{{ expiring_certs_count }}</span>
+        </div>
+        <a href="{% url 'admin_portal:certificates' %}" class="btn btn-sm btn-outline-secondary" style="font-size:0.75rem;">View All</a>
+      </div>
+      {% if expiring_certs %}
+      <div class="table-responsive">
+        <table class="adm-table">
+          <thead><tr><th>Holder</th><th>Expires</th></tr></thead>
+          <tbody>
+            {% for cert in expiring_certs %}
+            <tr>
+              <td style="font-size:0.85rem;">{{ cert.holder.get_full_name|default:cert.holder.username }}</td>
+              <td class="td-muted" style="font-size:0.8rem;">{{ cert.expires_at|date:"d M Y" }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="px-4 py-3 text-muted small">No certificates expiring within 30 days. ✓</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Unverified Employers -->
+  <div class="col-lg-6">
+    <div class="adm-card" style="border-left:4px solid #0891B2;">
+      <div class="adm-card-header d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center gap-2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0891B2" stroke-width="2"><path d="M20 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+          <span class="fw-semibold">Unverified Employers</span>
+          <span class="badge rounded-pill" style="background:#0891B2;">{{ unverified_employers_count }}</span>
+        </div>
+        <a href="{% url 'admin_portal:employer_profiles' %}?verified=no" class="btn btn-sm btn-outline-secondary" style="font-size:0.75rem;">View All</a>
+      </div>
+      {% if unverified_employers %}
+      <div class="table-responsive">
+        <table class="adm-table">
+          <thead><tr><th>Company</th><th>Applied</th><th></th></tr></thead>
+          <tbody>
+            {% for ep in unverified_employers %}
+            <tr>
+              <td class="fw-semibold" style="font-size:0.85rem;">{{ ep.company_name }}</td>
+              <td class="td-muted" style="font-size:0.8rem;">{{ ep.created_at|date:"d M Y" }}</td>
+              <td><a href="{% url 'admin_portal:employer_detail' ep.pk %}" class="btn btn-sm btn-outline-secondary" style="font-size:0.75rem;">Review</a></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="px-4 py-3 text-muted small">All employers verified. ✓</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Failed Transactions (last 7 days) -->
+  <div class="col-12">
+    <div class="adm-card" style="border-left:4px solid #64748B;">
+      <div class="adm-card-header d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center gap-2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+          <span class="fw-semibold">Failed Transactions</span>
+          <span class="badge bg-secondary rounded-pill">{{ failed_transactions_count }}</span>
+          <span class="text-muted small">(last 7 days)</span>
+        </div>
+      </div>
+      {% if failed_transactions %}
+      <div class="table-responsive">
+        <table class="adm-table">
+          <thead><tr><th>User</th><th>Amount</th><th>Reference</th><th>When</th></tr></thead>
+          <tbody>
+            {% for tx in failed_transactions %}
+            <tr>
+              <td style="font-size:0.85rem;">{{ tx.user.username|default:"—" }}</td>
+              <td class="fw-semibold" style="font-size:0.85rem;">₦{% widthratio tx.amount_kobo 100 1 %}</td>
+              <td class="mono" style="font-size:0.78rem;">{{ tx.reference|truncatechars:30 }}</td>
+              <td class="td-muted" style="font-size:0.8rem;">{{ tx.created_at|date:"d M, H:i" }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="px-4 py-3 text-muted small">No failed transactions in the last 7 days. ✓</div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
