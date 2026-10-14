@@ -170,20 +170,158 @@
             flex-direction: column;
         }
 
-        .adm-topbar {
+                .adm-topbar {
             background: var(--adm-card-bg);
             border-bottom: 1px solid var(--adm-border);
-            padding: 12px 28px;
+            padding: 10px 28px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 12px;
             flex-shrink: 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
         .adm-topbar .breadcrumb { margin: 0; font-size: 0.8rem; }
         .adm-topbar .breadcrumb-item a { color: var(--adm-muted); text-decoration: none; }
         .adm-topbar .breadcrumb-item.active { color: var(--adm-ink); font-weight: 500; }
         .adm-topbar .health-pills { display: flex; gap: 6px; }
+
+        /* ── Topbar right: notification bell + user dropdown ── */
+        .adm-topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        .adm-tb-icon-btn {
+            background: none;
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--adm-muted);
+            cursor: pointer;
+            position: relative;
+            transition: background 0.15s, color 0.15s;
+        }
+        .adm-tb-icon-btn:hover {
+            background: var(--adm-sidebar-hover, rgba(0,0,0,0.06));
+            color: var(--adm-ink);
+        }
+        .adm-tb-notif-dot {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #DC2626;
+            border: 2px solid var(--adm-card-bg);
+        }
+        /* Avatar trigger */
+        .adm-tb-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #1d4ed8, #3b82f6);
+            color: #fff;
+            font-size: 0.78rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            user-select: none;
+            flex-shrink: 0;
+            letter-spacing: 0.02em;
+        }
+        /* Dropdown */
+        .adm-tb-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            min-width: 220px;
+            background: var(--adm-card-bg);
+            border: 1px solid var(--adm-border);
+            border-radius: 10px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+            z-index: 999;
+            overflow: hidden;
+            opacity: 0;
+            transform: translateY(-6px);
+            pointer-events: none;
+            transition: opacity 0.15s, transform 0.15s;
+        }
+        .adm-tb-dropdown.open {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+        .adm-tb-dropdown-header {
+            padding: 14px 16px 10px;
+            border-bottom: 1px solid var(--adm-border);
+        }
+        .adm-tb-dropdown-header .dh-name {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--adm-ink);
+            display: block;
+        }
+        .adm-tb-dropdown-header .dh-role {
+            font-size: 0.7rem;
+            color: #DC2626;
+            background: rgba(220,38,38,0.1);
+            border: 1px solid rgba(220,38,38,0.25);
+            border-radius: 4px;
+            padding: 1px 7px;
+            display: inline-block;
+            margin-top: 4px;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+        }
+        .adm-tb-dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 16px;
+            font-size: 0.83rem;
+            color: var(--adm-ink);
+            text-decoration: none;
+            cursor: pointer;
+            transition: background 0.12s;
+            background: none;
+            border: none;
+            width: 100%;
+            text-align: left;
+        }
+        .adm-tb-dropdown-item:hover {
+            background: var(--adm-sidebar-hover, rgba(0,0,0,0.04));
+            color: var(--adm-ink);
+        }
+        .adm-tb-dropdown-item.logout {
+            color: #DC2626;
+            border-top: 1px solid var(--adm-border);
+            margin-top: 4px;
+        }
+        .adm-tb-dropdown-item.logout:hover {
+            background: rgba(220,38,38,0.06);
+        }
+        .adm-tb-dropdown-item svg {
+            flex-shrink: 0;
+            opacity: 0.7;
+        }
+        .adm-tb-user-wrap {
+            position: relative;
+        }
+        @media (max-width: 576px) {
+            .adm-topbar { padding: 10px 16px; }
+            .adm-tb-dropdown { min-width: 200px; right: -8px; }
+        }
         .adm-health-pill {
             font-size: 0.7rem;
             font-weight: 600;
@@ -605,17 +743,102 @@
 <!-- ══ Main ══════════════════════════════════════════════ -->
 <div class="adm-main">
 
-    <!-- Top bar with breadcrumb + health pills -->
+    <!-- Top bar -->
     <header class="adm-topbar">
+
+        <!-- Left: breadcrumb -->
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb mb-0">
                 <li class="breadcrumb-item"><a href="{% url 'admin_portal:overview' %}">Admin</a></li>
                 {% block breadcrumb %}<li class="breadcrumb-item active">Overview</li>{% endblock %}
             </ol>
         </nav>
-        <div class="health-pills">
-            {% block health_pills %}{% endblock %}
-        </div>
+
+        <!-- Right: health pills + notification + user dropdown -->
+        <div class="adm-topbar-right">
+
+            <!-- Health pills (optional, used per-page) -->
+            <div class="health-pills">
+                {% block health_pills %}{% endblock %}
+            </div>
+
+            <!-- Notification bell -->
+            <a href="{% url 'admin_portal:notifications' %}"
+               class="adm-tb-icon-btn"
+               title="Notifications">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                </svg>
+                {# Show dot if there are pending notifications #}
+                <span class="adm-tb-notif-dot" id="notifDot" style="display:none;"></span>
+            </a>
+
+            <!-- User avatar + dropdown -->
+            <div class="adm-tb-user-wrap" id="tbUserWrap">
+                <div class="adm-tb-avatar" id="tbAvatarBtn" title="Account menu"
+                     role="button" aria-haspopup="true" aria-expanded="false">
+                    {{ request.user.get_full_name|default:request.user.username|slice:":2"|upper }}
+                </div>
+
+                <div class="adm-tb-dropdown" id="tbDropdown" role="menu">
+                    <!-- Header -->
+                    <div class="adm-tb-dropdown-header">
+                        <span class="dh-name">{{ request.user.get_full_name|default:request.user.username }}</span>
+                        <span class="dh-role">Superadmin</span>
+                        <div style="font-size:0.72rem;color:var(--adm-muted);margin-top:3px;">
+                            {{ request.user.email }}
+                        </div>
+                    </div>
+
+                    <!-- Menu items -->
+                    <a href="{% url 'admin_portal:users' %}?q={{ request.user.email }}"
+                       class="adm-tb-dropdown-item" role="menuitem">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                            <circle cx="12" cy="7" r="4"/>
+                        </svg>
+                        My Profile
+                    </a>
+
+                    <a href="{% url 'admin_portal:notifications' %}"
+                       class="adm-tb-dropdown-item" role="menuitem">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                        </svg>
+                        Notifications
+                    </a>
+
+                    <a href="{% url 'admin_portal:audit_logs' %}"
+                       class="adm-tb-dropdown-item" role="menuitem">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        </svg>
+                        Security Audit
+                    </a>
+
+                    <!-- Logout (POST form) -->
+                    <form method="post" action="{% url 'users:logout' %}" class="mb-0">
+                        {% csrf_token %}
+                        <button type="submit" class="adm-tb-dropdown-item logout" role="menuitem">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+                                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                                <polyline points="16 17 21 12 16 7"/>
+                                <line x1="21" y1="12" x2="9" y2="12"/>
+                            </svg>
+                            Sign Out
+                        </button>
+                    </form>
+                </div>
+            </div><!-- /user-wrap -->
+
+        </div><!-- /topbar-right -->
     </header>
 
     <!-- Content area -->
@@ -654,6 +877,36 @@
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+/* ── Topbar user dropdown ── */
+(function () {
+    const wrap   = document.getElementById('tbUserWrap');
+    const btn    = document.getElementById('tbAvatarBtn');
+    const menu   = document.getElementById('tbDropdown');
+    if (!btn || !menu) return;
+
+    function openMenu() {
+        menu.classList.add('open');
+        btn.setAttribute('aria-expanded', 'true');
+    }
+    function closeMenu() {
+        menu.classList.remove('open');
+        btn.setAttribute('aria-expanded', 'false');
+    }
+    btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        menu.classList.contains('open') ? closeMenu() : openMenu();
+    });
+    // Close on outside click
+    document.addEventListener('click', function (e) {
+        if (!wrap.contains(e.target)) closeMenu();
+    });
+    // Close on Escape
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeMenu();
+    });
+})();
+</script>
 {% block admin_scripts %}{% endblock %}
 {# ── at the bottom of <body>, before </body> ── #}
 {% include "includes/confirm_modal.html" %}
