@@ -7,28 +7,45 @@
 </div>
 
 <div class="row g-3 mb-4">
-  <div class="col-md-3">
+  <div class="col-md-2">
     <div class="kpi-card">
       <div class="kpi-value">{{ new_users_30d }}</div>
       <div class="kpi-label">New Users (30d)</div>
     </div>
   </div>
-  <div class="col-md-3">
+  <div class="col-md-2">
     <div class="kpi-card">
       <div class="kpi-value">{{ new_reports_30d }}</div>
       <div class="kpi-label">New Reports (30d)</div>
     </div>
   </div>
-  <div class="col-md-3">
+  <div class="col-md-2">
     <div class="kpi-card">
       <div class="kpi-value">{{ verified_users_total }}</div>
-      <div class="kpi-label">Verified Users (All Time)</div>
+      <div class="kpi-label">Verified Users</div>
     </div>
   </div>
-  <div class="col-md-3">
+  <div class="col-md-2">
     <div class="kpi-card">
       <div class="kpi-value">{{ active_subscriptions }}</div>
-      <div class="kpi-label">Active Subscriptions</div>
+      <div class="kpi-label">Active Subs</div>
+    </div>
+  </div>
+  <div class="col-md-2">
+    <div class="kpi-card">
+      <div class="kpi-value" style="color:#16a34a;">
+        ₦{% widthratio revenue_30d_kobo 100 1 %}
+      </div>
+      <div class="kpi-label">Revenue (30d)</div>
+      <div class="kpi-sub text-muted small">{{ transactions_30d }} transactions</div>
+    </div>
+  </div>
+  <div class="col-md-2">
+    <div class="kpi-card">
+      <div class="kpi-value" style="color:#16a34a;">
+        ₦{% widthratio revenue_alltime_kobo 100 1 %}
+      </div>
+      <div class="kpi-label">Revenue (All Time)</div>
     </div>
   </div>
 </div>

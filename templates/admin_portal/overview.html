@@ -83,6 +83,126 @@
     </div>
 </div>
 
+<!-- Quick-action shortcut cards -->
+<div class="row g-3 mb-4">
+
+  <!-- Pending Reports -->
+  <div class="col-lg-3 col-md-6">
+    <div class="adm-card h-100" style="border-top:3px solid #DC2626;">
+      <div class="adm-card-header d-flex align-items-center justify-content-between py-2 px-3">
+        <span class="fw-semibold small">Pending Reports</span>
+        <span class="badge bg-danger rounded-pill">{{ pending_reports }}</span>
+      </div>
+      <div class="p-0">
+        {% for r in pending_reports_qs %}
+        <a href="{% url 'admin_portal:report_detail' r.pk %}"
+           class="d-flex align-items-center justify-content-between px-3 py-2 text-decoration-none"
+           style="border-bottom:1px solid var(--adm-border);color:inherit;">
+          <span class="small text-truncate me-2">{{ r.title|truncatechars:32 }}</span>
+          <span class="badge bg-warning text-dark flex-shrink-0" style="font-size:0.7rem;">{{ r.state }}</span>
+        </a>
+        {% empty %}
+        <div class="px-3 py-3 text-muted small">No pending reports.</div>
+        {% endfor %}
+        {% if pending_reports > 5 %}
+        <a href="{% url 'admin_portal:reports' %}?state=submitted"
+           class="d-block text-center small py-2 text-primary text-decoration-none"
+           style="border-top:1px solid var(--adm-border);">
+          View all {{ pending_reports }} →
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Open Disputes -->
+  <div class="col-lg-3 col-md-6">
+    <div class="adm-card h-100" style="border-top:3px solid #D97706;">
+      <div class="adm-card-header d-flex align-items-center justify-content-between py-2 px-3">
+        <span class="fw-semibold small">Open Disputes</span>
+        <span class="badge bg-warning text-dark rounded-pill">{{ open_disputes }}</span>
+      </div>
+      <div class="p-0">
+        {% for d in open_disputes_qs %}
+        <a href="{% url 'admin_portal:dispute_detail' d.pk %}"
+           class="d-flex align-items-center justify-content-between px-3 py-2 text-decoration-none"
+           style="border-bottom:1px solid var(--adm-border);color:inherit;">
+          <span class="small text-truncate me-2">{{ d.disputant.username|default:"Unknown" }}</span>
+          <span class="small text-muted flex-shrink-0">{{ d.created_at|date:"d M" }}</span>
+        </a>
+        {% empty %}
+        <div class="px-3 py-3 text-muted small">No open disputes.</div>
+        {% endfor %}
+        {% if open_disputes > 5 %}
+        <a href="{% url 'admin_portal:disputes' %}"
+           class="d-block text-center small py-2 text-primary text-decoration-none"
+           style="border-top:1px solid var(--adm-border);">
+          View all {{ open_disputes }} →
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Pending Verifications -->
+  <div class="col-lg-3 col-md-6">
+    <div class="adm-card h-100" style="border-top:3px solid #0F766E;">
+      <div class="adm-card-header d-flex align-items-center justify-content-between py-2 px-3">
+        <span class="fw-semibold small">Pending Verifications</span>
+        <span class="badge rounded-pill" style="background:#0F766E;">{{ pending_verifications }}</span>
+      </div>
+      <div class="p-0">
+        {% for v in pending_verifications_qs %}
+        <a href="{% url 'admin_portal:verifications' %}"
+           class="d-flex align-items-center justify-content-between px-3 py-2 text-decoration-none"
+           style="border-bottom:1px solid var(--adm-border);color:inherit;">
+          <span class="small text-truncate me-2">{{ v.requester.username|default:"—" }}</span>
+          <span class="badge bg-secondary flex-shrink-0" style="font-size:0.7rem;">{{ v.status }}</span>
+        </a>
+        {% empty %}
+        <div class="px-3 py-3 text-muted small">No pending verifications.</div>
+        {% endfor %}
+        {% if pending_verifications > 5 %}
+        <a href="{% url 'admin_portal:verifications' %}"
+           class="d-block text-center small py-2 text-primary text-decoration-none"
+           style="border-top:1px solid var(--adm-border);">
+          View all {{ pending_verifications }} →
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Users -->
+  <div class="col-lg-3 col-md-6">
+    <div class="adm-card h-100" style="border-top:3px solid #2457D6;">
+      <div class="adm-card-header d-flex align-items-center justify-content-between py-2 px-3">
+        <span class="fw-semibold small">Recent Registrations</span>
+        <a href="{% url 'admin_portal:users' %}" class="small text-primary">All →</a>
+      </div>
+      <div class="p-0">
+        {% for u in recent_users_qs %}
+        <a href="{% url 'admin_portal:user_detail' u.public_id %}"
+           class="d-flex align-items-center gap-2 px-3 py-2 text-decoration-none"
+           style="border-bottom:1px solid var(--adm-border);color:inherit;">
+          <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+               style="width:28px;height:28px;background:rgba(36,87,214,0.1);font-size:0.7rem;font-weight:700;color:#2457D6;">
+            {{ u.username|first|upper }}
+          </div>
+          <div class="small text-truncate">
+            <div class="fw-semibold" style="line-height:1.2;">{{ u.username }}</div>
+            <div class="text-muted" style="font-size:0.7rem;">{{ u.date_joined|date:"d M, H:i" }}</div>
+          </div>
+        </a>
+        {% empty %}
+        <div class="px-3 py-3 text-muted small">No users yet.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+</div>
+
 <!-- 7-day activity chart -->
 <div class="adm-card mb-4">
     <div class="adm-card-header">

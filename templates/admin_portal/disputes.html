@@ -36,23 +36,32 @@
       <tr><th>Report Ref</th><th>Disputed By</th><th>Status</th><th>Filed</th><th>Actions</th></tr>
     </thead>
     <tbody>
-      {% for d in page_obj %}
-      <tr>
+        {% for d in page_obj %}
+      <tr style="cursor:pointer;" onclick="location.href='{% url 'admin_portal:dispute_detail' d.pk %}'">
         <td><code>{{ d.report.reference_number }}</code></td>
         <td>{{ d.disputant.username|default:"—" }}</td>
-        <td><span class="adm-badge adm-badge-amber">{{ d.get_status_display }}</span></td>
-        <td>{{ d.created_at|date:"d M Y" }}</td>
         <td>
-          <form method="post" action="{% url 'admin_portal:dispute_action' d.pk %}" class="d-inline">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="accept">
-            <button class="btn btn-adm-sm btn-adm-success">Uphold</button>
-          </form>
-          <form method="post" action="{% url 'admin_portal:dispute_action' d.pk %}" class="d-inline ms-1">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="reject">
-            <button class="btn btn-adm-sm btn-adm-danger">Reject</button>
-          </form>
+          {% if d.status == 'opened' or d.status == 'under_review' %}
+            <span class="adm-badge adm-badge-amber">{{ d.get_status_display }}</span>
+          {% elif d.status == 'upheld' %}
+            <span class="adm-badge adm-badge-green">Upheld</span>
+          {% elif d.status == 'rejected' %}
+            <span class="adm-badge adm-badge-red">Rejected</span>
+          {% else %}
+            <span class="adm-badge">{{ d.get_status_display }}</span>
+          {% endif %}
+        </td>
+        <td>{{ d.created_at|date:"d M Y" }}</td>
+        <td onclick="event.stopPropagation()">
+          {% if d.status in 'opened,under_review' %}
+          <a href="{% url 'admin_portal:dispute_detail' d.pk %}" class="btn btn-sm btn-outline-primary btn-sm">
+            Review
+          </a>
+          {% else %}
+          <a href="{% url 'admin_portal:dispute_detail' d.pk %}" class="btn btn-sm btn-outline-secondary btn-sm">
+            View
+          </a>
+          {% endif %}
         </td>
       </tr>
       {% endfor %}

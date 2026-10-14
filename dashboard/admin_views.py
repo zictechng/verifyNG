@@ -27,7 +27,7 @@ from django.utils import timezone as tz
 from users.models import User, LoginAudit, UserServiceAccess
 from core.audit_utils import log_admin_action
 from django.utils.text import slugify
-from payments.models import PlanFeature
+from payments.models import PlanFeature, Transaction
 
 from django.core.paginator import Paginator
 from django.http import HttpResponseForbidden
@@ -35,6 +35,7 @@ from django.conf import settings
 from django.shortcuts import render as drender
 from django.db import transaction as db_transaction
 from django.db import transaction
+
 import os
 from users.models import UserServiceAccess
 # Import models needed for extended admin
@@ -138,6 +139,18 @@ class AdminOverviewView(SuperAdminRequiredMixin, TemplateView):
 
         # 4. Recent Security & Login Events
         ctx['recent_logins'] = LoginAudit.objects.select_related('user')[:8]
+
+        # 5. Quick-action data for shortcut cards
+        ctx['pending_reports_qs'] = FraudReport.objects.filter(
+            state__in=['submitted', 'under_review']
+        ).order_by('-created_at')[:5]
+        ctx['open_disputes_qs'] = Dispute.objects.filter(
+            status__in=['opened', 'under_review']
+        ).select_related('report', 'disputant').order_by('-created_at')[:5]
+        ctx['pending_verifications_qs'] = VerificationRequest.objects.filter(
+            status__in=['pending', 'in_progress']
+        ).select_related('requester').order_by('-created_at')[:5] if VerificationRequest else []
+        ctx['recent_users_qs'] = User.objects.order_by('-date_joined')[:5]
 
         return ctx
 
@@ -802,6 +815,48 @@ class AdminDisputeActionView(SuperAdminRequiredMixin, View):
         return redirect('admin_portal:disputes')
 
 
+class AdminDisputeDetailView(SuperAdminRequiredMixin, TemplateView):
+    """Full dispute detail — shows report content, disputant reason, and resolution form."""
+    template_name = "admin_portal/dispute_detail.html"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['dispute'] = get_object_or_404(
+            Dispute.objects.select_related('report', 'disputant', 'report__reporter', 'report__target_subject'),
+            pk=self.kwargs['pk']
+        )
+        return ctx
+
+    def post(self, request, pk):
+        dispute = get_object_or_404(Dispute, pk=pk)
+        action = request.POST.get('action', '')
+        resolution_notes = request.POST.get('resolution_notes', '').strip()
+
+        if action == 'accept':
+            dispute.status = 'upheld'
+            dispute.report.state = 'resolved'
+            dispute.report.save(update_fields=['state', 'updated_at'])
+        elif action == 'reject':
+            dispute.status = 'rejected'
+            dispute.report.state = 'published'
+            dispute.report.save(update_fields=['state', 'updated_at'])
+        else:
+            messages.error(request, "Invalid action.")
+            return redirect('admin_portal:dispute_detail', pk=pk)
+
+        dispute.resolution_notes = resolution_notes
+        dispute.resolved_at = timezone.now()
+        dispute.save()
+
+        AuditLog.objects.create(
+            action=f"ADMIN_DISPUTE_{action.upper()}",
+            performed_by=request.user,
+            details={"dispute_id": dispute.id, "report_ref": dispute.report.reference_number}
+        )
+        messages.success(request, f"Dispute {action}ed. Report is now '{dispute.report.state}'.")
+        return redirect('admin_portal:disputes')
+
+    
 # ── Verifications ──────────────────────────────────────────────────────────
 
 class AdminVerificationsView(SuperAdminRequiredMixin, TemplateView):
@@ -1288,12 +1343,33 @@ class AdminAnalyticsView(SuperAdminRequiredMixin, TemplateView):
         ctx['verified_users_total'] = User.objects.filter(identity_verified=True).count()
 
         # Subscription revenue (if available)
+                # Subscription & revenue data
         if Subscription:
             from django.db.models import Sum
             active_subs = Subscription.objects.filter(status='active')
             ctx['active_subscriptions'] = active_subs.count()
         else:
             ctx['active_subscriptions'] = 0
+
+        if Transaction:
+            from django.db.models import Sum
+            ctx['revenue_30d_kobo'] = Transaction.objects.filter(
+                status='success',
+                created_at__gte=thirty_days_ago
+            ).aggregate(total=Sum('amount_kobo'))['total'] or 0
+            ctx['revenue_alltime_kobo'] = Transaction.objects.filter(
+                status='success'
+            ).aggregate(total=Sum('amount_kobo'))['total'] or 0
+            ctx['transactions_30d'] = Transaction.objects.filter(
+                status='success',
+                created_at__gte=thirty_days_ago
+            ).count()
+        else:
+            ctx['revenue_30d_kobo'] = 0
+            ctx['revenue_alltime_kobo'] = 0
+            ctx['transactions_30d'] = 0
+
+        return ctx
 
         return ctx
 
