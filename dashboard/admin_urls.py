@@ -30,7 +30,6 @@ from dashboard.admin_views import (
     AdminEmployerActivityExportView,
     # Subscriptions
     AdminSubscriptionsView,
-    AdminSubscriptionCancelView,
     # Analytics
     AdminAnalyticsView,
     # System Logs
