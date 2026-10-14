@@ -23,6 +23,7 @@ from core.email_utils import render_email
 from notifications.tasks import send_broadcast_email_task
 from django.http import JsonResponse
 from django.utils import timezone as tz
+from django.contrib.auth.models import Group
 
 from users.models import User, LoginAudit, UserServiceAccess
 from core.audit_utils import log_admin_action
@@ -2143,7 +2144,7 @@ class AdminMenuAccessView(SuperAdminRequiredMixin, View):
     template_name = "admin_portal/menu_access.html"
 
     def get(self, request):
-        from django.contrib.auth.models import Group
+        
         staff_users = User.objects.filter(
             role__in=['moderator', 'officer']
         ).prefetch_related('groups').order_by('role', 'username')
@@ -2154,24 +2155,23 @@ class AdminMenuAccessView(SuperAdminRequiredMixin, View):
         })
 
     def post(self, request):
-        from django.contrib.auth.models import Group
+
         user_id = request.POST.get('user_id')
         group_id = request.POST.get('group_id')
         action = request.POST.get('action', '')  # 'add' or 'remove'
 
         if not user_id or not group_id or action not in ('add', 'remove'):
-            messages.error(request, "Invalid request.")
-            return redirect('admin_portal:menu_access')
+            return JsonResponse({'ok': False, 'error': 'Invalid request.'}, status=400)
 
         target_user = get_object_or_404(User, pk=user_id)
         group = get_object_or_404(Group, pk=group_id)
 
         if action == 'add':
             target_user.groups.add(group)
-            messages.success(request, f"Added '{target_user.username}' to group '{group.name}'.")
+            msg = f"'{group.name}' added to {target_user.get_full_name() or target_user.username}."
         else:
             target_user.groups.remove(group)
-            messages.success(request, f"Removed '{target_user.username}' from group '{group.name}'.")
+            msg = f"'{group.name}' removed from {target_user.get_full_name() or target_user.username}."
 
         AuditLog.objects.create(
             action=f"ADMIN_GROUP_{action.upper()}",
@@ -2182,7 +2182,14 @@ class AdminMenuAccessView(SuperAdminRequiredMixin, View):
                 'action': action,
             }
         )
-        return redirect('admin_portal:menu_access')
+        return JsonResponse({
+            'ok': True,
+            'message': msg,
+            'action': action,
+            'group_id': group.pk,
+            'group_name': group.name,
+            'user_id': target_user.pk,
+        })
 
     
 

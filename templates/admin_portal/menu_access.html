@@ -1,4 +1,3 @@
-
 {% extends "admin_portal/base_admin.html" %}
 {% block title %}Menu Access — Admin{% endblock %}
 
@@ -10,8 +9,6 @@
   </div>
 </div>
 
-{% include "admin_portal/_messages.html" %}
-
 {% if not staff_users %}
 <div class="adm-card p-5 text-center">
   <i class="bi bi-person-badge fs-2 d-block mb-2 text-muted"></i>
@@ -19,6 +16,9 @@
   <a href="{% url 'admin_portal:users' %}" class="btn btn-adm-primary btn-sm">Go to Users</a>
 </div>
 {% else %}
+
+<!-- Hidden CSRF token for JS fetch -->
+<input type="hidden" id="csrfToken" value="{{ csrf_token }}">
 
 <div class="adm-card">
   <div class="table-responsive">
@@ -31,9 +31,9 @@
           <th>Add Group</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody id="staffTableBody">
         {% for user in staff_users %}
-        <tr>
+        <tr id="user-row-{{ user.pk }}">
           <td>
             <a href="{% url 'admin_portal:user_detail' user.public_id %}"
                class="fw-semibold small text-decoration-none">{{ user.get_full_name|default:user.username }}</a>
@@ -48,37 +48,51 @@
               <span class="adm-badge adm-badge-gray">{{ user.get_role_display }}</span>
             {% endif %}
           </td>
-          <td>
+          <td id="groups-cell-{{ user.pk }}">
             {% for grp in user.groups.all %}
-            <span class="badge bg-secondary me-1 mb-1">
+            <span class="badge bg-secondary me-1 mb-1 group-badge"
+                  id="group-badge-{{ user.pk }}-{{ grp.pk }}"
+                  data-group-id="{{ grp.pk }}"
+                  data-user-id="{{ user.pk }}">
               {{ grp.name }}
-              <form method="post" class="d-inline ms-1">
-                {% csrf_token %}
-                <input type="hidden" name="user_id" value="{{ user.pk }}">
-                <input type="hidden" name="group_id" value="{{ grp.pk }}">
-                <input type="hidden" name="action" value="remove">
-                <button type="submit" class="btn btn-link p-0 text-white" style="font-size:0.7rem;line-height:1;"
-                        title="Remove from group">×</button>
-              </form>
+              <button type="button"
+                      class="btn btn-link p-0 text-white ms-1 remove-group-btn"
+                      style="font-size:0.7rem;line-height:1;"
+                      title="Remove from group"
+                      data-user-id="{{ user.pk }}"
+                      data-group-id="{{ grp.pk }}"
+                      data-group-name="{{ grp.name }}">
+                <span class="spinner-border spinner-border-sm d-none"
+                      style="width:.6rem;height:.6rem;border-width:1px;"
+                      id="rm-spinner-{{ user.pk }}-{{ grp.pk }}"></span>
+                <span class="rm-x" id="rm-x-{{ user.pk }}-{{ grp.pk }}">×</span>
+              </button>
             </span>
             {% empty %}
-            <span class="text-muted small">No groups</span>
+            <span class="text-muted small no-groups-label" id="no-groups-{{ user.pk }}">No groups</span>
             {% endfor %}
           </td>
           <td>
             {% if all_groups %}
-            <form method="post" class="d-flex gap-2 align-items-center">
-              {% csrf_token %}
-              <input type="hidden" name="user_id" value="{{ user.pk }}">
-              <input type="hidden" name="action" value="add">
-              <select name="group_id" class="form-select form-select-sm" style="min-width:140px;" required>
+            <div class="d-flex gap-2 align-items-center">
+              <select class="form-select form-select-sm group-select"
+                      id="select-{{ user.pk }}"
+                      style="min-width:160px;">
                 <option value="">Select group…</option>
                 {% for grp in all_groups %}
-                <option value="{{ grp.pk }}">{{ grp.name }}</option>
+                <option value="{{ grp.pk }}" data-name="{{ grp.name }}">{{ grp.name }}</option>
                 {% endfor %}
               </select>
-              <button type="submit" class="btn btn-adm-primary btn-sm px-3">Add</button>
-            </form>
+              <button type="button"
+                      class="btn btn-adm-primary btn-sm px-3 add-group-btn"
+                      id="add-btn-{{ user.pk }}"
+                      data-user-id="{{ user.pk }}">
+                <span class="spinner-border spinner-border-sm d-none me-1"
+                      style="width:.75rem;height:.75rem;border-width:1.5px;"
+                      id="add-spinner-{{ user.pk }}"></span>
+                <span id="add-label-{{ user.pk }}">Add</span>
+              </button>
+            </div>
             {% else %}
             <span class="text-muted small">No groups defined.</span>
             {% endif %}
@@ -94,11 +108,157 @@
   <h6 class="fw-semibold mb-2"><i class="bi bi-info-circle me-2"></i>How Groups Work</h6>
   <p class="small text-muted mb-0">
     Django permission groups control which model-level actions a sub-admin user can perform.
-    Create groups in <a href="/admin/auth/group/" target="_blank" rel="noopener noreferrer" style="color:var(--adm-accent);">Django Admin → Groups</a>,
-    assign permissions to each group, then assign users here.
+    To create groups, log in to Django Admin at
+    <code style="background:var(--adm-surface);padding:2px 6px;border-radius:4px;font-size:0.8rem;">/admin/auth/group/</code>
+    and assign permissions to each group. Then assign users here.
     Group membership is reflected immediately — no restart required.
   </p>
 </div>
 
 {% endif %}
+
+<!-- Toast -->
+<div id="maToast" class="alert small mb-0 shadow d-none"
+     style="position:fixed;bottom:1.5rem;right:1.5rem;z-index:1070;min-width:280px;"></div>
+
+<script>
+const MENU_ACCESS_URL = "{% url 'admin_portal:menu_access' %}";
+const CSRF = document.getElementById('csrfToken') ? document.getElementById('csrfToken').value : '';
+
+function showToast(ok, msg) {
+  const t = document.getElementById('maToast');
+  t.textContent = msg;
+  t.className = 'alert small mb-0 shadow ' + (ok ? 'alert-success' : 'alert-danger');
+  t.style.cssText = 'position:fixed;bottom:1.5rem;right:1.5rem;z-index:1070;min-width:280px;';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => { t.classList.add('d-none'); }, 4000);
+}
+
+function postGroupAction(userId, groupId, action) {
+  const fd = new FormData();
+  fd.append('csrfmiddlewaretoken', CSRF);
+  fd.append('user_id', userId);
+  fd.append('group_id', groupId);
+  fd.append('action', action);
+  return fetch(MENU_ACCESS_URL, { method: 'POST', body: fd }).then(r => r.json());
+}
+
+// ── ADD GROUP ─────────────────────────────────────────────────────────────────
+document.querySelectorAll('.add-group-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    const userId = btn.dataset.userId;
+    const select = document.getElementById('select-' + userId);
+    const groupId = select.value;
+    const groupName = select.options[select.selectedIndex]
+                      ? select.options[select.selectedIndex].dataset.name : '';
+
+    if (!groupId) {
+      showToast(false, 'Please select a group first.');
+      return;
+    }
+
+    // Show spinner
+    const spinner = document.getElementById('add-spinner-' + userId);
+    const label   = document.getElementById('add-label-' + userId);
+    btn.disabled = true;
+    spinner.classList.remove('d-none');
+    label.textContent = 'Adding…';
+
+    postGroupAction(userId, groupId, 'add')
+      .then(function(data) {
+        spinner.classList.add('d-none');
+        btn.disabled = false;
+        label.textContent = 'Add';
+
+        if (data.ok) {
+          showToast(true, data.message);
+
+          // Remove "No groups" label if present
+          const noLabel = document.getElementById('no-groups-' + userId);
+          if (noLabel) noLabel.remove();
+
+          // Add badge to groups cell if not already there
+          const cell = document.getElementById('groups-cell-' + userId);
+          if (!document.getElementById('group-badge-' + userId + '-' + groupId)) {
+            const badge = document.createElement('span');
+            badge.className = 'badge bg-secondary me-1 mb-1 group-badge';
+            badge.id = 'group-badge-' + userId + '-' + groupId;
+            badge.dataset.groupId = groupId;
+            badge.dataset.userId = userId;
+            badge.innerHTML =
+              data.group_name +
+              ' <button type="button" class="btn btn-link p-0 text-white ms-1 remove-group-btn"' +
+              ' style="font-size:0.7rem;line-height:1;" title="Remove from group"' +
+              ' data-user-id="' + userId + '" data-group-id="' + groupId + '" data-group-name="' + data.group_name + '">' +
+              '<span class="spinner-border spinner-border-sm d-none" style="width:.6rem;height:.6rem;border-width:1px;" id="rm-spinner-' + userId + '-' + groupId + '"></span>' +
+              '<span class="rm-x" id="rm-x-' + userId + '-' + groupId + '">×</span>' +
+              '</button>';
+            cell.appendChild(badge);
+            wireRemoveBtn(badge.querySelector('.remove-group-btn'));
+          }
+
+          // Reset select
+          select.value = '';
+        } else {
+          showToast(false, data.error || 'Something went wrong.');
+        }
+      })
+      .catch(function() {
+        spinner.classList.add('d-none');
+        btn.disabled = false;
+        label.textContent = 'Add';
+        showToast(false, 'Network error. Please try again.');
+      });
+  });
+});
+
+// ── REMOVE GROUP ──────────────────────────────────────────────────────────────
+function wireRemoveBtn(btn) {
+  btn.addEventListener('click', function() {
+    const userId    = btn.dataset.userId;
+    const groupId   = btn.dataset.groupId;
+    const groupName = btn.dataset.groupName;
+    const spinner   = document.getElementById('rm-spinner-' + userId + '-' + groupId);
+    const xSpan     = document.getElementById('rm-x-' + userId + '-' + groupId);
+
+    btn.disabled = true;
+    if (spinner) spinner.classList.remove('d-none');
+    if (xSpan)   xSpan.classList.add('d-none');
+
+    postGroupAction(userId, groupId, 'remove')
+      .then(function(data) {
+        if (data.ok) {
+          showToast(true, data.message);
+          const badge = document.getElementById('group-badge-' + userId + '-' + groupId);
+          if (badge) badge.remove();
+
+          // If no badges left, show "No groups"
+          const cell = document.getElementById('groups-cell-' + userId);
+          if (cell && !cell.querySelector('.group-badge')) {
+            const noLabel = document.createElement('span');
+            noLabel.className = 'text-muted small no-groups-label';
+            noLabel.id = 'no-groups-' + userId;
+            noLabel.textContent = 'No groups';
+            cell.appendChild(noLabel);
+          }
+        } else {
+          btn.disabled = false;
+          if (spinner) spinner.classList.add('d-none');
+          if (xSpan)   xSpan.classList.remove('d-none');
+          showToast(false, data.error || 'Something went wrong.');
+        }
+      })
+      .catch(function() {
+        btn.disabled = false;
+        if (spinner) spinner.classList.add('d-none');
+        if (xSpan)   xSpan.classList.remove('d-none');
+        showToast(false, 'Network error. Please try again.');
+      });
+  });
+}
+
+// Wire existing remove buttons on page load
+document.querySelectorAll('.remove-group-btn').forEach(wireRemoveBtn);
+</script>
+
 {% endblock %}
