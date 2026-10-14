@@ -277,6 +277,15 @@ class AdminUserChangeRoleView(SuperAdminRequiredMixin, View):
         target_user.role = new_role
         target_user.save(update_fields=['role'])
 
+        # Auto-create EmployerProfile when role is set to 'employer'
+        if new_role == 'employer' and EmployerProfile is not None:
+            EmployerProfile.objects.get_or_create(
+                user=target_user,
+                defaults={
+                    'company_name': target_user.get_full_name() or target_user.username,
+                }
+            )
+
         messages.success(request, f"Updated '{target_user.username}' role from {old_role} to {valid_roles[new_role]}.")
 
         AuditLog.objects.create(
@@ -811,6 +820,53 @@ class AdminDisputeActionView(SuperAdminRequiredMixin, View):
             performed_by=request.user,
             details={"dispute_id": dispute.id, "report_ref": dispute.report.reference_number}
         )
+
+        # Email notifications
+        outcome_label = "upheld" if action == "accept" else "rejected"
+        report_ref = dispute.report.reference_number
+
+        # Notify reporter
+        if hasattr(dispute.report, 'reporter') and dispute.report.reporter:
+            reporter = dispute.report.reporter
+            if reporter.email:
+                subject = f"VerifyNG: Dispute on your report {report_ref} has been {outcome_label}"
+                if action == 'accept':
+                    body = (
+                        f"Dear {reporter.get_full_name() or reporter.username},\n\n"
+                        f"The dispute raised against your report (Ref: {report_ref}) has been reviewed and upheld. "
+                        f"The report has been marked as resolved.\n\n"
+                        f"If you have questions, please contact support@verifyng.com.\n\nVerifyNG Team"
+                    )
+                else:
+                    body = (
+                        f"Dear {reporter.get_full_name() or reporter.username},\n\n"
+                        f"The dispute raised against your report (Ref: {report_ref}) has been reviewed and rejected. "
+                        f"Your report remains published.\n\n"
+                        f"If you have questions, please contact support@verifyng.com.\n\nVerifyNG Team"
+                    )
+                send_email_notification_task.delay(reporter.email, subject, body)
+
+        # Notify disputant
+        if hasattr(dispute, 'disputant') and dispute.disputant:
+            disputant = dispute.disputant
+            if disputant.email:
+                subject = f"VerifyNG: Your dispute on report {report_ref} has been {outcome_label}"
+                if action == 'accept':
+                    body = (
+                        f"Dear {disputant.get_full_name() or disputant.username},\n\n"
+                        f"Your dispute on report (Ref: {report_ref}) has been reviewed and upheld. "
+                        f"The report has been resolved in your favour.\n\n"
+                        f"If you have questions, please contact support@verifyng.com.\n\nVerifyNG Team"
+                    )
+                else:
+                    body = (
+                        f"Dear {disputant.get_full_name() or disputant.username},\n\n"
+                        f"Your dispute on report (Ref: {report_ref}) has been reviewed and rejected. "
+                        f"The original report remains published.\n\n"
+                        f"If you have questions, please contact support@verifyng.com.\n\nVerifyNG Team"
+                    )
+                send_email_notification_task.delay(disputant.email, subject, body)
+
         messages.success(request, f"Dispute {action}ed successfully.")
         return redirect('admin_portal:disputes')
 
@@ -853,6 +909,51 @@ class AdminDisputeDetailView(SuperAdminRequiredMixin, TemplateView):
             performed_by=request.user,
             details={"dispute_id": dispute.id, "report_ref": dispute.report.reference_number}
         )
+
+        # Email notifications
+        outcome_label = "upheld" if action == "accept" else "rejected"
+        report_ref = dispute.report.reference_number
+
+        if hasattr(dispute.report, 'reporter') and dispute.report.reporter:
+            reporter = dispute.report.reporter
+            if reporter.email:
+                subject = f"VerifyNG: Dispute on your report {report_ref} has been {outcome_label}"
+                if action == 'accept':
+                    body = (
+                        f"Dear {reporter.get_full_name() or reporter.username},\n\n"
+                        f"The dispute raised against your report (Ref: {report_ref}) has been reviewed and upheld. "
+                        f"The report has been marked as resolved.\n\n"
+                        f"Contact support@verifyng.com with any questions.\n\nVerifyNG Team"
+                    )
+                else:
+                    body = (
+                        f"Dear {reporter.get_full_name() or reporter.username},\n\n"
+                        f"The dispute raised against your report (Ref: {report_ref}) was reviewed and rejected. "
+                        f"Your report remains published.\n\n"
+                        f"Contact support@verifyng.com with any questions.\n\nVerifyNG Team"
+                    )
+                send_email_notification_task.delay(reporter.email, subject, body)
+
+        if hasattr(dispute, 'disputant') and dispute.disputant:
+            disputant = dispute.disputant
+            if disputant.email:
+                subject = f"VerifyNG: Your dispute on report {report_ref} has been {outcome_label}"
+                if action == 'accept':
+                    body = (
+                        f"Dear {disputant.get_full_name() or disputant.username},\n\n"
+                        f"Your dispute on report (Ref: {report_ref}) has been reviewed and upheld in your favour. "
+                        f"The report has been resolved.\n\n"
+                        f"Contact support@verifyng.com with any questions.\n\nVerifyNG Team"
+                    )
+                else:
+                    body = (
+                        f"Dear {disputant.get_full_name() or disputant.username},\n\n"
+                        f"Your dispute on report (Ref: {report_ref}) was reviewed and rejected. "
+                        f"The original report remains published.\n\n"
+                        f"Contact support@verifyng.com with any questions.\n\nVerifyNG Team"
+                    )
+                send_email_notification_task.delay(disputant.email, subject, body)
+
         messages.success(request, f"Dispute {action}ed. Report is now '{dispute.report.state}'.")
         return redirect('admin_portal:disputes')
 
@@ -1291,6 +1392,31 @@ class AdminPlanCreateEditView(SuperAdminRequiredMixin, View):
         return redirect('admin_portal:plans')
 
 
+class AdminPlanToggleView(SuperAdminRequiredMixin, View):
+    """Toggle a Plan's is_active flag (activate / deactivate)."""
+
+    def post(self, request, pk):
+        if not Plan:
+            messages.error(request, "Plan model not available.")
+            return redirect('admin_portal:plans')
+
+        plan = get_object_or_404(Plan, pk=pk)
+        plan.is_active = not plan.is_active
+        plan.save(update_fields=['is_active'])
+
+        state_label = "activated" if plan.is_active else "deactivated"
+        messages.success(request, f"Plan '{plan.name}' has been {state_label}.")
+
+        log_admin_action(
+            action=f'PLAN_{state_label.upper()}',
+            action_type='PLAN_MGMT',
+            performed_by=request.user,
+            request=request,
+            details={'plan_id': plan.pk, 'plan_name': plan.name, 'new_state': plan.is_active},
+        )
+        return redirect('admin_portal:plans')
+
+
 class AdminCreditSubscriptionView(SuperAdminRequiredMixin, View):
     """
     POST: Manually credit (assign) a subscription plan to a user.
@@ -1547,12 +1673,49 @@ class AdminActivityLogsView(SuperAdminRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        now = timezone.now()
 
-        ctx['recent_reports'] = FraudReport.objects.select_related('reporter').order_by('-created_at')[:30]
-        ctx['recent_verifications'] = VerificationRequest.objects.select_related('requester').order_by('-created_at')[:30] if VerificationRequest else []
-        ctx['recent_users'] = User.objects.order_by('-date_joined')[:20]
-        ctx['recent_audit'] = AuditLog.objects.select_related('performed_by').order_by('-timestamp')[:50]
+        # --- Audit log with filters and pagination ---
+        q            = self.request.GET.get('q', '').strip()
+        action_type  = self.request.GET.get('action_type', '').strip()
+        date_from    = self.request.GET.get('date_from', '').strip()
+        date_to      = self.request.GET.get('date_to', '').strip()
+
+        audit_qs = AuditLog.objects.select_related('performed_by').order_by('-timestamp')
+
+        if q:
+            audit_qs = audit_qs.filter(
+                Q(action__icontains=q) |
+                Q(performed_by__username__icontains=q)
+            )
+        if action_type:
+            audit_qs = audit_qs.filter(action_type=action_type)
+        if date_from:
+            try:
+                audit_qs = audit_qs.filter(timestamp__date__gte=date_from)
+            except Exception:
+                pass
+        if date_to:
+            try:
+                audit_qs = audit_qs.filter(timestamp__date__lte=date_to)
+            except Exception:
+                pass
+
+        paginator = Paginator(audit_qs, 30)
+        ctx['audit_page'] = paginator.get_page(self.request.GET.get('audit_page', 1))
+
+        # --- Summary panels (non-paginated, fixed count) ---
+        ctx['recent_reports'] = FraudReport.objects.select_related('reporter').order_by('-created_at')[:20]
+        ctx['recent_verifications'] = VerificationRequest.objects.select_related('requester').order_by('-created_at')[:20] if VerificationRequest else []
+        ctx['recent_users'] = User.objects.order_by('-date_joined')[:15]
+
+        # --- Filters state ---
+        ctx['q'] = q
+        ctx['action_type'] = action_type
+        ctx['date_from'] = date_from
+        ctx['date_to'] = date_to
+        ctx['action_type_choices'] = AuditLog.objects.values_list('action_type', flat=True).distinct().order_by('action_type')
+        ctx['total_audit'] = audit_qs.count()
+
         return ctx
 
 
@@ -1951,6 +2114,26 @@ class AdminCertificateActionView(SuperAdminRequiredMixin, View):
         })
 
 
+class AdminCertificateDetailView(SuperAdminRequiredMixin, TemplateView):
+    """Full certificate detail — holder info, history, and officer action buttons."""
+    template_name = "admin_portal/certificate_detail.html"
 
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        if not VerificationCertificate:
+            ctx['no_model'] = True
+            return ctx
+        cert = get_object_or_404(
+            VerificationCertificate.objects.select_related('holder', 'subject'),
+            pk=self.kwargs['pk'],
+        )
+        ctx['cert'] = cert
+        ctx['now'] = timezone.now()
+        ctx['action_url'] = f'/admin-portal/certificates/{cert.pk}/action/'
+        return ctx
+
+
+
+    
 
 

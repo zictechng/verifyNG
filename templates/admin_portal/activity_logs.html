@@ -1,63 +1,216 @@
 {% extends "admin_portal/base_admin.html" %}
 {% block title %}Activity Logs — Admin{% endblock %}
+
 {% block admin_body %}
-<div class="adm-page-header">
-  <h1 class="adm-page-title">Platform Activity</h1>
-  <p class="adm-page-sub">Recent cross-platform activity: registrations, reports, verifications, admin events.</p>
+<div class="adm-page-header d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4">
+  <div>
+    <h1 class="adm-page-title">Platform Activity</h1>
+    <p class="adm-page-sub mb-0">Recent cross-platform activity: registrations, reports, verifications, admin events.</p>
+  </div>
+  <span class="badge bg-secondary fs-6 fw-semibold">{{ total_audit }} audit events</span>
 </div>
-<div class="row g-4">
-  <div class="col-lg-6">
-    <div class="adm-card">
-      <div class="adm-card-header">Recent Reports (30)</div>
-      <table class="adm-table">
-        <thead><tr><th>Reference</th><th>Reporter</th><th>State</th><th>Date</th></tr></thead>
-        <tbody>
-          {% for r in recent_reports %}
-          <tr>
-            <td><a href="{% url 'admin_portal:report_detail' r.pk %}"><code>{{ r.reference_number }}</code></a></td>
-            <td>{{ r.reporter.username|default:"—" }}</td>
-            <td><span class="adm-badge adm-badge-blue small">{{ r.get_state_display }}</span></td>
-            <td class="small">{{ r.created_at|date:"d M H:i" }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+
+{% include "admin_portal/_messages.html" %}
+
+<!-- Summary panels -->
+<div class="row g-4 mb-4">
+
+  <!-- Recent Reports -->
+  <div class="col-lg-4">
+    <div class="adm-card h-100">
+      <div class="adm-card-header">
+        <i class="bi bi-flag me-2"></i>Recent Reports (20)
+      </div>
+      <div class="table-responsive">
+        <table class="table adm-table mb-0">
+          <thead><tr><th>Reference</th><th>State</th><th>Date</th></tr></thead>
+          <tbody>
+            {% for r in recent_reports %}
+            <tr>
+              <td>
+                <a href="{% url 'admin_portal:report_detail' r.pk %}"
+                   class="small font-monospace text-decoration-none">{{ r.reference_number }}</a>
+              </td>
+              <td><span class="adm-badge adm-badge-blue small">{{ r.get_state_display }}</span></td>
+              <td class="small text-muted">{{ r.created_at|date:"d M H:i" }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="3" class="text-center text-muted small py-3">No reports yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
-  <div class="col-lg-6">
-    <div class="adm-card">
-      <div class="adm-card-header">Recent Registrations (20)</div>
-      <table class="adm-table">
-        <thead><tr><th>Username</th><th>Role</th><th>Joined</th></tr></thead>
-        <tbody>
-          {% for u in recent_users %}
-          <tr>
-            <td><a href="{% url 'admin_portal:user_detail' u.public_id %}">{{ u.username }}</a></td>
-            <td><span class="adm-badge adm-badge-gray small">{{ u.get_role_display }}</span></td>
-            <td class="small">{{ u.date_joined|date:"d M H:i" }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+
+  <!-- Recent Registrations -->
+  <div class="col-lg-4">
+    <div class="adm-card h-100">
+      <div class="adm-card-header">
+        <i class="bi bi-people me-2"></i>New Users (15)
+      </div>
+      <div class="table-responsive">
+        <table class="table adm-table mb-0">
+          <thead><tr><th>Username</th><th>Role</th><th>Joined</th></tr></thead>
+          <tbody>
+            {% for u in recent_users %}
+            <tr>
+              <td>
+                <a href="{% url 'admin_portal:user_detail' u.public_id %}"
+                   class="small text-decoration-none">{{ u.username }}</a>
+              </td>
+              <td><span class="adm-badge adm-badge-gray small">{{ u.get_role_display }}</span></td>
+              <td class="small text-muted">{{ u.date_joined|date:"d M H:i" }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="3" class="text-center text-muted small py-3">No users yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
-  <div class="col-lg-12">
-    <div class="adm-card">
-      <div class="adm-card-header">Recent Admin Events (50)</div>
-      <table class="adm-table">
-        <thead><tr><th>Action</th><th>By</th><th>Time</th></tr></thead>
-        <tbody>
-          {% for log in recent_audit %}
-          <tr>
-            <td><code class="small">{{ log.action }}</code></td>
-            <td>{{ log.performed_by.username|default:"System" }}</td>
-            <td class="small text-muted">{{ log.timestamp|date:"d M Y H:i" }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+
+  <!-- Recent Verifications -->
+  <div class="col-lg-4">
+    <div class="adm-card h-100">
+      <div class="adm-card-header">
+        <i class="bi bi-patch-check me-2"></i>Recent Verifications (20)
+      </div>
+      <div class="table-responsive">
+        <table class="table adm-table mb-0">
+          <thead><tr><th>Requester</th><th>Status</th><th>Date</th></tr></thead>
+          <tbody>
+            {% for v in recent_verifications %}
+            <tr>
+              <td class="small">{{ v.requester.username|default:"—" }}</td>
+              <td><span class="adm-badge adm-badge-gray small">{{ v.status }}</span></td>
+              <td class="small text-muted">{{ v.created_at|date:"d M H:i" }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="3" class="text-center text-muted small py-3">No verifications yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
+
 </div>
-{% include "admin_portal/_pagination.html" %}
+
+<!-- Audit Log with filter -->
+<div class="adm-card">
+  <div class="adm-card-header d-flex align-items-center justify-content-between">
+    <span><i class="bi bi-journal-text me-2"></i>Admin Audit Events</span>
+    <span class="badge bg-secondary">{{ total_audit }} total</span>
+  </div>
+
+  <!-- Filter form -->
+  <form method="get" class="p-3 border-bottom d-flex flex-wrap gap-2 align-items-end">
+    <div>
+      <label class="form-label fw-semibold small mb-1">Search</label>
+      <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm"
+             placeholder="Action or username…" style="min-width:180px;">
+    </div>
+    {% if action_type_choices %}
+    <div>
+      <label class="form-label fw-semibold small mb-1">Action Type</label>
+      <select name="action_type" class="form-select form-select-sm" style="min-width:160px;">
+        <option value="">All Types</option>
+        {% for at in action_type_choices %}
+        <option value="{{ at }}" {% if action_type == at %}selected{% endif %}>{{ at }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    {% endif %}
+    <div>
+      <label class="form-label fw-semibold small mb-1">From</label>
+      <input type="date" name="date_from" value="{{ date_from }}" class="form-control form-control-sm">
+    </div>
+    <div>
+      <label class="form-label fw-semibold small mb-1">To</label>
+      <input type="date" name="date_to" value="{{ date_to }}" class="form-control form-control-sm">
+    </div>
+    <div class="d-flex gap-2">
+      <button type="submit" class="btn btn-adm-primary btn-sm px-4">Filter</button>
+      <a href="{% url 'admin_portal:activity_logs' %}" class="btn btn-outline-secondary btn-sm">Clear</a>
+    </div>
+  </form>
+
+  <!-- Table -->
+  <div class="table-responsive">
+    <table class="table adm-table mb-0">
+      <thead>
+        <tr>
+          <th>Action</th>
+          <th>Type</th>
+          <th>Performed By</th>
+          <th>Details</th>
+          <th>Time</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in audit_page %}
+        <tr>
+          <td><code class="small">{{ log.action }}</code></td>
+          <td>
+            {% if log.action_type %}
+              <span class="adm-badge adm-badge-gray small">{{ log.action_type }}</span>
+            {% else %}—{% endif %}
+          </td>
+          <td class="small">{{ log.performed_by.username|default:"System" }}</td>
+          <td class="small text-muted" style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+            {% if log.details %}{{ log.details|truncatechars:80 }}{% else %}—{% endif %}
+          </td>
+          <td class="small text-muted text-nowrap">{{ log.timestamp|date:"d M Y H:i" }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="5" class="text-center text-muted py-5">
+            <i class="bi bi-journal-x fs-2 d-block mb-2"></i>
+            No audit events found{% if q or action_type or date_from or date_to %} matching your filters{% endif %}.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  {% with page_obj=audit_page %}
+  {% if page_obj.has_other_pages %}
+  <div class="px-4 py-3 border-top d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <small class="text-muted">
+      Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+      &nbsp;·&nbsp; {{ total_audit }} total
+    </small>
+    <nav>
+      <ul class="pagination pagination-sm mb-0">
+        {% if page_obj.has_previous %}
+        <li class="page-item">
+          <a class="page-link" href="?{% if q %}q={{ q }}&{% endif %}{% if action_type %}action_type={{ action_type }}&{% endif %}{% if date_from %}date_from={{ date_from }}&{% endif %}{% if date_to %}date_to={{ date_to }}&{% endif %}audit_page={{ page_obj.previous_page_number }}">‹</a>
+        </li>
+        {% endif %}
+        {% for num in page_obj.paginator.page_range %}
+          {% if page_obj.number == num %}
+          <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+          {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
+          <li class="page-item">
+            <a class="page-link" href="?{% if q %}q={{ q }}&{% endif %}{% if action_type %}action_type={{ action_type }}&{% endif %}{% if date_from %}date_from={{ date_from }}&{% endif %}{% if date_to %}date_to={{ date_to }}&{% endif %}audit_page={{ num }}">{{ num }}</a>
+          </li>
+          {% endif %}
+        {% endfor %}
+        {% if page_obj.has_next %}
+        <li class="page-item">
+          <a class="page-link" href="?{% if q %}q={{ q }}&{% endif %}{% if action_type %}action_type={{ action_type }}&{% endif %}{% if date_from %}date_from={{ date_from }}&{% endif %}{% if date_to %}date_to={{ date_to }}&{% endif %}audit_page={{ page_obj.next_page_number }}">›</a>
+        </li>
+        {% endif %}
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+  {% endwith %}
+
+</div>
+
 {% endblock %}

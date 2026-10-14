@@ -2,6 +2,7 @@ from django.urls import path
 from dashboard.admin_views import (
     # Existing
     AdminOverviewView,
+    AdminPlanToggleView,
     AdminSubscriptionActionView,
     AdminUserListView,
     AdminUserToggleStatusView,
@@ -50,6 +51,7 @@ from dashboard.admin_views import (
     AdminDisputeDetailView,
     AdminNotificationsView,
     AdminVerificationDetailView,
+    AdminCertificateDetailView
 )
 
 app_name = 'admin_portal'
@@ -103,6 +105,7 @@ urlpatterns = [
     path('plans/', AdminPlansView.as_view(), name='plans'),
     path('plans/new/', AdminPlanCreateEditView.as_view(), name='plan_create'),
     path('plans/<int:pk>/edit/', AdminPlanCreateEditView.as_view(), name='plan_edit'),
+    path('plans/<int:pk>/toggle/', AdminPlanToggleView.as_view(), name='plan_toggle'),
     path('users/<uuid:public_id>/credit-subscription/', AdminCreditSubscriptionView.as_view(), name='credit_subscription'),
 
     # ── Logs ────────────────────────────────────────────────────────────────
@@ -124,6 +127,7 @@ urlpatterns = [
     # ── Certificates ─────────────────────────────────────────────────────────
     path('certificates/', AdminCertificatesView.as_view(), name='certificates'),
     path('certificates/<int:pk>/action/', AdminCertificateActionView.as_view(), name='certificate_action'),
+    path('certificates/<int:pk>/', AdminCertificateDetailView.as_view(), name='certificate_detail'),
 
 ]
 
