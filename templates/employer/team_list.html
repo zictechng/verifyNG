@@ -1,4 +1,3 @@
-
 {% extends 'public/base.html' %}
 {% load static %}
 
@@ -15,7 +14,45 @@
         </div>
     </div>
 
-    <div class="vng-card">
+    {# ── Invite form card ───────────────────────────────────────────────────── #}
+    <div class="vng-card p-4 mb-4">
+        <h2 class="h6 fw-bold mb-3">Invite a New Team Member</h2>
+        <div class="row g-2 align-items-end">
+            <div class="col-12 col-md-5">
+                <label for="inviteEmail" class="form-label small fw-semibold">Email Address</label>
+                <input
+                    type="email"
+                    id="inviteEmail"
+                    class="form-control"
+                    placeholder="colleague@company.com"
+                    autocomplete="off"
+                >
+            </div>
+            <div class="col-12 col-md-3">
+                <label for="inviteRole" class="form-label small fw-semibold">Role</label>
+                <select id="inviteRole" class="form-select">
+                    <option value="checker" selected>Checker</option>
+                    <option value="admin">Team Admin</option>
+                    <option value="viewer">Viewer</option>
+                </select>
+            </div>
+            <div class="col-12 col-md-4">
+                <button
+                    type="button"
+                    class="btn btn-vng-primary w-100"
+                    onclick="sendInvite()"
+                >
+                    Send Invitation
+                </button>
+            </div>
+        </div>
+        <p class="small text-muted mt-2 mb-0">
+            An email with an accept link will be sent. Invitations expire after 7 days.
+        </p>
+    </div>
+
+    {# ── Members table ──────────────────────────────────────────────────────── #}
+    <div class="vng-card" id="membersCard">
         {% if members %}
         <div class="table-responsive">
             <table class="table mb-0" style="font-size:0.875rem;">
@@ -26,11 +63,12 @@
                         <th class="fw-semibold py-3">Invited By</th>
                         <th class="fw-semibold py-3">Joined</th>
                         <th class="fw-semibold py-3">Status</th>
+                        <th class="fw-semibold py-3"></th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for member in members %}
-                    <tr style="border-bottom:1px solid var(--vng-border);">
+                    <tr id="member-row-{{ member.id }}" style="border-bottom:1px solid var(--vng-border);">
                         <td class="px-4 py-3">
                             <div class="d-flex align-items-center gap-2">
                                 <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
@@ -47,19 +85,15 @@
                         </td>
                         <td class="py-3">
                             {% if member.team_role == 'admin' %}
-                                <span class="badge" style="background:var(--vng-primary-light);color:var(--vng-primary);">
-                                    Team Admin
-                                </span>
+                                <span class="badge" style="background:var(--vng-primary-light);color:var(--vng-primary);">Team Admin</span>
                             {% elif member.team_role == 'checker' %}
-                                <span class="badge" style="background:var(--vng-teal-light);color:var(--vng-teal);">
-                                    Checker
-                                </span>
+                                <span class="badge" style="background:var(--vng-teal-light);color:var(--vng-teal);">Checker</span>
                             {% else %}
                                 <span class="badge bg-light text-dark">Viewer</span>
                             {% endif %}
                         </td>
                         <td class="py-3 text-muted">
-                        {% if member.invited_by %}{{ member.invited_by.get_full_name|default:member.invited_by.username }}{% else %}—{% endif %}
+                            {% if member.invited_by %}{{ member.invited_by.get_full_name|default:member.invited_by.username }}{% else %}—{% endif %}
                         </td>
                         <td class="py-3 text-muted">
                             {{ member.joined_at|date:"d M Y"|default:"Pending" }}
@@ -71,13 +105,25 @@
                                 <span class="badge bg-secondary">Inactive</span>
                             {% endif %}
                         </td>
+                        <td class="py-3">
+                            {% if member.user != request.user %}
+                            <button
+                                type="button"
+                                class="btn btn-sm btn-outline-danger"
+                                style="font-size:0.8rem;padding:0.25rem 0.6rem;"
+                                onclick="removeMember('{{ member.id }}', '{{ member.user.get_full_name|default:member.user.username }}')"
+                            >
+                                Remove
+                            </button>
+                            {% endif %}
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
         {% else %}
-        <div class="text-center py-5 text-muted">
+        <div class="text-center py-5 text-muted" id="emptyState">
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="mb-3 opacity-40">
                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
                 <circle cx="9" cy="7" r="4"/>
@@ -85,11 +131,78 @@
                 <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
             </svg>
             <div class="fw-semibold mb-1">No team members yet</div>
-            <p class="small mb-0">Team member invitations are coming in a future update.</p>
+            <p class="small mb-0">Send an invitation above to add your first team member.</p>
         </div>
         {% endif %}
     </div>
 
 </div>
+
+{# ── Toast container ────────────────────────────────────────────────────────── #}
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index:1100;" id="toastContainer"></div>
+
+<script>
+const CSRF_TOKEN = '{{ csrf_token }}';
+
+function showToast(message, ok) {
+    const id = 'toast-' + Date.now();
+    const colour = ok ? '#198754' : '#dc3545';
+    const html = `
+        <div id="${id}" class="toast align-items-center text-white border-0 show mb-2"
+             role="alert" style="background:${colour};border-radius:8px;min-width:280px;">
+            <div class="d-flex">
+                <div class="toast-body fw-semibold" style="font-size:0.875rem;">${message}</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto"
+                        onclick="document.getElementById('${id}').remove()"></button>
+            </div>
+        </div>`;
+    document.getElementById('toastContainer').insertAdjacentHTML('beforeend', html);
+    setTimeout(() => { const el = document.getElementById(id); if (el) el.remove(); }, 5000);
+}
+
+function sendInvite() {
+    const email    = document.getElementById('inviteEmail').value.trim();
+    const teamRole = document.getElementById('inviteRole').value;
+
+    if (!email) { showToast('Please enter an email address.', false); return; }
+
+    if (!confirm(`Send a team invitation to ${email}?\n\nThey will receive an email with a link to join ${document.title.split('|')[0].trim()}.`)) return;
+
+    fetch('{% url "employer:team_invite_send" %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': CSRF_TOKEN,
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({ email, team_role: teamRole }),
+    })
+    .then(r => r.json())
+    .then(data => {
+        showToast(data.message, data.ok);
+        if (data.ok) {
+            document.getElementById('inviteEmail').value = '';
+        }
+    })
+    .catch(() => showToast('Network error — please try again.', false));
+}
+
+function removeMember(memberId, name) {
+    if (!confirm(`Remove ${name} from the team?\n\nThey will lose access to this employer account immediately.`)) return;
+
+    fetch(`/employer/team/${memberId}/remove/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': CSRF_TOKEN },
+    })
+    .then(r => r.json())
+    .then(data => {
+        showToast(data.message, data.ok);
+        if (data.ok) {
+            const row = document.getElementById('member-row-' + memberId);
+            if (row) row.remove();
+        }
+    })
+    .catch(() => showToast('Network error — please try again.', false));
+}
+</script>
 {% endblock %}
 

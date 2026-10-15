@@ -25,7 +25,12 @@ urlpatterns = [
     path('bulk-checks/template.csv', views.bulk_csv_template, name='bulk_csv_template'),
     path('bulk-checks/<uuid:upload_id>/', views.bulk_upload_detail, name='bulk_upload_detail'),
 
-    # Team
+    # Team — BATCH 3
     path('team/', views.team_list, name='team_list'),
+    path('team/invite/', views.team_invite_send, name='team_invite_send'),
+    path('team/<int:member_id>/remove/', views.team_member_remove, name='team_member_remove'),
+
+    # Team invitation accept — public (no employer_required)
+    path('invite/accept/<str:token>/', views.team_invite_accept, name='team_invite_accept'),
 ]
 

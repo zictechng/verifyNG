@@ -5,7 +5,7 @@ from django.db import models
 from django.utils import timezone
 from users.models import User
 import hashlib
-
+import secrets as _secrets
 
 class EmployerProfile(models.Model):
     """
@@ -333,6 +333,82 @@ class StaffCheckMonitor(models.Model):
 
     def __str__(self):
         return f"Monitor: {self.check_request.full_name} — {self.get_monitor_status_display()}"
+
+
+
+# ── BATCH 3: Team Invitations ─────────────────────────────────────────────────
+
+class TeamInvite(models.Model):
+    """
+    A pending invitation email sent to a new team member.
+    Token is a URL-safe 48-character random string.
+    Expires 7 days after creation.
+    """
+    STATUS_CHOICES = (
+        ('pending',  'Pending — not yet accepted'),
+        ('accepted', 'Accepted'),
+        ('expired',  'Expired'),
+        ('revoked',  'Revoked'),
+    )
+    ROLE_CHOICES = (
+        ('admin',   'Team Admin'),
+        ('checker', 'Checker'),
+        ('viewer',  'Viewer'),
+    )
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    employer = models.ForeignKey(
+        EmployerProfile,
+        on_delete=models.CASCADE,
+        related_name='invitations',
+    )
+    invited_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='invitations_sent',
+    )
+    email = models.EmailField(db_index=True)
+    team_role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='checker')
+    token = models.CharField(max_length=64, unique=True, db_index=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', db_index=True)
+    accepted_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='invitations_accepted',
+    )
+    expires_at = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = 'Team Invitation'
+        verbose_name_plural = 'Team Invitations'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['employer', 'status']),
+        ]
+
+    def __str__(self):
+        return f"Invite → {self.email} ({self.employer.company_name}) [{self.get_status_display()}]"
+
+    @classmethod
+    def generate_token(cls) -> str:
+        return _secrets.token_urlsafe(36)
+
+    @property
+    def is_expired(self) -> bool:
+        from django.utils import timezone
+        return self.expires_at < timezone.now()
+
+    @property
+    def is_usable(self) -> bool:
+        return self.status == 'pending' and not self.is_expired
+
+
 
 
 

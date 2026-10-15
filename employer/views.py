@@ -17,7 +17,13 @@ from .models import BulkCheckUpload, BulkCheckRow
 
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
+from django.shortcuts import redirect as _redirect
+from .models import TeamInvite
+from datetime import timedelta
 
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
+from django.utils import timezone
 
 from core.permissions import employer_required
 from .models import BulkCheckUpload, EmployerProfile, TeamMember
@@ -533,6 +539,193 @@ def bulk_csv_template(request):
     response = HttpResponse(content, content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="verifyng_bulk_check_template.csv"'
     return response
+
+
+
+# ---------------------------------------------------------------------------
+# Team Management — BATCH 3 (invite + remove)
+# ---------------------------------------------------------------------------
+
+@login_required
+@employer_required
+@require_POST
+def team_invite_send(request):
+    """
+    Fetch + Toast: send a team invitation email to a new member.
+    Creates a TeamInvite record with a 7-day expiry token.
+    """
+    profile = _get_or_create_employer_profile(request.user)
+    
+    email = request.POST.get('email', '').strip().lower()
+    team_role = request.POST.get('team_role', 'checker')
+
+    if not email:
+        return JsonResponse({'ok': False, 'message': 'Email address is required.'}, status=400)
+    if team_role not in ('admin', 'checker', 'viewer'):
+        team_role = 'checker'
+
+    # Reject if already a live team member
+    already_member = TeamMember.objects.filter(
+        employer=profile, user__email=email, is_active=True
+    ).exists()
+    if already_member:
+        return JsonResponse({'ok': False, 'message': f'{email} is already a team member.'}, status=400)
+
+    # Revoke any existing pending invite for same email+employer before creating a new one
+    TeamInvite.objects.filter(employer=profile, email=email, status='pending').update(
+        status='revoked', updated_at=timezone.now()
+    )
+
+    token = TeamInvite.generate_token()
+    invite = TeamInvite.objects.create(
+        employer=profile,
+        invited_by=request.user,
+        email=email,
+        team_role=team_role,
+        token=token,
+        expires_at=timezone.now() + timedelta(days=7),
+    )
+
+    # Build accept URL
+    accept_url = request.build_absolute_uri(
+        f'/employer/invite/accept/{token}/'
+    )
+
+    # Send invitation email
+    try:
+        subject = f"You've been invited to join {profile.company_name} on VerifyNG"
+        body = (
+            f"Hi,\n\n"
+            f"You have been invited by {request.user.get_full_name() or request.user.username} "
+            f"to join {profile.company_name} on VerifyNG as a {invite.get_team_role_display()}.\n\n"
+            f"Click the link below to accept the invitation:\n{accept_url}\n\n"
+            f"This invitation expires in 7 days.\n\n"
+            f"If you did not expect this invitation, you can safely ignore this email.\n\n"
+            f"— The VerifyNG Team"
+        )
+        send_mail(
+            subject=subject,
+            message=body,
+            from_email=None,  # uses DEFAULT_FROM_EMAIL from settings
+            recipient_list=[email],
+            fail_silently=False,
+        )
+    except Exception as exc:
+        logger.warning("team_invite_send: email send failed for %s: %s", email, exc)
+        # Invitation was created in DB — email failure is non-fatal
+        return JsonResponse({
+            'ok': True,
+            'message': (
+                f'Invitation created for {email} but the email could not be sent. '
+                'Please share the invite link manually or retry.'
+            ),
+        })
+
+    return JsonResponse({
+        'ok': True,
+        'message': f'Invitation sent to {email}. They have 7 days to accept.',
+    })
+
+
+def team_invite_accept(request, token):
+    """
+    Public view — no login required at URL level.
+    The invited user clicks the link from their email.
+    - If not logged in → redirect to login with ?next= back to this URL.
+    - If logged in → validate token, create TeamMember, mark invite accepted.
+    """
+    try:
+        invite = TeamInvite.objects.select_related('employer').get(token=token)
+    except TeamInvite.DoesNotExist:
+        return render(request, 'employer/invite_accept.html', {
+            'error': 'This invitation link is invalid or has already been used.',
+            'page_title': 'Team Invitation',
+        })
+
+    if not invite.is_usable:
+        status_label = invite.get_status_display()
+        if invite.is_expired and invite.status == 'pending':
+            invite.status = 'expired'
+            invite.save(update_fields=['status', 'updated_at'])
+            status_label = 'expired'
+        return render(request, 'employer/invite_accept.html', {
+            'error': f'This invitation is no longer valid ({status_label}).',
+            'page_title': 'Team Invitation',
+        })
+
+    if not request.user.is_authenticated:
+        login_url = f"/users/login/?next=/employer/invite/accept/{token}/"
+        return _redirect(login_url)
+
+    # Check email matches logged-in user
+    if request.user.email.lower() != invite.email.lower():
+        return render(request, 'employer/invite_accept.html', {
+            'error': (
+                f'This invitation was sent to {invite.email}. '
+                f'You are currently logged in as {request.user.email}. '
+                'Please log in with the correct account to accept.'
+            ),
+            'page_title': 'Team Invitation',
+        })
+
+    if request.method == 'POST':
+        with transaction.atomic():
+            # Avoid duplicate
+            member, created = TeamMember.objects.get_or_create(
+                employer=invite.employer,
+                user=request.user,
+                defaults={
+                    'team_role': invite.team_role,
+                    'invited_by': invite.invited_by,
+                    'joined_at': timezone.now(),
+                    'is_active': True,
+                },
+            )
+            if not created:
+                # Already a member — reactivate + update role
+                member.is_active = True
+                member.team_role = invite.team_role
+                member.joined_at = member.joined_at or timezone.now()
+                member.save(update_fields=['is_active', 'team_role', 'joined_at', 'updated_at'])
+
+            invite.status = 'accepted'
+            invite.accepted_by = request.user
+            invite.save(update_fields=['status', 'accepted_by', 'updated_at'])
+
+        messages.success(
+            request,
+            f"You have joined {invite.employer.company_name} as a {invite.get_team_role_display()}."
+        )
+        return redirect('employer:team_list')
+
+    # GET — show confirmation screen
+    return render(request, 'employer/invite_accept.html', {
+        'invite': invite,
+        'page_title': 'Accept Team Invitation',
+    })
+
+
+@login_required
+@employer_required
+@require_POST
+def team_member_remove(request, member_id):
+    """
+    Fetch + Toast: soft-delete a team member (sets is_active=False).
+    Cannot remove yourself.
+    """
+    profile = _get_or_create_employer_profile(request.user)
+
+    member = get_object_or_404(TeamMember, id=member_id, employer=profile, is_active=True)
+
+    if member.user == request.user:
+        return JsonResponse({'ok': False, 'message': 'You cannot remove yourself from the team.'}, status=400)
+
+    name = member.user.get_full_name() or member.user.username
+    member.is_active = False
+    member.save(update_fields=['is_active', 'updated_at'])
+
+    return JsonResponse({'ok': True, 'message': f'{name} has been removed from the team.'})
+
 
 
 
