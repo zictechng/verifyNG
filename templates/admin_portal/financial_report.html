@@ -3,91 +3,85 @@
 
 {% block title %}Financial Reports — VerifyNG Admin{% endblock %}
 
-{% block breadcrumb %}
-<li class="breadcrumb-item active">Financial Reports</li>
-{% endblock %}
+{% block admin_body %}
 
-{% block content %}
 <div class="adm-page-header">
     <h1 class="adm-page-title">Financial Reports</h1>
-    <p class="text-muted small mb-0">Revenue summary, transaction history and downloadable statements</p>
-    <div class="d-flex gap-2 flex-wrap mt-2">
+    <p class="small mb-2" style="color:var(--adm-muted);">Revenue summary, transaction history and downloadable statements</p>
+    <div class="d-flex gap-2 flex-wrap">
         <a href="?{{ request.GET.urlencode }}&download=csv"
-           class="btn btn-sm btn-outline-secondary">
-            ⬇ Export CSV
-        </a>
+           class="btn btn-sm btn-outline-secondary">⬇ Export CSV</a>
         <a href="?{{ request.GET.urlencode }}&download=pdf"
-           class="btn btn-sm btn-adm-primary">
-            ⬇ Download PDF Statement
-        </a>
+           class="btn btn-sm btn-adm-primary">⬇ Download PDF Statement</a>
     </div>
 </div>
 
 <!-- Date Range Filter -->
-<div class="adm-card p-3 mb-4">
-    <form method="get" class="row g-2 align-items-end">
-        <div class="col-sm-4 col-md-3">
-            <label class="form-label small fw-semibold text-muted mb-1">From Date</label>
-            <input type="date" name="date_from" class="form-control form-control-sm"
-                   value="{{ date_from_str }}">
-        </div>
-        <div class="col-sm-4 col-md-3">
-            <label class="form-label small fw-semibold text-muted mb-1">To Date</label>
-            <input type="date" name="date_to" class="form-control form-control-sm"
-                   value="{{ date_to_str }}">
-        </div>
-        <div class="col-sm-4 col-md-3">
-            <label class="form-label small fw-semibold text-muted mb-1">Status</label>
-            <select name="status" class="form-select form-select-sm">
-                <option value="">All Statuses</option>
-                <option value="success" {% if status_filter == 'success' %}selected{% endif %}>Success</option>
-                <option value="failed" {% if status_filter == 'failed' %}selected{% endif %}>Failed</option>
-                <option value="refunded" {% if status_filter == 'refunded' %}selected{% endif %}>Refunded</option>
-                <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
-            </select>
-        </div>
-        <div class="col-sm-12 col-md-3">
-            <button type="submit" class="btn btn-adm-primary btn-sm w-100">Apply Filter</button>
-        </div>
-    </form>
+<div class="adm-card mb-4">
+    <div class="adm-card-header"><span class="adm-card-title">Filter by Date &amp; Status</span></div>
+    <div class="p-3">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-sm-6 col-md-3">
+                <label class="form-label small fw-semibold mb-1" style="color:var(--adm-muted);">From Date</label>
+                <input type="date" name="date_from" class="form-control form-control-sm" value="{{ date_from_str }}">
+            </div>
+            <div class="col-sm-6 col-md-3">
+                <label class="form-label small fw-semibold mb-1" style="color:var(--adm-muted);">To Date</label>
+                <input type="date" name="date_to" class="form-control form-control-sm" value="{{ date_to_str }}">
+            </div>
+            <div class="col-sm-6 col-md-3">
+                <label class="form-label small fw-semibold mb-1" style="color:var(--adm-muted);">Status</label>
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">All Statuses</option>
+                    <option value="success"  {% if status_filter == 'success'  %}selected{% endif %}>Success</option>
+                    <option value="failed"   {% if status_filter == 'failed'   %}selected{% endif %}>Failed</option>
+                    <option value="refunded" {% if status_filter == 'refunded' %}selected{% endif %}>Refunded</option>
+                    <option value="pending"  {% if status_filter == 'pending'  %}selected{% endif %}>Pending</option>
+                </select>
+            </div>
+            <div class="col-sm-6 col-md-3">
+                <button type="submit" class="btn btn-adm-primary btn-sm w-100">Apply Filter</button>
+            </div>
+        </form>
+    </div>
 </div>
 
-<!-- KPI Summary Row -->
+<!-- KPI Cards -->
 <div class="row g-3 mb-4">
     <div class="col-6 col-md-3">
         <div class="adm-card p-3 text-center h-100">
-            <p class="small text-muted fw-semibold mb-1">Total Revenue</p>
+            <p class="small fw-semibold mb-1" style="color:var(--adm-muted);">Total Revenue</p>
             <p class="h4 fw-bold text-success mb-0">₦{{ total_revenue_naira|floatformat:2 }}</p>
-            <p class="small text-muted mb-0">in period</p>
+            <p class="small mb-0" style="color:var(--adm-muted);">in period</p>
         </div>
     </div>
     <div class="col-6 col-md-3">
         <div class="adm-card p-3 text-center h-100">
-            <p class="small text-muted fw-semibold mb-1">Transactions</p>
+            <p class="small fw-semibold mb-1" style="color:var(--adm-muted);">Transactions</p>
             <p class="h4 fw-bold text-primary mb-0">{{ total_transactions }}</p>
-            <p class="small text-muted mb-0">successful</p>
+            <p class="small mb-0" style="color:var(--adm-muted);">successful</p>
         </div>
     </div>
     <div class="col-6 col-md-3">
         <div class="adm-card p-3 text-center h-100">
-            <p class="small text-muted fw-semibold mb-1">Avg. Transaction</p>
+            <p class="small fw-semibold mb-1" style="color:var(--adm-muted);">Avg. Transaction</p>
             <p class="h4 fw-bold mb-0">₦{{ avg_transaction_naira|floatformat:2 }}</p>
-            <p class="small text-muted mb-0">per payment</p>
+            <p class="small mb-0" style="color:var(--adm-muted);">per payment</p>
         </div>
     </div>
     <div class="col-6 col-md-3">
         <div class="adm-card p-3 text-center h-100">
-            <p class="small text-muted fw-semibold mb-1">Active Subscriptions</p>
+            <p class="small fw-semibold mb-1" style="color:var(--adm-muted);">Active Subscriptions</p>
             <p class="h4 fw-bold text-info mb-0">{{ active_subscriptions }}</p>
-            <p class="small text-muted mb-0">current period</p>
+            <p class="small mb-0" style="color:var(--adm-muted);">current period</p>
         </div>
     </div>
 </div>
 
-<!-- Monthly Revenue Breakdown -->
+<!-- Monthly Breakdown -->
 <div class="adm-card mb-4">
     <div class="adm-card-header d-flex align-items-center justify-content-between">
-        <span class="fw-semibold">Monthly Breakdown</span>
+        <span class="adm-card-title">Monthly Breakdown</span>
         <span class="badge bg-secondary">{{ date_from_str }} → {{ date_to_str }}</span>
     </div>
     <div class="table-responsive">
@@ -111,9 +105,7 @@
                     <td class="text-end fw-bold px-3">₦{{ row.net|floatformat:2 }}</td>
                 </tr>
                 {% empty %}
-                <tr>
-                    <td colspan="5" class="text-center text-muted py-4">No transactions in the selected period</td>
-                </tr>
+                <tr><td colspan="5" class="text-center py-4" style="color:var(--adm-muted);">No transactions in the selected period</td></tr>
                 {% endfor %}
             </tbody>
             {% if monthly_breakdown %}
@@ -134,7 +126,7 @@
 <!-- Revenue by Plan -->
 <div class="adm-card mb-4">
     <div class="adm-card-header">
-        <span class="fw-semibold">Revenue by Plan</span>
+        <span class="adm-card-title">Revenue by Plan</span>
     </div>
     <div class="table-responsive">
         <table class="table table-sm table-hover mb-0">
@@ -153,9 +145,7 @@
                     <td class="text-end fw-bold px-3">₦{{ row.revenue|floatformat:2 }}</td>
                 </tr>
                 {% empty %}
-                <tr>
-                    <td colspan="3" class="text-center text-muted py-3">No plan data available</td>
-                </tr>
+                <tr><td colspan="3" class="text-center py-3" style="color:var(--adm-muted);">No plan data available</td></tr>
                 {% endfor %}
             </tbody>
         </table>
@@ -165,8 +155,8 @@
 <!-- Transaction Ledger -->
 <div class="adm-card">
     <div class="adm-card-header d-flex align-items-center justify-content-between">
-        <span class="fw-semibold">Transaction Ledger</span>
-        <span class="text-muted small">{{ transactions.paginator.count }} record(s)</span>
+        <span class="adm-card-title">Transaction Ledger</span>
+        <span class="small" style="color:var(--adm-muted);">{{ transactions.paginator.count }} record(s)</span>
     </div>
     <div class="table-responsive">
         <table class="table table-sm table-hover mb-0">
@@ -188,21 +178,14 @@
                     <td class="small">{{ txn.plan.name|default:"—" }}</td>
                     <td class="text-end fw-semibold">₦{{ txn.amount_naira|floatformat:2 }}</td>
                     <td>
-                        <span class="badge
-                            {% if txn.status == 'success' %}bg-success
-                            {% elif txn.status == 'failed' %}bg-danger
-                            {% elif txn.status == 'refunded' %}bg-warning text-dark
-                            {% elif txn.status == 'pending' %}bg-secondary
-                            {% else %}bg-light text-dark{% endif %}">
+                        <span class="badge {% if txn.status == 'success' %}bg-success{% elif txn.status == 'failed' %}bg-danger{% elif txn.status == 'refunded' %}bg-warning text-dark{% elif txn.status == 'pending' %}bg-secondary{% else %}bg-light text-dark{% endif %}">
                             {{ txn.get_status_display }}
                         </span>
                     </td>
-                    <td class="small px-3 text-muted">{{ txn.created_at|date:"d M Y H:i" }}</td>
+                    <td class="small px-3" style="color:var(--adm-muted);">{{ txn.created_at|date:"d M Y H:i" }}</td>
                 </tr>
                 {% empty %}
-                <tr>
-                    <td colspan="6" class="text-center text-muted py-4">No transactions in this period</td>
-                </tr>
+                <tr><td colspan="6" class="text-center py-4" style="color:var(--adm-muted);">No transactions in this period</td></tr>
                 {% endfor %}
             </tbody>
         </table>
@@ -213,5 +196,6 @@
     </div>
     {% endif %}
 </div>
+
 {% endblock %}
 
