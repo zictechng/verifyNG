@@ -100,14 +100,15 @@ class UserLoginView(LoginView):
         """Route to the correct portal based on user role."""
         user = self.request.user
         role = getattr(user, 'role', 'individual')
+
         if user.is_superuser or user.is_staff:
-            return reverse('admin_portal:dashboard')
+            return reverse('admin_portal:overview')
         if role == 'employer':
             return reverse('employer:dashboard')
+        if role in ('moderator', 'officer'):
+            return reverse('admin_portal:overview')
         if role == 'agency':
             return reverse('dashboard:index')
-        if role in ('moderator', 'officer'):
-            return reverse('admin_portal:dashboard')
         # Default: individual / business
         return reverse('dashboard:index')
 

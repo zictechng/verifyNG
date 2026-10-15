@@ -351,7 +351,7 @@
                                 </span>
                                 {% endif %}
                             </a>
-                                                        <div class="position-relative" x-data="{ open: false }" @click.outside="open = false">
+                                <div class="position-relative" x-data="{ open: false }" @click.outside="open = false">
                                 <button class="vng-avatar-btn" @click="open = !open" title="Account menu">
                                     <span class="vng-avatar-circle">{{ user.get_full_name|default:user.username|slice:":1"|upper }}</span>
                                 </button>
@@ -365,14 +365,20 @@
                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
                                         Profile
                                     </a>
-                                    <a href="{% url 'dashboard:index' %}" class="vng-avatar-item">
+                                    {% if user.is_superuser or user.is_staff or user.role == 'moderator' or user.role == 'officer' %}
+                                    <a href="{% url 'admin_portal:overview' %}" class="vng-avatar-item">
+                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                                        Admin Portal
+                                    </a>
+                                    {% elif user.role == 'employer' %}
+                                    <a href="{% url 'employer:dashboard' %}" class="vng-avatar-item">
                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
                                         Dashboard
                                     </a>
-                                    {% if user.role == 'employer' %}
-                                    <a href="{% url 'employer:dashboard' %}" class="vng-avatar-item">
-                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                                        Employer Portal
+                                    {% else %}
+                                    <a href="{% url 'dashboard:index' %}" class="vng-avatar-item">
+                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                                        My Dashboard
                                     </a>
                                     {% endif %}
                                     <a href="{% url 'notifications:list' %}" class="vng-avatar-item">
@@ -400,7 +406,13 @@
                 <!-- Mobile Header Right Quick Action Pill -->
                 <div class="d-flex d-md-none align-items-center gap-2">
                     {% if user.is_authenticated %}
+                        {% if user.is_superuser or user.is_staff or user.role == 'moderator' or user.role == 'officer' %}
+                        <a href="{% url 'admin_portal:overview' %}" class="btn btn-vng-outline btn-sm py-1 px-2">Portal</a>
+                        {% elif user.role == 'employer' %}
+                        <a href="{% url 'employer:dashboard' %}" class="btn btn-vng-outline btn-sm py-1 px-2">Portal</a>
+                        {% else %}
                         <a href="{% url 'dashboard:index' %}" class="btn btn-vng-outline btn-sm py-1 px-2">Account</a>
+                        {% endif %}
                     {% else %}
                         <a href="{% url 'users:login' %}" class="btn btn-vng-primary btn-sm py-1 px-3">Login</a>
                     {% endif %}
