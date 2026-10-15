@@ -16,6 +16,7 @@ from django.http import HttpResponse
 from .models import BulkCheckUpload, BulkCheckRow
 from reports.models import FraudReport
 from identities.models import Identifier, SubjectEntity
+from django.core.mail import EmailMultiAlternatives
 
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
@@ -610,24 +611,48 @@ def team_invite_send(request):
     )
 
     # Send invitation email
+        # Send invitation email (HTML + plain text fallback)
     try:
-        subject = f"You've been invited to join {profile.company_name} on VerifyNG"
-        body = (
+
+        email_subject = f"You've been invited to join {profile.company_name} on VerifyNG"
+
+        invited_by_name = request.user.get_full_name() or request.user.username
+
+        ctx = {
+            'company_name': profile.company_name,
+            'invited_by':   invited_by_name,
+            'role_display': invite.get_team_role_display(),
+            'accept_url':   accept_url,
+            'invite_email': email,
+            'expires_at':   invite.expires_at.strftime('%d %B %Y'),
+            # base_email.html context
+            'site_name':    'VerifyNG',
+            'site_url':     request.build_absolute_uri('/'),
+            'support_email': 'support@verifyng.ng',
+            'company_reg':  '',
+            'logo_url':     '',
+        }
+
+        html_body  = render_to_string('emails/team_invite.html', ctx)
+        plain_body = (
             f"Hi,\n\n"
-            f"You have been invited by {request.user.get_full_name() or request.user.username} "
-            f"to join {profile.company_name} on VerifyNG as a {invite.get_team_role_display()}.\n\n"
-            f"Click the link below to accept the invitation:\n{accept_url}\n\n"
-            f"This invitation expires in 7 days.\n\n"
-            f"If you did not expect this invitation, you can safely ignore this email.\n\n"
+            f"{invited_by_name} has invited you to join {profile.company_name} on VerifyNG "
+            f"as a {invite.get_team_role_display()}.\n\n"
+            f"Accept the invitation here:\n{accept_url}\n\n"
+            f"This invitation expires on {ctx['expires_at']}.\n\n"
+            f"If you did not expect this, you can safely ignore this email.\n\n"
             f"— The VerifyNG Team"
         )
-        send_mail(
-            subject=subject,
-            message=body,
-            from_email=None,  # uses DEFAULT_FROM_EMAIL from settings
-            recipient_list=[email],
-            fail_silently=False,
+
+        msg = EmailMultiAlternatives(
+            subject=email_subject,
+            body=plain_body,
+            from_email=None,          # uses DEFAULT_FROM_EMAIL from settings
+            to=[email],
         )
+        msg.attach_alternative(html_body, 'text/html')
+        msg.send(fail_silently=False)
+
     except Exception as exc:
         logger.warning("team_invite_send: email send failed for %s: %s", email, exc)
         # Invitation was created in DB — email failure is non-fatal

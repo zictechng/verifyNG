@@ -1,0 +1,47 @@
+
+{% extends 'emails/base_email.html' %}
+
+{% block subject %}You've been invited to join {{ company_name }} on VerifyNG{% endblock %}
+
+{% block body %}
+
+<p>Hi there,</p>
+
+<p>
+    <strong>{{ invited_by }}</strong> has invited you to join
+    <strong>{{ company_name }}</strong> on <strong>VerifyNG</strong>
+    as a <strong>{{ role_display }}</strong>.
+</p>
+
+<p>
+    As a team member, you'll be able to run background and trust checks on
+    behalf of {{ company_name }} through the VerifyNG employer portal.
+</p>
+
+<div class="btn-wrap">
+    <a href="{{ accept_url }}" class="btn">Accept Invitation</a>
+</div>
+
+<div class="notice notice-warning">
+    <p>
+        This invitation expires on <strong>{{ expires_at }}</strong>.
+        If you did not expect this, you can safely ignore this email —
+        no account will be created without your action.
+    </p>
+</div>
+
+<p>
+    If the button above doesn't work, copy and paste this link into your browser:
+    <br>
+    <a href="{{ accept_url }}" style="color:#0071e3;word-break:break-all;">{{ accept_url }}</a>
+</p>
+
+<hr class="divider">
+
+<p style="font-size:14px;color:#6e6e73;">
+    You are receiving this because {{ invited_by }} used VerifyNG to send you a team invitation.
+    This invitation is intended for <strong>{{ invite_email }}</strong>.
+    If this was sent to you by mistake, please disregard it.
+</p>
+
+{% endblock %}
