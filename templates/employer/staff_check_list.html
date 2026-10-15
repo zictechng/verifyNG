@@ -14,9 +14,14 @@
             <h1 class="h3 fw-bold mb-1">Staff Background Checks</h1>
             <p class="small text-muted mb-0">Submit and track verification checks for your staff members.</p>
         </div>
-        <div>
+            <div class="d-flex gap-2 flex-wrap">
             <a href="{% url 'employer:staff_check_create' %}" class="btn btn-vng-primary">
                 + New Staff Check
+            </a>
+            <a href="{% url 'employer:staff_check_export' %}{% if status_filter %}?status={{ status_filter }}{% endif %}"
+               class="btn btn-vng-outline"
+               title="Download staff check history as CSV">
+                ⬇ Export CSV
             </a>
         </div>
     </div>

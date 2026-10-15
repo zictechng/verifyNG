@@ -883,3 +883,65 @@ def person_check_search(request):
     return render(request, 'employer/person_check.html', context)
 
 
+# ---------------------------------------------------------------------------
+# CSV Export — BATCH 8
+# ---------------------------------------------------------------------------
+
+@login_required
+@employer_required
+def staff_check_export_csv(request):
+    """
+    Stream the employer's staff check history as a downloadable CSV file.
+    NIN hashes are NEVER exported — only non-sensitive fields.
+    """
+    profile = _get_or_create_employer_profile(request.user)
+
+    qs = (
+        StaffCheckRequest.objects
+        .filter(employer=profile, is_active=True)
+        .order_by('-created_at')
+    )
+
+    # Apply the same status filter if passed via query param
+    status_filter = request.GET.get('status', '')
+    if status_filter in ('pending', 'processing', 'completed', 'failed', 'cancelled'):
+        qs = qs.filter(status=status_filter)
+
+    response = HttpResponse(content_type='text/csv')
+    filename = f"verifyng_staff_checks_{timezone.now().strftime('%Y%m%d_%H%M')}.csv"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+    writer = csv.writer(response)
+    writer.writerow([
+        'Reference ID',
+        'Full Name',
+        'Phone Number',
+        'Email',
+        'Check Type',
+        'Purpose',
+        'Status',
+        'Fraud Flags',
+        'Result Summary',
+        'Submitted Date',
+        'Completed Date',
+    ])
+
+    for check in qs:
+        writer.writerow([
+            str(check.id)[:8].upper(),
+            check.full_name,
+            check.phone_number or '—',
+            check.email or '—',
+            check.get_check_type_display(),
+            check.purpose or '—',
+            check.get_status_display(),
+            check.fraud_flags,
+            check.result_summary or '—',
+            check.created_at.strftime('%Y-%m-%d %H:%M') if check.created_at else '—',
+            check.completed_at.strftime('%Y-%m-%d %H:%M') if check.completed_at else '—',
+        ])
+
+    return response
+
+
+

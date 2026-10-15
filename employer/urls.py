@@ -24,6 +24,8 @@ urlpatterns = [
     path('bulk-checks/upload/', views.bulk_upload_create, name='bulk_upload_create'),
     path('bulk-checks/template.csv', views.bulk_csv_template, name='bulk_csv_template'),
     path('bulk-checks/<uuid:upload_id>/', views.bulk_upload_detail, name='bulk_upload_detail'),
+        # CSV Export — BATCH 8
+    path('checks/export/', views.staff_check_export_csv, name='staff_check_export'),
 
     # Team — BATCH 3
     path('team/', views.team_list, name='team_list'),
