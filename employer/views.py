@@ -14,12 +14,15 @@ from django.db import transaction
 from .tasks import process_bulk_upload_task
 from django.http import HttpResponse
 from .models import BulkCheckUpload, BulkCheckRow
+from reports.models import FraudReport
+from identities.models import Identifier, SubjectEntity
 
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from django.shortcuts import redirect as _redirect
 from .models import TeamInvite
 from datetime import timedelta
+from .models import StaffCheckRequest
 
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
@@ -56,12 +59,27 @@ def employer_dashboard(request):
     team_count = TeamMember.objects.filter(employer=profile, is_active=True).count()
     total_uploads = BulkCheckUpload.objects.filter(employer=profile).count()
 
+    # Staff check stats — Batch 4
+    staff_checks_total     = StaffCheckRequest.objects.filter(employer=profile, is_active=True).count()
+    staff_checks_pending   = StaffCheckRequest.objects.filter(employer=profile, is_active=True, status='pending').count()
+    staff_checks_completed = StaffCheckRequest.objects.filter(employer=profile, is_active=True, status='completed').count()
+
+    recent_checks = (
+        StaffCheckRequest.objects
+        .filter(employer=profile, is_active=True)
+        .order_by('-created_at')[:5]
+    )
+
     context = {
-        'profile': profile,
-        'recent_uploads': recent_uploads,
-        'team_count': team_count,
-        'total_uploads': total_uploads,
-        'page_title': 'Employer Dashboard',
+        'profile':               profile,
+        'recent_uploads':        recent_uploads,
+        'team_count':            team_count,
+        'total_uploads':         total_uploads,
+        'staff_checks_total':    staff_checks_total,
+        'staff_checks_pending':  staff_checks_pending,
+        'staff_checks_completed': staff_checks_completed,
+        'recent_checks':         recent_checks,
+        'page_title':            'Employer Dashboard',
     }
     return render(request, 'employer/dashboard.html', context)
 
@@ -728,6 +746,120 @@ def team_member_remove(request, member_id):
 
 
 
+
+# ---------------------------------------------------------------------------
+# Person / Landlord Quick-Check — BATCH 4
+# ---------------------------------------------------------------------------
+
+@login_required
+@employer_required
+def person_check_search(request):
+    """
+    Quick-check a person by phone number or NIN.
+    Returns trust summary from SubjectEntity + TrustScore + FraudReport.
+    GET  — empty search form.
+    POST — run the lookup and display results on the same page.
+    """
+    profile = _get_or_create_employer_profile(request.user)
+
+    result = None
+    query  = ''
+    query_type = ''
+
+    if request.method == 'POST':
+        raw_query = request.POST.get('query', '').strip()
+        query = raw_query
+
+        if not raw_query:
+            result = {'error': 'Please enter a phone number or NIN to search.'}
+        else:
+            subject = None
+
+            # Decide lookup strategy
+            digits_only = raw_query.replace('+', '').replace(' ', '').replace('-', '')
+            if digits_only.isdigit() and len(digits_only) == 11 and digits_only.startswith(('070', '080', '081', '090', '091')):
+                # Looks like a Nigerian phone number
+                query_type = 'phone'
+                ident = (
+                    Identifier.objects
+                    .filter(type='phone', value=raw_query, is_active=True)
+                    .select_related('subject')
+                    .first()
+                )
+                if not ident and digits_only != raw_query:
+                    ident = (
+                        Identifier.objects
+                        .filter(type='phone', value=digits_only, is_active=True)
+                        .select_related('subject')
+                        .first()
+                    )
+                if ident:
+                    subject = ident.subject
+
+            elif digits_only.isdigit() and len(digits_only) == 11:
+                # 11-digit number — could be NIN
+                query_type = 'nin'
+                nin_hash = hashlib.sha256(digits_only.encode('utf-8')).hexdigest()
+                ident = (
+                    Identifier.objects
+                    .filter(type='nin', value=nin_hash, is_active=True)
+                    .select_related('subject')
+                    .first()
+                )
+                if ident:
+                    subject = ident.subject
+            else:
+                result = {
+                    'error': (
+                        'Enter an 11-digit Nigerian phone number (e.g. 08012345678) '
+                        'or an 11-digit NIN.'
+                    )
+                }
+
+            if result is None:
+                if subject is None:
+                    result = {
+                        'found': False,
+                        'query': raw_query,
+                        'query_type': query_type,
+                    }
+                else:
+                    # Trust score
+                    trust_score = None
+                    try:
+                        trust_score = subject.trust_score
+                    except Exception:
+                        pass
+
+                    # Verified/published fraud reports only — never raw allegations
+                    try:
+                        fraud_reports = (
+                            FraudReport.objects
+                            .filter(target_subject=subject, status='published', is_active=True)
+                            .order_by('-created_at')[:5]
+                        )
+                        fraud_count = fraud_reports.count()
+                    except Exception:
+                        fraud_reports = []
+                        fraud_count = 0
+
+                    result = {
+                        'found':        True,
+                        'subject':      subject,
+                        'trust_score':  trust_score,
+                        'fraud_reports': fraud_reports,
+                        'fraud_count':  fraud_count,
+                        'query':        raw_query,
+                        'query_type':   query_type,
+                    }
+
+    context = {
+        'profile':     profile,
+        'result':      result,
+        'query':       query,
+        'page_title':  'Person Quick-Check',
+    }
+    return render(request, 'employer/person_check.html', context)
 
 
 

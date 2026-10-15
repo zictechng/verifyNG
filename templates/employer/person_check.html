@@ -1,0 +1,175 @@
+
+{% extends 'public/base.html' %}
+{% load static %}
+
+{% block title %}Person Quick-Check | VerifyNG{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-md-5" style="max-width:680px;">
+
+    <div class="mb-4">
+        <a href="{% url 'employer:dashboard' %}" class="small text-muted text-decoration-none">← Employer Portal</a>
+        <h1 class="h3 fw-bold mt-2 mb-1">Person Quick-Check</h1>
+        <p class="text-muted small mb-0">
+            Search for a person by their Nigerian phone number or NIN to see their VerifyNG trust summary.
+        </p>
+    </div>
+
+    {# ── Search form ─────────────────────────────────────────────────────── #}
+    <div class="vng-card p-4 mb-4">
+        <form method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label for="query" class="form-label fw-semibold small">Phone Number or NIN</label>
+                <input
+                    type="text"
+                    id="query"
+                    name="query"
+                    class="form-control"
+                    placeholder="e.g. 08012345678 or 11-digit NIN"
+                    value="{{ query|default:'' }}"
+                    autocomplete="off"
+                    maxlength="11"
+                    inputmode="numeric"
+                    pattern="[0-9]{11}"
+                >
+                <div class="form-text">Enter exactly 11 digits. Nigerian phone numbers start 070 / 080 / 081 / 090 / 091.</div>
+            </div>
+            <button type="submit" class="btn btn-vng-primary">Search</button>
+            {% if result %}
+            <button type="reset" class="btn btn-vng-outline ms-2"
+                    onclick="window.location='{% url 'employer:person_check_search' %}'">Clear</button>
+            {% endif %}
+        </form>
+    </div>
+
+    {# ── Results ─────────────────────────────────────────────────────────── #}
+    {% if result %}
+
+        {% if result.error %}
+        <div class="alert alert-danger" style="border-radius:var(--vng-radius-md);">
+            {{ result.error }}
+        </div>
+
+        {% elif not result.found %}
+        <div class="vng-card p-4 text-center">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="mb-3 opacity-40">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <h2 class="h6 fw-bold mb-2">No record found</h2>
+            <p class="text-muted small mb-0">
+                No VerifyNG profile found for <strong>{{ result.query }}</strong>.
+                This person has not yet been added to the VerifyNG database.
+            </p>
+        </div>
+
+        {% else %}
+        {# ── Record found ──────────────────────────────────────────────────── #}
+
+        {# Trust score banner #}
+        {% if result.trust_score %}
+        <div class="vng-card p-4 mb-3 d-flex align-items-center gap-4"
+             style="border-left:4px solid
+                {% if result.trust_score.score >= 800 %}var(--vng-success)
+                {% elif result.trust_score.score >= 600 %}var(--vng-teal)
+                {% elif result.trust_score.score >= 400 %}var(--vng-warning)
+                {% else %}var(--vng-danger){% endif %};">
+            <div class="text-center flex-shrink-0">
+                <div class="fw-bold" style="font-size:2rem;line-height:1;
+                    color:{% if result.trust_score.score >= 800 %}var(--vng-success)
+                          {% elif result.trust_score.score >= 600 %}var(--vng-teal)
+                          {% elif result.trust_score.score >= 400 %}var(--vng-warning)
+                          {% else %}var(--vng-danger){% endif %};">
+                    {{ result.trust_score.score }}
+                </div>
+                <div class="small text-muted">/1000</div>
+            </div>
+            <div>
+                <div class="fw-bold mb-1">
+                    Trust Score — <span class="badge bg-{{ result.trust_score.label_colour }}">{{ result.trust_score.label }}</span>
+                </div>
+                <div class="small text-muted">
+                    Identity: {{ result.trust_score.identity_score }}/300 &nbsp;·&nbsp;
+                    Conduct: {{ result.trust_score.conduct_score }}/300 &nbsp;·&nbsp;
+                    Reports: {{ result.trust_score.reports_score }}/250 &nbsp;·&nbsp;
+                    Longevity: {{ result.trust_score.longevity_score }}/150
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="alert alert-secondary mb-3" style="border-radius:var(--vng-radius-md);">
+            No trust score calculated for this record yet.
+        </div>
+        {% endif %}
+
+        {# Subject details #}
+        <div class="vng-card p-4 mb-3">
+            <h2 class="h6 fw-bold mb-3">Profile</h2>
+            <dl class="row small mb-0">
+                <dt class="col-4 text-muted fw-normal">Name</dt>
+                <dd class="col-8 fw-semibold">{{ result.subject.name|default:"Not disclosed" }}</dd>
+
+                {% if result.subject.contact_phone %}
+                <dt class="col-4 text-muted fw-normal">Phone</dt>
+                <dd class="col-8">{{ result.subject.contact_phone }}</dd>
+                {% endif %}
+
+                <dt class="col-4 text-muted fw-normal">Search type</dt>
+                <dd class="col-8">
+                    {% if result.query_type == 'phone' %}Phone number{% else %}NIN{% endif %}
+                </dd>
+
+                <dt class="col-4 text-muted fw-normal">Record created</dt>
+                <dd class="col-8">{{ result.subject.created_at|date:"d M Y" }}</dd>
+            </dl>
+        </div>
+
+        {# Fraud reports — published only #}
+        <div class="vng-card p-4 mb-3">
+            <h2 class="h6 fw-bold mb-3">
+                Fraud Reports
+                {% if result.fraud_count > 0 %}
+                <span class="badge bg-danger ms-1">{{ result.fraud_count }}</span>
+                {% else %}
+                <span class="badge bg-success ms-1">None</span>
+                {% endif %}
+            </h2>
+
+            {% if result.fraud_count == 0 %}
+            <div class="d-flex align-items-center gap-2 text-success">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+                <span class="small fw-semibold">No verified fraud reports on record.</span>
+            </div>
+            {% else %}
+            <div class="alert alert-danger mb-3" style="border-radius:var(--vng-radius-md);font-size:0.875rem;">
+                <strong>⚠ Warning:</strong> {{ result.fraud_count }} verified fraud report{{ result.fraud_count|pluralize }} found.
+                These are reports that have been reviewed and confirmed by VerifyNG moderators.
+            </div>
+            {% for report in result.fraud_reports %}
+            <div class="border rounded-3 p-3 mb-2" style="font-size:0.875rem;">
+                <div class="d-flex justify-content-between align-items-start flex-wrap gap-1 mb-1">
+                    <span class="fw-semibold" style="color:var(--vng-ink);">{{ report.category|default:"Fraud" }}</span>
+                    <span class="text-muted" style="font-size:12px;">{{ report.created_at|date:"d M Y" }}</span>
+                </div>
+                <p class="mb-0 text-muted">{{ report.description|truncatechars:200 }}</p>
+            </div>
+            {% endfor %}
+            {% endif %}
+        </div>
+
+        {# Legal disclaimer #}
+        <div class="alert alert-light border small text-muted" style="border-radius:var(--vng-radius-md);">
+            <strong>Important:</strong> This is a VerifyNG trust summary based on available data at the time of search.
+            It is not a government-issued certificate. Fraud reports shown are those verified by VerifyNG's moderation process.
+            Unverified allegations are never displayed. For a full background check, use
+            <a href="{% url 'employer:staff_check_create' %}" class="text-primary">Staff Check</a>.
+        </div>
+
+        {% endif %}
+    {% endif %}
+
+</div>
+{% endblock %}
+
