@@ -4,6 +4,7 @@ import uuid
 from django.db import models
 from django.utils import timezone
 from users.models import User
+import hashlib
 
 
 class EmployerProfile(models.Model):
@@ -198,4 +199,140 @@ class BulkCheckRow(models.Model):
 
     def __str__(self):
         return f"Row {self.row_number} — {self.full_name or 'unnamed'} ({self.get_status_display()})"
+
+
+# ── BATCH 1: Staff Check Request ─────────────────────────────────────────────
+
+def _hash_nin(raw_nin: str) -> str:
+    """SHA-256 hash of a raw NIN string. Never store raw NIN."""
+    return hashlib.sha256(raw_nin.strip().encode('utf-8')).hexdigest()
+
+
+class StaffCheckRequest(models.Model):
+    """
+    A single background check request submitted by an employer for one staff member.
+    NIN is stored only as SHA-256 hash — never in plain text.
+    """
+    CHECK_TYPES = (
+        ('standard', 'Standard Check'),
+        ('enhanced', 'Enhanced Check'),
+    )
+    STATUS_CHOICES = (
+        ('pending',     'Pending'),
+        ('processing',  'Processing'),
+        ('completed',   'Completed'),
+        ('failed',      'Failed'),
+        ('cancelled',   'Cancelled'),
+    )
+
+    id             = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    employer       = models.ForeignKey(
+        EmployerProfile,
+        on_delete=models.CASCADE,
+        related_name='staff_checks',
+    )
+    requested_by   = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='staff_check_requests',
+    )
+    full_name      = models.CharField(max_length=200)
+    phone_number   = models.CharField(max_length=20, blank=True)
+    nin_hash       = models.CharField(
+        max_length=64,
+        blank=True,
+        db_index=True,
+        help_text="SHA-256 hash of NIN — never store raw NIN",
+    )
+    email          = models.EmailField(blank=True)
+    check_type     = models.CharField(
+        max_length=20,
+        choices=CHECK_TYPES,
+        default='standard',
+        db_index=True,
+    )
+    purpose        = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text="e.g. Driver role, Security Officer, Care Worker",
+    )
+    status         = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='pending',
+        db_index=True,
+    )
+    result_summary = models.TextField(blank=True)
+    result_data    = models.JSONField(default=dict, blank=True)
+    fraud_flags    = models.PositiveSmallIntegerField(
+        default=0,
+        help_text="Count of published fraud reports matched to this subject",
+    )
+    notes          = models.TextField(blank=True)
+    completed_at   = models.DateTimeField(null=True, blank=True)
+    created_at     = models.DateTimeField(auto_now_add=True)
+    updated_at     = models.DateTimeField(auto_now=True)
+    is_active      = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name        = 'Staff Check Request'
+        verbose_name_plural = 'Staff Check Requests'
+        ordering            = ['-created_at']
+        indexes             = [
+            models.Index(fields=['employer', 'status']),
+            models.Index(fields=['nin_hash']),
+        ]
+
+    def __str__(self):
+        return f"{self.full_name} — {self.employer.company_name} ({self.get_status_display()})"
+
+
+class StaffCheckMonitor(models.Model):
+    """
+    Ongoing monitoring record for a staff member after their initial check.
+    When active, VerifyNG re-checks this subject periodically and alerts the employer
+    if their fraud flag count or certificate status changes.
+    """
+    MONITOR_STATUS = (
+        ('active',    'Active — monitoring'),
+        ('paused',    'Paused'),
+        ('cancelled', 'Cancelled'),
+    )
+
+    check_request  = models.OneToOneField(
+        StaffCheckRequest,
+        on_delete=models.CASCADE,
+        related_name='monitor',
+    )
+    employer       = models.ForeignKey(
+        EmployerProfile,
+        on_delete=models.CASCADE,
+        related_name='staff_monitors',
+    )
+    monitor_status = models.CharField(
+        max_length=20,
+        choices=MONITOR_STATUS,
+        default='active',
+        db_index=True,
+    )
+    alert_on_change = models.BooleanField(
+        default=True,
+        help_text="Notify employer by email when this staff member's status changes",
+    )
+    last_checked   = models.DateTimeField(null=True, blank=True)
+    next_check     = models.DateTimeField(null=True, blank=True)
+    created_at     = models.DateTimeField(auto_now_add=True)
+    updated_at     = models.DateTimeField(auto_now=True)
+    is_active      = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name        = 'Staff Check Monitor'
+        verbose_name_plural = 'Staff Check Monitors'
+        ordering            = ['-created_at']
+
+    def __str__(self):
+        return f"Monitor: {self.check_request.full_name} — {self.get_monitor_status_display()}"
+
+
 

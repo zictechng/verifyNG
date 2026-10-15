@@ -1,0 +1,97 @@
+
+{% extends 'public/base.html' %}
+{% load static %}
+
+{% block title %}New Staff Check | VerifyNG{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-md-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-7">
+
+            {# Header #}
+            <div class="mb-4">
+                <a href="{% url 'employer:staff_check_list' %}" class="small text-muted text-decoration-none">
+                    ← Back to Staff Checks
+                </a>
+                <h1 class="h3 fw-bold mt-2 mb-1">New Staff Background Check</h1>
+                <p class="text-muted small">
+                    Enter the staff member's details. At least one of phone number or NIN is required.
+                    NIN is never stored — only a secure hash is kept.
+                </p>
+            </div>
+
+            {# Errors #}
+            {% if errors %}
+            <div class="alert alert-danger mb-4">
+                <ul class="mb-0 ps-3">
+                    {% for e in errors %}<li>{{ e }}</li>{% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            {# Form #}
+            <form method="post" class="vng-card p-4">
+                {% csrf_token %}
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold" for="full_name">Full Name <span class="text-danger">*</span></label>
+                    <input type="text" id="full_name" name="full_name" class="form-control"
+                           placeholder="e.g. Emeka Obi"
+                           value="{{ form_data.full_name|default:'' }}" required>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-sm-6">
+                        <label class="form-label fw-semibold" for="phone_number">Phone Number</label>
+                        <input type="tel" id="phone_number" name="phone_number" class="form-control"
+                               placeholder="08012345678"
+                               value="{{ form_data.phone_number|default:'' }}">
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="form-label fw-semibold" for="nin">NIN</label>
+                        <input type="text" id="nin" name="nin" class="form-control"
+                               placeholder="11-digit NIN"
+                               maxlength="11"
+                               autocomplete="off">
+                        <div class="form-text">Securely hashed — never stored in plain text.</div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold" for="email">Email Address <span class="text-muted fw-normal">(optional)</span></label>
+                    <input type="email" id="email" name="email" class="form-control"
+                           placeholder="staff@example.com"
+                           value="{{ form_data.email|default:'' }}">
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-sm-6">
+                        <label class="form-label fw-semibold" for="check_type">Check Level <span class="text-danger">*</span></label>
+                        <select id="check_type" name="check_type" class="form-select">
+                            <option value="standard" {% if form_data.check_type != 'enhanced' %}selected{% endif %}>Standard Check</option>
+                            <option value="enhanced" {% if form_data.check_type == 'enhanced' %}selected{% endif %}>Enhanced Check</option>
+                        </select>
+                        <div class="form-text">Standard: identity + fraud records. Enhanced: full background.</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="form-label fw-semibold" for="purpose">Purpose <span class="text-muted fw-normal">(optional)</span></label>
+                        <input type="text" id="purpose" name="purpose" class="form-control"
+                               placeholder="e.g. Driver role, Security Officer"
+                               value="{{ form_data.purpose|default:'' }}">
+                    </div>
+                </div>
+
+                <hr class="my-4">
+
+                <div class="d-flex gap-3">
+                    <button type="submit" class="btn btn-vng-primary">Submit Check Request</button>
+                    <a href="{% url 'employer:staff_check_list' %}" class="btn btn-vng-outline">Cancel</a>
+                </div>
+            </form>
+
+        </div>
+    </div>
+</div>
+{% endblock %}
+

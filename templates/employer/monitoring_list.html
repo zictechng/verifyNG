@@ -1,0 +1,76 @@
+
+{% extends 'public/base.html' %}
+{% load static %}
+
+{% block title %}Staff Monitoring | VerifyNG{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-md-5">
+
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <span class="vng-badge-trust mb-2">Employer Portal</span>
+            <h1 class="h3 fw-bold mb-1">Staff Monitoring</h1>
+            <p class="small text-muted mb-0">Staff members whose verification status is being tracked automatically.</p>
+        </div>
+        <a href="{% url 'employer:staff_check_list' %}" class="btn btn-vng-outline">← All Checks</a>
+    </div>
+
+    <div class="vng-card">
+        {% if monitors %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Name</th>
+                        <th>Check Type</th>
+                        <th>Monitor Status</th>
+                        <th>Last Checked</th>
+                        <th>Next Check</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for monitor in monitors %}
+                    <tr>
+                        <td class="fw-semibold">{{ monitor.check_request.full_name }}</td>
+                        <td>
+                            <span class="badge bg-light text-dark border">
+                                {{ monitor.check_request.get_check_type_display }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if monitor.monitor_status == 'active' %}
+                                <span class="badge bg-success">Active</span>
+                            {% elif monitor.monitor_status == 'paused' %}
+                                <span class="badge bg-secondary">Paused</span>
+                            {% else %}
+                                <span class="badge bg-danger">Cancelled</span>
+                            {% endif %}
+                        </td>
+                        <td class="small text-muted">{{ monitor.last_checked|date:"d M Y"|default:"Not yet" }}</td>
+                        <td class="small text-muted">{{ monitor.next_check|date:"d M Y"|default:"—" }}</td>
+                        <td>
+                            <a href="{% url 'employer:staff_check_detail' monitor.check_request.id %}"
+                               class="btn btn-vng-outline btn-vng-sm">View Check</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <div class="mb-3" style="font-size:2.5rem;">📡</div>
+            <h5 class="fw-semibold mb-1">No staff on monitoring</h5>
+            <p class="text-muted small mb-4">
+                Complete a staff check then enable monitoring from the check detail page.
+            </p>
+            <a href="{% url 'employer:staff_check_list' %}" class="btn btn-vng-primary">Go to Staff Checks</a>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}
+

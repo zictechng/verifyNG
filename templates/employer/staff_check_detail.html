@@ -1,0 +1,228 @@
+
+{% extends 'public/base.html' %}
+{% load static %}
+
+{% block title %}Check — {{ check.full_name }} | VerifyNG{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-md-5">
+    <div class="mb-4">
+        <a href="{% url 'employer:staff_check_list' %}" class="small text-muted text-decoration-none">← Back to Staff Checks</a>
+        <h1 class="h3 fw-bold mt-2 mb-1">{{ check.full_name }}</h1>
+        <p class="text-muted small">Ref: {{ check.id|stringformat:"s"|slice:":8"|upper }}</p>
+    </div>
+
+    <div class="row g-4">
+
+        {# Left — check details #}
+        <div class="col-lg-8">
+
+            {# Status card #}
+            <div class="vng-card p-4 mb-4">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <h2 class="h6 fw-bold mb-0">Check Status</h2>
+                    {% if check.status == 'completed' %}
+                        <span class="badge bg-success fs-6">Completed</span>
+                    {% elif check.status == 'pending' %}
+                        <span class="badge bg-warning text-dark fs-6">Pending</span>
+                    {% elif check.status == 'processing' %}
+                        <span class="badge bg-primary fs-6">Processing</span>
+                    {% elif check.status == 'cancelled' %}
+                        <span class="badge bg-secondary fs-6">Cancelled</span>
+                    {% else %}
+                        <span class="badge bg-danger fs-6">Failed</span>
+                    {% endif %}
+                </div>
+
+                <dl class="row mb-0">
+                    <dt class="col-sm-4 text-muted fw-normal small">Check level</dt>
+                    <dd class="col-sm-8">{{ check.get_check_type_display }}</dd>
+
+                    <dt class="col-sm-4 text-muted fw-normal small">Purpose</dt>
+                    <dd class="col-sm-8">{{ check.purpose|default:"—" }}</dd>
+
+                    <dt class="col-sm-4 text-muted fw-normal small">Phone</dt>
+                    <dd class="col-sm-8">{{ check.phone_number|default:"—" }}</dd>
+
+                    <dt class="col-sm-4 text-muted fw-normal small">NIN</dt>
+                    <dd class="col-sm-8">{% if check.nin_hash %}Provided (hashed){% else %}—{% endif %}</dd>
+
+                    <dt class="col-sm-4 text-muted fw-normal small">Email</dt>
+                    <dd class="col-sm-8">{{ check.email|default:"—" }}</dd>
+
+                    <dt class="col-sm-4 text-muted fw-normal small">Submitted</dt>
+                    <dd class="col-sm-8">{{ check.created_at|date:"d M Y, H:i" }}</dd>
+
+                    {% if check.completed_at %}
+                    <dt class="col-sm-4 text-muted fw-normal small">Completed</dt>
+                    <dd class="col-sm-8">{{ check.completed_at|date:"d M Y, H:i" }}</dd>
+                    {% endif %}
+                </dl>
+            </div>
+
+            {# Result summary (shown when completed) #}
+            {% if check.status == 'completed' %}
+            <div class="vng-card p-4 mb-4">
+                <h2 class="h6 fw-bold mb-3">Check Result</h2>
+
+                {# Fraud flag alert #}
+                {% if check.fraud_flags > 0 %}
+                <div class="alert alert-danger d-flex gap-3 align-items-start mb-3">
+                    <span style="font-size:1.4rem;">⚠️</span>
+                    <div>
+                        <div class="fw-semibold">{{ check.fraud_flags }} fraud report{{ check.fraud_flags|pluralize }} found</div>
+                        <div class="small">This person has published fraud allegations on the VerifyNG platform.</div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="alert alert-success d-flex gap-3 align-items-start mb-3">
+                    <span style="font-size:1.4rem;">✅</span>
+                    <div>
+                        <div class="fw-semibold">No fraud flags</div>
+                        <div class="small">No published fraud reports found for this person.</div>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if check.result_summary %}
+                <p class="text-muted small mb-0">{{ check.result_summary }}</p>
+                {% endif %}
+            </div>
+            {% elif check.status == 'pending' %}
+            <div class="vng-card p-4 mb-4 text-center">
+                <div class="mb-2" style="font-size:2rem;">⏳</div>
+                <p class="fw-semibold mb-1">Check in queue</p>
+                <p class="text-muted small mb-0">Our team is processing this request. You will be notified by email when it's complete.</p>
+            </div>
+            {% elif check.status == 'processing' %}
+            <div class="vng-card p-4 mb-4 text-center">
+                <div class="mb-2" style="font-size:2rem;">🔄</div>
+                <p class="fw-semibold mb-1">Processing now</p>
+                <p class="text-muted small mb-0">Verification is in progress.</p>
+            </div>
+            {% endif %}
+
+        </div>
+
+        {# Right — sidebar actions #}
+        <div class="col-lg-4">
+
+            {# Monitoring card #}
+            {% if check.status == 'completed' %}
+            <div class="vng-card p-4 mb-4">
+                <h2 class="h6 fw-bold mb-2">Ongoing Monitoring</h2>
+                <p class="small text-muted mb-3">
+                    Enable monitoring to be alerted if this person's fraud status or verification changes.
+                </p>
+
+                <div id="monitor-status-block">
+                    {% if monitor %}
+                        {% if monitor.monitor_status == 'active' %}
+                        <div class="alert alert-success py-2 small mb-3">
+                            ✅ Monitoring active — last checked {{ monitor.last_checked|date:"d M Y"|default:"not yet" }}
+                        </div>
+                        {% else %}
+                        <div class="alert alert-secondary py-2 small mb-3">
+                            ⏸ Monitoring paused
+                        </div>
+                        {% endif %}
+                    {% else %}
+                        <div class="alert alert-light py-2 small mb-3 border">
+                            Not yet monitoring this person.
+                        </div>
+                    {% endif %}
+                </div>
+
+                <button
+                    class="btn btn-vng-outline w-100"
+                    id="monitor-toggle-btn"
+                    data-url="{% url 'employer:monitoring_toggle' check.id %}"
+                    onclick="toggleMonitor(this)">
+                    {% if monitor and monitor.monitor_status == 'active' %}Pause Monitoring{% elif monitor %}Resume Monitoring{% else %}Enable Monitoring{% endif %}
+                </button>
+            </div>
+            {% endif %}
+
+            {# Cancel card (only for pending/processing) #}
+            {% if check.status in 'pending processing' %}
+            <div class="vng-card p-4 mb-4">
+                <h2 class="h6 fw-bold mb-2">Cancel This Check</h2>
+                <p class="small text-muted mb-3">Cancel a check you no longer need. This cannot be undone.</p>
+                <button class="btn btn-outline-danger w-100"
+                        id="cancel-check-btn"
+                        data-url="{% url 'employer:staff_check_cancel' check.id %}"
+                        onclick="cancelCheck(this)">
+                    Cancel Check
+                </button>
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+</div>
+
+{# Toast container #}
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index:1100">
+    <div id="vng-toast" class="toast align-items-center border-0" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body fw-semibold" id="vng-toast-msg"></div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const csrfToken = '{{ csrf_token }}';
+
+function showToast(msg, success) {
+    const el = document.getElementById('vng-toast');
+    el.className = 'toast align-items-center border-0 text-bg-' + (success ? 'success' : 'danger');
+    document.getElementById('vng-toast-msg').textContent = msg;
+    bootstrap.Toast.getOrCreateInstance(el, {delay: 4000}).show();
+}
+
+function toggleMonitor(btn) {
+    if (!confirm('Are you sure you want to change monitoring for this person?')) return;
+    fetch(btn.dataset.url, {
+        method: 'POST',
+        headers: {'X-CSRFToken': csrfToken, 'X-Requested-With': 'XMLHttpRequest'},
+    })
+    .then(r => r.json())
+    .then(data => {
+        showToast(data.message, data.ok);
+        if (data.ok) {
+            const block = document.getElementById('monitor-status-block');
+            if (data.monitor_status === 'active') {
+                block.innerHTML = '<div class="alert alert-success py-2 small mb-3">✅ Monitoring active — last checked not yet</div>';
+                btn.textContent = 'Pause Monitoring';
+            } else {
+                block.innerHTML = '<div class="alert alert-secondary py-2 small mb-3">⏸ Monitoring paused</div>';
+                btn.textContent = 'Resume Monitoring';
+            }
+        }
+    })
+    .catch(() => showToast('Something went wrong. Please try again.', false));
+}
+
+function cancelCheck(btn) {
+    if (!confirm('Cancel this check request? This cannot be undone.')) return;
+    btn.disabled = true;
+    fetch(btn.dataset.url, {
+        method: 'POST',
+        headers: {'X-CSRFToken': csrfToken, 'X-Requested-With': 'XMLHttpRequest'},
+    })
+    .then(r => r.json())
+    .then(data => {
+        showToast(data.message, data.ok);
+        if (data.ok) {
+            btn.closest('.vng-card').innerHTML = '<p class="text-muted small p-4 mb-0">This check has been cancelled.</p>';
+        } else {
+            btn.disabled = false;
+        }
+    })
+    .catch(() => { showToast('Something went wrong.', false); btn.disabled = false; });
+}
+</script>
+{% endblock %}
