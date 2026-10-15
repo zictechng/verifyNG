@@ -55,7 +55,7 @@ from django.db.models import Sum, Count, Avg
 from django.core.paginator import Paginator
 from payments.models import Transaction, Subscription
 
-
+from django.conf import settings as django_settings
 import os
 from users.models import UserServiceAccess
 # Import models needed for extended admin
@@ -2409,7 +2409,8 @@ class AdminFinancialReportView(SuperAdminRequiredMixin, TemplateView):
         story = []
 
         # ── Header ──
-        story.append(Paragraph("VerifyNG", title_style))
+        site_name = getattr(django_settings, 'SITE_NAME', 'VerifyNG')
+        story.append(Paragraph(site_name, title_style))
         story.append(Paragraph("Nigeria's Public Trust & Safety Platform — Financial Statement", sub_style))
         story.append(HRFlowable(width="100%", thickness=1.5, color=VNG_GREEN, spaceAfter=6))
         story.append(Paragraph(
@@ -2423,10 +2424,10 @@ class AdminFinancialReportView(SuperAdminRequiredMixin, TemplateView):
         kpi_data = [
             ['Total Revenue', 'Total Transactions', 'Avg. Transaction', 'Net Revenue', 'Active Subscriptions'],
             [
-                f"\u20A6{ctx['total_revenue_naira']:,.2f}",
+                f"NGN {ctx['total_revenue_naira']:,.2f}",
                 str(ctx['total_transactions']),
-                f"\u20A6{ctx['avg_transaction_naira']:,.2f}",
-                f"\u20A6{ctx['net_revenue_naira']:,.2f}",
+                f"NGN {ctx['avg_transaction_naira']:,.2f}",
+                f"NGN {ctx['net_revenue_naira']:,.2f}",
                 str(ctx['active_subscriptions']),
             ],
         ]
@@ -2449,15 +2450,15 @@ class AdminFinancialReportView(SuperAdminRequiredMixin, TemplateView):
 
         # ── Monthly Breakdown ──
         story.append(Paragraph("Monthly Breakdown", section_style))
-        month_header = ['Month', 'Transactions', 'Revenue (₦)', 'Refunds (₦)', 'Net (₦)']
+        month_header = ['Month', 'Transactions', 'Revenue (NGN)', 'Refunds (NGN)', 'Net (NGN)']
         month_rows = [month_header]
         for row in ctx['monthly_breakdown']:
             month_rows.append([
                 row['month'],
                 str(row['count']),
-                f"\u20A6{row['revenue']:,.2f}",
-                f"\u20A6{row['refunds']:,.2f}",
-                f"\u20A6{row['net']:,.2f}",
+                f"NGN {row['revenue']:,.2f}",
+                f"NGN {row['refunds']:,.2f}",
+                f"NGN {row['net']:,.2f}",
             ])
         if not ctx['monthly_breakdown']:
             month_rows.append(['No data', '', '', '', ''])
@@ -2480,10 +2481,10 @@ class AdminFinancialReportView(SuperAdminRequiredMixin, TemplateView):
 
         # ── Plan Breakdown ──
         story.append(Paragraph("Revenue by Plan", section_style))
-        plan_header = ['Plan', 'Transactions', 'Revenue (₦)']
+        plan_header = ['Plan', 'Transactions', 'Revenue (NGN)']
         plan_rows = [plan_header]
         for row in ctx['plan_breakdown']:
-            plan_rows.append([row['plan_name'], str(row['count']), f"\u20A6{row['revenue']:,.2f}"])
+            plan_rows.append([row['plan_name'], str(row['count']), f"NGN {row['revenue']:,.2f}"])
         if not ctx['plan_breakdown']:
             plan_rows.append(['No data', '', ''])
 
@@ -2516,7 +2517,7 @@ class AdminFinancialReportView(SuperAdminRequiredMixin, TemplateView):
         if status_filter_pdf:
             txn_qs = txn_qs.filter(status=status_filter_pdf)
 
-        ledger_header = ['Date', 'Reference', 'User', 'Plan', 'Amount (₦)', 'Status']
+        ledger_header = ['Date', 'Reference', 'User', 'Plan', 'Amount (NGN)', 'Status']
         ledger_rows = [ledger_header]
         for txn in txn_qs:
             status_text = txn.get_status_display()
@@ -2525,7 +2526,7 @@ class AdminFinancialReportView(SuperAdminRequiredMixin, TemplateView):
                 txn.reference[:18],
                 (txn.user.get_full_name() or txn.user.username)[:20] if txn.user else '—',
                 (txn.plan.name[:16] if txn.plan else '—'),
-                f"\u20A6{txn.amount_naira:,.2f}",
+                f"NGN {txn.amount_naira:,.2f}",
                 status_text,
             ])
 
