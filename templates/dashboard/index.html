@@ -102,6 +102,34 @@
             </div>
         </div>
 
+                {# ── Who Checked Me / Worker card ───────────────────────────────────── #}
+        <div class="col-md-4">
+            <div class="vng-card p-4 h-100">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <span class="small fw-semibold text-muted">Background Checks</span>
+                    <span class="badge" style="background:var(--vng-teal-light);color:var(--vng-teal);">Worker</span>
+                </div>
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--vng-teal)" stroke-width="1.5">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                    <div>
+                        <div class="fw-semibold" style="font-size:14px;">Who Checked Me?</div>
+                        <div class="small text-muted">See employer background checks on your NIN</div>
+                    </div>
+                </div>
+                <a href="{% url 'dashboard:who_checked_me' %}" class="btn btn-vng-outline btn-vng-sm w-100 mb-2">
+                    Check My Records
+                </a>
+                <a href="{% url 'verification:my_certificates' %}" class="btn btn-vng-primary btn-vng-sm w-100">
+                    My Certificates
+                </a>
+            </div>
+        </div>
+
         {# Quick Search card #}
         <div class="col-md-4">
             <div class="vng-card p-4 h-100">

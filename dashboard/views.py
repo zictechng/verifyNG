@@ -7,6 +7,13 @@ from verification.models import VerificationRequest
 from core.permissions import is_moderator, is_verification_officer
 from verification.models import VerificationRequest, VerificationCertificate
 
+# ── Add to top imports ────────────────────────────────────────────────────────
+import hashlib
+from django.views.generic import FormView
+from django import forms as django_forms
+
+from employer.models import StaffCheckRequest, EmployerProfile
+
 
 # ─── Reusable helpers ────────────────────────────────────────────────────────
 
@@ -115,4 +122,78 @@ class DashboardIndexView(LoginRequiredMixin, TemplateView):
         ctx.update(_get_staff_context(user))
 
         return ctx
+
+
+class WhoCheckedMeForm(django_forms.Form):
+    nin = django_forms.CharField(
+        label='Your NIN (11 digits)',
+        max_length=11,
+        min_length=11,
+        widget=django_forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': '12345678901',
+            'autocomplete': 'off',
+            'inputmode': 'numeric',
+            'pattern': r'\d{11}',
+        }),
+        error_messages={
+            'required': 'Please enter your NIN.',
+            'min_length': 'NIN must be exactly 11 digits.',
+            'max_length': 'NIN must be exactly 11 digits.',
+        }
+    )
+
+    def clean_nin(self):
+        nin = self.cleaned_data['nin'].strip()
+        if not nin.isdigit() or len(nin) != 11:
+            raise django_forms.ValidationError('NIN must be exactly 11 digits (numbers only).')
+        return nin
+
+
+class WhoCheckedMeView(LoginRequiredMixin, FormView):
+    """
+    Lets a worker enter their NIN to see which employers ran a background
+    check against them via StaffCheckRequest.
+    NIN is hashed server-side; raw NIN is never stored or logged.
+    """
+    template_name = 'dashboard/who_checked_me.html'
+    form_class = WhoCheckedMeForm
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['checked_by'] = None   # results not shown until form submitted
+        return ctx
+
+    def form_valid(self, form):
+        raw_nin = form.cleaned_data['nin']
+        # Hash the NIN exactly as the employer side does
+        nin_hash = hashlib.sha256(raw_nin.encode('utf-8')).hexdigest()
+
+        checks = (
+            StaffCheckRequest.objects
+            .filter(nin_hash=nin_hash, is_active=True)
+            .select_related('employer')
+            .order_by('-created_at')
+        )
+
+        # Build a privacy-safe result set — omit result_data / result_summary
+        results = [
+            {
+                'company_name': c.employer.company_name,
+                'industry':     c.employer.industry,
+                'check_type':   c.get_check_type_display(),
+                'purpose':      c.purpose or '—',
+                'date':         c.created_at,
+                'status':       c.get_status_display(),
+            }
+            for c in checks
+        ]
+
+        return self.render_to_response(self.get_context_data(
+            form=form,
+            checked_by=results,
+            nin_last4=f"****{raw_nin[-4:]}",
+        ))
+
+
 
