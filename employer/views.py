@@ -60,7 +60,7 @@ def employer_dashboard(request):
     team_count = TeamMember.objects.filter(employer=profile, is_active=True).count()
     total_uploads = BulkCheckUpload.objects.filter(employer=profile).count()
 
-    # Staff check stats — Batch 4
+    # Staff check stats
     staff_checks_total     = StaffCheckRequest.objects.filter(employer=profile, is_active=True).count()
     staff_checks_pending   = StaffCheckRequest.objects.filter(employer=profile, is_active=True, status='pending').count()
     staff_checks_completed = StaffCheckRequest.objects.filter(employer=profile, is_active=True, status='completed').count()
@@ -71,19 +71,29 @@ def employer_dashboard(request):
         .order_by('-created_at')[:5]
     )
 
+    # Subscription / Plan widget — Batch 9
+    from payments.models import Subscription
+    active_subscription = (
+        Subscription.objects
+        .filter(user=request.user, status='active', is_active=True)
+        .select_related('plan')
+        .order_by('-created_at')
+        .first()
+    )
+
     context = {
-        'profile':               profile,
-        'recent_uploads':        recent_uploads,
-        'team_count':            team_count,
-        'total_uploads':         total_uploads,
-        'staff_checks_total':    staff_checks_total,
-        'staff_checks_pending':  staff_checks_pending,
+        'profile':                profile,
+        'recent_uploads':         recent_uploads,
+        'team_count':             team_count,
+        'total_uploads':          total_uploads,
+        'staff_checks_total':     staff_checks_total,
+        'staff_checks_pending':   staff_checks_pending,
         'staff_checks_completed': staff_checks_completed,
-        'recent_checks':         recent_checks,
-        'page_title':            'Employer Dashboard',
+        'recent_checks':          recent_checks,
+        'active_subscription':    active_subscription,
+        'page_title':             'Employer Dashboard',
     }
     return render(request, 'employer/dashboard.html', context)
-
 
 # ---------------------------------------------------------------------------
 # Profile
