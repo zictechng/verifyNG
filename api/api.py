@@ -31,19 +31,20 @@ class CheckResponse(Schema):
     active_reports_count: int
 
     # Status separation and public safety additions (Phase 7, Batch 7.1)
-    identity_verified: bool
-    verification_label: str
-    has_active_flags: bool
-    published_reports_count: int
-    disputed_reports_count: int
+    identity_verified: bool = False
+    verification_label: str = 'Unverified'
+    has_active_flags: bool = False
+    published_reports_count: int = 0
+    disputed_reports_count: int = 0
     official_business_name: str | None = None
-    allegation_notice: str
-    trust_score:        int | None = None
-    trust_label:        str = 'Unknown'
+    allegation_notice: str = ''
+    trust_score: int | None = None
+    trust_label: str = 'Unknown'
     trust_label_colour: str = 'secondary'
-    identity_verified:  bool = False
 
-
+    # Certificates held by this subject — Batch 1 (Landlord Check)
+    certificates: list[dict] = []
+    
 class CheckLookupRequest(Schema):
     identifier_type: str
     identifier_value: str

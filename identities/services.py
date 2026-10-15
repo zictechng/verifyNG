@@ -1,6 +1,6 @@
 
 from identities.models import Identifier
-
+from verification.models import VerificationCertificate
 
 def lookup_public_record(identifier_hash: str) -> dict | None:
     """
@@ -71,6 +71,23 @@ def lookup_public_record(identifier_hash: str) -> dict | None:
         "Fraud reports represent unverified community allegations published for public awareness. "
         "They do not constitute formal judicial findings, court convictions, or regulatory adjudications."
     )
+    active_certs = (
+        VerificationCertificate.objects
+        .filter(subject=subject, status='active', is_active=True)
+        .order_by('-issued_at')
+    )
+    certificates = [
+        {
+            'certificate_id':  cert.certificate_id,
+            'check_level':     cert.check_level,
+            'check_level_display': cert.get_check_level_display(),
+            'issued_at':       cert.issued_at.strftime('%Y-%m-%d') if cert.issued_at else None,
+            'expires_at':      cert.expires_at.strftime('%Y-%m-%d') if cert.expires_at else None,
+            'is_valid':        cert.is_valid,
+            'status':          cert.status,
+        }
+        for cert in active_certs
+    ]
     # Fetch pre-computed trust score (None if not yet calculated)
     ts = getattr(subject, 'trust_score', None)
     return {
@@ -89,4 +106,7 @@ def lookup_public_record(identifier_hash: str) -> dict | None:
         'trust_label':       getattr(ts, 'label', 'Unknown'),
         'trust_label_colour': getattr(ts, 'label_colour', 'secondary'),
         'identity_verified': getattr(ts, 'is_identity_verified', False),
+        "certificates":            certificates,
     }
+
+    
