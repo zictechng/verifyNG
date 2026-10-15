@@ -21,6 +21,15 @@ import logging
 from celery import shared_task
 from django.db import transaction
 from django.utils import timezone
+from django.utils import timezone
+from datetime import timedelta
+from employer.models import StaffCheckMonitor, StaffCheckRequest
+from employer.models import BulkCheckUpload, BulkCheckRow
+from identities.models import Identifier
+from reports.models import FraudReport
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
+from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
@@ -128,8 +137,6 @@ def process_bulk_upload_task(self, upload_id: str) -> dict:
     Returns:
         dict with keys: processed, failed, skipped, upload_id
     """
-    from employer.models import BulkCheckUpload, BulkCheckRow
-
     try:
         upload = BulkCheckUpload.objects.get(id=upload_id)
     except BulkCheckUpload.DoesNotExist:
@@ -212,4 +219,198 @@ def process_bulk_upload_task(self, upload_id: str) -> dict:
         'failed': failed,
         'skipped': skipped,
     }
+
+
+
+# ---------------------------------------------------------------------------
+# Monitoring alert task (Batch 7)
+# ---------------------------------------------------------------------------
+
+def _get_current_fraud_flag_count(nin_hash: str, phone_number: str) -> int:
+    """
+    Return the current count of verified fraud reports matched to this subject.
+    Matches by NIN hash first, then phone. Returns 0 if no subject found.
+    """
+    subject = None
+
+    if nin_hash:
+        ident = (
+            Identifier.objects
+            .filter(type='nin', value_hash=nin_hash)
+            .select_related('subject')
+            .first()
+        )
+        if ident:
+            subject = ident.subject
+
+    if subject is None and phone_number:
+        ident = (
+            Identifier.objects
+            .filter(type='phone', value_hash=phone_number)
+            .select_related('subject')
+            .first()
+        )
+        if ident:
+            subject = ident.subject
+
+    if subject is None:
+        return 0
+
+    return FraudReport.objects.filter(
+        target_subject=subject,
+        state='verified',
+        is_active=True,
+    ).count()
+
+
+def _send_monitor_alert_email(monitor, previous_flags: int, current_flags: int) -> None:
+    """
+    Send a branded HTML email alert to the employer contact when a monitored
+    staff member's fraud flag count changes.
+    """
+
+    check = monitor.check_request
+    employer = monitor.employer
+
+    # Determine the employer contact email
+    contact_email = employer.contact_email or (
+        employer.owner.email if employer.owner else None
+    )
+    if not contact_email:
+        logger.warning(
+            "monitor_alert: no contact email for employer %s — skipping",
+            employer.id,
+        )
+        return
+
+    site_name = getattr(settings, 'SITE_NAME', 'VerifyNG')
+    site_url  = getattr(settings, 'SITE_BASE_URL', 'https://verifyng.com')
+
+    ctx = {
+        # Email base context
+        'site_name':     site_name,
+        'site_url':      site_url,
+        'support_email': getattr(settings, 'SUPPORT_EMAIL', 'support@verifyng.com'),
+        'company_reg':   getattr(settings, 'COMPANY_REG', ''),
+        'logo_url':      getattr(settings, 'EMAIL_LOGO_URL', ''),
+        # Alert-specific context
+        'company_name':    employer.company_name,
+        'staff_name':      check.full_name,
+        'previous_flags':  previous_flags,
+        'current_flags':   current_flags,
+        'flag_change':     current_flags - previous_flags,
+        'flag_increased':  current_flags > previous_flags,
+        'check_detail_url': f"{site_url}/employer/checks/{check.id}/",
+        'monitoring_url':   f"{site_url}/employer/monitoring/",
+    }
+
+    subject_line = (
+        f"⚠ Alert: Fraud flag change for {check.full_name} — {employer.company_name}"
+        if current_flags > previous_flags
+        else f"✓ Update: Fraud flags reduced for {check.full_name} — {employer.company_name}"
+    )
+
+    text_body = (
+        f"Hello,\n\n"
+        f"This is an automated VerifyNG monitoring alert for {employer.company_name}.\n\n"
+        f"Staff member: {check.full_name}\n"
+        f"Previous fraud flags: {previous_flags}\n"
+        f"Current fraud flags:  {current_flags}\n\n"
+        f"Please log in to review this change:\n{ctx['check_detail_url']}\n\n"
+        f"To manage monitoring settings, visit:\n{ctx['monitoring_url']}\n\n"
+        f"— {site_name} Team"
+    )
+
+    html_body = render_to_string('emails/monitor_alert.html', ctx)
+
+    try:
+        msg = EmailMultiAlternatives(
+            subject=subject_line,
+            body=text_body,
+            from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', f'noreply@verifyng.com'),
+            to=[contact_email],
+        )
+        msg.attach_alternative(html_body, 'text/html')
+        msg.send(fail_silently=False)
+        logger.info(
+            "monitor_alert email sent: employer=%s staff=%s prev=%d cur=%d",
+            employer.id, check.full_name, previous_flags, current_flags,
+        )
+    except Exception as exc:
+        logger.exception(
+            "monitor_alert email FAILED: employer=%s staff=%s: %s",
+            employer.id, check.full_name, exc,
+        )
+
+
+@shared_task(bind=True, max_retries=2, default_retry_delay=120)
+def run_monitor_checks_task(self) -> dict:
+    """
+    Periodic task: re-checks every active StaffCheckMonitor for fraud flag changes.
+
+    For each active monitor:
+      1. Get the current fraud flag count for the subject.
+      2. If it differs from the stored count on StaffCheckRequest, update and send alert.
+      3. Update last_checked / next_check timestamps.
+
+    Should be scheduled to run nightly (e.g. 02:00 UTC via Celery Beat).
+    """
+
+    now = timezone.now()
+    alerted = 0
+    unchanged = 0
+    errors = 0
+
+    monitors = (
+        StaffCheckMonitor.objects
+        .filter(monitor_status='active', is_active=True, alert_on_change=True)
+        .select_related('check_request', 'employer', 'employer__owner')
+    )
+
+    for monitor in monitors:
+        check = monitor.check_request
+        try:
+            current_flags = _get_current_fraud_flag_count(
+                nin_hash=check.nin_hash,
+                phone_number=check.phone_number,
+            )
+            previous_flags = check.fraud_flags
+
+            if current_flags != previous_flags:
+                # Update stored count on check record
+                StaffCheckRequest.objects.filter(id=check.id).update(
+                    fraud_flags=current_flags,
+                    updated_at=now,
+                )
+                # Send alert email (non-fatal)
+                try:
+                    _send_monitor_alert_email(monitor, previous_flags, current_flags)
+                except Exception as email_exc:
+                    logger.exception(
+                        "run_monitor_checks_task: alert email failed for monitor %s: %s",
+                        monitor.id, email_exc,
+                    )
+                alerted += 1
+            else:
+                unchanged += 1
+
+            # Update timestamps
+            StaffCheckMonitor.objects.filter(id=monitor.id).update(
+                last_checked=now,
+                next_check=now + timedelta(hours=24),
+                updated_at=now,
+            )
+
+        except Exception as exc:
+            logger.exception(
+                "run_monitor_checks_task: error on monitor %s: %s", monitor.id, exc,
+            )
+            errors += 1
+
+    logger.info(
+        "run_monitor_checks_task DONE: alerted=%d unchanged=%d errors=%d",
+        alerted, unchanged, errors,
+    )
+    return {'alerted': alerted, 'unchanged': unchanged, 'errors': errors}
+
 

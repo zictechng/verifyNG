@@ -1,0 +1,65 @@
+
+{% extends 'emails/base_email.html' %}
+
+{% block subject %}
+  {% if flag_increased %}Fraud flag alert: {{ staff_name }}{% else %}Fraud flag update: {{ staff_name }}{% endif %}
+{% endblock %}
+
+{% block body %}
+
+<p>Hello {{ company_name }} team,</p>
+
+<p>
+  VerifyNG has detected a change in the fraud flag count for a monitored staff member.
+</p>
+
+<!-- Alert summary box -->
+<div class="notice {% if flag_increased %}notice-warning{% else %}notice-success{% endif %}" style="margin:24px 0;">
+  <p>
+    <strong>Staff Member:</strong> {{ staff_name }}<br>
+    <strong>Previous fraud flags:</strong> {{ previous_flags }}<br>
+    <strong>Current fraud flags:</strong> {{ current_flags }}<br>
+    <strong>Change:</strong>
+    {% if flag_increased %}
+      +{{ flag_change }} new flag{{ flag_change|pluralize }} added
+    {% else %}
+      {{ flag_change }} flag{{ flag_change|pluralize|slice:"1:" }} removed
+    {% endif %}
+  </p>
+</div>
+
+{% if flag_increased %}
+<p>
+  An increase in fraud flags means new verified fraud reports have been matched
+  to this individual in the VerifyNG database. We recommend reviewing this staff
+  member's check record immediately.
+</p>
+{% else %}
+<p>
+  A reduction in fraud flags means previously matched fraud reports have been
+  resolved, disputed, or removed from the VerifyNG database.
+</p>
+{% endif %}
+
+<!-- CTA -->
+<div class="btn-wrap">
+  <a href="{{ check_detail_url }}" class="btn">View Staff Check Record</a>
+</div>
+
+<p>
+  You can pause or cancel monitoring for this staff member at any time by visiting
+  your <a href="{{ monitoring_url }}">monitoring dashboard</a>.
+</p>
+
+<hr class="divider">
+
+<div class="notice">
+  <p>
+    This alert was sent because you have active monitoring enabled for this staff member.
+    Fraud flag data is sourced from verified VerifyNG reports and does not constitute
+    a legal finding. All hiring and employment decisions remain your responsibility.
+  </p>
+</div>
+
+{% endblock %}
+

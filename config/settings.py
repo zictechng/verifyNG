@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'django_otp',
     'django_otp.plugins.otp_totp',
     'django_otp.plugins.otp_static',
+    'django_celery_beat',
 ]
 
 MIDDLEWARE = [
@@ -310,5 +311,18 @@ LOGGING = {
         },
     },
 }
+
+# ==============================================================================
+# Celery Beat — Periodic Task Schedule (Batch 7)
+# ==============================================================================
+from celery.schedules import crontab
+
+CELERY_BEAT_SCHEDULE = {
+    'run-monitor-checks-nightly': {
+        'task': 'employer.tasks.run_monitor_checks_task',
+        'schedule': crontab(hour=2, minute=0),   # 02:00 UTC every day
+    },
+}
+
 
 
