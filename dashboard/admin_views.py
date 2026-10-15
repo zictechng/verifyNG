@@ -2256,7 +2256,7 @@ class AdminFinancialReportView(SuperAdminRequiredMixin, TemplateView):
             qs = qs.filter(plan__pk=plan_filter)
 
         all_plans = Plan.objects.filter(is_active=True).order_by('name')
-        platform = PlatformConfiguration.get_solo()
+        platform = PlatformConfiguration.get()
 
         # KPI aggregates (success only for revenue)
         success_qs = qs.filter(status='success')
@@ -2391,7 +2391,7 @@ class AdminFinancialReportView(SuperAdminRequiredMixin, TemplateView):
     # ── PDF Export — bank-statement style ────────────────────────────────────
     def _export_pdf(self, request):
 
-        platform = PlatformConfiguration.get_solo()
+        platform = PlatformConfiguration.get()
         site_name = platform.platform_name or 'VerifyNG'
         company_name = platform.company_name or 'VerifyNG Limited'
 
