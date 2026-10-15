@@ -40,8 +40,7 @@
                 <button
                     type="button"
                     class="btn btn-vng-primary w-100"
-                    onclick="sendInvite()"
-                >
+                    onclick="sendInvite()">
                     Send Invitation
                 </button>
             </div>
@@ -110,6 +109,7 @@
                             <button
                                 type="button"
                                 class="btn btn-sm btn-outline-danger"
+                                id="btn-send-invite"
                                 style="font-size:0.8rem;padding:0.25rem 0.6rem;"
                                 onclick="removeMember('{{ member.id }}', '{{ member.user.get_full_name|default:member.user.username }}')"
                             >
@@ -160,48 +160,52 @@ function showToast(message, ok) {
     setTimeout(() => { const el = document.getElementById(id); if (el) el.remove(); }, 5000);
 }
 
-function sendInvite() {
-    const email    = document.getElementById('inviteEmail').value.trim();
-    const teamRole = document.getElementById('inviteRole').value;
+async function sendInvite() {
+  const email    = document.getElementById('invite-email').value.trim();
+  const teamRole = document.getElementById('invite-role').value;
+  if (!email) { window.vng.toast('Enter an email address.', 'warning'); return; }
+  if (!confirm(`Send invitation to ${email}?`)) return;
 
-    if (!email) { showToast('Please enter an email address.', false); return; }
+  const btn = document.getElementById('btn-send-invite');
+  const fd  = new FormData();
+  fd.append('email', email);
+  fd.append('team_role', teamRole);
 
-    if (!confirm(`Send a team invitation to ${email}?\n\nThey will receive an email with a link to join ${document.title.split('|')[0].trim()}.`)) return;
-
-    fetch('{% url "employer:team_invite_send" %}', {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': CSRF_TOKEN,
-            'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({ email, team_role: teamRole }),
-    })
-    .then(r => r.json())
-    .then(data => {
-        showToast(data.message, data.ok);
-        if (data.ok) {
-            document.getElementById('inviteEmail').value = '';
-        }
-    })
-    .catch(() => showToast('Network error — please try again.', false));
+  await window.vng.fetchPost(
+    "{% url 'employer:team_invite_send' %}",
+    fd,
+    btn,
+    {
+      loadingText: 'Sending…',
+      onSuccess: function () {
+        document.getElementById('invite-email').value = '';
+      }
+    }
+  );
 }
 
-function removeMember(memberId, name) {
-    if (!confirm(`Remove ${name} from the team?\n\nThey will lose access to this employer account immediately.`)) return;
+async function removeMember(memberId, memberName) {
+  if (!confirm(`Remove ${memberName} from the team? This cannot be undone.`)) return;
 
-    fetch(`/employer/team/${memberId}/remove/`, {
-        method: 'POST',
-        headers: { 'X-CSRFToken': CSRF_TOKEN },
-    })
-    .then(r => r.json())
-    .then(data => {
-        showToast(data.message, data.ok);
-        if (data.ok) {
-            const row = document.getElementById('member-row-' + memberId);
-            if (row) row.remove();
+  const btn = document.querySelector(`[data-member-id="${memberId}"]`);
+  const fd  = new FormData();
+
+  await window.vng.fetchPost(
+    `/employer/team/${memberId}/remove/`,
+    fd,
+    btn,
+    {
+      loadingText: 'Removing…',
+      onSuccess: function () {
+        const row = document.getElementById(`member-row-${memberId}`);
+        if (row) {
+          row.style.transition = 'opacity .3s';
+          row.style.opacity    = '0';
+          setTimeout(() => row.remove(), 300);
         }
-    })
-    .catch(() => showToast('Network error — please try again.', false));
+      }
+    }
+  );
 }
 </script>
 {% endblock %}

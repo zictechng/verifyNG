@@ -35,7 +35,7 @@
                 >
                 <div class="form-text">Enter exactly 11 digits. Nigerian phone numbers start 070 / 080 / 081 / 090 / 091.</div>
             </div>
-            <button type="submit" class="btn btn-vng-primary">Search</button>
+            <button type="submit" class="btn btn-vng-primary" data-loading-text="Searching…">Search</button>
             {% if result %}
             <button type="reset" class="btn btn-vng-outline ms-2"
                     onclick="window.location='{% url 'employer:person_check_search' %}'">Clear</button>

@@ -762,8 +762,8 @@ def person_check_search(request):
     """
     profile = _get_or_create_employer_profile(request.user)
 
-    result = None
-    query  = ''
+    result    = None
+    query     = ''
     query_type = ''
 
     if request.method == 'POST':
@@ -773,93 +773,88 @@ def person_check_search(request):
         if not raw_query:
             result = {'error': 'Please enter a phone number or NIN to search.'}
         else:
-            subject = None
+            digits_only = ''.join(c for c in raw_query if c.isdigit())
 
-            # Decide lookup strategy
-            digits_only = raw_query.replace('+', '').replace(' ', '').replace('-', '')
-            if digits_only.isdigit() and len(digits_only) == 11 and digits_only.startswith(('070', '080', '081', '090', '091')):
-                # Looks like a Nigerian phone number
-                query_type = 'phone'
-                ident = (
-                    Identifier.objects
-                    .filter(type='phone', value=raw_query, is_active=True)
-                    .select_related('subject')
-                    .first()
-                )
-                if not ident and digits_only != raw_query:
-                    ident = (
-                        Identifier.objects
-                        .filter(type='phone', value=digits_only, is_active=True)
-                        .select_related('subject')
-                        .first()
-                    )
-                if ident:
-                    subject = ident.subject
-
-            elif digits_only.isdigit() and len(digits_only) == 11:
-                # 11-digit number — could be NIN
-                query_type = 'nin'
-                nin_hash = hashlib.sha256(digits_only.encode('utf-8')).hexdigest()
-                ident = (
-                    Identifier.objects
-                    .filter(type='nin', value=nin_hash, is_active=True)
-                    .select_related('subject')
-                    .first()
-                )
-                if ident:
-                    subject = ident.subject
-            else:
+            if len(digits_only) != 11:
                 result = {
                     'error': (
-                        'Enter an 11-digit Nigerian phone number (e.g. 08012345678) '
-                        'or an 11-digit NIN.'
+                        'Enter exactly 11 digits — a Nigerian phone number '
+                        '(e.g. 08012345678) or an 11-digit NIN.'
                     )
                 }
+            else:
+                from identities.models import Identifier, SubjectEntity
 
-            if result is None:
-                if subject is None:
+                # Decide identifier type by prefix
+                phone_prefixes = ('070', '080', '081', '090', '091', '071', '091')
+                if digits_only[:3] in phone_prefixes:
+                    query_type = 'phone'
+                    id_type    = 'phone'
+                else:
+                    query_type = 'nin'
+                    id_type    = 'nin'
+
+                # All identifiers are stored as SHA-256 hashes
+                value_hash = hashlib.sha256(digits_only.encode('utf-8')).hexdigest()
+
+                ident = (
+                    Identifier.objects
+                    .filter(type=id_type, value_hash=value_hash)
+                    .select_related('subject')
+                    .first()
+                )
+
+                if ident is None:
                     result = {
-                        'found': False,
-                        'query': raw_query,
+                        'found':      False,
+                        'query':      raw_query,
                         'query_type': query_type,
                     }
                 else:
-                    # Trust score
+                    subject = ident.subject
+
+                    # Trust score (may not exist yet)
                     trust_score = None
                     try:
                         trust_score = subject.trust_score
                     except Exception:
                         pass
 
-                    # Verified/published fraud reports only — never raw allegations
+                    # Published fraud reports only — never raw allegations
+                    fraud_reports = []
+                    fraud_count   = 0
                     try:
-                        fraud_reports = (
+                        from reports.models import FraudReport
+                        fraud_qs = (
                             FraudReport.objects
-                            .filter(target_subject=subject, status='published', is_active=True)
+                            .filter(
+                                target_subject=subject,
+                                status='published',
+                                is_active=True,
+                            )
                             .order_by('-created_at')[:5]
                         )
-                        fraud_count = fraud_reports.count()
+                        fraud_count   = fraud_qs.count()
+                        fraud_reports = list(fraud_qs)
                     except Exception:
-                        fraud_reports = []
-                        fraud_count = 0
+                        pass
 
                     result = {
-                        'found':        True,
-                        'subject':      subject,
-                        'trust_score':  trust_score,
+                        'found':         True,
+                        'subject':       subject,
+                        'trust_score':   trust_score,
                         'fraud_reports': fraud_reports,
-                        'fraud_count':  fraud_count,
-                        'query':        raw_query,
-                        'query_type':   query_type,
+                        'fraud_count':   fraud_count,
+                        'query':         raw_query,
+                        'query_type':    query_type,
                     }
 
     context = {
-        'profile':     profile,
-        'result':      result,
-        'query':       query,
-        'page_title':  'Person Quick-Check',
+        'profile':    profile,
+        'result':     result,
+        'query':      query,
+        'page_title': 'Person Quick-Check',
     }
     return render(request, 'employer/person_check.html', context)
-
 
 
