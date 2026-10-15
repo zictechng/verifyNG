@@ -1,29 +1,30 @@
-
 {% extends "admin_portal/base_admin.html" %}
 {% load static %}
 
 {% block title %}Financial Reports — VerifyNG Admin{% endblock %}
 
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Financial Reports</li>
+{% endblock %}
+
 {% block content %}
-<div class="adm-page-header d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4">
-    <div>
-        <h1 class="adm-page-title mb-0">Financial Reports</h1>
-        <p class="text-muted small mb-0">Revenue summary, transaction history and downloadable statements</p>
-    </div>
-    <div class="d-flex gap-2 flex-wrap">
+<div class="adm-page-header">
+    <h1 class="adm-page-title">Financial Reports</h1>
+    <p class="text-muted small mb-0">Revenue summary, transaction history and downloadable statements</p>
+    <div class="d-flex gap-2 flex-wrap mt-2">
         <a href="?{{ request.GET.urlencode }}&download=csv"
            class="btn btn-sm btn-outline-secondary">
             ⬇ Export CSV
         </a>
         <a href="?{{ request.GET.urlencode }}&download=pdf"
-           class="btn btn-sm btn-vng-primary">
+           class="btn btn-sm btn-adm-primary">
             ⬇ Download PDF Statement
         </a>
     </div>
 </div>
 
 <!-- Date Range Filter -->
-<div class="vng-card p-3 mb-4">
+<div class="adm-card p-3 mb-4">
     <form method="get" class="row g-2 align-items-end">
         <div class="col-sm-4 col-md-3">
             <label class="form-label small fw-semibold text-muted mb-1">From Date</label>
@@ -38,7 +39,7 @@
         <div class="col-sm-4 col-md-3">
             <label class="form-label small fw-semibold text-muted mb-1">Status</label>
             <select name="status" class="form-select form-select-sm">
-                <option value="">All</option>
+                <option value="">All Statuses</option>
                 <option value="success" {% if status_filter == 'success' %}selected{% endif %}>Success</option>
                 <option value="failed" {% if status_filter == 'failed' %}selected{% endif %}>Failed</option>
                 <option value="refunded" {% if status_filter == 'refunded' %}selected{% endif %}>Refunded</option>
@@ -46,7 +47,7 @@
             </select>
         </div>
         <div class="col-sm-12 col-md-3">
-            <button type="submit" class="btn btn-vng-primary btn-sm w-100">Apply Filter</button>
+            <button type="submit" class="btn btn-adm-primary btn-sm w-100">Apply Filter</button>
         </div>
     </form>
 </div>
@@ -54,39 +55,39 @@
 <!-- KPI Summary Row -->
 <div class="row g-3 mb-4">
     <div class="col-6 col-md-3">
-        <div class="vng-card p-3 text-center h-100">
-            <p class="small text-muted fw-semibold text-uppercase mb-1">Total Revenue</p>
-            <p class="h4 fw-black text-success mb-0">₦{{ total_revenue_naira|floatformat:2 }}</p>
+        <div class="adm-card p-3 text-center h-100">
+            <p class="small text-muted fw-semibold mb-1">Total Revenue</p>
+            <p class="h4 fw-bold text-success mb-0">₦{{ total_revenue_naira|floatformat:2 }}</p>
             <p class="small text-muted mb-0">in period</p>
         </div>
     </div>
     <div class="col-6 col-md-3">
-        <div class="vng-card p-3 text-center h-100">
-            <p class="small text-muted fw-semibold text-uppercase mb-1">Transactions</p>
-            <p class="h4 fw-black text-primary mb-0">{{ total_transactions }}</p>
+        <div class="adm-card p-3 text-center h-100">
+            <p class="small text-muted fw-semibold mb-1">Transactions</p>
+            <p class="h4 fw-bold text-primary mb-0">{{ total_transactions }}</p>
             <p class="small text-muted mb-0">successful</p>
         </div>
     </div>
     <div class="col-6 col-md-3">
-        <div class="vng-card p-3 text-center h-100">
-            <p class="small text-muted fw-semibold text-uppercase mb-1">Avg. Transaction</p>
-            <p class="h4 fw-black text-dark mb-0">₦{{ avg_transaction_naira|floatformat:2 }}</p>
+        <div class="adm-card p-3 text-center h-100">
+            <p class="small text-muted fw-semibold mb-1">Avg. Transaction</p>
+            <p class="h4 fw-bold mb-0">₦{{ avg_transaction_naira|floatformat:2 }}</p>
             <p class="small text-muted mb-0">per payment</p>
         </div>
     </div>
     <div class="col-6 col-md-3">
-        <div class="vng-card p-3 text-center h-100">
-            <p class="small text-muted fw-semibold text-uppercase mb-1">Active Subs</p>
-            <p class="h4 fw-black text-info mb-0">{{ active_subscriptions }}</p>
+        <div class="adm-card p-3 text-center h-100">
+            <p class="small text-muted fw-semibold mb-1">Active Subscriptions</p>
+            <p class="h4 fw-bold text-info mb-0">{{ active_subscriptions }}</p>
             <p class="small text-muted mb-0">current period</p>
         </div>
     </div>
 </div>
 
-<!-- Monthly Revenue Breakdown Table -->
-<div class="vng-card p-0 mb-4">
-    <div class="p-3 border-bottom d-flex align-items-center justify-content-between">
-        <h6 class="fw-bold mb-0">Monthly Breakdown</h6>
+<!-- Monthly Revenue Breakdown -->
+<div class="adm-card mb-4">
+    <div class="adm-card-header d-flex align-items-center justify-content-between">
+        <span class="fw-semibold">Monthly Breakdown</span>
         <span class="badge bg-secondary">{{ date_from_str }} → {{ date_to_str }}</span>
     </div>
     <div class="table-responsive">
@@ -110,7 +111,9 @@
                     <td class="text-end fw-bold px-3">₦{{ row.net|floatformat:2 }}</td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="5" class="text-center text-muted py-4">No data for selected period</td></tr>
+                <tr>
+                    <td colspan="5" class="text-center text-muted py-4">No transactions in the selected period</td>
+                </tr>
                 {% endfor %}
             </tbody>
             {% if monthly_breakdown %}
@@ -128,10 +131,10 @@
     </div>
 </div>
 
-<!-- Plan Revenue Breakdown -->
-<div class="vng-card p-0 mb-4">
-    <div class="p-3 border-bottom">
-        <h6 class="fw-bold mb-0">Revenue by Plan</h6>
+<!-- Revenue by Plan -->
+<div class="adm-card mb-4">
+    <div class="adm-card-header">
+        <span class="fw-semibold">Revenue by Plan</span>
     </div>
     <div class="table-responsive">
         <table class="table table-sm table-hover mb-0">
@@ -150,7 +153,9 @@
                     <td class="text-end fw-bold px-3">₦{{ row.revenue|floatformat:2 }}</td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="3" class="text-center text-muted py-3">No plan data available</td></tr>
+                <tr>
+                    <td colspan="3" class="text-center text-muted py-3">No plan data available</td>
+                </tr>
                 {% endfor %}
             </tbody>
         </table>
@@ -158,9 +163,9 @@
 </div>
 
 <!-- Transaction Ledger -->
-<div class="vng-card p-0">
-    <div class="p-3 border-bottom d-flex align-items-center justify-content-between">
-        <h6 class="fw-bold mb-0">Transaction Ledger</h6>
+<div class="adm-card">
+    <div class="adm-card-header d-flex align-items-center justify-content-between">
+        <span class="fw-semibold">Transaction Ledger</span>
         <span class="text-muted small">{{ transactions.paginator.count }} record(s)</span>
     </div>
     <div class="table-responsive">
@@ -195,12 +200,13 @@
                     <td class="small px-3 text-muted">{{ txn.created_at|date:"d M Y H:i" }}</td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="6" class="text-center text-muted py-4">No transactions in this period</td></tr>
+                <tr>
+                    <td colspan="6" class="text-center text-muted py-4">No transactions in this period</td>
+                </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
-    <!-- Pagination -->
     {% if transactions.has_other_pages %}
     <div class="p-3 border-top">
         {% include "admin_portal/_pagination.html" with page_obj=transactions %}
