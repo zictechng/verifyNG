@@ -15,6 +15,7 @@ from django.shortcuts import render
 from django.urls import reverse_lazy
 from django.utils.timezone import localtime, now
 from django.views.generic import CreateView, DetailView, View
+from django.urls import reverse
 
 from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
@@ -99,17 +100,16 @@ class UserLoginView(LoginView):
         """Route to the correct portal based on user role."""
         user = self.request.user
         role = getattr(user, 'role', 'individual')
-
         if user.is_superuser or user.is_staff:
-            return reverse_lazy('admin_portal:dashboard')
+            return reverse('admin_portal:dashboard')
         if role == 'employer':
-            return reverse_lazy('employer:dashboard')
+            return reverse('employer:dashboard')
         if role == 'agency':
-            return reverse_lazy('dashboard:index')   # agency portal TBD — fall back to main dashboard
+            return reverse('dashboard:index')
         if role in ('moderator', 'officer'):
-            return reverse_lazy('dashboard:index')
+            return reverse('admin_portal:dashboard')
         # Default: individual / business
-        return reverse_lazy('dashboard:index')
+        return reverse('dashboard:index')
 
 
 class UserLogoutView(LogoutView):
