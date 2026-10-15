@@ -18,7 +18,8 @@
             <div class="vng-card p-4 mb-4" x-data="{ 
                 idType: 'phone',
                 identifier: new URLSearchParams(window.location.search).get('q') || '', 
-                result: null, 
+                result: null,
+                certResult: null,
                 loading: false, 
                 searched: false,
                 error: null,
@@ -28,7 +29,26 @@
                     this.error = null;
                     this.searched = true;
 
-                    if (this.idType === 'hash') {
+                    if (this.idType === 'certificate_id') {
+                        // Certificate direct lookup (no hashing — IDs are public references)
+                        this.certResult = null;
+                        fetch('/api/v1/certificate/' + encodeURIComponent(this.identifier.trim().toUpperCase()))
+                            .then(res => {
+                                if (!res.ok) return res.json().then(j => { throw new Error(j.detail || 'Certificate not found.'); });
+                                return res.json();
+                            })
+                            .then(data => {
+                                this.certResult = data;
+                                this.result = null;
+                                this.loading = false;
+                            })
+                            .catch(err => {
+                                this.certResult = null;
+                                this.result = null;
+                                this.error = err.message;
+                                this.loading = false;
+                            });
+                    } else if (this.idType === 'hash') {
                         // Direct hash lookup
                         fetch('/api/v1/check/' + encodeURIComponent(this.identifier.trim()))
                             .then(res => {
@@ -46,6 +66,7 @@
                             });
                     } else {
                         // In-memory hashed query
+                        this.certResult = null;
                         fetch('/api/v1/check/lookup', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -82,6 +103,7 @@
                             <option value="cac">CAC / RC Number</option>
                             <option value="email">Email Address</option>
                             <option value="nin">NIN (11 Digits)</option>
+                            <option value="certificate_id">Certificate ID (VNG-XXXX-XXXXXXXX)</option>
                             <option value="hash">Direct Record Hash</option>
                         </select>
                     </div>
@@ -92,7 +114,7 @@
                                    id="checkInput"
                                    class="form-control py-2" 
                                    style="border-color: var(--vng-border);"
-                                   :placeholder="idType === 'phone' ? 'e.g. 08012345678' : (idType === 'cac' ? 'e.g. RC123456' : (idType === 'email' ? 'e.g. user@domain.com' : 'Enter value...'))"
+                                    :placeholder="idType === 'phone' ? 'e.g. 08012345678' : (idType === 'cac' ? 'e.g. RC123456' : (idType === 'email' ? 'e.g. user@domain.com' : (idType === 'certificate_id' ? 'e.g. VNG-2026-A7F2B9C1' : 'Enter value...')))"
                                    x-model="identifier"
                                    @keydown.enter="performSearch()">
                         </div>

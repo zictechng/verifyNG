@@ -16,6 +16,8 @@ from reports.services import create_fraud_report
 from reports.storage_services import StorageError
 from verification.services import create_verification_request
 
+from verification.models import VerificationCertificate
+
 logger = logging.getLogger(__name__)
 
 api = NinjaAPI(urls_namespace='verifyng_api')
@@ -44,7 +46,7 @@ class CheckResponse(Schema):
 
     # Certificates held by this subject — Batch 1 (Landlord Check)
     certificates: list[dict] = []
-    
+
 class CheckLookupRequest(Schema):
     identifier_type: str
     identifier_value: str
@@ -93,6 +95,78 @@ def check_identifier(request, identifier_hash: str):
 
     return record
 
+
+# ---------------------------------------------------------------------------
+# Certificate direct lookup — Batch 2 (Landlord / Public Certificate Check)
+# ---------------------------------------------------------------------------
+
+class CertificateLookupResponse(Schema):
+    certificate_id:       str
+    check_level:          str
+    check_level_display:  str
+    status:               str
+    issued_at:            str | None = None
+    expires_at:           str | None = None
+    is_valid:             bool
+    subject_name:         str
+    entity_type:          str
+    identity_verified:    bool
+    verification_url:     str
+
+
+@api.get("/certificate/{certificate_id}", response=CertificateLookupResponse)
+def certificate_lookup(request, certificate_id: str):
+    """
+    Public endpoint: look up a VerifyNG certificate by its certificate_id.
+    Used by landlords, employers, and QR-code scans.
+    No authentication required — certificate IDs are public references.
+    Rate-limited under the shared api_check namespace.
+    """
+    is_limited, retry_after = check_rate_limit(request, namespace="api_check")
+    if is_limited:
+        response = HttpResponse(
+            json.dumps({"detail": "Rate limit exceeded. Please wait before retrying."}),
+            status=429,
+            content_type="application/json",
+        )
+        response['Retry-After'] = str(retry_after)
+        return response
+
+    try:
+        cert = (
+            VerificationCertificate.objects
+            .select_related('subject', 'holder')
+            .get(certificate_id__iexact=certificate_id.strip(), is_active=True)
+        )
+    except VerificationCertificate.DoesNotExist:
+        raise Http404("No certificate found with this ID.")
+
+    subject = cert.subject
+    subject_name = (
+        subject.full_name
+        or subject.business_name
+        or "Unknown Entity"
+    )
+    entity_type  = subject.entity_type  if hasattr(subject, 'entity_type')  else 'individual'
+    id_verified  = (
+        subject.identity_verified
+        if hasattr(subject, 'identity_verified')
+        else False
+    )
+
+    return {
+        "certificate_id":      cert.certificate_id,
+        "check_level":         cert.check_level,
+        "check_level_display": cert.get_check_level_display(),
+        "status":              cert.status,
+        "issued_at":           cert.issued_at.strftime('%Y-%m-%d') if cert.issued_at else None,
+        "expires_at":          cert.expires_at.strftime('%Y-%m-%d') if cert.expires_at else None,
+        "is_valid":            cert.is_valid,
+        "subject_name":        subject_name,
+        "entity_type":         entity_type,
+        "identity_verified":   id_verified,
+        "verification_url":    f"/verification/certificate/{cert.certificate_id}/",
+    }
 
 class ReportSubmitRequest(Schema):
     """
