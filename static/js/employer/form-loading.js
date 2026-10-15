@@ -104,14 +104,24 @@
       payload = fd;
     }
 
-    // Ensure CSRF token is in every POST
-    const csrf = document.cookie.match(/csrftoken=([^;]+)/);
-    if (csrf) payload.set('csrfmiddlewaretoken', payload.get('csrfmiddlewaretoken') || csrf[1]);
+    // Robust CSRF token reader — handles base64 padding and spaces
+    const _getCsrf = () => {
+      const name = 'csrftoken=';
+      for (const part of document.cookie.split(';')) {
+        const p = part.trim();
+        if (p.startsWith(name)) return decodeURIComponent(p.slice(name.length));
+      }
+      return '';
+    };
+    const csrfToken = _getCsrf();
+    if (csrfToken && !payload.get('csrfmiddlewaretoken')) {
+      payload.set('csrfmiddlewaretoken', csrfToken);
+    }
 
     try {
       const resp = await fetch(url, {
         method:      'POST',
-        headers:     { 'X-CSRFToken': csrf ? csrf[1] : '' },
+        headers:     csrfToken ? { 'X-CSRFToken': csrfToken } : {},
         credentials: 'same-origin',
         body:        payload,
       });
