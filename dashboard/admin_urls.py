@@ -52,7 +52,8 @@ from dashboard.admin_views import (
     AdminDisputeDetailView,
     AdminNotificationsView,
     AdminVerificationDetailView,
-    AdminCertificateDetailView
+    AdminCertificateDetailView,
+    AdminFinancialReportView,
 )
 
 app_name = 'admin_portal'
@@ -131,5 +132,7 @@ urlpatterns = [
     path('certificates/<int:pk>/action/', AdminCertificateActionView.as_view(), name='certificate_action'),
     path('certificates/<int:pk>/', AdminCertificateDetailView.as_view(), name='certificate_detail'),
 
+    # ── Financial Reports ──────────────────────────────────────────────────────
+    path('financial/', AdminFinancialReportView.as_view(), name='financial_report'),
 ]
 

@@ -1,0 +1,211 @@
+
+{% extends "admin_portal/base_admin.html" %}
+{% load static %}
+
+{% block title %}Financial Reports — VerifyNG Admin{% endblock %}
+
+{% block content %}
+<div class="adm-page-header d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4">
+    <div>
+        <h1 class="adm-page-title mb-0">Financial Reports</h1>
+        <p class="text-muted small mb-0">Revenue summary, transaction history and downloadable statements</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="?{{ request.GET.urlencode }}&download=csv"
+           class="btn btn-sm btn-outline-secondary">
+            ⬇ Export CSV
+        </a>
+        <a href="?{{ request.GET.urlencode }}&download=pdf"
+           class="btn btn-sm btn-vng-primary">
+            ⬇ Download PDF Statement
+        </a>
+    </div>
+</div>
+
+<!-- Date Range Filter -->
+<div class="vng-card p-3 mb-4">
+    <form method="get" class="row g-2 align-items-end">
+        <div class="col-sm-4 col-md-3">
+            <label class="form-label small fw-semibold text-muted mb-1">From Date</label>
+            <input type="date" name="date_from" class="form-control form-control-sm"
+                   value="{{ date_from_str }}">
+        </div>
+        <div class="col-sm-4 col-md-3">
+            <label class="form-label small fw-semibold text-muted mb-1">To Date</label>
+            <input type="date" name="date_to" class="form-control form-control-sm"
+                   value="{{ date_to_str }}">
+        </div>
+        <div class="col-sm-4 col-md-3">
+            <label class="form-label small fw-semibold text-muted mb-1">Status</label>
+            <select name="status" class="form-select form-select-sm">
+                <option value="">All</option>
+                <option value="success" {% if status_filter == 'success' %}selected{% endif %}>Success</option>
+                <option value="failed" {% if status_filter == 'failed' %}selected{% endif %}>Failed</option>
+                <option value="refunded" {% if status_filter == 'refunded' %}selected{% endif %}>Refunded</option>
+                <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+            </select>
+        </div>
+        <div class="col-sm-12 col-md-3">
+            <button type="submit" class="btn btn-vng-primary btn-sm w-100">Apply Filter</button>
+        </div>
+    </form>
+</div>
+
+<!-- KPI Summary Row -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="vng-card p-3 text-center h-100">
+            <p class="small text-muted fw-semibold text-uppercase mb-1">Total Revenue</p>
+            <p class="h4 fw-black text-success mb-0">₦{{ total_revenue_naira|floatformat:2 }}</p>
+            <p class="small text-muted mb-0">in period</p>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="vng-card p-3 text-center h-100">
+            <p class="small text-muted fw-semibold text-uppercase mb-1">Transactions</p>
+            <p class="h4 fw-black text-primary mb-0">{{ total_transactions }}</p>
+            <p class="small text-muted mb-0">successful</p>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="vng-card p-3 text-center h-100">
+            <p class="small text-muted fw-semibold text-uppercase mb-1">Avg. Transaction</p>
+            <p class="h4 fw-black text-dark mb-0">₦{{ avg_transaction_naira|floatformat:2 }}</p>
+            <p class="small text-muted mb-0">per payment</p>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="vng-card p-3 text-center h-100">
+            <p class="small text-muted fw-semibold text-uppercase mb-1">Active Subs</p>
+            <p class="h4 fw-black text-info mb-0">{{ active_subscriptions }}</p>
+            <p class="small text-muted mb-0">current period</p>
+        </div>
+    </div>
+</div>
+
+<!-- Monthly Revenue Breakdown Table -->
+<div class="vng-card p-0 mb-4">
+    <div class="p-3 border-bottom d-flex align-items-center justify-content-between">
+        <h6 class="fw-bold mb-0">Monthly Breakdown</h6>
+        <span class="badge bg-secondary">{{ date_from_str }} → {{ date_to_str }}</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-sm table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th class="px-3">Month</th>
+                    <th class="text-end">Transactions</th>
+                    <th class="text-end">Revenue (₦)</th>
+                    <th class="text-end">Refunds (₦)</th>
+                    <th class="text-end px-3">Net (₦)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in monthly_breakdown %}
+                <tr>
+                    <td class="px-3 fw-semibold">{{ row.month }}</td>
+                    <td class="text-end">{{ row.count }}</td>
+                    <td class="text-end text-success">₦{{ row.revenue|floatformat:2 }}</td>
+                    <td class="text-end text-danger">₦{{ row.refunds|floatformat:2 }}</td>
+                    <td class="text-end fw-bold px-3">₦{{ row.net|floatformat:2 }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5" class="text-center text-muted py-4">No data for selected period</td></tr>
+                {% endfor %}
+            </tbody>
+            {% if monthly_breakdown %}
+            <tfoot class="table-light fw-bold">
+                <tr>
+                    <td class="px-3">TOTAL</td>
+                    <td class="text-end">{{ total_transactions }}</td>
+                    <td class="text-end text-success">₦{{ total_revenue_naira|floatformat:2 }}</td>
+                    <td class="text-end text-danger">₦{{ total_refunds_naira|floatformat:2 }}</td>
+                    <td class="text-end px-3">₦{{ net_revenue_naira|floatformat:2 }}</td>
+                </tr>
+            </tfoot>
+            {% endif %}
+        </table>
+    </div>
+</div>
+
+<!-- Plan Revenue Breakdown -->
+<div class="vng-card p-0 mb-4">
+    <div class="p-3 border-bottom">
+        <h6 class="fw-bold mb-0">Revenue by Plan</h6>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-sm table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th class="px-3">Plan</th>
+                    <th class="text-end">Transactions</th>
+                    <th class="text-end px-3">Revenue (₦)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in plan_breakdown %}
+                <tr>
+                    <td class="px-3">{{ row.plan_name }}</td>
+                    <td class="text-end">{{ row.count }}</td>
+                    <td class="text-end fw-bold px-3">₦{{ row.revenue|floatformat:2 }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="3" class="text-center text-muted py-3">No plan data available</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Transaction Ledger -->
+<div class="vng-card p-0">
+    <div class="p-3 border-bottom d-flex align-items-center justify-content-between">
+        <h6 class="fw-bold mb-0">Transaction Ledger</h6>
+        <span class="text-muted small">{{ transactions.paginator.count }} record(s)</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-sm table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th class="px-3">Reference</th>
+                    <th>User</th>
+                    <th>Plan</th>
+                    <th class="text-end">Amount (₦)</th>
+                    <th>Status</th>
+                    <th class="px-3">Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for txn in transactions %}
+                <tr>
+                    <td class="px-3 font-monospace small">{{ txn.reference|truncatechars:20 }}</td>
+                    <td class="small">{{ txn.user.get_full_name|default:txn.user.username|default:"—" }}</td>
+                    <td class="small">{{ txn.plan.name|default:"—" }}</td>
+                    <td class="text-end fw-semibold">₦{{ txn.amount_naira|floatformat:2 }}</td>
+                    <td>
+                        <span class="badge
+                            {% if txn.status == 'success' %}bg-success
+                            {% elif txn.status == 'failed' %}bg-danger
+                            {% elif txn.status == 'refunded' %}bg-warning text-dark
+                            {% elif txn.status == 'pending' %}bg-secondary
+                            {% else %}bg-light text-dark{% endif %}">
+                            {{ txn.get_status_display }}
+                        </span>
+                    </td>
+                    <td class="small px-3 text-muted">{{ txn.created_at|date:"d M Y H:i" }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6" class="text-center text-muted py-4">No transactions in this period</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <!-- Pagination -->
+    {% if transactions.has_other_pages %}
+    <div class="p-3 border-top">
+        {% include "admin_portal/_pagination.html" with page_obj=transactions %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

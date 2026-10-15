@@ -2,7 +2,7 @@
 import json
 import json as _json
 import logging
-from datetime import timedelta
+from datetime import timedelta, datetime
 from django.utils import timezone
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import TemplateView, View
@@ -21,7 +21,7 @@ from core.tasks import send_email_notification_task
 from django.db.models import Q
 from core.email_utils import render_email
 from notifications.tasks import send_broadcast_email_task
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.utils import timezone as tz
 from django.contrib.auth.models import Group
 
@@ -36,6 +36,25 @@ from django.conf import settings
 from django.shortcuts import render as drender
 from django.db import transaction as db_transaction
 from django.db import transaction
+
+from payments.models import Transaction as TxnModel
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.enums import TA_RIGHT, TA_CENTER, TA_LEFT
+import io
+from reportlab.lib.pagesizes import A4
+from reportlab.lib import colors
+from reportlab.lib.units import mm
+from reportlab.platypus import (
+    SimpleDocTemplate, Table, TableStyle, Paragraph,
+    Spacer, HRFlowable,
+)
+
+import csv as csv_mod
+from payments.models import Transaction
+from django.db.models import Sum, Count, Avg
+from django.core.paginator import Paginator
+from payments.models import Transaction, Subscription
+
 
 import os
 from users.models import UserServiceAccess
@@ -2192,5 +2211,361 @@ class AdminMenuAccessView(SuperAdminRequiredMixin, View):
         })
 
     
+# ─────────────────────────────────────────────────────────────────────────────
+# Financial Reporting — bank-statement-style report + PDF download
+# ─────────────────────────────────────────────────────────────────────────────
+
+class AdminFinancialReportView(SuperAdminRequiredMixin, TemplateView):
+    """
+    Dynamic financial reporting dashboard with CSV and PDF export.
+    Covers: revenue KPIs, monthly breakdown, plan breakdown, transaction ledger.
+    """
+    template_name = "admin_portal/financial_report.html"
+
+    def _get_date_range(self, request):
+        """Return (date_from, date_to) as aware datetimes from GET params or sensible defaults."""
+        now = timezone.now()
+        try:
+            date_from = datetime.strptime(request.GET.get('date_from', ''), '%Y-%m-%d')
+            date_from = timezone.make_aware(date_from.replace(hour=0, minute=0, second=0))
+        except ValueError:
+            date_from = (now - timedelta(days=90)).replace(hour=0, minute=0, second=0, microsecond=0)
+        try:
+            date_to = datetime.strptime(request.GET.get('date_to', ''), '%Y-%m-%d')
+            date_to = timezone.make_aware(date_to.replace(hour=23, minute=59, second=59))
+        except ValueError:
+            date_to = now
+        return date_from, date_to
+
+    def _build_context(self, request):
+      
+        date_from, date_to = self._get_date_range(request)
+        status_filter = request.GET.get('status', '')
+
+        qs = Transaction.objects.filter(
+            created_at__gte=date_from,
+            created_at__lte=date_to,
+            is_active=True,
+        ).select_related('user', 'plan').order_by('-created_at')
+
+        if status_filter:
+            qs = qs.filter(status=status_filter)
+
+        # KPI aggregates (success only for revenue)
+        success_qs = qs.filter(status='success')
+        refund_qs  = qs.filter(status='refunded')
+
+        agg = success_qs.aggregate(
+            total=Sum('amount_kobo'),
+            count=Count('id'),
+            avg=Avg('amount_kobo'),
+        )
+        total_revenue_kobo  = agg['total'] or 0
+        total_transactions  = agg['count'] or 0
+        avg_kobo            = agg['avg'] or 0
+        total_refunds_kobo  = refund_qs.aggregate(t=Sum('amount_kobo'))['t'] or 0
+
+        # Monthly breakdown
+        monthly_data = {}
+        for txn in success_qs.order_by('created_at'):
+            key = txn.created_at.strftime('%b %Y')
+            if key not in monthly_data:
+                monthly_data[key] = {'count': 0, 'revenue': 0, 'refunds': 0}
+            monthly_data[key]['count'] += 1
+            monthly_data[key]['revenue'] += txn.amount_kobo / 100
+
+        for txn in refund_qs.order_by('created_at'):
+            key = txn.created_at.strftime('%b %Y')
+            if key not in monthly_data:
+                monthly_data[key] = {'count': 0, 'revenue': 0, 'refunds': 0}
+            monthly_data[key]['refunds'] += txn.amount_kobo / 100
+
+        monthly_breakdown = [
+            {
+                'month':   month,
+                'count':   data['count'],
+                'revenue': data['revenue'],
+                'refunds': data['refunds'],
+                'net':     data['revenue'] - data['refunds'],
+            }
+            for month, data in monthly_data.items()
+        ]
+
+        # Plan breakdown
+        plan_agg = (
+            success_qs
+            .values('plan__name')
+            .annotate(count=Count('id'), total=Sum('amount_kobo'))
+            .order_by('-total')
+        )
+        plan_breakdown = [
+            {
+                'plan_name': row['plan__name'] or 'No Plan',
+                'count':     row['count'],
+                'revenue':   (row['total'] or 0) / 100,
+            }
+            for row in plan_agg
+        ]
+
+        # Paginated ledger (all statuses matching filter)
+        paginator = Paginator(qs, 50)
+        page_number = request.GET.get('page', 1)
+        transactions_page = paginator.get_page(page_number)
+
+        active_subs = Subscription.objects.filter(status='active', is_active=True).count()
+
+        return {
+            'date_from_str':        date_from.strftime('%Y-%m-%d'),
+            'date_to_str':          date_to.strftime('%Y-%m-%d'),
+            'status_filter':        status_filter,
+            'total_revenue_naira':  total_revenue_kobo / 100,
+            'total_refunds_naira':  total_refunds_kobo / 100,
+            'net_revenue_naira':    (total_revenue_kobo - total_refunds_kobo) / 100,
+            'total_transactions':   total_transactions,
+            'avg_transaction_naira': avg_kobo / 100,
+            'active_subscriptions': active_subs,
+            'monthly_breakdown':    monthly_breakdown,
+            'plan_breakdown':       plan_breakdown,
+            'transactions':         transactions_page,
+        }
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx.update(self._build_context(self.request))
+        return ctx
+
+    def get(self, request, *args, **kwargs):
+        download = request.GET.get('download', '')
+        if download == 'csv':
+            return self._export_csv(request)
+        if download == 'pdf':
+            return self._export_pdf(request)
+        return super().get(request, *args, **kwargs)
+
+    # ── CSV Export ────────────────────────────────────────────────────────────
+    def _export_csv(self, request):
+        
+        date_from, date_to = self._get_date_range(request)
+        status_filter = request.GET.get('status', '')
+        qs = Transaction.objects.filter(
+            created_at__gte=date_from,
+            created_at__lte=date_to,
+            is_active=True,
+        ).select_related('user', 'plan').order_by('-created_at')
+        if status_filter:
+            qs = qs.filter(status=status_filter)
+
+        response = HttpResponse(content_type='text/csv')
+        fname = f"verifyng_financial_{date_from.strftime('%Y%m%d')}_{date_to.strftime('%Y%m%d')}.csv"
+        response['Content-Disposition'] = f'attachment; filename="{fname}"'
+
+        writer = csv_mod.writer(response)
+        writer.writerow([
+            'Reference', 'Paystack Ref', 'User', 'Plan',
+            'Amount (₦)', 'Currency', 'Status', 'Date'
+        ])
+        for txn in qs:
+            writer.writerow([
+                txn.reference,
+                txn.paystack_reference or '—',
+                txn.user.get_full_name() if txn.user else '—',
+                txn.plan.name if txn.plan else '—',
+                f"{txn.amount_naira:.2f}",
+                txn.currency,
+                txn.get_status_display(),
+                txn.created_at.strftime('%Y-%m-%d %H:%M'),
+            ])
+        return response
+
+    # ── PDF Export — bank-statement style ────────────────────────────────────
+    def _export_pdf(self, request):
+       
+        ctx = self._build_context(request)
+        buffer = io.BytesIO()
+
+        doc = SimpleDocTemplate(
+            buffer,
+            pagesize=A4,
+            rightMargin=15 * mm,
+            leftMargin=15 * mm,
+            topMargin=15 * mm,
+            bottomMargin=15 * mm,
+        )
+
+        styles = getSampleStyleSheet()
+        VNG_GREEN  = colors.HexColor('#1a7a4a')
+        VNG_DARK   = colors.HexColor('#1a1a2e')
+        VNG_LIGHT  = colors.HexColor('#f8f9fa')
+        VNG_BORDER = colors.HexColor('#dee2e6')
+        RED        = colors.HexColor('#dc3545')
+        GRAY       = colors.HexColor('#6c757d')
+
+        title_style  = ParagraphStyle('VNGTitle',  fontSize=18, textColor=VNG_DARK, spaceAfter=2, fontName='Helvetica-Bold')
+        sub_style    = ParagraphStyle('VNGSub',    fontSize=9,  textColor=GRAY,     spaceAfter=6)
+        section_style= ParagraphStyle('VNGSection',fontSize=10, textColor=VNG_GREEN, spaceBefore=12, spaceAfter=4, fontName='Helvetica-Bold')
+        normal_style = styles['Normal']
+        normal_style.fontSize = 8
+
+        story = []
+
+        # ── Header ──
+        story.append(Paragraph("VerifyNG", title_style))
+        story.append(Paragraph("Nigeria's Public Trust & Safety Platform — Financial Statement", sub_style))
+        story.append(HRFlowable(width="100%", thickness=1.5, color=VNG_GREEN, spaceAfter=6))
+        story.append(Paragraph(
+            f"Period: {ctx['date_from_str']}  to  {ctx['date_to_str']}    |    "
+            f"Generated: {timezone.now().strftime('%d %b %Y %H:%M')} UTC",
+            ParagraphStyle('MetaLine', fontSize=8, textColor=GRAY, spaceAfter=10)
+        ))
+
+        # ── KPI Summary ──
+        story.append(Paragraph("Summary", section_style))
+        kpi_data = [
+            ['Total Revenue', 'Total Transactions', 'Avg. Transaction', 'Net Revenue', 'Active Subscriptions'],
+            [
+                f"\u20A6{ctx['total_revenue_naira']:,.2f}",
+                str(ctx['total_transactions']),
+                f"\u20A6{ctx['avg_transaction_naira']:,.2f}",
+                f"\u20A6{ctx['net_revenue_naira']:,.2f}",
+                str(ctx['active_subscriptions']),
+            ],
+        ]
+        kpi_table = Table(kpi_data, colWidths=[36 * mm] * 5)
+        kpi_table.setStyle(TableStyle([
+            ('BACKGROUND',  (0, 0), (-1, 0), VNG_DARK),
+            ('TEXTCOLOR',   (0, 0), (-1, 0), colors.white),
+            ('FONTNAME',    (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE',    (0, 0), (-1, 0), 7),
+            ('ALIGN',       (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME',    (0, 1), (-1, 1), 'Helvetica-Bold'),
+            ('FONTSIZE',    (0, 1), (-1, 1), 9),
+            ('BACKGROUND',  (0, 1), (-1, 1), VNG_LIGHT),
+            ('GRID',        (0, 0), (-1, -1), 0.5, VNG_BORDER),
+            ('TOPPADDING',  (0, 0), (-1, -1), 5),
+            ('BOTTOMPADDING',(0, 0), (-1, -1), 5),
+        ]))
+        story.append(kpi_table)
+        story.append(Spacer(1, 6 * mm))
+
+        # ── Monthly Breakdown ──
+        story.append(Paragraph("Monthly Breakdown", section_style))
+        month_header = ['Month', 'Transactions', 'Revenue (₦)', 'Refunds (₦)', 'Net (₦)']
+        month_rows = [month_header]
+        for row in ctx['monthly_breakdown']:
+            month_rows.append([
+                row['month'],
+                str(row['count']),
+                f"\u20A6{row['revenue']:,.2f}",
+                f"\u20A6{row['refunds']:,.2f}",
+                f"\u20A6{row['net']:,.2f}",
+            ])
+        if not ctx['monthly_breakdown']:
+            month_rows.append(['No data', '', '', '', ''])
+
+        month_table = Table(month_rows, colWidths=[40 * mm, 28 * mm, 38 * mm, 38 * mm, 38 * mm])
+        month_table.setStyle(TableStyle([
+            ('BACKGROUND',   (0, 0), (-1, 0), VNG_GREEN),
+            ('TEXTCOLOR',    (0, 0), (-1, 0), colors.white),
+            ('FONTNAME',     (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE',     (0, 0), (-1, -1), 8),
+            ('ALIGN',        (1, 0), (-1, -1), 'RIGHT'),
+            ('ALIGN',        (0, 0), (0, -1), 'LEFT'),
+            ('ROWBACKGROUNDS',(0, 1), (-1, -1), [colors.white, VNG_LIGHT]),
+            ('GRID',         (0, 0), (-1, -1), 0.4, VNG_BORDER),
+            ('TOPPADDING',   (0, 0), (-1, -1), 4),
+            ('BOTTOMPADDING',(0, 0), (-1, -1), 4),
+        ]))
+        story.append(month_table)
+        story.append(Spacer(1, 6 * mm))
+
+        # ── Plan Breakdown ──
+        story.append(Paragraph("Revenue by Plan", section_style))
+        plan_header = ['Plan', 'Transactions', 'Revenue (₦)']
+        plan_rows = [plan_header]
+        for row in ctx['plan_breakdown']:
+            plan_rows.append([row['plan_name'], str(row['count']), f"\u20A6{row['revenue']:,.2f}"])
+        if not ctx['plan_breakdown']:
+            plan_rows.append(['No data', '', ''])
+
+        plan_table = Table(plan_rows, colWidths=[80 * mm, 40 * mm, 62 * mm])
+        plan_table.setStyle(TableStyle([
+            ('BACKGROUND',    (0, 0), (-1, 0), VNG_GREEN),
+            ('TEXTCOLOR',     (0, 0), (-1, 0), colors.white),
+            ('FONTNAME',      (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE',      (0, 0), (-1, -1), 8),
+            ('ALIGN',         (1, 0), (-1, -1), 'RIGHT'),
+            ('ALIGN',         (0, 0), (0, -1), 'LEFT'),
+            ('ROWBACKGROUNDS',(0, 1), (-1, -1), [colors.white, VNG_LIGHT]),
+            ('GRID',          (0, 0), (-1, -1), 0.4, VNG_BORDER),
+            ('TOPPADDING',    (0, 0), (-1, -1), 4),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ]))
+        story.append(plan_table)
+        story.append(Spacer(1, 6 * mm))
+
+        # ── Transaction Ledger (up to 200 rows in PDF) ──
+        story.append(Paragraph("Transaction Ledger", section_style))
+       
+        date_from_pdf, date_to_pdf = self._get_date_range(request)
+        status_filter_pdf = request.GET.get('status', '')
+        txn_qs = TxnModel.objects.filter(
+            created_at__gte=date_from_pdf,
+            created_at__lte=date_to_pdf,
+            is_active=True,
+        ).select_related('user', 'plan').order_by('-created_at')[:200]
+        if status_filter_pdf:
+            txn_qs = txn_qs.filter(status=status_filter_pdf)
+
+        ledger_header = ['Date', 'Reference', 'User', 'Plan', 'Amount (₦)', 'Status']
+        ledger_rows = [ledger_header]
+        for txn in txn_qs:
+            status_text = txn.get_status_display()
+            ledger_rows.append([
+                txn.created_at.strftime('%d %b %Y'),
+                txn.reference[:18],
+                (txn.user.get_full_name() or txn.user.username)[:20] if txn.user else '—',
+                (txn.plan.name[:16] if txn.plan else '—'),
+                f"\u20A6{txn.amount_naira:,.2f}",
+                status_text,
+            ])
+
+        ledger_table = Table(
+            ledger_rows,
+            colWidths=[22 * mm, 38 * mm, 38 * mm, 28 * mm, 26 * mm, 20 * mm],
+            repeatRows=1,
+        )
+        ledger_table.setStyle(TableStyle([
+            ('BACKGROUND',    (0, 0), (-1, 0), VNG_DARK),
+            ('TEXTCOLOR',     (0, 0), (-1, 0), colors.white),
+            ('FONTNAME',      (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE',      (0, 0), (-1, -1), 7),
+            ('ALIGN',         (4, 0), (4, -1), 'RIGHT'),
+            ('ALIGN',         (5, 0), (5, -1), 'CENTER'),
+            ('ROWBACKGROUNDS',(0, 1), (-1, -1), [colors.white, VNG_LIGHT]),
+            ('GRID',          (0, 0), (-1, -1), 0.3, VNG_BORDER),
+            ('TOPPADDING',    (0, 0), (-1, -1), 3),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+        ]))
+        story.append(ledger_table)
+
+        # ── Footer disclaimer ──
+        story.append(Spacer(1, 8 * mm))
+        story.append(HRFlowable(width="100%", thickness=0.5, color=VNG_BORDER, spaceAfter=4))
+        story.append(Paragraph(
+            "This is an internal VerifyNG financial statement generated for administrative purposes. "
+            "It is not an audited financial statement. All amounts are in Nigerian Naira (NGN).",
+            ParagraphStyle('Footer', fontSize=7, textColor=GRAY, alignment=TA_CENTER)
+        ))
+
+        doc.build(story)
+        buffer.seek(0)
+        fname = f"verifyng_statement_{date_from_pdf.strftime('%Y%m%d')}_{date_to_pdf.strftime('%Y%m%d')}.pdf"
+        response = HttpResponse(buffer, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="{fname}"'
+        return response
+
+
+
+
 
 
