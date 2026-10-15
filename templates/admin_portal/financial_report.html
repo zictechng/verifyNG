@@ -5,42 +5,61 @@
 
 {% block admin_body %}
 
+<!-- Page Header -->
 <div class="adm-page-header">
     <h1 class="adm-page-title">Financial Reports</h1>
-    <p class="small mb-2" style="color:var(--adm-muted);">Revenue summary, transaction history and downloadable statements</p>
-    <div class="d-flex gap-2 flex-wrap">
-        <a href="?{{ request.GET.urlencode }}&download=csv"
-           class="btn btn-sm btn-outline-secondary">⬇ Export CSV</a>
-        <a href="?{{ request.GET.urlencode }}&download=pdf"
-           class="btn btn-sm btn-adm-primary">⬇ Download PDF Statement</a>
-    </div>
+    <p class="small mb-0" style="color:var(--adm-muted);">Revenue, transactions and downloadable statements</p>
 </div>
 
-<!-- Date Range Filter -->
+<!-- Filter + Export Bar -->
 <div class="adm-card mb-4">
-    <div class="adm-card-header"><span class="adm-card-title">Filter by Date &amp; Status</span></div>
+    <div class="adm-card-header">
+        <span class="adm-card-title">Filter &amp; Export</span>
+    </div>
     <div class="p-3">
-        <form method="get" class="row g-2 align-items-end">
-            <div class="col-sm-6 col-md-3">
-                <label class="form-label small fw-semibold mb-1" style="color:var(--adm-muted);">From Date</label>
-                <input type="date" name="date_from" class="form-control form-control-sm" value="{{ date_from_str }}">
-            </div>
-            <div class="col-sm-6 col-md-3">
-                <label class="form-label small fw-semibold mb-1" style="color:var(--adm-muted);">To Date</label>
-                <input type="date" name="date_to" class="form-control form-control-sm" value="{{ date_to_str }}">
-            </div>
-            <div class="col-sm-6 col-md-3">
-                <label class="form-label small fw-semibold mb-1" style="color:var(--adm-muted);">Status</label>
-                <select name="status" class="form-select form-select-sm">
-                    <option value="">All Statuses</option>
-                    <option value="success"  {% if status_filter == 'success'  %}selected{% endif %}>Success</option>
-                    <option value="failed"   {% if status_filter == 'failed'   %}selected{% endif %}>Failed</option>
-                    <option value="refunded" {% if status_filter == 'refunded' %}selected{% endif %}>Refunded</option>
-                    <option value="pending"  {% if status_filter == 'pending'  %}selected{% endif %}>Pending</option>
-                </select>
-            </div>
-            <div class="col-sm-6 col-md-3">
-                <button type="submit" class="btn btn-adm-primary btn-sm w-100">Apply Filter</button>
+        <form method="get" id="filterForm">
+            <div class="row g-2 align-items-end">
+                <div class="col-6 col-md-2">
+                    <label class="form-label small fw-semibold mb-1" style="color:var(--adm-muted);">From</label>
+                    <input type="date" name="date_from" class="form-control form-control-sm" value="{{ date_from_str }}">
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label small fw-semibold mb-1" style="color:var(--adm-muted);">To</label>
+                    <input type="date" name="date_to" class="form-control form-control-sm" value="{{ date_to_str }}">
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label small fw-semibold mb-1" style="color:var(--adm-muted);">Plan</label>
+                    <select name="plan" class="form-select form-select-sm">
+                        <option value="">All Plans</option>
+                        {% for p in all_plans %}
+                        <option value="{{ p.pk }}" {% if plan_filter == p.pk|stringformat:"s" %}selected{% endif %}>{{ p.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label small fw-semibold mb-1" style="color:var(--adm-muted);">Status</label>
+                    <select name="status" class="form-select form-select-sm">
+                        <option value="">All Statuses</option>
+                        <option value="success"  {% if status_filter == 'success'  %}selected{% endif %}>Success</option>
+                        <option value="failed"   {% if status_filter == 'failed'   %}selected{% endif %}>Failed</option>
+                        <option value="refunded" {% if status_filter == 'refunded' %}selected{% endif %}>Refunded</option>
+                        <option value="pending"  {% if status_filter == 'pending'  %}selected{% endif %}>Pending</option>
+                    </select>
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label small fw-semibold mb-1 d-none d-md-block" style="color:transparent;">.</label>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-adm-primary btn-sm flex-fill">Apply Filter</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary flex-fill"
+                                onclick="window.location.href='?'+new URLSearchParams({...Object.fromEntries(new FormData(document.getElementById('filterForm')))}).toString()+'&download=csv'">
+                            ⬇ CSV
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-dark flex-fill"
+                                onclick="window.location.href='?'+new URLSearchParams({...Object.fromEntries(new FormData(document.getElementById('filterForm')))}).toString()+'&download=pdf'">
+                            ⬇ PDF
+                        </button>
+                    </div>
+                </div>
             </div>
         </form>
     </div>
@@ -48,32 +67,32 @@
 
 <!-- KPI Cards -->
 <div class="row g-3 mb-4">
-    <div class="col-6 col-md-3">
-        <div class="adm-card p-3 text-center h-100">
-            <p class="small fw-semibold mb-1" style="color:var(--adm-muted);">Total Revenue</p>
-            <p class="h4 fw-bold text-success mb-0">₦{{ total_revenue_naira|floatformat:2 }}</p>
-            <p class="small mb-0" style="color:var(--adm-muted);">in period</p>
+    <div class="col-6 col-xl-3">
+        <div class="adm-card p-3 h-100">
+            <p class="small fw-semibold mb-2" style="color:var(--adm-muted);">Total Revenue</p>
+            <p class="h4 fw-bold text-success mb-1">₦{{ total_revenue_naira|floatformat:2 }}</p>
+            <p class="small mb-0" style="color:var(--adm-muted);">{{ date_from_str }} – {{ date_to_str }}</p>
         </div>
     </div>
-    <div class="col-6 col-md-3">
-        <div class="adm-card p-3 text-center h-100">
-            <p class="small fw-semibold mb-1" style="color:var(--adm-muted);">Transactions</p>
-            <p class="h4 fw-bold text-primary mb-0">{{ total_transactions }}</p>
-            <p class="small mb-0" style="color:var(--adm-muted);">successful</p>
+    <div class="col-6 col-xl-3">
+        <div class="adm-card p-3 h-100">
+            <p class="small fw-semibold mb-2" style="color:var(--adm-muted);">Successful Transactions</p>
+            <p class="h4 fw-bold text-primary mb-1">{{ total_transactions }}</p>
+            <p class="small mb-0" style="color:var(--adm-muted);">Avg ₦{{ avg_transaction_naira|floatformat:2 }} each</p>
         </div>
     </div>
-    <div class="col-6 col-md-3">
-        <div class="adm-card p-3 text-center h-100">
-            <p class="small fw-semibold mb-1" style="color:var(--adm-muted);">Avg. Transaction</p>
-            <p class="h4 fw-bold mb-0">₦{{ avg_transaction_naira|floatformat:2 }}</p>
-            <p class="small mb-0" style="color:var(--adm-muted);">per payment</p>
+    <div class="col-6 col-xl-3">
+        <div class="adm-card p-3 h-100">
+            <p class="small fw-semibold mb-2" style="color:var(--adm-muted);">Net Revenue</p>
+            <p class="h4 fw-bold mb-1">₦{{ net_revenue_naira|floatformat:2 }}</p>
+            <p class="small text-danger mb-0">Refunds: ₦{{ total_refunds_naira|floatformat:2 }}</p>
         </div>
     </div>
-    <div class="col-6 col-md-3">
-        <div class="adm-card p-3 text-center h-100">
-            <p class="small fw-semibold mb-1" style="color:var(--adm-muted);">Active Subscriptions</p>
-            <p class="h4 fw-bold text-info mb-0">{{ active_subscriptions }}</p>
-            <p class="small mb-0" style="color:var(--adm-muted);">current period</p>
+    <div class="col-6 col-xl-3">
+        <div class="adm-card p-3 h-100">
+            <p class="small fw-semibold mb-2" style="color:var(--adm-muted);">Active Subscriptions</p>
+            <p class="h4 fw-bold text-info mb-1">{{ active_subscriptions }}</p>
+            <p class="small mb-0" style="color:var(--adm-muted);">current platform-wide</p>
         </div>
     </div>
 </div>
@@ -109,13 +128,13 @@
                 {% endfor %}
             </tbody>
             {% if monthly_breakdown %}
-            <tfoot class="table-light fw-bold">
+            <tfoot style="background:var(--adm-sidebar-active, #1a4a8a); color:#fff;">
                 <tr>
-                    <td class="px-3">TOTAL</td>
-                    <td class="text-end">{{ total_transactions }}</td>
-                    <td class="text-end text-success">₦{{ total_revenue_naira|floatformat:2 }}</td>
-                    <td class="text-end text-danger">₦{{ total_refunds_naira|floatformat:2 }}</td>
-                    <td class="text-end px-3">₦{{ net_revenue_naira|floatformat:2 }}</td>
+                    <td class="px-3 fw-bold" style="color:#fff;">TOTAL</td>
+                    <td class="text-end fw-bold" style="color:#fff;">{{ total_transactions }}</td>
+                    <td class="text-end fw-bold" style="color:#fff;">₦{{ total_revenue_naira|floatformat:2 }}</td>
+                    <td class="text-end fw-bold" style="color:#ffc0c0;">₦{{ total_refunds_naira|floatformat:2 }}</td>
+                    <td class="text-end fw-bold px-3" style="color:#fff;">₦{{ net_revenue_naira|floatformat:2 }}</td>
                 </tr>
             </tfoot>
             {% endif %}
@@ -140,9 +159,9 @@
             <tbody>
                 {% for row in plan_breakdown %}
                 <tr>
-                    <td class="px-3">{{ row.plan_name }}</td>
+                    <td class="px-3 fw-semibold">{{ row.plan_name }}</td>
                     <td class="text-end">{{ row.count }}</td>
-                    <td class="text-end fw-bold px-3">₦{{ row.revenue|floatformat:2 }}</td>
+                    <td class="text-end fw-bold px-3 text-success">₦{{ row.revenue|floatformat:2 }}</td>
                 </tr>
                 {% empty %}
                 <tr><td colspan="3" class="text-center py-3" style="color:var(--adm-muted);">No plan data available</td></tr>
@@ -162,27 +181,27 @@
         <table class="table table-sm table-hover mb-0">
             <thead class="table-light">
                 <tr>
-                    <th class="px-3">Reference</th>
+                    <th class="px-3">Date</th>
+                    <th>Reference</th>
                     <th>User</th>
                     <th>Plan</th>
                     <th class="text-end">Amount (₦)</th>
-                    <th>Status</th>
-                    <th class="px-3">Date</th>
+                    <th class="text-end px-3">Status</th>
                 </tr>
             </thead>
             <tbody>
                 {% for txn in transactions %}
                 <tr>
-                    <td class="px-3 font-monospace small">{{ txn.reference|truncatechars:20 }}</td>
+                    <td class="px-3 small" style="color:var(--adm-muted);">{{ txn.created_at|date:"d M Y" }}</td>
+                    <td class="font-monospace small">{{ txn.reference|truncatechars:22 }}</td>
                     <td class="small">{{ txn.user.get_full_name|default:txn.user.username|default:"—" }}</td>
                     <td class="small">{{ txn.plan.name|default:"—" }}</td>
                     <td class="text-end fw-semibold">₦{{ txn.amount_naira|floatformat:2 }}</td>
-                    <td>
+                    <td class="text-end px-3">
                         <span class="badge {% if txn.status == 'success' %}bg-success{% elif txn.status == 'failed' %}bg-danger{% elif txn.status == 'refunded' %}bg-warning text-dark{% elif txn.status == 'pending' %}bg-secondary{% else %}bg-light text-dark{% endif %}">
                             {{ txn.get_status_display }}
                         </span>
                     </td>
-                    <td class="small px-3" style="color:var(--adm-muted);">{{ txn.created_at|date:"d M Y H:i" }}</td>
                 </tr>
                 {% empty %}
                 <tr><td colspan="6" class="text-center py-4" style="color:var(--adm-muted);">No transactions in this period</td></tr>
@@ -198,4 +217,3 @@
 </div>
 
 {% endblock %}
-
