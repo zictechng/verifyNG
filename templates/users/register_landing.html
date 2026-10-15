@@ -1,0 +1,106 @@
+
+{% extends 'public/base.html' %}
+{% load static %}
+
+{% block title %}Create Account — VerifyNG{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-7 col-md-9">
+
+            <div class="text-center mb-5">
+                <span class="vng-badge-trust mb-2">Get Started</span>
+                <h1 class="h3 fw-bold">Choose Your Account Type</h1>
+                <p class="text-muted">Select the type that best describes how you'll use VerifyNG.</p>
+            </div>
+
+            <div class="row g-4">
+
+                <!-- Individual -->
+                <div class="col-md-4">
+                    <a href="{% url 'users:register' %}" class="text-decoration-none">
+                        <div class="vng-card p-4 h-100 text-center vng-reg-card">
+                            <div class="vng-reg-icon mb-3">
+                                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                                </svg>
+                            </div>
+                            <h5 class="fw-bold mb-2">Individual</h5>
+                            <p class="small text-muted mb-3">Report fraud, verify people, build your personal trust profile.</p>
+                            <span class="btn btn-vng-primary btn-vng-sm w-100">Sign Up Free →</span>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Employer -->
+                <div class="col-md-4">
+                    <a href="{% url 'users:register_employer' %}" class="text-decoration-none">
+                        <div class="vng-card p-4 h-100 text-center vng-reg-card vng-reg-card--featured">
+                            <span class="vng-badge-trust mb-2" style="font-size:0.65rem;">Most Popular</span>
+                            <div class="vng-reg-icon mb-3">
+                                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+                                    <line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/>
+                                </svg>
+                            </div>
+                            <h5 class="fw-bold mb-2">Employer</h5>
+                            <p class="small text-muted mb-3">Run background checks, verify staff, and manage your team portal.</p>
+                            <span class="btn btn-vng-primary btn-vng-sm w-100">Register Employer →</span>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Agency -->
+                <div class="col-md-4">
+                    <a href="{% url 'users:register_agency' %}" class="text-decoration-none">
+                        <div class="vng-card p-4 h-100 text-center vng-reg-card">
+                            <div class="vng-reg-icon mb-3">
+                                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                                </svg>
+                            </div>
+                            <h5 class="fw-bold mb-2">Security Agency</h5>
+                            <p class="small text-muted mb-3">Authorised agencies with enhanced access to verification records.</p>
+                            <span class="btn btn-vng-outline btn-vng-sm w-100">Apply for Access →</span>
+                        </div>
+                    </a>
+                </div>
+
+            </div>
+
+            <p class="text-center text-muted small mt-4">
+                Already have an account? <a href="{% url 'users:login' %}" class="text-primary fw-semibold">Sign in</a>
+            </p>
+
+        </div>
+    </div>
+</div>
+
+<style>
+.vng-reg-card {
+    border: 1.5px solid var(--vng-border, #e5e7eb);
+    border-radius: var(--vng-radius-md, 12px);
+    transition: border-color .2s, box-shadow .2s, transform .15s;
+    cursor: pointer;
+}
+.vng-reg-card:hover {
+    border-color: var(--vng-primary, #2563eb);
+    box-shadow: 0 4px 20px rgba(37,99,235,.12);
+    transform: translateY(-2px);
+}
+.vng-reg-card--featured {
+    border-color: var(--vng-primary, #2563eb);
+    background: linear-gradient(160deg, #f0f6ff 0%, #fff 60%);
+}
+.vng-reg-icon {
+    width: 64px; height: 64px;
+    background: #f0f6ff;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto;
+    color: var(--vng-primary, #2563eb);
+}
+</style>
+{% endblock %}
+

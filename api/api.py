@@ -14,6 +14,7 @@ from identities.services import lookup_public_record
 from core.rate_limiting import check_rate_limit, get_client_ip
 from reports.services import create_fraud_report
 from reports.storage_services import StorageError
+from verification.services import create_verification_request
 
 logger = logging.getLogger(__name__)
 

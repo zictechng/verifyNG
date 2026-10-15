@@ -1,6 +1,9 @@
 from django.urls import path
 from users.views import (
     RegisterView,
+    RegisterLandingView,
+    EmployerRegisterView,
+    AgencyRegisterView,
     UserLoginView,
     UserLogoutView,
     UserProfileView,
@@ -18,7 +21,12 @@ from django.views.generic import TemplateView
 app_name = 'users'
 
 urlpatterns = [
-    path('register/', RegisterView.as_view(), name='register'),
+    # Registration — landing + role-specific
+    path('register/', RegisterLandingView.as_view(), name='register_landing'),
+    path('register/individual/', RegisterView.as_view(), name='register'),
+    path('register/employer/', EmployerRegisterView.as_view(), name='register_employer'),
+    path('register/agency/', AgencyRegisterView.as_view(), name='register_agency'),
+
     path('login/', UserLoginView.as_view(), name='login'),
     path('logout/', UserLogoutView.as_view(), name='logout'),
     path('profile/', UserProfileUpdateView.as_view(), name='profile'),
@@ -41,4 +49,5 @@ urlpatterns = [
         template_name='users/password_change_done.html'
     ), name='password_change_done'),
 ]
+
 

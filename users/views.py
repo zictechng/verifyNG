@@ -79,6 +79,7 @@ class UserLoginView(LoginView):
     """
     Standard authentication login view.
     Rate limited: max 10 login attempts per IP per 15 minutes.
+    Routes each role to their correct portal on login.
     """
     form_class = CustomAuthenticationForm
     template_name = 'users/login.html'
@@ -93,6 +94,22 @@ class UserLoginView(LoginView):
                 status=429,
             )
         return super().dispatch(request, *args, **kwargs)
+
+    def get_success_url(self):
+        """Route to the correct portal based on user role."""
+        user = self.request.user
+        role = getattr(user, 'role', 'individual')
+
+        if user.is_superuser or user.is_staff:
+            return reverse_lazy('admin_portal:dashboard')
+        if role == 'employer':
+            return reverse_lazy('employer:dashboard')
+        if role == 'agency':
+            return reverse_lazy('dashboard:index')   # agency portal TBD — fall back to main dashboard
+        if role in ('moderator', 'officer'):
+            return reverse_lazy('dashboard:index')
+        # Default: individual / business
+        return reverse_lazy('dashboard:index')
 
 
 class UserLogoutView(LogoutView):
@@ -322,5 +339,120 @@ class DeleteAccountView(LoginRequiredMixin, View):
         logout(request)
         messages.success(request, 'Your account has been deleted.')
         return HttpResponseRedirect(reverse_lazy('home'))
+
+
+
+class RegisterLandingView(View):
+    """
+    Registration landing page — lets the visitor choose their account type
+    before seeing a registration form. No login required.
+    """
+    template_name = 'users/register_landing.html'
+
+    def get(self, request):
+        if request.user.is_authenticated:
+            return HttpResponseRedirect(reverse_lazy('dashboard:index'))
+        return render(request, self.template_name)
+
+
+class EmployerRegisterView(CreateView):
+    """
+    Employer account registration.
+    Creates user with role='employer' and auto-creates EmployerProfile.
+    """
+    from users.forms import EmployerRegistrationForm
+    form_class = EmployerRegistrationForm
+    template_name = 'users/register_employer.html'
+    success_url = reverse_lazy('users:login')
+
+    def get_form_class(self):
+        from users.forms import EmployerRegistrationForm
+        return EmployerRegistrationForm
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            return HttpResponseRedirect(reverse_lazy('dashboard:index'))
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        user = self.object
+        try:
+            html_body, text_body = render_email('generic_notification', {
+                'user_name': user.get_full_name() or user.username,
+                'heading': 'Welcome to VerifyNG — Employer Account',
+                'body_html': (
+                    f'<p>Your VerifyNG employer account has been created successfully.</p>'
+                    f'<p>You can now sign in and access the Employer Portal to run background checks, '
+                    f'manage your team, and upload bulk verification requests.</p>'
+                    f'<p>Your username is: <strong>{user.username}</strong></p>'
+                ),
+                'subject': 'Welcome to VerifyNG — Employer Account Ready',
+            })
+            send_broadcast_email_task.delay(
+                to_email=user.email,
+                subject='Welcome to VerifyNG — Employer Account Ready',
+                html_body=html_body,
+                text_body=text_body,
+            )
+        except Exception:
+            logger.warning("Failed to send employer welcome email to user %s", user.pk)
+
+        messages.success(
+            self.request,
+            f'Employer account created! Welcome, {user.get_full_name() or user.username}. Please sign in.'
+        )
+        return response
+
+
+class AgencyRegisterView(CreateView):
+    """
+    Agency / security organisation account registration.
+    Creates user with role='agency'.
+    """
+    form_class = None   # resolved in get_form_class
+    template_name = 'users/register_agency.html'
+    success_url = reverse_lazy('users:login')
+
+    def get_form_class(self):
+        from users.forms import AgencyRegistrationForm
+        return AgencyRegistrationForm
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            return HttpResponseRedirect(reverse_lazy('dashboard:index'))
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        user = self.object
+        try:
+            html_body, text_body = render_email('generic_notification', {
+                'user_name': user.get_full_name() or user.username,
+                'heading': 'Welcome to VerifyNG — Agency Account',
+                'body_html': (
+                    f'<p>Your VerifyNG agency account has been created successfully.</p>'
+                    f'<p>Agency accounts are subject to manual verification by our team before '
+                    f'full access is granted. You will be notified by email once your account '
+                    f'is approved.</p>'
+                    f'<p>Your username is: <strong>{user.username}</strong></p>'
+                ),
+                'subject': 'Welcome to VerifyNG — Agency Account Pending Verification',
+            })
+            send_broadcast_email_task.delay(
+                to_email=user.email,
+                subject='Welcome to VerifyNG — Agency Account Pending Verification',
+                html_body=html_body,
+                text_body=text_body,
+            )
+        except Exception:
+            logger.warning("Failed to send agency welcome email to user %s", user.pk)
+
+        messages.success(
+            self.request,
+            'Agency account created. Our team will review and activate your account within 48 hours.'
+        )
+        return response
+
 
 

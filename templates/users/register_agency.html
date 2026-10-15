@@ -1,0 +1,128 @@
+
+{% extends 'public/base.html' %}
+{% load static %}
+
+{% block title %}Agency Registration — VerifyNG{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-md-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-6 col-md-8">
+
+            <div class="text-center mb-4">
+                <span class="vng-badge-trust mb-2">Security Agency Portal</span>
+                <h1 class="h3 fw-bold">Apply for Agency Access</h1>
+                <p class="small text-muted mb-0">Agency accounts are manually reviewed. You'll receive an email once approved (within 48 hours).</p>
+            </div>
+
+            <!-- Notice -->
+            <div class="alert d-flex gap-3 mb-4" style="background:#FEF3C7;border:1px solid #FDE68A;border-radius:10px;">
+                <svg width="20" height="20" fill="none" stroke="#B45309" stroke-width="2" viewBox="0 0 24 24" class="flex-shrink-0 mt-1">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                    <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+                <div class="small" style="color:#92400E;">
+                    <strong>Verification required.</strong> Agency accounts must be verified by VerifyNG before access is granted.
+                    You will still be able to sign in, but enhanced access will be restricted until approval.
+                </div>
+            </div>
+
+            <div class="vng-card p-4 p-md-5">
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger py-2 small mb-3">
+                        {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+                    </div>
+                {% endif %}
+
+                <form method="post" novalidate>
+                    {% csrf_token %}
+
+                    <div class="mb-3">
+                        <label for="{{ form.agency_name.id_for_label }}" class="form-label small fw-semibold">Agency / Organisation Name *</label>
+                        {{ form.agency_name }}
+                        {% if form.agency_name.errors %}<div class="text-danger small mt-1">{{ form.agency_name.errors.0 }}</div>{% endif %}
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-sm-6">
+                            <label for="{{ form.first_name.id_for_label }}" class="form-label small fw-semibold">Contact First Name *</label>
+                            {{ form.first_name }}
+                            {% if form.first_name.errors %}<div class="text-danger small mt-1">{{ form.first_name.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-sm-6">
+                            <label for="{{ form.last_name.id_for_label }}" class="form-label small fw-semibold">Contact Last Name</label>
+                            {{ form.last_name }}
+                            {% if form.last_name.errors %}<div class="text-danger small mt-1">{{ form.last_name.errors.0 }}</div>{% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.username.id_for_label }}" class="form-label small fw-semibold">Username *</label>
+                        {{ form.username }}
+                        {% if form.username.errors %}<div class="text-danger small mt-1">{{ form.username.errors.0 }}</div>{% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.email.id_for_label }}" class="form-label small fw-semibold">Agency Email *</label>
+                        {{ form.email }}
+                        {% if form.email.errors %}<div class="text-danger small mt-1">{{ form.email.errors.0 }}</div>{% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.password1.id_for_label }}" class="form-label small fw-semibold">Password *</label>
+                        <div class="input-group">
+                            <input type="password" name="{{ form.password1.name }}" id="{{ form.password1.id_for_label }}" class="form-control" placeholder="Create a strong password" required>
+                            <button type="button" class="btn btn-outline-secondary px-3" id="toggleAgencyPwd1" tabindex="-1">Show</button>
+                        </div>
+                        {% if form.password1.errors %}<div class="text-danger small mt-1">{{ form.password1.errors.0 }}</div>{% endif %}
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="{{ form.password2.id_for_label }}" class="form-label small fw-semibold">Confirm Password *</label>
+                        <div class="input-group">
+                            <input type="password" name="{{ form.password2.name }}" id="{{ form.password2.id_for_label }}" class="form-control" placeholder="Re-type password" required>
+                            <button type="button" class="btn btn-outline-secondary px-3" id="toggleAgencyPwd2" tabindex="-1">Show</button>
+                        </div>
+                        {% if form.password2.errors %}<div class="text-danger small mt-1">{{ form.password2.errors.0 }}</div>{% endif %}
+                    </div>
+
+                    <button type="submit" class="btn btn-vng-primary w-100 py-2" id="agencyRegBtn">
+                        <span id="agencyRegBtnText">Submit Application →</span>
+                        <span id="agencyRegBtnSpinner" class="d-none">
+                            <span class="spinner-border spinner-border-sm me-2"></span>Submitting…
+                        </span>
+                    </button>
+                </form>
+            </div>
+
+            <p class="text-center text-muted small mt-3">
+                <a href="{% url 'users:register_landing' %}" class="text-primary fw-semibold">← Back to account types</a>
+            </p>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    [['toggleAgencyPwd1', '{{ form.password1.id_for_label }}'],
+     ['toggleAgencyPwd2', '{{ form.password2.id_for_label }}']].forEach(([btnId, inputId]) => {
+        const btn = document.getElementById(btnId);
+        const inp = document.getElementById(inputId);
+        if (btn && inp) btn.addEventListener('click', () => {
+            inp.type = inp.type === 'password' ? 'text' : 'password';
+            btn.textContent = inp.type === 'password' ? 'Show' : 'Hide';
+        });
+    });
+    const form = document.querySelector('form');
+    const btn  = document.getElementById('agencyRegBtn');
+    const txt  = document.getElementById('agencyRegBtnText');
+    const spin = document.getElementById('agencyRegBtnSpinner');
+    if (form && btn) form.addEventListener('submit', () => {
+        btn.disabled = true;
+        txt.classList.add('d-none');
+        spin.classList.remove('d-none');
+    });
+})();
+</script>
+{% endblock %}
+

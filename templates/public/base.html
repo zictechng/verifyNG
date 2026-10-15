@@ -392,7 +392,7 @@
                             </form>
                         {% else %}
                             <a href="{% url 'users:login' %}" class="btn btn-vng-outline btn-sm">Login</a>
-                            <a href="{% url 'users:register' %}" class="btn btn-vng-primary btn-sm">Sign Up</a>
+                            <a href="{% url 'users:register_landing' %}" class="btn btn-vng-primary btn-sm">Sign Up</a>
                         {% endif %}
                     </div>
                 </div>
@@ -446,7 +446,7 @@
                             <li><a href="{% url 'users:profile' %}">Profile Settings</a></li>
                         {% else %}
                             <li><a href="{% url 'users:login' %}">Sign In</a></li>
-                            <li><a href="{% url 'users:register' %}">Create Account</a></li>
+                            <li><a href="{% url 'users:register_landing' %}">Create Account</a></li>
                         {% endif %}
                     </ul>
                 </div>
