@@ -227,6 +227,7 @@ async function doSendInvite() {
     const fd       = new FormData();
     fd.append('email', email);
     fd.append('team_role', teamRole);
+    fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
 
     await window.vng.fetchPost(
         "{% url 'employer:team_invite_send' %}",
