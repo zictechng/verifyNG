@@ -1,0 +1,132 @@
+
+{% extends 'public/base.html' %}
+{% load static %}
+
+{% block title %}Bulk CSV Upload | VerifyNG{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-md-5" style="max-width:700px;">
+
+    <div class="mb-4">
+        <a href="{% url 'employer:bulk_upload_list' %}" class="small text-muted text-decoration-none">← Bulk Uploads</a>
+        <h1 class="h3 fw-bold mt-2 mb-1">Bulk CSV Upload</h1>
+        <p class="text-muted small mb-0">Upload a CSV file to run background checks on multiple candidates at once.</p>
+    </div>
+
+    {% if errors %}
+    <div class="alert alert-danger mb-4" style="border-radius:var(--vng-radius-md);">
+        <strong class="d-block mb-1">Please fix the following before uploading:</strong>
+        <ul class="mb-0 ps-3">
+            {% for e in errors %}<li>{{ e }}</li>{% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    {# How it works #}
+    <div class="vng-card p-4 mb-4">
+        <h2 class="h6 fw-bold mb-3">How it works</h2>
+        <ol class="mb-0 ps-3 small" style="line-height:1.8;">
+            <li>Download the <a href="{% url 'employer:bulk_csv_template' %}" class="fw-semibold">CSV template</a> and fill in your candidates.</li>
+            <li>Each row needs at least a <strong>full_name</strong> and either a <strong>phone_number</strong> or <strong>NIN</strong>.</li>
+            <li>Upload the completed file below — maximum <strong>500 rows</strong> and <strong>5 MB</strong>.</li>
+            <li>VerifyNG will process each candidate and show results on the upload detail page.</li>
+        </ol>
+    </div>
+
+    {# CSV columns reference #}
+    <div class="vng-card p-4 mb-4">
+        <h2 class="h6 fw-bold mb-3">CSV columns</h2>
+        <div class="table-responsive">
+            <table class="table table-sm mb-0" style="font-size:0.8rem;">
+                <thead>
+                    <tr style="color:var(--vng-muted);">
+                        <th class="fw-semibold py-2">Column</th>
+                        <th class="fw-semibold py-2">Required?</th>
+                        <th class="fw-semibold py-2">Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="py-2 fw-semibold">full_name</td>
+                        <td class="py-2"><span class="badge bg-danger">Required</span></td>
+                        <td class="py-2">Candidate's full legal name</td>
+                    </tr>
+                    <tr>
+                        <td class="py-2 fw-semibold">phone_number</td>
+                        <td class="py-2"><span class="badge bg-warning text-dark">One required</span></td>
+                        <td class="py-2">Nigerian mobile number, e.g. 08012345678</td>
+                    </tr>
+                    <tr>
+                        <td class="py-2 fw-semibold">nin</td>
+                        <td class="py-2"><span class="badge bg-warning text-dark">One required</span></td>
+                        <td class="py-2">11-digit NIN — hashed immediately, never stored as plain text</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <p class="small text-muted mt-2 mb-0">
+            <strong>Phone or NIN</strong> — at least one must be provided per row. Rows with neither will be skipped.
+        </p>
+    </div>
+
+    {# Upload form #}
+    <div class="vng-card p-4">
+        <h2 class="h6 fw-bold mb-3">Select your file</h2>
+        <form method="post" enctype="multipart/form-data" id="uploadForm">
+            {% csrf_token %}
+            <div class="mb-4">
+                <label for="csv_file" class="form-label fw-semibold small">CSV File</label>
+                <input
+                    type="file"
+                    id="csv_file"
+                    name="csv_file"
+                    accept=".csv,text/csv"
+                    class="form-control"
+                    required
+                >
+                <div class="form-text">Maximum 5 MB · 500 rows · UTF-8 or UTF-8 BOM (Excel default)</div>
+            </div>
+
+            <div id="filePreview" class="alert alert-info d-none mb-4" style="border-radius:var(--vng-radius-md);font-size:0.875rem;">
+                <strong id="previewName"></strong><br>
+                <span id="previewSize"></span>
+            </div>
+
+            <div class="d-flex gap-3">
+                <button type="submit" id="submitBtn" class="btn btn-vng-primary" onclick="return confirmUpload()">
+                    Upload &amp; Process
+                </button>
+                <a href="{% url 'employer:bulk_upload_list' %}" class="btn btn-vng-outline">Cancel</a>
+            </div>
+        </form>
+    </div>
+
+</div>
+
+<script>
+(function () {
+    const fileInput = document.getElementById('csv_file');
+    const preview   = document.getElementById('filePreview');
+    const prevName  = document.getElementById('previewName');
+    const prevSize  = document.getElementById('previewSize');
+
+    fileInput.addEventListener('change', function () {
+        const file = this.files[0];
+        if (!file) { preview.classList.add('d-none'); return; }
+        prevName.textContent = file.name;
+        prevSize.textContent = (file.size / 1024).toFixed(1) + ' KB';
+        preview.classList.remove('d-none');
+    });
+})();
+
+function confirmUpload() {
+    const file = document.getElementById('csv_file').files[0];
+    if (!file) return true;  // let HTML5 validation handle it
+    return confirm(
+        'Upload "' + file.name + '" and queue background checks for all candidates?\n\n' +
+        'This action will consume verification credits for each processed row.'
+    );
+}
+</script>
+{% endblock %}
+

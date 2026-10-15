@@ -2,13 +2,22 @@
 
 # employer/views.py
 import logging
-
+import csv
+import io
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.decorators import method_decorator
 from django.views import View
+from django.db import transaction
+from .tasks import process_bulk_upload_task
+from django.http import HttpResponse
+from .models import BulkCheckUpload, BulkCheckRow
+
+from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
+
 
 from core.permissions import employer_required
 from .models import BulkCheckUpload, EmployerProfile, TeamMember
@@ -346,6 +355,186 @@ def monitoring_toggle(request, check_id):
         new_status = 'active'
 
     return JsonResponse({'ok': True, 'message': msg, 'monitor_status': new_status})
+
+
+
+
+# ---------------------------------------------------------------------------
+# Bulk Checks — Upload form — BATCH 2
+# ---------------------------------------------------------------------------
+
+
+
+
+@login_required
+@employer_required
+def bulk_upload_create(request):
+    """
+    GET  — render the upload form with CSV template download link.
+    POST — validate uploaded CSV, create BulkCheckUpload + BulkCheckRow records,
+           trigger Celery task, redirect to detail page.
+    """
+    profile = _get_or_create_employer_profile(request.user)
+
+    if request.method == 'POST':
+        uploaded_file = request.FILES.get('csv_file')
+        errors = []
+
+        if not uploaded_file:
+            errors.append('Please select a CSV file to upload.')
+        elif not uploaded_file.name.lower().endswith('.csv'):
+            errors.append('Only CSV files are accepted (.csv extension required).')
+        elif uploaded_file.size > 5 * 1024 * 1024:  # 5 MB hard limit
+            errors.append('File is too large. Maximum size is 5 MB.')
+
+        if errors:
+            return render(request, 'employer/bulk_upload_create.html', {
+                'profile': profile,
+                'errors': errors,
+                'page_title': 'Bulk CSV Upload',
+            })
+
+        # Read and validate CSV content
+        try:
+            raw_bytes = uploaded_file.read()
+            text = raw_bytes.decode('utf-8-sig')  # handles BOM from Excel exports
+        except UnicodeDecodeError:
+            return render(request, 'employer/bulk_upload_create.html', {
+                'profile': profile,
+                'errors': ['File could not be decoded as UTF-8. Please save as CSV UTF-8 and re-upload.'],
+                'page_title': 'Bulk CSV Upload',
+            })
+
+        reader = csv.DictReader(io.StringIO(text))
+        required_col = 'full_name'
+        rows_data = []
+        parse_errors = []
+
+        try:
+            fieldnames = [f.strip().lower() for f in (reader.fieldnames or [])]
+        except Exception:
+            fieldnames = []
+
+        if required_col not in fieldnames:
+            return render(request, 'employer/bulk_upload_create.html', {
+                'profile': profile,
+                'errors': [
+                    'CSV must contain a "full_name" column. '
+                    'Download the template below and use it as your starting point.'
+                ],
+                'page_title': 'Bulk CSV Upload',
+            })
+
+        for row_num, raw_row in enumerate(reader, start=2):
+            # Normalise column names
+            row = {k.strip().lower(): (v or '').strip() for k, v in raw_row.items() if k}
+
+            full_name = row.get('full_name', '').strip()
+            phone_number = row.get('phone_number', '').strip()
+            raw_nin = row.get('nin', '').strip()
+
+            if not full_name:
+                parse_errors.append(f'Row {row_num}: full_name is empty — row skipped.')
+                continue
+
+            nin_hash = ''
+            if raw_nin:
+                if len(raw_nin) != 11 or not raw_nin.isdigit():
+                    parse_errors.append(f'Row {row_num}: NIN "{raw_nin}" is not 11 digits — NIN ignored for this row.')
+                else:
+                    nin_hash = hashlib.sha256(raw_nin.encode('utf-8')).hexdigest()
+
+            rows_data.append({
+                'full_name': full_name,
+                'phone_number': phone_number,
+                'nin_hash': nin_hash,
+            })
+
+        if not rows_data:
+            errors = ['No valid rows found in the CSV.']
+            if parse_errors:
+                errors += parse_errors[:5]
+            return render(request, 'employer/bulk_upload_create.html', {
+                'profile': profile,
+                'errors': errors,
+                'page_title': 'Bulk CSV Upload',
+            })
+
+        if len(rows_data) > 500:
+            return render(request, 'employer/bulk_upload_create.html', {
+                'profile': profile,
+                'errors': ['Maximum 500 rows per upload. Split your file and upload in batches.'],
+                'page_title': 'Bulk CSV Upload',
+            })
+
+        # Save original file to storage (S3 / local fallback)
+        safe_filename = uploaded_file.name.replace(' ', '_')
+        storage_path = f'bulk_uploads/{profile.id}/{safe_filename}'
+        try:
+            saved_path = default_storage.save(storage_path, ContentFile(raw_bytes))
+        except Exception:
+            saved_path = ''  # non-blocking — task can still run without the stored file
+
+        # Create DB records atomically
+    
+        with transaction.atomic():
+            upload = BulkCheckUpload.objects.create(
+                employer=profile,
+                uploaded_by=request.user,
+                original_filename=uploaded_file.name,
+                file_path=saved_path,
+                row_count=len(rows_data),
+                status='pending',
+            )
+            BulkCheckRow.objects.bulk_create([
+                BulkCheckRow(
+                    upload=upload,
+                    row_number=i + 1,
+                    full_name=r['full_name'],
+                    phone_number=r['phone_number'],
+                    nin_hash=r['nin_hash'],
+                )
+                for i, r in enumerate(rows_data)
+            ])
+
+        # Dispatch Celery task
+        try:
+            process_bulk_upload_task.delay(str(upload.id))
+        except Exception as exc:
+            logger.warning("Could not dispatch Celery task for upload %s: %s", upload.id, exc)
+            # Task will need to be triggered manually or via admin — upload still created
+
+        warn_count = len(parse_errors)
+        if warn_count:
+            messages.warning(
+                request,
+                f'{warn_count} row(s) had minor issues and were skipped or adjusted. '
+                'Check the upload detail for per-row results.'
+            )
+        messages.success(
+            request,
+            f'Bulk upload queued — {len(rows_data)} candidates. Processing will begin shortly.'
+        )
+        return redirect('employer:bulk_upload_detail', upload_id=upload.id)
+
+    context = {
+        'profile': profile,
+        'page_title': 'Bulk CSV Upload',
+    }
+    return render(request, 'employer/bulk_upload_create.html', context)
+
+
+def bulk_csv_template(request):
+    """
+    Serve a minimal CSV template file for employers to download.
+    No login required — it's just column headers.
+    """
+    content = "full_name,phone_number,nin\nJohn Doe,08012345678,12345678901\n"
+    response = HttpResponse(content, content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="verifyng_bulk_check_template.csv"'
+    return response
+
+
 
 
 

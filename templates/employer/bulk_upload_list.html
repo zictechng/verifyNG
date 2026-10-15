@@ -13,6 +13,11 @@
             <h1 class="h3 fw-bold mt-2 mb-1">Bulk Check Uploads</h1>
             <p class="text-muted small mb-0">Upload a CSV with candidate names and phone numbers to run batch checks.</p>
         </div>
+        <div class="flex-shrink-0">
+            <a href="{% url 'employer:bulk_upload_create' %}" class="btn btn-vng-primary">
+                + New Bulk Upload
+            </a>
+        </div>
     </div>
 
     <div class="vng-card">
@@ -89,7 +94,8 @@
                 <line x1="9" y1="15" x2="15" y2="15"/>
             </svg>
             <div class="fw-semibold mb-1">No uploads yet</div>
-            <p class="small mb-0">Bulk CSV upload coming soon. Contact support to run a bulk check.</p>
+            <p class="small mb-3">No CSV files uploaded yet.</p>
+            <a href="{% url 'employer:bulk_upload_create' %}" class="btn btn-vng-primary btn-sm">Upload Your First CSV</a>
         </div>
         {% endif %}
     </div>

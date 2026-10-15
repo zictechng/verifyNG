@@ -19,12 +19,13 @@ urlpatterns = [
     path('monitoring/', views.monitoring_list, name='monitoring_list'),
     path('checks/<uuid:check_id>/monitor/toggle/', views.monitoring_toggle, name='monitoring_toggle'),
 
-    # Bulk checks
+    # Bulk checks — BATCH 2
     path('bulk-checks/', views.bulk_upload_list, name='bulk_upload_list'),
+    path('bulk-checks/upload/', views.bulk_upload_create, name='bulk_upload_create'),
+    path('bulk-checks/template.csv', views.bulk_csv_template, name='bulk_csv_template'),
     path('bulk-checks/<uuid:upload_id>/', views.bulk_upload_detail, name='bulk_upload_detail'),
 
     # Team
     path('team/', views.team_list, name='team_list'),
 ]
-
 
