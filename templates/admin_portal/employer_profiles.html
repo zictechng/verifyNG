@@ -34,7 +34,10 @@
       <tr>
         <td><a href="{% url 'admin_portal:employer_detail' ep.pk %}" class="fw-semibold text-decoration-none" style="color:var(--adm-accent);">{{ ep.company_name }}</a></td>
         <td>{{ ep.user.email }}</td>
-        <td>{% if ep.is_verified %}<span class="adm-badge adm-badge-green">Verified</span>{% else %}<span class="adm-badge adm-badge-gray">Pending</span>{% endif %}</td>
+        <td>
+          {% if ep.is_verified %}<span class="adm-badge adm-badge-green">Verified</span>{% else %}<span class="adm-badge adm-badge-gray">Pending</span>{% endif %}
+          {% if ep.is_billing_exempt %}<span class="adm-badge adm-badge-blue ms-1" title="{{ ep.billing_exempt_notes|default:'Free Usage' }}">Free</span>{% endif %}
+        </td>
         <td>{{ ep.created_at|date:"d M Y" }}</td>
         <td class="d-flex gap-1">
           {% if not ep.is_verified %}

@@ -1206,21 +1206,30 @@ class AdminEmployerActivityExportView(SuperAdminRequiredMixin, View):
             'total_records': len(records),
         })
     
-
 class AdminEmployerActionView(SuperAdminRequiredMixin, View):
-    """POST: verify or unverify an employer profile."""
+    """POST: verify, unverify, or toggle billing exemption for an employer profile."""
     def post(self, request, pk):
         profile = get_object_or_404(EmployerProfile, pk=pk)
         action = request.POST.get('action', '')
-
         if action == 'verify':
             profile.is_verified = True
-            profile.save(update_fields=['is_verified'])
-            msg = f"Employer '{profile.company_name}' verified."
+            profile.verified_at = timezone.now()
+            # Automatically activate free usage upon verification
+            profile.is_billing_exempt = True
+            if not profile.billing_exempt_notes:
+                profile.billing_exempt_notes = "Verified Company Complimentary Access"
+            profile.save(update_fields=['is_verified', 'verified_at', 'is_billing_exempt', 'billing_exempt_notes'])
+            msg = f"Employer '{profile.company_name}' verified and granted free platform usage."
         elif action == 'unverify':
             profile.is_verified = False
             profile.save(update_fields=['is_verified'])
             msg = f"Employer '{profile.company_name}' unverified."
+        elif action == 'update_billing_exempt':
+            profile.is_billing_exempt = request.POST.get('is_billing_exempt') == 'on'
+            profile.billing_exempt_notes = request.POST.get('billing_exempt_notes', '').strip()
+            profile.save(update_fields=['is_billing_exempt', 'billing_exempt_notes', 'updated_at'])
+            state = "granted" if profile.is_billing_exempt else "revoked"
+            msg = f"Free platform usage entitlement {state} for '{profile.company_name}'."
         elif action == 'suspend':
             profile.user.is_active = False
             profile.user.save(update_fields=['is_active'])
@@ -1232,15 +1241,17 @@ class AdminEmployerActionView(SuperAdminRequiredMixin, View):
         else:
             messages.error(request, "Invalid action.")
             return redirect('admin_portal:employer_profiles')
-
         AuditLog.objects.create(
             action=f"ADMIN_EMPLOYER_{action.upper()}",
             performed_by=request.user,
             details={"employer_profile_id": profile.id, "company": profile.company_name}
         )
         messages.success(request, msg)
+        # Return back to detail page if requested
+        next_url = request.POST.get('next')
+        if next_url:
+            return redirect(next_url)
         return redirect('admin_portal:employer_profiles')
-
 
 # ── Subscriptions ──────────────────────────────────────────────────────────
 

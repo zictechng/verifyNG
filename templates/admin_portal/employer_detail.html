@@ -19,6 +19,9 @@
       {% else %}
         <span class="adm-badge amber"><span class="dot"></span>Unverified</span>
       {% endif %}
+      {% if profile.is_billing_exempt %}
+        <span class="adm-badge blue ms-2"><span class="dot"></span>Free Usage Active</span>
+      {% endif %}
       {% if not profile.user.is_active %}
         <span class="adm-badge red ms-2"><span class="dot"></span>Account Suspended</span>
       {% endif %}
@@ -144,6 +147,56 @@
         </table>
       </div>
     </div>
+  </div>
+</div>
+
+{# ── Organization Billing & Free Usage Controls ────────────────────────── #}
+<div class="adm-card mt-4">
+  <div class="adm-card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <h2 class="adm-card-title d-flex align-items-center gap-2 mb-0">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+      Billing &amp; Free Usage Entitlement
+    </h2>
+    {% if profile.is_billing_exempt %}
+      <span class="adm-badge green"><span class="dot"></span>Free Usage (Billing Exempt)</span>
+    {% else %}
+      <span class="adm-badge gray"><span class="dot"></span>Standard Paid Subscriptions Enforced</span>
+    {% endif %}
+  </div>
+  <div class="p-4">
+    <form method="post" action="{% url 'admin_portal:employer_action' profile.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="update_billing_exempt">
+      <input type="hidden" name="next" value="{{ request.path }}">
+      <div class="row g-3 align-items-center">
+        <div class="col-lg-5">
+          <div class="form-check form-switch mb-2">
+            <input class="form-check-input" type="checkbox" role="switch"
+                   name="is_billing_exempt" id="billingExemptSwitch"
+                   {% if profile.is_billing_exempt %}checked{% endif %}
+                   style="cursor:pointer;width:2.4em;height:1.25em;">
+            <label class="form-check-label fw-bold ms-2" for="billingExemptSwitch" style="font-size:0.875rem;">
+              Grant Free Platform Usage
+            </label>
+          </div>
+          <p class="small text-muted mb-0" style="font-size:0.78rem;">
+            When checked, this specific company and all its invited team members can run staff checks, bulk CSV uploads, and verifications with zero subscription or credit deductions.
+          </p>
+        </div>
+        <div class="col-lg-5">
+          <label class="form-label small fw-semibold mb-1" for="exemptNotes">Exemption Reason / Note</label>
+          <input type="text" name="billing_exempt_notes" id="exemptNotes" class="form-control form-control-sm"
+                 value="{{ profile.billing_exempt_notes }}"
+                 placeholder="e.g. Verified Partner MoU, 3-Month Enterprise Pilot, Security Agency">
+        </div>
+        <div class="col-lg-2 text-end">
+          <label class="form-label d-none d-lg-block mb-1">&nbsp;</label>
+          <button type="submit" class="btn btn-adm-primary w-100 py-1" style="font-size:0.82rem;">
+            Save Setting
+          </button>
+        </div>
+      </div>
+    </form>
   </div>
 </div>
 
