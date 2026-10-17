@@ -268,12 +268,32 @@ def process_webhook_event(event: dict):
         )
 
 def get_active_subscription(user) -> Subscription | None:
-    """Return the user's current active subscription or None."""
-    return Subscription.objects.filter(
+    """
+    Return the user's current active subscription or None.
+    If the user is a team member in an active employer organization,
+    checks the organization owner's active subscription.
+    """
+    sub = Subscription.objects.filter(
         user=user,
         status='active',
         current_period_end__gt=timezone.now(),
     ).select_related('plan').first()
+    if sub:
+        return sub
+    # Check team membership in employer organization
+    try:
+        memberships = getattr(user, 'employer_memberships', None)
+        if memberships:
+            mem = memberships.filter(is_active=True).select_related('employer__user').first()
+            if mem and mem.employer and mem.employer.user:
+                return Subscription.objects.filter(
+                    user=mem.employer.user,
+                    status='active',
+                    current_period_end__gt=timezone.now(),
+                ).select_related('plan').first()
+    except Exception:
+        pass
+    return None
 
 
 def check_user_entitlement(user, service: str = 'check', cost: int = 1) -> tuple[bool, str, dict]:
