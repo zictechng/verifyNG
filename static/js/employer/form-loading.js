@@ -29,57 +29,57 @@
 
   // ── Apply loading state to a button ────────────────────────────────────────
   function setLoading(btn, loadingText) {
-    if (btn.dataset.loading === 'active') return;   // already spinning
+    if (!btn || btn.dataset.loading === 'active') return; // already spinning
     btn.dataset.loading   = 'active';
     btn.dataset.origText  = btn.innerHTML;
-    btn.disabled          = true;
-    btn.style.opacity     = '0.82';
+    btn.style.pointerEvents = 'none';
+    btn.style.opacity     = '0.78';
     btn.style.cursor      = 'not-allowed';
     btn.innerHTML         = SPINNER + (loadingText || btn.dataset.loadingText || 'Please wait…');
+    // Also activate top progress bar if available in base layout
+    const bar = document.getElementById('pageLoadingBar');
+    if (bar) bar.classList.remove('d-none');
   }
-
   function clearLoading(btn) {
-    if (!btn.dataset.origText) return;
-    btn.disabled        = false;
-    btn.style.opacity   = '';
-    btn.style.cursor    = '';
-    btn.innerHTML       = btn.dataset.origText;
+    if (!btn || !btn.dataset.origText) return;
+    btn.disabled          = false;
+    btn.style.pointerEvents = '';
+    btn.style.opacity     = '';
+    btn.style.cursor      = '';
+    btn.innerHTML         = btn.dataset.origText;
     delete btn.dataset.loading;
+    const bar = document.getElementById('pageLoadingBar');
+    if (bar) bar.classList.add('d-none');
   }
-
   // ── Auto-hook all forms ─────────────────────────────────────────────────────
   document.addEventListener('submit', function (e) {
     const form = e.target;
     if (!form || form.tagName !== 'FORM') return;
-
     // Skip forms that opt out
     if (form.dataset.noLoading) return;
-
-    // Find the clicked submit button (stored by mousedown/touchstart)
+    // Find the clicked submit button (stored by pointer/touch/mousedown)
     const btn = form._clickedBtn ||
                 form.querySelector('button[type="submit"]:not([data-no-loading])') ||
                 form.querySelector('button:not([type="button"]):not([data-no-loading])');
-
     if (!btn) return;
-
     // Slight delay so browser validation fires first
     setTimeout(function () {
       if (form.checkValidity && !form.checkValidity()) return;
       setLoading(btn, btn.dataset.loadingText);
     }, 0);
-
     // Safety reset after 15 s (e.g. server error with no page reload)
     setTimeout(function () { clearLoading(btn); }, 15000);
   });
-
-  // Track which submit button was clicked (multi-button forms)
-  document.addEventListener('mousedown', function (e) {
-    const btn = e.target.closest('button[type="submit"], button:not([type])');
-    if (btn) {
-      const form = btn.closest('form');
-      if (form) form._clickedBtn = btn;
-    }
-  }, true);
+  // Track which submit button was clicked (supports touchscreens, mouse, stylus)
+  ['pointerdown', 'touchstart', 'mousedown'].forEach(function (evt) {
+    document.addEventListener(evt, function (e) {
+      const btn = e.target.closest('button[type="submit"], button:not([type]), [data-loading="true"]');
+      if (btn) {
+        const form = btn.closest('form');
+        if (form) form._clickedBtn = btn;
+      }
+    }, { capture: true, passive: true });
+  });
 
   // ── window.vng namespace (Fetch + Toast helper) ─────────────────────────────
   window.vng = window.vng || {};
