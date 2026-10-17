@@ -153,46 +153,153 @@
 {# ── Organization Billing & Free Usage Controls ────────────────────────── #}
 <div class="adm-card mt-4">
   <div class="adm-card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-    <h2 class="adm-card-title d-flex align-items-center gap-2 mb-0">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-      Billing &amp; Free Usage Entitlement
-    </h2>
+    <div>
+      <h2 class="adm-card-title d-flex align-items-center gap-2 mb-1">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+        Service Entitlement Matrix (Free vs. Paid Controls)
+      </h2>
+      <p class="small text-muted mb-0">Individually toggle which platform services are complimentary vs. billable for this company and its team.</p>
+    </div>
     {% if profile.is_billing_exempt %}
-      <span class="adm-badge green"><span class="dot"></span>Free Usage (Billing Exempt)</span>
+      <span class="adm-badge green"><span class="dot"></span>All Services Waived</span>
+    {% elif profile.exempt_services %}
+      <span class="adm-badge blue"><span class="dot"></span>{{ profile.exempt_services|length }} Service(s) Waived</span>
     {% else %}
-      <span class="adm-badge gray"><span class="dot"></span>Standard Paid Subscriptions Enforced</span>
+      <span class="adm-badge gray"><span class="dot"></span>Standard Paid Subscriptions</span>
     {% endif %}
   </div>
-  <div class="p-4">
+  <div class="p-3 p-md-4">
     <form method="post" action="{% url 'admin_portal:employer_action' profile.pk %}">
       {% csrf_token %}
       <input type="hidden" name="action" value="update_billing_exempt">
       <input type="hidden" name="next" value="{{ request.path }}">
-      <div class="row g-3 align-items-center">
-        <div class="col-lg-5">
-          <div class="form-check form-switch mb-2">
-            <input class="form-check-input" type="checkbox" role="switch"
-                   name="is_billing_exempt" id="billingExemptSwitch"
-                   {% if profile.is_billing_exempt %}checked{% endif %}
-                   style="cursor:pointer;width:2.4em;height:1.25em;">
-            <label class="form-check-label fw-bold ms-2" for="billingExemptSwitch" style="font-size:0.875rem;">
-              Grant Free Platform Usage
-            </label>
+      <!-- Master Exemption Switch -->
+      <div class="p-3 mb-3 rounded-3" style="background:rgba(36,87,214,0.06);border:1px solid rgba(36,87,214,0.18);">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+          <div>
+            <div class="fw-bold small" style="color:var(--adm-ink);">Master Platform Waiver (All Services Free)</div>
+            <div class="small text-muted" style="font-size:0.78rem;">When enabled, waives payment for every current and future feature platform-wide.</div>
           </div>
-          <p class="small text-muted mb-0" style="font-size:0.78rem;">
-            When checked, this specific company and all its invited team members can run staff checks, bulk CSV uploads, and verifications with zero subscription or credit deductions.
-          </p>
+          <div class="form-check form-switch mb-0">
+            <input class="form-check-input" type="checkbox" role="switch"
+                   name="is_billing_exempt" id="empMasterExempt"
+                   {% if profile.is_billing_exempt %}checked{% endif %}
+                   style="cursor:pointer;width:2.6em;height:1.35em;">
+          </div>
         </div>
-        <div class="col-lg-5">
-          <label class="form-label small fw-semibold mb-1" for="exemptNotes">Exemption Reason / Note</label>
-          <input type="text" name="billing_exempt_notes" id="exemptNotes" class="form-control form-control-sm"
+      </div>
+      <!-- Granular Service Matrix Grid (Mobile-friendly responsive cards) -->
+      <div class="row g-3">
+        <!-- 1. Fraud Reporting (Always Free) -->
+        <div class="col-12 col-md-6">
+          <div class="p-3 rounded-3 border h-100 d-flex justify-content-between align-items-center bg-light">
+            <div>
+              <div class="fw-semibold small d-flex align-items-center gap-1">
+                <i class="bi bi-shield-exclamation text-danger"></i> Fraud Crime Reporting
+              </div>
+              <div class="small text-muted" style="font-size:0.75rem;">Submit scam incidents and suspect fraud reports.</div>
+            </div>
+            <span class="adm-badge green text-nowrap"><i class="bi bi-check me-1"></i>Always Free</span>
+          </div>
+        </div>
+        <!-- 2. Staff / Candidate Checks -->
+        <div class="col-12 col-md-6">
+          <div class="p-3 rounded-3 border h-100 d-flex justify-content-between align-items-center">
+            <div>
+              <div class="fw-semibold small d-flex align-items-center gap-1">
+                <i class="bi bi-person-check text-primary"></i> Staff &amp; Person Checks
+              </div>
+              <div class="small text-muted" style="font-size:0.75rem;">Instant NIN &amp; phone searches, trust scores, flag counts.</div>
+            </div>
+            <div class="form-check form-switch mb-0 ms-2">
+              <input class="form-check-input" type="checkbox" role="switch"
+                     name="exempt_services" value="check" id="empSvcCheck"
+                     {% if 'check' in profile.exempt_services or profile.is_billing_exempt %}checked{% endif %}
+                     style="cursor:pointer;width:2.5em;height:1.3em;">
+            </div>
+          </div>
+        </div>
+        <!-- 3. Bulk CSV Checks -->
+        <div class="col-12 col-md-6">
+          <div class="p-3 rounded-3 border h-100 d-flex justify-content-between align-items-center">
+            <div>
+              <div class="fw-semibold small d-flex align-items-center gap-1">
+                <i class="bi bi-file-earmark-spreadsheet text-success"></i> Bulk CSV Candidate Checks
+              </div>
+              <div class="small text-muted" style="font-size:0.75rem;">Batch candidate screening up to 500 records per upload.</div>
+            </div>
+            <div class="form-check form-switch mb-0 ms-2">
+              <input class="form-check-input" type="checkbox" role="switch"
+                     name="exempt_services" value="bulk_upload" id="empSvcBulk"
+                     {% if 'bulk_upload' in profile.exempt_services or profile.is_billing_exempt %}checked{% endif %}
+                     style="cursor:pointer;width:2.5em;height:1.3em;">
+            </div>
+          </div>
+        </div>
+        <!-- 4. Continuous Monitoring -->
+        <div class="col-12 col-md-6">
+          <div class="p-3 rounded-3 border h-100 d-flex justify-content-between align-items-center">
+            <div>
+              <div class="fw-semibold small d-flex align-items-center gap-1">
+                <i class="bi bi-broadcast text-warning"></i> Continuous Staff Monitoring
+              </div>
+              <div class="small text-muted" style="font-size:0.75rem;">24/7 background watchers with email alerts on new flags.</div>
+            </div>
+            <div class="form-check form-switch mb-0 ms-2">
+              <input class="form-check-input" type="checkbox" role="switch"
+                     name="exempt_services" value="monitoring" id="empSvcMon"
+                     {% if 'monitoring' in profile.exempt_services or profile.is_billing_exempt %}checked{% endif %}
+                     style="cursor:pointer;width:2.5em;height:1.3em;">
+            </div>
+          </div>
+        </div>
+        <!-- 5. Identity Verification -->
+        <div class="col-12 col-md-6">
+          <div class="p-3 rounded-3 border h-100 d-flex justify-content-between align-items-center">
+            <div>
+              <div class="fw-semibold small d-flex align-items-center gap-1">
+                <i class="bi bi-patch-check text-info"></i> Identity &amp; Document Verification
+              </div>
+              <div class="small text-muted" style="font-size:0.75rem;">Official government document and CAC diligence requests.</div>
+            </div>
+            <div class="form-check form-switch mb-0 ms-2">
+              <input class="form-check-input" type="checkbox" role="switch"
+                     name="exempt_services" value="verification" id="empSvcVerif"
+                     {% if 'verification' in profile.exempt_services or profile.is_billing_exempt %}checked{% endif %}
+                     style="cursor:pointer;width:2.5em;height:1.3em;">
+            </div>
+          </div>
+        </div>
+        <!-- 6. Trust Certificates -->
+        <div class="col-12 col-md-6">
+          <div class="p-3 rounded-3 border h-100 d-flex justify-content-between align-items-center">
+            <div>
+              <div class="fw-semibold small d-flex align-items-center gap-1">
+                <i class="bi bi-award text-secondary"></i> Trust Certificates
+              </div>
+              <div class="small text-muted" style="font-size:0.75rem;">Issuance of cryptographically signed PDF trust credentials.</div>
+            </div>
+            <div class="form-check form-switch mb-0 ms-2">
+              <input class="form-check-input" type="checkbox" role="switch"
+                     name="exempt_services" value="certificate" id="empSvcCert"
+                     {% if 'certificate' in profile.exempt_services or profile.is_billing_exempt %}checked{% endif %}
+                     style="cursor:pointer;width:2.5em;height:1.3em;">
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Notes & Save Bar -->
+      <div class="row g-3 mt-3 align-items-end">
+        <div class="col-12 col-md-8">
+          <label class="form-label small fw-semibold mb-1" for="empExemptNotes">Exemption Reason / Partnership Note</label>
+          <input type="text" name="billing_exempt_notes" id="empExemptNotes" class="form-control form-control-sm"
                  value="{{ profile.billing_exempt_notes }}"
-                 placeholder="e.g. Verified Partner MoU, 3-Month Enterprise Pilot, Security Agency">
+                 placeholder="e.g. 3-Month Enterprise Pilot, Security Agency MoU, University Partner">
         </div>
-        <div class="col-lg-2 text-end">
-          <label class="form-label d-none d-lg-block mb-1">&nbsp;</label>
-          <button type="submit" class="btn btn-adm-primary w-100 py-1" style="font-size:0.82rem;">
-            Save Setting
+        <div class="col-12 col-md-4">
+          <button type="submit" class="btn btn-adm-primary w-100 py-2" style="font-size:0.85rem;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="me-1"><polyline points="20 6 9 17 4 12"/></svg>
+            Save Entitlements
           </button>
         </div>
       </div>

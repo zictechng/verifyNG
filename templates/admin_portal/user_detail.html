@@ -132,37 +132,116 @@
 
   <!-- ── Free Platform Usage / Billing Exemption Card ────────── -->
     <div class="card shadow-sm mb-4">
-      <div class="card-header bg-white fw-semibold py-3 d-flex justify-content-between align-items-center">
-        <span><i class="bi bi-gift text-success me-2"></i>Free Usage Control</span>
+      <div class="card-header bg-white fw-semibold py-3 d-flex justify-content-between align-items-center flex-wrap gap-1">
+        <span><i class="bi bi-shield-check text-primary me-2"></i>Service Entitlements</span>
         {% if target_user.is_billing_exempt %}
-          <span class="adm-badge green">Exempt</span>
+          <span class="adm-badge green">All Free</span>
+        {% elif target_user.exempt_services %}
+          <span class="adm-badge blue">{{ target_user.exempt_services|length }} Free</span>
         {% else %}
-          <span class="adm-badge gray">Standard</span>
+          <span class="adm-badge gray">Paid</span>
         {% endif %}
       </div>
-      <div class="card-body">
+      <div class="card-body p-3">
         <form method="post" action="{% url 'admin_portal:user_detail' target_user.public_id %}">
           {% csrf_token %}
           <input type="hidden" name="action" value="update_billing_exempt">
-          
-          <div class="form-check form-switch mb-3">
-            <input class="form-check-input" type="checkbox" role="switch"
-                   name="is_billing_exempt" id="userBillingExempt"
-                   {% if target_user.is_billing_exempt %}checked{% endif %}
-                   style="cursor:pointer;width:2.2em;height:1.2em;">
-            <label class="form-check-label fw-bold small ms-1" for="userBillingExempt">
-              Grant Free Platform Usage
-            </label>
+          <!-- Master All-Free Switch -->
+          <div class="p-2 mb-3 rounded-2 bg-light border">
+            <div class="d-flex align-items-center justify-content-between">
+              <label class="form-check-label fw-bold small mb-0" for="userMasterExempt">
+                Master Platform Waiver (All Free)
+              </label>
+              <div class="form-check form-switch mb-0">
+                <input class="form-check-input" type="checkbox" role="switch"
+                       name="is_billing_exempt" id="userMasterExempt"
+                       {% if target_user.is_billing_exempt %}checked{% endif %}
+                       style="cursor:pointer;width:2.3em;height:1.2em;">
+              </div>
+            </div>
           </div>
-          
-          <div class="mb-3">
+          <div class="small fw-semibold text-muted mb-2 text-uppercase" style="font-size:0.7rem;letter-spacing:0.05em;">Complimentary Services:</div>
+          <!-- 1. Fraud Reporting -->
+          <div class="d-flex align-items-center justify-content-between py-2 border-bottom">
+            <div>
+              <div class="small fw-semibold">Fraud Crime Reporting</div>
+              <div class="text-muted" style="font-size:0.72rem;">Submit scam incidents</div>
+            </div>
+            <span class="adm-badge green" style="font-size:0.65rem;">Always Free</span>
+          </div>
+          <!-- 2. Staff & Person Checks -->
+          <div class="d-flex align-items-center justify-content-between py-2 border-bottom">
+            <div>
+              <div class="small fw-semibold">Staff &amp; Person Checks</div>
+              <div class="text-muted" style="font-size:0.72rem;">NIN &amp; phone trust checks</div>
+            </div>
+            <div class="form-check form-switch mb-0">
+              <input class="form-check-input" type="checkbox" role="switch"
+                     name="exempt_services" value="check" id="userSvcCheck"
+                     {% if 'check' in target_user.exempt_services or target_user.is_billing_exempt %}checked{% endif %}
+                     style="cursor:pointer;width:2.3em;height:1.2em;">
+            </div>
+          </div>
+          <!-- 3. Bulk CSV Checks -->
+          <div class="d-flex align-items-center justify-content-between py-2 border-bottom">
+            <div>
+              <div class="small fw-semibold">Bulk CSV Checks</div>
+              <div class="text-muted" style="font-size:0.72rem;">Screen up to 500 records</div>
+            </div>
+            <div class="form-check form-switch mb-0">
+              <input class="form-check-input" type="checkbox" role="switch"
+                     name="exempt_services" value="bulk_upload" id="userSvcBulk"
+                     {% if 'bulk_upload' in target_user.exempt_services or target_user.is_billing_exempt %}checked{% endif %}
+                     style="cursor:pointer;width:2.3em;height:1.2em;">
+            </div>
+          </div>
+          <!-- 4. Continuous Monitoring -->
+          <div class="d-flex align-items-center justify-content-between py-2 border-bottom">
+            <div>
+              <div class="small fw-semibold">Continuous Monitoring</div>
+              <div class="text-muted" style="font-size:0.72rem;">24/7 staff fraud alerts</div>
+            </div>
+            <div class="form-check form-switch mb-0">
+              <input class="form-check-input" type="checkbox" role="switch"
+                     name="exempt_services" value="monitoring" id="userSvcMon"
+                     {% if 'monitoring' in target_user.exempt_services or target_user.is_billing_exempt %}checked{% endif %}
+                     style="cursor:pointer;width:2.3em;height:1.2em;">
+            </div>
+          </div>
+          <!-- 5. Identity Verification -->
+          <div class="d-flex align-items-center justify-content-between py-2 border-bottom">
+            <div>
+              <div class="small fw-semibold">Identity Verification</div>
+              <div class="text-muted" style="font-size:0.72rem;">CAC &amp; government IDs</div>
+            </div>
+            <div class="form-check form-switch mb-0">
+              <input class="form-check-input" type="checkbox" role="switch"
+                     name="exempt_services" value="verification" id="userSvcVerif"
+                     {% if 'verification' in target_user.exempt_services or target_user.is_billing_exempt %}checked{% endif %}
+                     style="cursor:pointer;width:2.3em;height:1.2em;">
+            </div>
+          </div>
+          <!-- 6. Trust Certificates -->
+          <div class="d-flex align-items-center justify-content-between py-2 border-bottom">
+            <div>
+              <div class="small fw-semibold">Trust Certificates</div>
+              <div class="text-muted" style="font-size:0.72rem;">Signed PDF certificates</div>
+            </div>
+            <div class="form-check form-switch mb-0">
+              <input class="form-check-input" type="checkbox" role="switch"
+                     name="exempt_services" value="certificate" id="userSvcCert"
+                     {% if 'certificate' in target_user.exempt_services or target_user.is_billing_exempt %}checked{% endif %}
+                     style="cursor:pointer;width:2.3em;height:1.2em;">
+            </div>
+          </div>
+          <div class="mt-3 mb-3">
             <label class="form-label small text-muted mb-1" for="userExemptNotes">Exemption Reason</label>
             <input type="text" name="billing_exempt_notes" id="userExemptNotes" class="form-control form-control-sm"
                    value="{{ target_user.billing_exempt_notes }}"
-                   placeholder="e.g. Authorized Agency MoU, VIP Partner">
+                   placeholder="e.g. Police Command, EFCC MoU, VIP Partner">
           </div>
-          <button type="submit" class="btn btn-primary btn-sm w-100">
-            Save Exemption Setting
+          <button type="submit" class="btn btn-primary btn-sm w-100 py-2">
+            Save Entitlements
           </button>
         </form>
       </div>

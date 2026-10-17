@@ -465,20 +465,23 @@ class AdminUserDetailView(SuperAdminRequiredMixin, TemplateView):
         action = request.POST.get('action')
         if action == 'update_billing_exempt':
             target_user.is_billing_exempt = request.POST.get('is_billing_exempt') == 'on'
+            target_user.exempt_services = request.POST.getlist('exempt_services')
             target_user.billing_exempt_notes = request.POST.get('billing_exempt_notes', '').strip()
-            target_user.save(update_fields=['is_billing_exempt', 'billing_exempt_notes'])
+            target_user.save(update_fields=['is_billing_exempt', 'exempt_services', 'billing_exempt_notes'])
+            count = len(target_user.exempt_services)
             AuditLog.objects.create(
                 action="ADMIN_USER_BILLING_EXEMPT_UPDATE",
                 performed_by=request.user,
                 details={
                     "target_username": target_user.username,
                     "is_billing_exempt": target_user.is_billing_exempt,
+                    "exempt_services": target_user.exempt_services,
                     "notes": target_user.billing_exempt_notes,
                 }
             )
-            state = "granted" if target_user.is_billing_exempt else "revoked"
-            messages.success(request, f"Free platform usage {state} for user '{target_user.username}'.")
+            messages.success(request, f"Service entitlements updated for '{target_user.username}' ({count} service(s) complimentary).")
             return redirect('admin_portal:user_detail', public_id=public_id)
+        
         messages.error(request, "Invalid action.")
         return redirect('admin_portal:user_detail', public_id=public_id)
     def get_context_data(self, **kwargs):
@@ -1235,22 +1238,24 @@ class AdminEmployerActionView(SuperAdminRequiredMixin, View):
         if action == 'verify':
             profile.is_verified = True
             profile.verified_at = timezone.now()
-            # Automatically activate free usage upon verification
-            profile.is_billing_exempt = True
+            # Default to candidate checks waived on verification if not specified
+            selected_services = request.POST.getlist('exempt_services')
+            profile.exempt_services = selected_services if selected_services else ['check']
             if not profile.billing_exempt_notes:
                 profile.billing_exempt_notes = "Verified Company Complimentary Access"
-            profile.save(update_fields=['is_verified', 'verified_at', 'is_billing_exempt', 'billing_exempt_notes'])
-            msg = f"Employer '{profile.company_name}' verified and granted free platform usage."
+            profile.save(update_fields=['is_verified', 'verified_at', 'exempt_services', 'billing_exempt_notes'])
+            msg = f"Employer '{profile.company_name}' verified with complimentary service entitlements."
         elif action == 'unverify':
             profile.is_verified = False
             profile.save(update_fields=['is_verified'])
             msg = f"Employer '{profile.company_name}' unverified."
         elif action == 'update_billing_exempt':
             profile.is_billing_exempt = request.POST.get('is_billing_exempt') == 'on'
+            profile.exempt_services = request.POST.getlist('exempt_services')
             profile.billing_exempt_notes = request.POST.get('billing_exempt_notes', '').strip()
-            profile.save(update_fields=['is_billing_exempt', 'billing_exempt_notes', 'updated_at'])
-            state = "granted" if profile.is_billing_exempt else "revoked"
-            msg = f"Free platform usage entitlement {state} for '{profile.company_name}'."
+            profile.save(update_fields=['is_billing_exempt', 'exempt_services', 'billing_exempt_notes', 'updated_at'])
+            count = len(profile.exempt_services)
+            msg = f"Service entitlements updated for '{profile.company_name}' ({count} service(s) complimentary)."
         elif action == 'suspend':
             profile.user.is_active = False
             profile.user.save(update_fields=['is_active'])
