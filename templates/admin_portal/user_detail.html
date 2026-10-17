@@ -534,13 +534,35 @@
     <div class="adm-card mb-4">
       <div class="adm-card-header">Subscriptions</div>
       <table class="adm-table">
-        <thead><tr><th>Plan</th><th>Status</th><th>Started</th></tr></thead>
+        <thead><tr><th>Plan</th><th>Status</th><th>Started</th><th>Action</th></tr></thead>
         <tbody>
           {% for s in user_subscriptions %}
           <tr>
-            <td>{{ s.plan.name|default:"—" }}</td>
-            <td><span class="adm-badge green">{{ s.get_status_display }}</span></td>
+            <td class="fw-semibold">{{ s.plan.name|default:"—" }}</td>
+            <td>
+              {% if s.status == 'active' %}
+                <span class="adm-badge green"><span class="dot"></span>Active</span>
+              {% else %}
+                <span class="adm-badge gray">{{ s.get_status_display }}</span>
+              {% endif %}
+            </td>
             <td>{{ s.created_at|date:"d M Y" }}</td>
+            <td>
+              {% if s.status == 'active' %}
+                <button type="button" class="btn-adm-outline-danger btn-adm-sm"
+                        data-confirm-action=""
+                        data-title="Revoke / Cancel Subscription"
+                        data-body="Are you sure you want to cancel the active <strong>{{ s.plan.name }}</strong> plan for <strong>{{ target_user.username }}</strong>? This will immediately remove active subscription privileges."
+                        data-confirm-label="Yes, Revoke Plan"
+                        data-confirm-class="btn-danger"
+                        data-form-action="{% url 'admin_portal:subscription_action' s.pk %}"
+                        data-hidden-action="cancel">
+                  Revoke
+                </button>
+              {% else %}
+                <span class="td-muted small">—</span>
+              {% endif %}
+            </td>
           </tr>
           {% endfor %}
         </tbody>

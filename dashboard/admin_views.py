@@ -1325,32 +1325,37 @@ class AdminSubscriptionsView(SuperAdminRequiredMixin, TemplateView):
         return ctx
 
 class AdminSubscriptionActionView(SuperAdminRequiredMixin, View):
-    """POST: cancel or reactivate a subscription."""
+    """POST: cancel, revoke, or reactivate a subscription."""
     def post(self, request, pk):
         sub = get_object_or_404(Subscription, pk=pk)
         action = request.POST.get('action', 'cancel')
         reason = request.POST.get('reason', '').strip()
-
-        if action == 'cancel':
+        next_url = request.POST.get('next', '').strip()
+        if action in ('cancel', 'revoke'):
             sub.status = 'cancelled'
             sub.save(update_fields=['status'])
             AuditLog.objects.create(
                 action="ADMIN_SUBSCRIPTION_CANCEL",
                 performed_by=request.user,
-                details={"subscription_id": sub.id, "user": sub.user.username, "reason": reason or "Admin cancellation"}
+                details={"subscription_id": str(sub.id), "user": sub.user.username, "plan": sub.plan.name if sub.plan else "—", "reason": reason or "Admin cancellation/revocation"}
             )
-            messages.success(request, f"Subscription for '{sub.user.username}' cancelled.")
+            messages.success(request, f"Subscription '{sub.plan.name if sub.plan else 'Plan'}' for '{sub.user.username}' has been revoked.")
         elif action == 'reactivate':
             sub.status = 'active'
             sub.save(update_fields=['status'])
             AuditLog.objects.create(
                 action="ADMIN_SUBSCRIPTION_REACTIVATE",
                 performed_by=request.user,
-                details={"subscription_id": sub.id, "user": sub.user.username}
+                details={"subscription_id": str(sub.id), "user": sub.user.username}
             )
             messages.success(request, f"Subscription for '{sub.user.username}' reactivated.")
         else:
             messages.error(request, "Invalid action.")
+        if next_url:
+            return redirect(next_url)
+        referer = request.META.get('HTTP_REFERER')
+        if referer:
+            return redirect(referer)
         return redirect('admin_portal:subscriptions')
     
 
