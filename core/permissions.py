@@ -25,7 +25,12 @@ def is_verification_officer(user):
 def is_employer(user):
     if not user or not user.is_authenticated:
         return False
-    return getattr(user, 'role', None) == 'employer'
+    if getattr(user, 'role', None) == 'employer' or user.is_superuser:
+        return True
+    try:
+        return user.employer_memberships.filter(is_active=True).exists()
+    except Exception:
+        return False
 
 
 def is_business(user):
@@ -124,7 +129,17 @@ def officer_required(view_func):
 
 
 def employer_required(view_func):
-    return role_required('employer')(view_func)
+    """
+    View decorator allowing employers, superusers, and active team members.
+    """
+    def check_employer(u):
+        if not u.is_authenticated:
+            return False
+        if is_employer(u):
+            return True
+        raise PermissionDenied("You do not have permission to access the Employer Portal.")
+
+    return user_passes_test(check_employer)(view_func)
 
 
 def business_required(view_func):

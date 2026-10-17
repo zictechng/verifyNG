@@ -43,8 +43,28 @@ logger = logging.getLogger(__name__)
 
 
 def _get_or_create_employer_profile(user) -> EmployerProfile:
-    """Return existing employer profile or create a minimal one on first visit."""
-    profile, created = EmployerProfile.objects.get_or_create(
+    """
+    Return existing employer profile for an account owner,
+    or the organization's EmployerProfile if user is an active TeamMember.
+    Creates a minimal profile on first visit if user is an employer.
+    """
+    # 1. Primary owner profile
+    profile = EmployerProfile.objects.filter(user=user, is_active=True).first()
+    if profile:
+        return profile
+
+    # 2. Check if user is an active member of an employer's team
+    membership = (
+        TeamMember.objects
+        .filter(user=user, is_active=True)
+        .select_related('employer')
+        .first()
+    )
+    if membership:
+        return membership.employer
+
+    # 3. Fallback: initialize a new profile for the employer user
+    profile, _ = EmployerProfile.objects.get_or_create(
         user=user,
         defaults={'company_name': user.get_full_name() or user.username},
     )
