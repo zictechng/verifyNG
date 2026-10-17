@@ -224,6 +224,47 @@ def process_bulk_upload_task(self, upload_id: str) -> dict:
     }
 
 
+# ---------------------------------------------------------------------------
+# Single Staff Check Processing Task
+# ---------------------------------------------------------------------------
+
+@shared_task(bind=True, max_retries=3, default_retry_delay=30)
+def process_single_staff_check_task(self, check_id: str) -> dict:
+    """
+    Process an individual StaffCheckRequest asynchronously.
+    Queries the VerifyNG identity and fraud layers, updates status to completed,
+    and stores structured results.
+    """
+    try:
+        check = StaffCheckRequest.objects.get(id=check_id)
+    except StaffCheckRequest.DoesNotExist:
+        logger.error("process_single_staff_check_task: check %s not found", check_id)
+        return {'error': 'Check not found', 'check_id': check_id}
+
+    check.status = 'processing'
+    check.save(update_fields=['status', 'updated_at'])
+
+    try:
+        result = _trust_lookup(check.phone_number, check.nin_hash)
+
+        check.status = 'completed'
+        check.fraud_flags = result.get('fraud_flags', 0)
+        check.result_summary = result.get('summary', '')
+        check.result_data = result
+        check.completed_at = timezone.now()
+        check.save(update_fields=[
+            'status', 'fraud_flags', 'result_summary', 'result_data', 'completed_at', 'updated_at'
+        ])
+        logger.info("process_single_staff_check_task: check %s completed successfully", check_id)
+        return {'check_id': check_id, 'status': 'completed', 'fraud_flags': check.fraud_flags}
+
+    except Exception as exc:
+        logger.exception("process_single_staff_check_task error on check %s: %s", check_id, exc)
+        check.status = 'failed'
+        check.result_summary = f'Verification processing failed: {exc}'
+        check.completed_at = timezone.now()
+        check.save(update_fields=['status', 'result_summary', 'completed_at', 'updated_at'])
+        return {'check_id': check_id, 'status': 'failed', 'error': str(exc)}
 
 # ---------------------------------------------------------------------------
 # Monitoring alert task (Batch 7)

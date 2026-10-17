@@ -11,7 +11,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.db import transaction
-from .tasks import process_bulk_upload_task
+from .tasks import process_bulk_upload_task, process_single_staff_check_task
 from django.http import HttpResponse
 from .models import BulkCheckUpload, BulkCheckRow
 from reports.models import FraudReport
@@ -35,7 +35,6 @@ import hashlib
 import json
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
-
 
 from identities.utils import hash_identifier_value
 
@@ -292,8 +291,7 @@ def staff_check_create(request):
                 'page_title': 'New Staff Check',
             }
             return render(request, 'employer/staff_check_create.html', context)
-
-        from .models import StaffCheckRequest
+        
         check = StaffCheckRequest.objects.create(
             employer     = profile,
             requested_by = request.user,
@@ -304,6 +302,17 @@ def staff_check_create(request):
             check_type   = check_type,
             purpose      = purpose,
         )
+
+        # Dispatch background check processing task
+        try:
+            process_single_staff_check_task.delay(str(check.id))
+        except Exception as exc:
+            logger.warning("Could not dispatch Celery task for check %s: %s", check.id, exc)
+            # Resilient fallback: run inline if Celery/Redis is offline in local dev
+            try:
+                process_single_staff_check_task(str(check.id))
+            except Exception as e:
+                logger.exception("Inline execution failed for check %s: %s", check.id, e)
 
         messages.success(request, f'Check request submitted for {full_name}. Reference: {str(check.id)[:8].upper()}')
         return redirect('employer:staff_check_detail', check_id=check.id)
