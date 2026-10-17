@@ -837,15 +837,21 @@ def person_check_search(request):
                     query_type = 'nin'
                     id_type    = 'nin'
 
-                # All identifiers are stored as SHA-256 hashes
-                value_hash = hashlib.sha256(digits_only.encode('utf-8')).hexdigest()
+                # Compute peppered HMAC-SHA256 digest matching identities database
+                try:
+                    value_hash = hash_identifier_value(id_type, digits_only)
+                except ValueError as val_err:
+                    result = {'error': str(val_err)}
+                    value_hash = None
 
-                ident = (
-                    Identifier.objects
-                    .filter(type=id_type, value_hash=value_hash)
-                    .select_related('subject')
-                    .first()
-                )
+                ident = None
+                if value_hash:
+                    ident = (
+                        Identifier.objects
+                        .filter(type=id_type, value_hash=value_hash)
+                        .select_related('subject')
+                        .first()
+                    )
 
                 if ident is None:
                     result = {
@@ -856,23 +862,19 @@ def person_check_search(request):
                 else:
                     subject = ident.subject
 
-                    # Trust score (may not exist yet)
-                    trust_score = None
-                    try:
-                        trust_score = subject.trust_score
-                    except Exception:
-                        pass
+                    # Trust score (OneToOne relation on SubjectEntity)
+                    trust_score = getattr(subject, 'trust_score', None)
 
                     # Published fraud reports only — never raw allegations
                     fraud_reports = []
                     fraud_count   = 0
                     try:
+
                         fraud_qs = (
                             FraudReport.objects
                             .filter(
                                 target_subject=subject,
-                                status='published',
-                                is_active=True,
+                                state='published',
                             )
                             .order_by('-created_at')[:5]
                         )
