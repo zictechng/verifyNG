@@ -195,10 +195,16 @@
         {# ── Plan / Subscription Widget — Batch 9 ──────────────────────────── #}
     <div class="vng-card mb-4">
         <div class="d-flex justify-content-between align-items-center p-4 pb-0">
-            <h2 class="h6 fw-bold mb-0">Your Plan</h2>
+            <h2 class="h6 fw-bold mb-0">Your Plan &amp; Quota</h2>
             <a href="{% url 'payments:plans' %}" class="small text-primary fw-semibold">View all plans</a>
         </div>
         <div class="p-4">
+            {% if entitlement_reason == 'free_platform_mode' %}
+            <div class="alert alert-success d-flex align-items-center gap-2 py-2 px-3 mb-3" style="border-radius:var(--vng-radius-md);font-size:0.875rem;">
+                <i class="bi bi-gift-fill text-success fs-5"></i>
+                <span><strong>Platform Free Access Mode is Active!</strong> All background checks and verifications are currently unrestricted and free of charge.</span>
+            </div>
+            {% endif %}
             {% if active_subscription %}
             <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
                 <div class="d-flex align-items-center gap-3">
@@ -219,7 +225,7 @@
                                 <span class="small text-muted">Unlimited checks</span>
                             {% else %}
                                 <span class="small text-muted">
-                                    {{ active_subscription.plan.check_limit }} checks / {{ active_subscription.plan.get_interval_display|lower }}
+                                    {{ active_subscription.checks_used }} / {{ active_subscription.plan.check_limit }} checks used ({{ entitlement_info.remaining|default:0 }} remaining)
                                 </span>
                             {% endif %}
                             {% if active_subscription.days_remaining is not None %}

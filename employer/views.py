@@ -24,6 +24,7 @@ from django.shortcuts import redirect as _redirect
 from .models import TeamInvite
 from datetime import timedelta
 from .models import StaffCheckRequest
+from payments.models import Subscription
 
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
@@ -37,6 +38,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 
 from identities.utils import hash_identifier_value
+from payments.services import check_user_entitlement, consume_user_entitlement
 
 logger = logging.getLogger(__name__)
 
@@ -98,7 +100,7 @@ def employer_dashboard(request):
     )
 
     # Subscription / Plan widget — Batch 9
-    from payments.models import Subscription
+   
     active_subscription = (
         Subscription.objects
         .filter(user=request.user, status='active', is_active=True)
@@ -106,7 +108,7 @@ def employer_dashboard(request):
         .order_by('-created_at')
         .first()
     )
-
+    allowed, entitlement_reason, entitlement_info = check_user_entitlement(request.user)
     context = {
         'profile':                profile,
         'recent_uploads':         recent_uploads,
@@ -117,6 +119,8 @@ def employer_dashboard(request):
         'staff_checks_completed': staff_checks_completed,
         'recent_checks':          recent_checks,
         'active_subscription':    active_subscription,
+        'entitlement_reason':     entitlement_reason,
+        'entitlement_info':       entitlement_info,
         'page_title':             'Employer Dashboard',
     }
     return render(request, 'employer/dashboard.html', context)
@@ -292,6 +296,15 @@ def staff_check_create(request):
             }
             return render(request, 'employer/staff_check_create.html', context)
         
+        # Enforce check entitlement before proceeding
+        allowed, reason, details = check_user_entitlement(request.user, cost=1)
+        if not allowed:
+            messages.error(
+                request,
+                "You have reached your check limit or require an active subscription to perform checks. "
+                "Please upgrade your plan to continue."
+            )
+            return redirect('payments:plans')
         check = StaffCheckRequest.objects.create(
             employer     = profile,
             requested_by = request.user,
@@ -302,6 +315,8 @@ def staff_check_create(request):
             check_type   = check_type,
             purpose      = purpose,
         )
+        # Deduct 1 check entitlement
+        consume_user_entitlement(request.user, cost=1)
 
         # Dispatch background check processing task
         try:
@@ -539,7 +554,20 @@ def bulk_upload_create(request):
                 'errors': ['Maximum 500 rows per upload. Split your file and upload in batches.'],
                 'page_title': 'Bulk CSV Upload',
             })
-
+        # Enforce check entitlement for bulk check volume
+        cost = len(rows_data)
+        allowed, reason, details = check_user_entitlement(request.user, cost=cost)
+        if not allowed:
+            remaining = details.get('remaining', 0)
+            return render(request, 'employer/bulk_upload_create.html', {
+                'profile': profile,
+                'errors': [
+                    f'Insufficient check quota. This bulk upload requires {cost} checks, '
+                    f'but your plan only has {remaining} checks remaining. '
+                    f'Please upgrade your plan to continue.'
+                ],
+                'page_title': 'Bulk CSV Upload',
+            })
         # Save original file to storage (S3 / local fallback)
         safe_filename = uploaded_file.name.replace(' ', '_')
         storage_path = f'bulk_uploads/{profile.id}/{safe_filename}'
@@ -547,9 +575,7 @@ def bulk_upload_create(request):
             saved_path = default_storage.save(storage_path, ContentFile(raw_bytes))
         except Exception:
             saved_path = ''  # non-blocking — task can still run without the stored file
-
         # Create DB records atomically
-    
         with transaction.atomic():
             upload = BulkCheckUpload.objects.create(
                 employer=profile,
@@ -559,6 +585,7 @@ def bulk_upload_create(request):
                 row_count=len(rows_data),
                 status='pending',
             )
+            consume_user_entitlement(request.user, cost=cost)
             BulkCheckRow.objects.bulk_create([
                 BulkCheckRow(
                     upload=upload,
@@ -856,15 +883,26 @@ def person_check_search(request):
                     )
                 }
             else:
-
-                # Decide identifier type by prefix
-                phone_prefixes = ('070', '080', '081', '090', '091', '071', '091')
-                if digits_only[:3] in phone_prefixes:
-                    query_type = 'phone'
-                    id_type    = 'phone'
+                # Check credit/subscription entitlement
+                allowed, reason, details = check_user_entitlement(request.user, cost=1)
+                if not allowed:
+                    result = {
+                        'error': (
+                            'You have reached your check limit or require an active subscription '
+                            'to perform person quick-checks. Please upgrade your plan.'
+                        ),
+                        'subscription_required': True,
+                    }
                 else:
-                    query_type = 'nin'
-                    id_type    = 'nin'
+                    consume_user_entitlement(request.user, cost=1)
+                    # Decide identifier type by prefix
+                    phone_prefixes = ('070', '080', '081', '090', '091', '071', '091')
+                    if digits_only[:3] in phone_prefixes:
+                        query_type = 'phone'
+                        id_type    = 'phone'
+                    else:
+                        query_type = 'nin'
+                        id_type    = 'nin'
 
                 # Compute peppered HMAC-SHA256 digest matching identities database
                 try:

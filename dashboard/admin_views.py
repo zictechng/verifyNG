@@ -1831,6 +1831,7 @@ class AdminPlatformSettingsView(SuperAdminRequiredMixin, TemplateView):
         config.service_verify_suspended = request.POST.get('service_verify_suspended') == 'on'
         config.service_employment_suspended = request.POST.get('service_employment_suspended') == 'on'
         config.service_suspension_message = request.POST.get('service_suspension_message', config.service_suspension_message).strip()
+        config.free_access_mode = request.POST.get('free_access_mode') == 'on'
 
         # File uploads
         if 'logo' in request.FILES:

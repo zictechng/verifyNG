@@ -189,7 +189,23 @@
                      style="cursor:pointer;width:2.5em;height:1.3em;">
             </div>
           </div>
-
+          <!-- Master Free Platform Mode Switch -->
+          <div class="d-flex align-items-center justify-content-between py-2 mt-2" style="border-bottom:1px solid var(--adm-border); background-color: rgba(16, 185, 129, 0.08); padding: 10px; border-radius: 6px;">
+            <div>
+              <label class="fw-bold small mb-0 text-success" for="freeAccessMode">
+                <i class="bi bi-gift-fill me-1"></i> Free Platform Mode (Unrestricted Access)
+              </label>
+              <div class="small text-muted" style="font-size: 0.75rem;">
+                When active, all users across all portals can run checks with zero subscription or quota restrictions.
+              </div>
+            </div>
+            <div class="form-check form-switch mb-0">
+              <input class="form-check-input" type="checkbox" role="switch"
+                     name="free_access_mode" id="freeAccessMode"
+                     {% if config.free_access_mode %}checked{% endif %}
+                     style="cursor:pointer;width:2.5em;height:1.3em;">
+            </div>
+          </div>
           <div class="mt-3">
             <label class="form-label fw-semibold small">Suspension Message <small class="text-muted">(shown to users when a service is off)</small></label>
             <textarea name="service_suspension_message" class="form-control form-control-sm" rows="2">{{ config.service_suspension_message }}</textarea>
