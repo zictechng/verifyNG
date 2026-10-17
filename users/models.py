@@ -30,7 +30,12 @@ class User(AbstractUser):
     )
     is_billing_exempt = models.BooleanField(
         default=False,
-        help_text="When True, check and verification fees are waived for this specific user/agency account."
+        help_text="Master toggle: when True, all platform service fees are waived for this specific user/agency account."
+    )
+    exempt_services = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Granular list of complimentary service keys for this user/agency (e.g. ['check', 'verification'])"
     )
     billing_exempt_notes = models.CharField(
         max_length=255,

@@ -276,59 +276,71 @@ def get_active_subscription(user) -> Subscription | None:
     ).select_related('plan').first()
 
 
-def check_user_entitlement(user, cost: int = 1) -> tuple[bool, str, dict]:
+def check_user_entitlement(user, service: str = 'check', cost: int = 1) -> tuple[bool, str, dict]:
     """
-    Universal credit & subscription entitlement checker.
-    Can be called from any portal/module before executing a check or verification.
-    Returns:
-        (allowed: bool, reason: str, details: dict)
+    Universal service-by-service credit & subscription entitlement checker.
+    Evaluates:
+      1. Fraud Reporting exception (permanently free for all users).
+      2. Global Free Mode (platform-wide promotional switch).
+      3. Staff / Superuser administrative bypass.
+      4. Per-User & Per-Agency granular service matrix (exempt_services).
+      5. Per-Organization granular service matrix (EmployerProfile.exempt_services).
+      6. Active Commercial Subscription & Free Tier Quotas.
     """
-    # 1. Master Admin Toggle — Free Platform Mode
+    # 1. Fraud Reporting is ALWAYS complimentary for everyone
+    if service == 'fraud_report':
+        return True, 'fraud_report_free', {
+            'message': 'Fraud reporting is complimentary for all users.',
+            'remaining': 'unlimited',
+        }
+    # 2. Global Platform Free Mode (Master Switch)
     try:
         config = PlatformConfiguration.get()
         if config.free_access_mode:
             return True, 'free_platform_mode', {
-                'message': 'Platform is operating in free access mode. All checks are complimentary.',
+                'message': 'Platform is operating in free access mode. All services are complimentary.',
                 'remaining': 'unlimited',
             }
     except Exception as e:
         logger.warning("Could not check PlatformConfiguration free_access_mode: %s", e)
-    # 2. Staff / Superuser privileges
+    # 3. Staff / Superuser privileges
     if getattr(user, 'is_superuser', False) or getattr(user, 'is_staff', False):
         return True, 'staff_bypass', {
             'message': 'Staff administrative privileges active.',
             'remaining': 'unlimited',
         }
-    # 3. Individual / Agency Account-Level Exemption
-    if getattr(user, 'is_billing_exempt', False):
-        return True, 'billing_exempt', {
-            'message': 'Account billing exemption active.',
+    # 4. Per-User / Agency Granular Service Exemption
+    user_master_exempt = getattr(user, 'is_billing_exempt', False)
+    user_exempt_services = getattr(user, 'exempt_services', None) or []
+    if user_master_exempt or service in user_exempt_services:
+        return True, 'service_free_granted', {
+            'message': f'Complimentary access granted for {service}.',
             'remaining': 'unlimited',
+            'service': service,
             'notes': getattr(user, 'billing_exempt_notes', ''),
         }
-    # 4. Organization-Level Exemption (Employer or Invited Team Members)
+    # 5. Per-Organization Granular Service Exemption (Employer & Team Members)
     try:
-        # Direct employer owner
         employer = getattr(user, 'employer_profile', None)
-        if employer and employer.is_billing_exempt:
-            return True, 'organization_billing_exempt', {
-                'message': f'Complimentary access granted to {employer.company_name}.',
-                'remaining': 'unlimited',
-                'notes': employer.billing_exempt_notes,
-            }
-        # Organization team member
-        membership = getattr(user, 'employer_memberships', None)
-        if membership:
-            active_mem = membership.filter(is_active=True).select_related('employer').first()
-            if active_mem and active_mem.employer and active_mem.employer.is_billing_exempt:
-                return True, 'organization_billing_exempt', {
-                    'message': f'Complimentary access granted to {active_mem.employer.company_name}.',
+        if not employer:
+            membership = getattr(user, 'employer_memberships', None)
+            if membership:
+                active_mem = membership.filter(is_active=True).select_related('employer').first()
+                if active_mem:
+                    employer = active_mem.employer
+        if employer:
+            org_master_exempt = getattr(employer, 'is_billing_exempt', False)
+            org_exempt_services = getattr(employer, 'exempt_services', None) or []
+            if org_master_exempt or service in org_exempt_services:
+                return True, 'organization_service_free_granted', {
+                    'message': f'Complimentary {service} access granted to {employer.company_name}.',
                     'remaining': 'unlimited',
-                    'notes': active_mem.employer.billing_exempt_notes,
+                    'service': service,
+                    'notes': employer.billing_exempt_notes,
                 }
     except Exception as e:
-        logger.warning("Could not check organization billing exemption: %s", e)
-    # 5. Active Subscription Check
+        logger.warning("Could not check organization service exemption: %s", e)
+    # 6. Active Commercial Subscription Check
     sub = get_active_subscription(user)
     if sub:
         # Unlimited Plan
@@ -375,13 +387,17 @@ def user_can_perform_check(user) -> tuple[bool, str]:
     """
     allowed, reason, _ = check_user_entitlement(user, cost=1)
     return allowed, reason
-def consume_user_entitlement(user, cost: int = 1) -> bool:
+
+
+def consume_user_entitlement(user, service: str = 'check', cost: int = 1) -> bool:
     """
     Deducts check entitlement after an operation succeeds.
-    - In free platform mode or staff bypass: no deduction is made.
+    - If service is exempt (global free mode, staff bypass, or per-service waiver): no deduction.
     - Active subscribers with capped plans: increments subscription.checks_used.
     - Free tier users: increments FreeUsageQuota.checks_used.
     """
+    if service == 'fraud_report':
+        return True
     try:
         config = PlatformConfiguration.get()
         if config.free_access_mode:
@@ -390,17 +406,24 @@ def consume_user_entitlement(user, cost: int = 1) -> bool:
         pass
     if getattr(user, 'is_superuser', False) or getattr(user, 'is_staff', False):
         return True
-    # Account or organization billing exemption skips deduction
-    if getattr(user, 'is_billing_exempt', False):
+    # Per-user or per-agency service exemption skips deduction
+    user_master_exempt = getattr(user, 'is_billing_exempt', False)
+    user_exempt_services = getattr(user, 'exempt_services', None) or []
+    if user_master_exempt or service in user_exempt_services:
         return True
+    # Per-organization service exemption skips deduction
     try:
         employer = getattr(user, 'employer_profile', None)
-        if employer and employer.is_billing_exempt:
-            return True
-        membership = getattr(user, 'employer_memberships', None)
-        if membership:
-            active_mem = membership.filter(is_active=True).select_related('employer').first()
-            if active_mem and active_mem.employer and active_mem.employer.is_billing_exempt:
+        if not employer:
+            membership = getattr(user, 'employer_memberships', None)
+            if membership:
+                active_mem = membership.filter(is_active=True).select_related('employer').first()
+                if active_mem:
+                    employer = active_mem.employer
+        if employer:
+            org_master_exempt = getattr(employer, 'is_billing_exempt', False)
+            org_exempt_services = getattr(employer, 'exempt_services', None) or []
+            if org_master_exempt or service in org_exempt_services:
                 return True
     except Exception:
         pass

@@ -33,7 +33,12 @@ class EmployerProfile(models.Model):
     verified_at = models.DateTimeField(null=True, blank=True)
     is_billing_exempt = models.BooleanField(
         default=False,
-        help_text="When True, check and verification fees are waived for this company."
+        help_text="Master toggle: when True, all platform service fees are waived for this company."
+    )
+    exempt_services = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Granular list of complimentary service keys (e.g. ['check', 'bulk_upload', 'monitoring'])"
     )
     billing_exempt_notes = models.CharField(
         max_length=255,
