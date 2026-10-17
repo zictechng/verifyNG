@@ -503,51 +503,154 @@
             transition: background 0.12s;
         }
         .btn-adm-primary:hover { background: #1a46c0; color: #fff; }
-
-        .btn-adm-outline {
+        /* ── Base Outline Style ───────────────────────── */
+        .btn-adm-outline,
+        .btn-adm-outline-primary,
+        .btn-adm-outline-blue,
+        .btn-adm-outline-success,
+        .btn-adm-outline-green,
+        .btn-adm-outline-danger,
+        .btn-adm-outline-red,
+        .btn-adm-outline-warning,
+        .btn-adm-outline-amber,
+        .btn-adm-outline-info,
+        .btn-adm-outline-cyan,
+        .btn-adm-outline-purple,
+        .btn-adm-outline-indigo,
+        .btn-adm-outline-secondary,
+        .btn-adm-outline-gray,
+        .btn-adm-outline-dark {
             background: transparent;
-            color: var(--adm-ink);
-            border: 1px solid var(--adm-border);
             border-radius: 7px;
             font-size: 0.845rem;
-            font-weight: 500;
-            padding: 7px 14px;
+            font-weight: 600;
+            padding: 7px 15px;
             cursor: pointer;
             text-decoration: none;
-            display: inline-flex; align-items: center; gap: 6px;
-            transition: border-color 0.12s, background 0.12s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            line-height: 1.4;
+            transition: background 0.14s ease, color 0.14s ease, border-color 0.14s ease, box-shadow 0.14s ease;
         }
-        .btn-adm-outline:hover { border-color: #94A3B8; background: #F8FAFC; color: var(--adm-ink); }
-
-        .btn-adm-danger {
-            background: transparent;
-            color: var(--adm-danger);
-            border: 1px solid rgba(220,38,38,0.3);
-            border-radius: 7px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            padding: 5px 12px;
-            cursor: pointer;
-            transition: background 0.12s;
+        /* Neutral Default Outline */
+        .btn-adm-outline {
+            color: var(--adm-ink);
+            border: 1px solid var(--adm-border);
+            font-weight: 500;
         }
-        .btn-adm-danger:hover { background: rgba(220,38,38,0.07); }
-
+        .btn-adm-outline:hover {
+            border-color: #94A3B8;
+            background: #F8FAFC;
+            color: var(--adm-ink);
+        }
+        /* 1. Primary / Blue */
+        .btn-adm-outline-primary,
+        .btn-adm-outline-blue {
+            color: var(--adm-accent);
+            border: 1px solid var(--adm-accent);
+        }
+        .btn-adm-outline-primary:hover,
+        .btn-adm-outline-blue:hover {
+            background: rgba(36, 87, 214, 0.08);
+            color: var(--adm-accent);
+            border-color: var(--adm-accent);
+        }
+        /* 2. Success / Green */
+        .btn-adm-outline-success,
+        .btn-adm-outline-green,
         .btn-adm-success {
-            background: transparent;
             color: var(--adm-success);
-            border: 1px solid rgba(22,163,74,0.3);
-            border-radius: 7px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            padding: 5px 12px;
-            cursor: pointer;
-            transition: background 0.12s;
+            border: 1px solid var(--adm-success);
         }
-        .btn-adm-success:hover { background: rgba(22,163,74,0.07); }
-
+        .btn-adm-outline-success:hover,
+        .btn-adm-outline-green:hover,
+        .btn-adm-success:hover {
+            background: rgba(22, 163, 74, 0.08);
+            color: var(--adm-success);
+            border-color: var(--adm-success);
+        }
+        /* 3. Danger / Red */
+        .btn-adm-outline-danger,
+        .btn-adm-outline-red,
+        .btn-adm-danger {
+            color: var(--adm-danger);
+            border: 1px solid var(--adm-danger);
+        }
+        .btn-adm-outline-danger:hover,
+        .btn-adm-outline-red:hover,
+        .btn-adm-danger:hover {
+            background: rgba(220, 38, 38, 0.08);
+            color: var(--adm-danger);
+            border-color: var(--adm-danger);
+        }
+        /* 4. Warning / Amber */
+        .btn-adm-outline-warning,
+        .btn-adm-outline-amber {
+            color: var(--adm-warning);
+            border: 1px solid var(--adm-warning);
+        }
+        .btn-adm-outline-warning:hover,
+        .btn-adm-outline-amber:hover {
+            background: rgba(217, 119, 6, 0.08);
+            color: var(--adm-warning);
+            border-color: var(--adm-warning);
+        }
+        /* 5. Info / Cyan / Sky */
+        .btn-adm-outline-info,
+        .btn-adm-outline-cyan {
+            color: #0284C7;
+            border: 1px solid #0284C7;
+        }
+        .btn-adm-outline-info:hover,
+        .btn-adm-outline-cyan:hover {
+            background: rgba(2, 132, 199, 0.08);
+            color: #0284C7;
+            border-color: #0284C7;
+        }
+        /* 6. Purple / Indigo */
+        .btn-adm-outline-purple,
+        .btn-adm-outline-indigo {
+            color: #7C3AED;
+            border: 1px solid #7C3AED;
+        }
+        .btn-adm-outline-purple:hover,
+        .btn-adm-outline-indigo:hover {
+            background: rgba(124, 58, 237, 0.08);
+            color: #7C3AED;
+            border-color: #7C3AED;
+        }
+        /* 7. Secondary / Gray */
+        .btn-adm-outline-secondary,
+        .btn-adm-outline-gray {
+            color: var(--adm-muted);
+            border: 1px solid var(--adm-border);
+        }
+        .btn-adm-outline-secondary:hover,
+        .btn-adm-outline-gray:hover {
+            background: #F1F5F9;
+            color: var(--adm-ink);
+            border-color: #94A3B8;
+        }
+        /* 8. Dark / Slate */
+        .btn-adm-outline-dark {
+            color: var(--adm-ink);
+            border: 1px solid var(--adm-ink);
+        }
+        .btn-adm-outline-dark:hover {
+            background: rgba(30, 41, 59, 0.08);
+            color: var(--adm-ink);
+            border-color: var(--adm-ink);
+        }
+        /* Size Modifiers */
         .btn-adm-sm {
-            font-size: 0.76rem;
-            padding: 4px 10px;
+            font-size: 0.76rem !important;
+            padding: 4px 10px !important;
+        }
+        .btn-adm-lg {
+            font-size: 0.95rem !important;
+            padding: 10px 22px !important;
         }
 
         /* ── Page heading ─────────────────────────────── */
@@ -621,6 +724,11 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             All Users
         </a>
+        <a href="{% url 'admin_portal:employer_profiles' %}"
+           class="adm-nav-link {% if request.resolver_match.url_name == 'employer_profiles' %}active{% endif %}">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+            Employer Profiles
+        </a>
     </nav>
 
     <!-- Section: Moderation -->
@@ -651,11 +759,6 @@
     <!-- Section: Platform Data -->
     <div class="adm-nav-label">Platform Data</div>
     <nav class="adm-nav">
-        <a href="{% url 'admin_portal:employer_profiles' %}"
-           class="adm-nav-link {% if request.resolver_match.url_name == 'employer_profiles' %}active{% endif %}">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
-            Employer Profiles
-        </a>
         <a href="{% url 'admin_portal:subscriptions' %}"
            class="adm-nav-link {% if request.resolver_match.url_name == 'subscriptions' %}active{% endif %}">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>

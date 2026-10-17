@@ -33,15 +33,19 @@
       Export Activity
     </button>
     {% if not profile.is_verified %}
-    <form method="post" action="{% url 'admin_portal:employer_action' profile.pk %}">
-      {% csrf_token %}<input type="hidden" name="action" value="verify">
-      <button type="submit" class="btn-adm-primary" data-loading-text="Verifying Company...">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-        Verify Employer
-      </button>
-    </form>
+    <button type="button" class="btn-adm-outline-primary"
+            data-confirm-action=""
+            data-title="Verify Employer Profile"
+            data-body="Are you sure you want to approve and mark <strong>{{ profile.company_name }}</strong> as a Verified Employer? This will activate their verified organization badge and team access."
+            data-confirm-label="Yes, Verify Employer"
+            data-confirm-class="btn-primary"
+            data-form-action="{% url 'admin_portal:employer_action' profile.pk %}"
+            data-hidden-action="verify">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+      Verify Employer
+    </button>
     {% else %}
-    <button type="button" class="btn-adm-outline"
+    <button type="button" class="btn-adm-outline-warning"
             data-confirm-action=""
             data-title="Remove Verification Badge"
             data-body="Are you sure you want to remove the verified badge for <strong>{{ profile.company_name }}</strong>?"
@@ -53,7 +57,7 @@
     </button>
     {% endif %}
     {% if profile.user.is_active %}
-    <button type="button" class="btn-adm-danger"
+    <button type="button" class="btn-adm-outline-danger"
             data-confirm-action=""
             data-title="Suspend Employer Account"
             data-body="Suspending <strong>{{ profile.company_name }}</strong> will immediately block all its team members from running background checks or accessing candidate data."
