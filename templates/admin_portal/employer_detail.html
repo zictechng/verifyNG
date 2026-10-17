@@ -35,33 +35,47 @@
     {% if not profile.is_verified %}
     <form method="post" action="{% url 'admin_portal:employer_action' profile.pk %}">
       {% csrf_token %}<input type="hidden" name="action" value="verify">
-      <button class="btn-adm-primary">
+      <button type="submit" class="btn-adm-primary" data-loading-text="Verifying Company...">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
         Verify Employer
       </button>
     </form>
     {% else %}
-    <form method="post" action="{% url 'admin_portal:employer_action' profile.pk %}">
-      {% csrf_token %}<input type="hidden" name="action" value="unverify">
-      <button class="btn-adm-outline">Remove Verification</button>
-    </form>
+    <button type="button" class="btn-adm-outline"
+            data-confirm-action=""
+            data-title="Remove Verification Badge"
+            data-body="Are you sure you want to remove the verified badge for <strong>{{ profile.company_name }}</strong>?"
+            data-confirm-label="Yes, Remove"
+            data-confirm-class="btn-warning"
+            data-form-action="{% url 'admin_portal:employer_action' profile.pk %}"
+            data-hidden-action="unverify">
+      Remove Verification
+    </button>
     {% endif %}
     {% if profile.user.is_active %}
-    <form method="post" action="{% url 'admin_portal:employer_action' profile.pk %}">
-      {% csrf_token %}<input type="hidden" name="action" value="suspend">
-      <button class="btn-adm-danger">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
-        Suspend Account
-      </button>
-    </form>
+    <button type="button" class="btn-adm-danger"
+            data-confirm-action=""
+            data-title="Suspend Employer Account"
+            data-body="Suspending <strong>{{ profile.company_name }}</strong> will immediately block all its team members from running background checks or accessing candidate data."
+            data-confirm-label="Yes, Suspend Account"
+            data-confirm-class="btn-danger"
+            data-form-action="{% url 'admin_portal:employer_action' profile.pk %}"
+            data-hidden-action="suspend">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+      Suspend Account
+    </button>
     {% else %}
-    <form method="post" action="{% url 'admin_portal:employer_action' profile.pk %}">
-      {% csrf_token %}<input type="hidden" name="action" value="reinstate">
-      <button class="btn-adm-primary">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-        Reinstate Account
-      </button>
-    </form>
+    <button type="button" class="btn-adm-primary"
+            data-confirm-action=""
+            data-title="Reinstate Employer Account"
+            data-body="This will restore active login and check processing access for <strong>{{ profile.company_name }}</strong>."
+            data-confirm-label="Yes, Reinstate"
+            data-confirm-class="btn-success"
+            data-form-action="{% url 'admin_portal:employer_action' profile.pk %}"
+            data-hidden-action="reinstate">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+      Reinstate Account
+    </button>
     {% endif %}
   </div>
 </div>
@@ -297,7 +311,7 @@
                  placeholder="e.g. 3-Month Enterprise Pilot, Security Agency MoU, University Partner">
         </div>
         <div class="col-12 col-md-4">
-          <button type="submit" class="btn btn-adm-primary w-100 py-2" style="font-size:0.85rem;">
+          <button type="submit" class="btn btn-adm-primary w-100 py-2" style="font-size:0.85rem;" data-loading-text="Saving Entitlements...">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="me-1"><polyline points="20 6 9 17 4 12"/></svg>
             Save Entitlements
           </button>
