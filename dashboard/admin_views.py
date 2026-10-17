@@ -21,6 +21,8 @@ from core.tasks import send_email_notification_task
 from payments.models import Plan as PlanModel
             
 from django.db.models import Q
+from django.utils.dateparse import parse_date
+from django.utils import timezone as tz
 from core.email_utils import render_email
 from notifications.tasks import send_broadcast_email_task
 from django.http import HttpResponse, JsonResponse
@@ -57,6 +59,8 @@ from payments.models import Transaction
 from django.db.models import Sum, Count, Avg
 from django.core.paginator import Paginator
 from payments.models import Transaction, Subscription
+
+from employer.models import BulkCheckUpload
 
 from django.conf import settings as django_settings
 import os
@@ -1179,7 +1183,6 @@ class AdminEmployerDetailView(SuperAdminRequiredMixin, TemplateView):
         )
 
         # Bulk upload history — paginated
-        from employer.models import BulkCheckUpload
         bulk_qs = BulkCheckUpload.objects.filter(employer=profile).order_by('-created_at')
         ctx['bulk_uploads'] = Paginator(bulk_qs, 10).get_page(
             self.request.GET.get('bulk_page', 1)
@@ -1188,14 +1191,24 @@ class AdminEmployerDetailView(SuperAdminRequiredMixin, TemplateView):
         ctx['profile'] = profile
         ctx['team_members'] = team_members
         ctx['active_tab'] = self.request.GET.get('tab', 'login')
+        # Credit Subscription Plan Support
+        if Plan:
+            ctx['available_plans'] = Plan.objects.filter(is_active=True).order_by('display_order', 'price_kobo')
+            active_sub = Subscription.objects.filter(
+                user=profile.user, status='active'
+            ).select_related('plan').first()
+            ctx['active_subscription'] = active_sub
+            ctx['user_active_plan_id'] = active_sub.plan.pk if active_sub else None
+        else:
+            ctx['available_plans'] = []
+            ctx['active_subscription'] = None
+            ctx['user_active_plan_id'] = None
         return ctx
 
 
 class AdminEmployerActivityExportView(SuperAdminRequiredMixin, View):
     """Printable activity export for an employer account."""
     def get(self, request, pk):
-        from django.utils.dateparse import parse_date
-        from django.utils import timezone as tz
 
         profile = get_object_or_404(EmployerProfile, pk=pk)
         export_type = request.GET.get('type', 'login')
@@ -1491,27 +1504,27 @@ class AdminCreditSubscriptionView(SuperAdminRequiredMixin, View):
     Called from the user detail quick-actions panel.
     """
     def post(self, request, public_id):
-        from django.utils import timezone as tz
+        
         user = get_object_or_404(User, public_id=public_id)
         plan_id = request.POST.get('plan_id', '').strip()
         duration_days = request.POST.get('duration_days', '30').strip()
         reason = request.POST.get('reason', 'Admin credit').strip()
-
+        next_url = request.POST.get('next', '').strip()
+        def _redirect_response():
+            if next_url:
+                return redirect(next_url)
+            return redirect('admin_portal:user_detail', public_id=public_id)
         if not plan_id:
             messages.error(request, "Please select a plan.")
-            return redirect('admin_portal:user_detail', public_id=public_id)
-
+            return _redirect_response()
         plan = get_object_or_404(Plan, pk=plan_id)
-
         try:
             days = int(duration_days)
             if days < 1:
                 days = 30
         except (ValueError, TypeError):
             days = 30
-
         now = tz.now()
-
         # Block assigning the same plan if already active
         existing_active = Subscription.objects.filter(
             user=user, plan=plan, status='active'
@@ -1523,14 +1536,12 @@ class AdminCreditSubscriptionView(SuperAdminRequiredMixin, View):
                 f"(expires {existing_active.current_period_end.strftime('%d %b %Y')}). "
                 f"Cancel it first or choose a different plan."
             )
-            return redirect('admin_portal:user_detail', public_id=public_id)
-
+            return _redirect_response()
         # Cancel any other active subscription before assigning new one
         Subscription.objects.filter(user=user, status='active').update(
             status='cancelled',
             cancel_at_period_end=False,
         )
-
         sub = Subscription.objects.create(
             user=user,
             plan=plan,
@@ -1538,7 +1549,6 @@ class AdminCreditSubscriptionView(SuperAdminRequiredMixin, View):
             current_period_start=now,
             current_period_end=now + tz.timedelta(days=days),
         )
-
         log_admin_action(
             action='SUBSCRIPTION_CREDITED',
             action_type='ADMIN',
@@ -1556,7 +1566,7 @@ class AdminCreditSubscriptionView(SuperAdminRequiredMixin, View):
             request,
             f"Plan '{plan.name}' credited to {user.username} for {days} days."
         )
-        return redirect('admin_portal:user_detail', public_id=public_id)
+        return _redirect_response()
     
 
 # ── Analytics ─────────────────────────────────────────────────────────────
