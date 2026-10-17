@@ -18,6 +18,8 @@ from verification.models import VerificationRequest
 from identities.models import Identifier, SubjectEntity
 from core.permissions import is_superadmin
 from core.tasks import send_email_notification_task
+from payments.models import Plan as PlanModel
+            
 from django.db.models import Q
 from core.email_utils import render_email
 from notifications.tasks import send_broadcast_email_task
@@ -47,7 +49,7 @@ from reportlab.lib import colors
 from reportlab.lib.units import mm
 from reportlab.platypus import (
     SimpleDocTemplate, Table, TableStyle, Paragraph,
-    Spacer, HRFlowable, KeepTogether
+    Spacer, HRFlowable, KeepTogether, Flowable
 )
 
 import csv as csv_mod
@@ -59,6 +61,14 @@ from payments.models import Transaction, Subscription
 from django.conf import settings as django_settings
 import os
 from users.models import UserServiceAccess
+
+from reportlab.platypus import (
+    HRFlowable, KeepTogether, Paragraph,
+    SimpleDocTemplate, Spacer, Table, TableStyle,
+)
+from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+from reportlab.lib.units import mm
+
 # Import models needed for extended admin
 try:
     from reports.models import Dispute
@@ -2213,8 +2223,35 @@ class AdminMenuAccessView(SuperAdminRequiredMixin, View):
 
     
 # ─────────────────────────────────────────────────────────────────────────────
-# Financial Reporting — bank-statement-style report + PDF download
+# Financial Reporting — Modern Executive Statement PDF Layout
 # ─────────────────────────────────────────────────────────────────────────────
+
+class RoundedCard(Flowable):
+    """Clean rounded-corner container flowable for statement metric cards."""
+    def __init__(self, table, width, bg_color='#f8fafc', border_color='#cbd5e1', radius=8):
+        super().__init__()
+        self.table = table
+        self.width = width
+        self.bg_color = colors.HexColor(bg_color)
+        self.border_color = colors.HexColor(border_color)
+        self.radius = radius
+
+    def wrap(self, availWidth, availHeight):
+        w, h = self.table.wrap(self.width - 24, availHeight)
+        self.table_w = w
+        self.table_h = h
+        self.height = h + 16
+        return self.width, self.height
+
+    def draw(self):
+        self.canv.saveState()
+        self.canv.setFillColor(self.bg_color)
+        self.canv.setStrokeColor(self.border_color)
+        self.canv.setLineWidth(0.8)
+        self.canv.roundRect(0, 0, self.width, self.height, self.radius, fill=1, stroke=1)
+        self.canv.restoreState()
+        self.table.drawOn(self.canv, 12, 8)
+
 
 class AdminFinancialReportView(SuperAdminRequiredMixin, TemplateView):
     """
@@ -2388,9 +2425,8 @@ class AdminFinancialReportView(SuperAdminRequiredMixin, TemplateView):
             ])
         return response
 
-    # ── PDF Export — bank-statement style ────────────────────────────────────
+    # ── PDF Export — Executive Revenue & Margins Statement (matching f_good) ──
     def _export_pdf(self, request):
-
         platform = PlatformConfiguration.get()
         site_name = platform.platform_name or 'VerifyNG'
         company_name = platform.company_name or 'VerifyNG Limited'
@@ -2399,265 +2435,157 @@ class AdminFinancialReportView(SuperAdminRequiredMixin, TemplateView):
         buffer = io.BytesIO()
 
         PAGE_W, PAGE_H = A4
-        MARGIN = 18 * mm
+        MARGIN = 14 * mm
+        CONTENT_W = PAGE_W - 2 * MARGIN
 
         doc = SimpleDocTemplate(
             buffer,
             pagesize=A4,
-            rightMargin=MARGIN,
             leftMargin=MARGIN,
-            topMargin=MARGIN,
-            bottomMargin=20 * mm,
+            rightMargin=MARGIN,
+            topMargin=12 * mm,
+            bottomMargin=14 * mm,
         )
 
-        # ── Colour palette ──────────────────────────────────────────────────
-        C_GREEN      = colors.HexColor('#1a7a4a')
-        C_DARK       = colors.HexColor('#1a1a2e')
-        C_GREEN_LITE = colors.HexColor('#e8f5ee')
-        C_RULE       = colors.HexColor('#c8dfd1')
-        C_MUTED      = colors.HexColor('#6c757d')
-        C_WHITE      = colors.white
-        C_ROW_ALT    = colors.HexColor('#f7faf8')
-        C_RED        = colors.HexColor('#dc3545')
-        C_BORDER     = colors.HexColor('#dee2e6')
+        def add_footer(canvas, d):
+            canvas.saveState()
+            canvas.setFont('Helvetica', 8)
+            canvas.setFillColor(colors.HexColor('#9ca3af'))
+            canvas.drawCentredString(PAGE_W / 2.0, 7 * mm, f'Page {canvas._pageNumber}')
+            canvas.restoreState()
 
-        # ── Paragraph styles ────────────────────────────────────────────────
-        def ps(name, **kw):
-            return ParagraphStyle(name, **kw)
+        # ── Color Palette (Modern Executive Styling) ────────────────────────
+        C_BLUE        = colors.HexColor('#1b7a9f')
+        C_BORDER      = colors.HexColor('#e2e8f0')
+        C_LINE        = colors.HexColor('#f1f5f9')
+        C_TEXT_DARK   = colors.HexColor('#0f172a')
+        C_TEXT_MUTED  = colors.HexColor('#64748b')
+        C_GREEN       = colors.HexColor('#16a34a')
+        C_RED         = colors.HexColor('#dc2626')
+        C_AMBER       = colors.HexColor('#d97706')
 
-        S_CO_NAME  = ps('CoName',  fontSize=20, fontName='Helvetica-Bold', textColor=C_DARK,  spaceAfter=1)
-        S_CO_SUB   = ps('CoSub',   fontSize=8,  fontName='Helvetica',      textColor=C_GREEN, spaceAfter=0)
-        S_RPT_HDR  = ps('RptHdr',  fontSize=11, fontName='Helvetica-Bold', textColor=C_WHITE, spaceAfter=0, alignment=TA_CENTER)
-        S_SECTION  = ps('Section', fontSize=9,  fontName='Helvetica-Bold', textColor=C_GREEN, spaceBefore=10, spaceAfter=3)
-        S_META     = ps('Meta',    fontSize=8,  fontName='Helvetica',      textColor=C_MUTED, spaceAfter=0)
-        S_META_B   = ps('MetaB',   fontSize=8,  fontName='Helvetica-Bold', textColor=C_DARK,  spaceAfter=0)
-        S_FOOTER   = ps('Footer',  fontSize=7,  fontName='Helvetica',      textColor=C_MUTED, alignment=TA_CENTER)
-        S_NORMAL   = ps('Norm',    fontSize=8,  fontName='Helvetica',      textColor=C_DARK)
+        def th(text, align=TA_LEFT, font_size=8):
+            return Paragraph(
+                text,
+                ParagraphStyle('TH', fontName='Helvetica-Bold', fontSize=font_size, leading=font_size + 2, textColor=colors.white, alignment=align)
+            )
 
-        CONTENT_W = PAGE_W - 2 * MARGIN
+        def td(text, align=TA_LEFT, bold=False, color=C_TEXT_DARK, font_size=8, leading=None):
+            return Paragraph(
+                str(text),
+                ParagraphStyle('TD', fontName='Helvetica-Bold' if bold else 'Helvetica', fontSize=font_size, leading=(leading or (font_size + 2)), textColor=color, alignment=align)
+            )
 
         story = []
 
-        # ════════════════════════════════════════════════════════════════════
-        # SECTION 1 — LETTERHEAD
-        # ════════════════════════════════════════════════════════════════════
-        # Two-column letterhead: company name left | statement type right
-        letterhead_data = [[
-            [Paragraph(site_name, S_CO_NAME),
-             Paragraph('Nigeria\'s Public Trust &amp; Safety Platform', S_CO_SUB)],
-            [Paragraph('FINANCIAL STATEMENT', ps('RH', fontSize=10, fontName='Helvetica-Bold',
-                                                  textColor=C_GREEN, alignment=TA_RIGHT)),
-             Paragraph('Internal Administrative Report', ps('RS', fontSize=7, fontName='Helvetica',
-                                                             textColor=C_MUTED, alignment=TA_RIGHT))],
-        ]]
-        lh_table = Table(letterhead_data, colWidths=[CONTENT_W * 0.6, CONTENT_W * 0.4])
-        lh_table.setStyle(TableStyle([
+        # ── 1. HEADER (Title, Date range left | Generated on, Total transactions right) ──
+        hdr_left = [
+            Paragraph('REVENUE & MARGINS STATEMENT', ParagraphStyle('H1', fontName='Helvetica-Bold', fontSize=15, leading=18, textColor=C_TEXT_DARK)),
+            Paragraph(f"Statement Period: {ctx['date_from_str']} to {ctx['date_to_str']}", ParagraphStyle('Sub', fontName='Helvetica', fontSize=8.5, leading=12, textColor=C_TEXT_MUTED)),
+        ]
+        hdr_right = [
+            Paragraph(f"Generated On: {timezone.now().strftime('%d %b %Y, %H:%M %p')}", ParagraphStyle('G1', fontName='Helvetica', fontSize=8, leading=11, textColor=C_TEXT_MUTED, alignment=TA_RIGHT)),
+            Paragraph(f"Total Transactions: {ctx['total_transactions']}", ParagraphStyle('G2', fontName='Helvetica', fontSize=8, leading=11, textColor=colors.HexColor('#334155'), alignment=TA_RIGHT)),
+        ]
+        hdr_table = Table([[hdr_left, hdr_right]], colWidths=[CONTENT_W * 0.6, CONTENT_W * 0.4])
+        hdr_table.setStyle(TableStyle([
             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ('LEFTPADDING',  (0, 0), (-1, -1), 0),
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
             ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-            ('TOPPADDING',   (0, 0), (-1, -1), 0),
-            ('BOTTOMPADDING',(0, 0), (-1, -1), 0),
+            ('TOPPADDING', (0, 0), (-1, -1), 0),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
         ]))
-        story.append(lh_table)
-        story.append(Spacer(1, 3 * mm))
-        story.append(HRFlowable(width='100%', thickness=2, color=C_GREEN, spaceAfter=3))
-        story.append(HRFlowable(width='100%', thickness=0.5, color=C_RULE, spaceAfter=4 * mm))
+        story.append(hdr_table)
+        story.append(Spacer(1, 4 * mm))
 
-        # ════════════════════════════════════════════════════════════════════
-        # SECTION 2 — STATEMENT META (two-column info block)
-        # ════════════════════════════════════════════════════════════════════
-        plan_label = '—'
-        plan_filter = request.GET.get('plan', '')
-        if plan_filter:
-            from payments.models import Plan as PlanModel
-            try:
-                plan_label = PlanModel.objects.get(pk=plan_filter).name
-            except PlanModel.DoesNotExist:
-                plan_label = 'Unknown'
-        else:
-            plan_label = 'All Plans'
-
-        status_label = request.GET.get('status', '') or 'All'
-
-        meta_left = [
-            [Paragraph('Issued by', S_META),    Paragraph(company_name, S_META_B)],
-            [Paragraph('Report type', S_META),  Paragraph('Financial Statement', S_META_B)],
-            [Paragraph('Plan filter', S_META),  Paragraph(plan_label, S_META_B)],
-            [Paragraph('Status filter', S_META),Paragraph(status_label.title(), S_META_B)],
-        ]
-        meta_right = [
-            [Paragraph('Period from', S_META),  Paragraph(ctx['date_from_str'], S_META_B)],
-            [Paragraph('Period to', S_META),    Paragraph(ctx['date_to_str'], S_META_B)],
-            [Paragraph('Generated', S_META),    Paragraph(timezone.now().strftime('%d %b %Y  %H:%M UTC'), S_META_B)],
-            [Paragraph('Records', S_META),      Paragraph(str(ctx['total_transactions']) + ' successful transactions', S_META_B)],
-        ]
-
-        def meta_tbl(rows, w):
-            t = Table(rows, colWidths=[w * 0.38, w * 0.62])
-            t.setStyle(TableStyle([
-                ('FONTSIZE',      (0, 0), (-1, -1), 8),
-                ('TOPPADDING',    (0, 0), (-1, -1), 2),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
-                ('LEFTPADDING',   (0, 0), (-1, -1), 0),
-                ('RIGHTPADDING',  (0, 0), (-1, -1), 4),
-                ('LINEBELOW',     (0, -1), (-1, -1), 0, C_WHITE),
-            ]))
-            return t
-
-        half = (CONTENT_W - 8 * mm) / 2
-        meta_outer = Table(
-            [[meta_tbl(meta_left, half), meta_tbl(meta_right, half)]],
-            colWidths=[half + 4 * mm, half + 4 * mm],
+        # ── 2. SUMMARY CARD (Sleek rounded box with key metrics and green Net Profit) ──
+        summary_metrics = Paragraph(
+            f"Total Revenue: <font color=\"#0f172a\"><b>NGN {ctx['total_revenue_naira']:,.2f}</b></font>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+            f"Avg. Transaction: <font color=\"#0f172a\"><b>NGN {ctx['avg_transaction_naira']:,.2f}</b></font>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+            f"Active Subscriptions: <font color=\"#0f172a\"><b>{ctx['active_subscriptions']}</b></font>",
+            ParagraphStyle('SM', fontName='Helvetica', fontSize=8.5, leading=12, textColor=colors.HexColor('#475569'))
         )
-        meta_outer.setStyle(TableStyle([
-            ('VALIGN',       (0, 0), (-1, -1), 'TOP'),
-            ('LEFTPADDING',  (0, 0), (-1, -1), 0),
+        summary_net = Paragraph(
+            f"NET PROFIT: NGN {ctx['net_revenue_naira']:,.2f}",
+            ParagraphStyle('SN', fontName='Helvetica-Bold', fontSize=11, leading=14, textColor=C_GREEN, alignment=TA_RIGHT)
+        )
+        summary_inner = Table([[summary_metrics, summary_net]], colWidths=[(CONTENT_W - 24) * 0.72, (CONTENT_W - 24) * 0.28])
+        summary_inner.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
             ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-            ('TOPPADDING',   (0, 0), (-1, -1), 0),
-            ('BOTTOMPADDING',(0, 0), (-1, -1), 0),
-            ('BACKGROUND',   (0, 0), (-1, -1), C_GREEN_LITE),
-            ('BOX',          (0, 0), (-1, -1), 0.5, C_RULE),
-            ('LEFTPADDING',  (0, 0), (-1, -1), 6),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 6),
-            ('TOPPADDING',   (0, 0), (-1, -1), 6),
-            ('BOTTOMPADDING',(0, 0), (-1, -1), 6),
+            ('TOPPADDING', (0, 0), (-1, -1), 0),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
         ]))
-        story.append(meta_outer)
-        story.append(Spacer(1, 6 * mm))
+        story.append(RoundedCard(summary_inner, width=CONTENT_W))
+        story.append(Spacer(1, 5 * mm))
 
-        # ════════════════════════════════════════════════════════════════════
-        # SECTION 3 — KPI SUMMARY BAR
-        # ════════════════════════════════════════════════════════════════════
-        def section_header(title):
-            hdr = Table([[Paragraph(title, S_RPT_HDR)]], colWidths=[CONTENT_W])
-            hdr.setStyle(TableStyle([
-                ('BACKGROUND',    (0, 0), (-1, -1), C_GREEN),
-                ('TOPPADDING',    (0, 0), (-1, -1), 5),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
-                ('LEFTPADDING',   (0, 0), (-1, -1), 8),
+        # ── 3. MONTHLY & PLAN BREAKDOWNS (Side-by-side) ───────────────────────
+        monthly = ctx.get('monthly_breakdown', [])
+        plans = ctx.get('plan_breakdown', [])
+
+        if monthly or plans:
+            half_w = (CONTENT_W - 6 * mm) / 2
+
+            # Monthly breakdown
+            m_data = [[th('Month'), th('Txns', TA_RIGHT), th('Revenue (NGN)', TA_RIGHT), th('Net (NGN)', TA_RIGHT)]]
+            for m in monthly[:6]:
+                m_data.append([
+                    td(m['month'], bold=True),
+                    td(str(m['count']), align=TA_RIGHT),
+                    td(f"{m['revenue']:,.2f}", align=TA_RIGHT, color=C_GREEN),
+                    td(f"{m['net']:,.2f}", align=TA_RIGHT, bold=True)
+                ])
+            if not monthly:
+                m_data.append([td('No monthly data', color=C_TEXT_MUTED), '', '', ''])
+
+            m_table = Table(m_data, colWidths=[half_w * 0.32, half_w * 0.18, half_w * 0.25, half_w * 0.25])
+            m_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), C_BLUE),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('TOPPADDING', (0, 0), (-1, -1), 4),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+                ('LEFTPADDING', (0, 0), (-1, -1), 4),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+                ('LINEBELOW', (0, 1), (-1, -1), 0.5, C_LINE),
+                ('BOX', (0, 0), (-1, -1), 0.5, C_BORDER),
             ]))
-            return hdr
 
-        story.append(section_header('SUMMARY'))
-        story.append(Spacer(1, 1 * mm))
+            # Plan breakdown
+            p_data = [[th('Plan Name'), th('Txns', TA_RIGHT), th('Revenue (NGN)', TA_RIGHT)]]
+            for p in plans[:6]:
+                p_data.append([
+                    td(p['plan_name'], bold=True),
+                    td(str(p['count']), align=TA_RIGHT),
+                    td(f"{p['revenue']:,.2f}", align=TA_RIGHT, color=C_GREEN, bold=True)
+                ])
+            if not plans:
+                p_data.append([td('No plan data', color=C_TEXT_MUTED), '', ''])
 
-        col_w = CONTENT_W / 5
-        kpi_labels = [
-            Paragraph('Total Revenue', ps('KL', fontSize=7, fontName='Helvetica', textColor=C_MUTED, alignment=TA_CENTER)),
-            Paragraph('Transactions', ps('KL2', fontSize=7, fontName='Helvetica', textColor=C_MUTED, alignment=TA_CENTER)),
-            Paragraph('Avg. Transaction', ps('KL3', fontSize=7, fontName='Helvetica', textColor=C_MUTED, alignment=TA_CENTER)),
-            Paragraph('Net Revenue', ps('KL4', fontSize=7, fontName='Helvetica', textColor=C_MUTED, alignment=TA_CENTER)),
-            Paragraph('Active Subscriptions', ps('KL5', fontSize=7, fontName='Helvetica', textColor=C_MUTED, alignment=TA_CENTER)),
-        ]
-        kpi_values = [
-            Paragraph(f"NGN {ctx['total_revenue_naira']:,.2f}", ps('KV', fontSize=10, fontName='Helvetica-Bold', textColor=C_GREEN, alignment=TA_CENTER)),
-            Paragraph(str(ctx['total_transactions']),            ps('KV2', fontSize=10, fontName='Helvetica-Bold', textColor=C_DARK,  alignment=TA_CENTER)),
-            Paragraph(f"NGN {ctx['avg_transaction_naira']:,.2f}",ps('KV3', fontSize=10, fontName='Helvetica-Bold', textColor=C_DARK,  alignment=TA_CENTER)),
-            Paragraph(f"NGN {ctx['net_revenue_naira']:,.2f}",    ps('KV4', fontSize=10, fontName='Helvetica-Bold', textColor=C_DARK,  alignment=TA_CENTER)),
-            Paragraph(str(ctx['active_subscriptions']),          ps('KV5', fontSize=10, fontName='Helvetica-Bold', textColor=C_DARK,  alignment=TA_CENTER)),
-        ]
-        kpi_table = Table([kpi_labels, kpi_values], colWidths=[col_w] * 5)
-        kpi_table.setStyle(TableStyle([
-            ('BACKGROUND',    (0, 0), (-1, -1), C_WHITE),
-            ('BOX',           (0, 0), (-1, -1), 0.5, C_BORDER),
-            ('INNERGRID',     (0, 0), (-1, -1), 0.5, C_BORDER),
-            ('TOPPADDING',    (0, 0), (-1, -1), 6),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-            ('BACKGROUND',    (0, 0), (-1, 0), colors.HexColor('#f8f9fa')),
-        ]))
-        story.append(kpi_table)
-        story.append(Spacer(1, 6 * mm))
+            p_table = Table(p_data, colWidths=[half_w * 0.50, half_w * 0.20, half_w * 0.30])
+            p_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), C_BLUE),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('TOPPADDING', (0, 0), (-1, -1), 4),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+                ('LEFTPADDING', (0, 0), (-1, -1), 4),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+                ('LINEBELOW', (0, 1), (-1, -1), 0.5, C_LINE),
+                ('BOX', (0, 0), (-1, -1), 0.5, C_BORDER),
+            ]))
 
-        # ════════════════════════════════════════════════════════════════════
-        # SECTION 4 — MONTHLY BREAKDOWN
-        # ════════════════════════════════════════════════════════════════════
-        story.append(KeepTogether([
-            section_header('MONTHLY BREAKDOWN'),
-            Spacer(1, 1 * mm),
-        ]))
+            breakdown_row = Table([[m_table, '', p_table]], colWidths=[half_w, 6 * mm, half_w])
+            breakdown_row.setStyle(TableStyle([
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+                ('TOPPADDING', (0, 0), (-1, -1), 0),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+            ]))
+            story.append(breakdown_row)
+            story.append(Spacer(1, 5 * mm))
 
-        col_widths_m = [40*mm, 28*mm, 42*mm, 38*mm, 38*mm]
-        def th(txt): return Paragraph(txt, ps('TH', fontSize=8, fontName='Helvetica-Bold', textColor=C_WHITE))
-        def td(txt, align=TA_LEFT, bold=False, color=C_DARK):
-            return Paragraph(txt, ps('TD', fontSize=8,
-                fontName='Helvetica-Bold' if bold else 'Helvetica',
-                textColor=color, alignment=align))
-
-        month_rows = [[th('Month'), th('Transactions'), th('Revenue (NGN)'), th('Refunds (NGN)'), th('Net (NGN)')]]
-        for i, row in enumerate(ctx['monthly_breakdown']):
-            bg = C_ROW_ALT if i % 2 == 0 else C_WHITE
-            month_rows.append([
-                td(row['month'], bold=True),
-                td(str(row['count']), align=TA_RIGHT),
-                td(f"{row['revenue']:,.2f}", align=TA_RIGHT, color=C_GREEN),
-                td(f"{row['refunds']:,.2f}", align=TA_RIGHT, color=C_RED if row['refunds'] > 0 else C_MUTED),
-                td(f"{row['net']:,.2f}", align=TA_RIGHT, bold=True),
-            ])
-        if not ctx['monthly_breakdown']:
-            month_rows.append([td('No data in selected period'), '', '', '', ''])
-
-        # Totals row
-        month_rows.append([
-            Paragraph('TOTAL', ps('TF', fontSize=8, fontName='Helvetica-Bold', textColor=C_WHITE)),
-            Paragraph(str(ctx['total_transactions']), ps('TF2', fontSize=8, fontName='Helvetica-Bold', textColor=C_WHITE, alignment=TA_RIGHT)),
-            Paragraph(f"{ctx['total_revenue_naira']:,.2f}", ps('TF3', fontSize=8, fontName='Helvetica-Bold', textColor=C_WHITE, alignment=TA_RIGHT)),
-            Paragraph(f"{ctx['total_refunds_naira']:,.2f}", ps('TF4', fontSize=8, fontName='Helvetica-Bold', textColor=C_WHITE, alignment=TA_RIGHT)),
-            Paragraph(f"{ctx['net_revenue_naira']:,.2f}", ps('TF5', fontSize=8, fontName='Helvetica-Bold', textColor=C_WHITE, alignment=TA_RIGHT)),
-        ])
-
-        m_table = Table(month_rows, colWidths=col_widths_m, repeatRows=1)
-        m_table.setStyle(TableStyle([
-            ('BACKGROUND',    (0, 0), (-1, 0), C_DARK),
-            ('BACKGROUND',    (0, -1), (-1, -1), C_GREEN),
-            ('BOX',           (0, 0), (-1, -1), 0.5, C_BORDER),
-            ('INNERGRID',     (0, 1), (-1, -2), 0.3, C_BORDER),
-            ('TOPPADDING',    (0, 0), (-1, -1), 5),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
-            ('LEFTPADDING',   (0, 0), (-1, -1), 6),
-            ('RIGHTPADDING',  (0, 0), (-1, -1), 6),
-        ]))
-        story.append(m_table)
-        story.append(Spacer(1, 6 * mm))
-
-        # ════════════════════════════════════════════════════════════════════
-        # SECTION 5 — REVENUE BY PLAN
-        # ════════════════════════════════════════════════════════════════════
-        story.append(KeepTogether([
-            section_header('REVENUE BY PLAN'),
-            Spacer(1, 1 * mm),
-        ]))
-
-        plan_rows = [[th('Plan Name'), th('Transactions'), th('Revenue (NGN)')]]
-        for i, row in enumerate(ctx['plan_breakdown']):
-            bg = C_ROW_ALT if i % 2 == 0 else C_WHITE
-            plan_rows.append([
-                td(row['plan_name'], bold=True),
-                td(str(row['count']), align=TA_RIGHT),
-                td(f"{row['revenue']:,.2f}", align=TA_RIGHT, color=C_GREEN, bold=True),
-            ])
-        if not ctx['plan_breakdown']:
-            plan_rows.append([td('No plan data available'), '', ''])
-
-        p_table = Table(plan_rows, colWidths=[90*mm, 40*mm, 56*mm], repeatRows=1)
-        p_table.setStyle(TableStyle([
-            ('BACKGROUND',    (0, 0), (-1, 0), C_DARK),
-            ('BOX',           (0, 0), (-1, -1), 0.5, C_BORDER),
-            ('INNERGRID',     (0, 1), (-1, -1), 0.3, C_BORDER),
-            ('ROWBACKGROUNDS',(0, 1), (-1, -1), [C_ROW_ALT, C_WHITE]),
-            ('TOPPADDING',    (0, 0), (-1, -1), 5),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
-            ('LEFTPADDING',   (0, 0), (-1, -1), 6),
-            ('RIGHTPADDING',  (0, 0), (-1, -1), 6),
-        ]))
-        story.append(p_table)
-        story.append(Spacer(1, 6 * mm))
-
-        # ════════════════════════════════════════════════════════════════════
-        # SECTION 6 — TRANSACTION LEDGER
-        # ════════════════════════════════════════════════════════════════════
-        story.append(section_header('TRANSACTION LEDGER  (max 200 records)'))
-        story.append(Spacer(1, 1 * mm))
-
+        # ── 4. TRANSACTION LEDGER (Ocean blue header, clean styling matching f_good) ──
         date_from_pdf, date_to_pdf = self._get_date_range(request)
         status_filter_pdf = request.GET.get('status', '')
         plan_filter_pdf   = request.GET.get('plan', '')
@@ -2672,59 +2600,77 @@ class AdminFinancialReportView(SuperAdminRequiredMixin, TemplateView):
             txn_qs = txn_qs.filter(plan__pk=plan_filter_pdf)
         txn_qs = txn_qs[:200]
 
-        ledger_rows = [[th('Date'), th('Reference'), th('User'), th('Plan'), th('Amount (NGN)'), th('Status')]]
-        for i, txn in enumerate(txn_qs):
+        ledger_rows = [[
+            th('Date'),
+            th('Service'),
+            th('References (Ext / Ref)'),
+            th('Customer'),
+            th('User Paid', TA_RIGHT),
+            th('Status', TA_CENTER),
+            th('Net Profit', TA_RIGHT),
+        ]]
+
+        for txn in txn_qs:
             user_name = '—'
             if txn.user:
                 user_name = (txn.user.get_full_name() or txn.user.username or '—')[:22]
-            status_colors = {
-                'success':  C_GREEN,
-                'failed':   C_RED,
-                'refunded': colors.HexColor('#fd7e14'),
-                'pending':  C_MUTED,
-            }
-            sc = status_colors.get(txn.status, C_MUTED)
+            srv_name = (txn.plan.name if txn.plan else 'Single Check')[:22]
+            ref_str = f"Ref: {txn.reference[:18]}" if txn.reference else '—'
+            if txn.paystack_reference:
+                ref_str += f"<br/>Ext: {txn.paystack_reference[:18]}"
+
+            if txn.status == 'success':
+                st_label = 'Success'
+                st_color = C_GREEN
+                net_val = f"NGN {txn.amount_naira:,.2f}"
+                net_color = C_GREEN
+            elif txn.status == 'refunded':
+                st_label = 'Refunded'
+                st_color = C_AMBER
+                net_val = f"-NGN {txn.amount_naira:,.2f}"
+                net_color = C_RED
+            elif txn.status == 'failed':
+                st_label = 'Failed'
+                st_color = C_RED
+                net_val = "NGN 0.00"
+                net_color = C_TEXT_MUTED
+            else:
+                st_label = txn.get_status_display()
+                st_color = C_TEXT_MUTED
+                net_val = "NGN 0.00"
+                net_color = C_TEXT_MUTED
+
             ledger_rows.append([
-                td(txn.created_at.strftime('%d %b %Y')),
-                td(txn.reference[:18] if txn.reference else '—'),
-                td(user_name),
-                td(txn.plan.name[:16] if txn.plan else '—'),
-                td(f"{txn.amount_naira:,.2f}", align=TA_RIGHT, bold=True),
-                Paragraph(txn.get_status_display(), ps(f'ST{i}', fontSize=7, fontName='Helvetica-Bold',
-                          textColor=sc, alignment=TA_CENTER)),
+                td(txn.created_at.strftime('%d %b %Y, %H:%M'), color=colors.HexColor('#334155'), font_size=7.5),
+                td(srv_name, bold=True, color=C_TEXT_DARK, font_size=8),
+                td(ref_str, color=C_TEXT_MUTED, font_size=7, leading=9),
+                td(user_name, color=colors.HexColor('#334155'), font_size=8),
+                td(f"NGN {txn.amount_naira:,.2f}", align=TA_RIGHT, color=C_TEXT_DARK, font_size=8),
+                td(st_label, align=TA_CENTER, bold=True, color=st_color, font_size=7.5),
+                td(net_val, align=TA_RIGHT, bold=True, color=net_color, font_size=8),
             ])
+
         if not txn_qs:
-            ledger_rows.append([td('No transactions in this period'), '', '', '', '', ''])
+            ledger_rows.append([td('No transactions in this period', color=C_TEXT_MUTED), '', '', '', '', '', ''])
 
-        l_table = Table(
-            ledger_rows,
-            colWidths=[22*mm, 38*mm, 38*mm, 30*mm, 28*mm, 20*mm],
-            repeatRows=1,
-        )
-        l_table.setStyle(TableStyle([
-            ('BACKGROUND',    (0, 0), (-1, 0), C_DARK),
-            ('BOX',           (0, 0), (-1, -1), 0.5, C_BORDER),
-            ('INNERGRID',     (0, 1), (-1, -1), 0.3, C_BORDER),
-            ('ROWBACKGROUNDS',(0, 1), (-1, -1), [C_ROW_ALT, C_WHITE]),
-            ('TOPPADDING',    (0, 0), (-1, -1), 4),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-            ('LEFTPADDING',   (0, 0), (-1, -1), 5),
-            ('RIGHTPADDING',  (0, 0), (-1, -1), 5),
+        col_w = [25 * mm, 32 * mm, 40 * mm, 30 * mm, 19 * mm, 16 * mm, 20 * mm]
+        t_ledger = Table(ledger_rows, colWidths=col_w, repeatRows=1)
+        t_ledger.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), C_BLUE),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('TOPPADDING', (0, 0), (-1, 0), 6),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
+            ('TOPPADDING', (0, 1), (-1, -1), 5),
+            ('BOTTOMPADDING', (0, 1), (-1, -1), 5),
+            ('LEFTPADDING', (0, 0), (-1, -1), 5),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f8fafc')]),
+            ('LINEBELOW', (0, 1), (-1, -1), 0.5, C_LINE),
+            ('BOX', (0, 0), (-1, -1), 0.5, C_BORDER),
         ]))
-        story.append(l_table)
+        story.append(t_ledger)
 
-        # ════════════════════════════════════════════════════════════════════
-        # FOOTER
-        # ════════════════════════════════════════════════════════════════════
-        story.append(Spacer(1, 8 * mm))
-        story.append(HRFlowable(width='100%', thickness=0.5, color=C_RULE, spaceAfter=3))
-        story.append(Paragraph(
-            f'{company_name}  |  This is an internal financial statement generated for administrative purposes only.  '
-            f'All amounts are in Nigerian Naira (NGN).  Not an audited financial statement.',
-            S_FOOTER,
-        ))
-
-        doc.build(story)
+        doc.build(story, onFirstPage=add_footer, onLaterPages=add_footer)
         date_str = ctx['date_from_str'].replace('-', '') + '_' + ctx['date_to_str'].replace('-', '')
         response = HttpResponse(content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="VerifyNG_Financial_Statement_{date_str}.pdf"'

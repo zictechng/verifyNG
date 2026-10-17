@@ -30,6 +30,8 @@ from reports.models import FraudReport
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.conf import settings
+from identities.models import Identifier, SubjectEntity
+from identities.utils import hash_identifier_value
 
 logger = logging.getLogger(__name__)
 
@@ -44,28 +46,31 @@ def _trust_lookup(phone_number: str, nin_hash: str) -> dict:
 
     Returns a dict with keys:
         found (bool)        — whether a SubjectEntity was matched
-        fraud_flags (int)   — count of active verified fraud reports
-        trust_score (float) — 0.0–100.0, or None if no score exists
+        fraud_flags (int)   — count of active published fraud reports
+        trust_score (float) — 0–1000, or None if no score exists
         summary (str)       — human-readable one-line result
     """
-    from identities.models import Identifier, SubjectEntity
+
     try:
-        # Match by phone first, then by NIN hash
         subject = None
         if phone_number:
-            ident = (
-                Identifier.objects
-                .filter(identifier_type='phone', value=phone_number, is_active=True)
-                .select_related('subject')
-                .first()
-            )
-            if ident:
-                subject = ident.subject
+            try:
+                ph_hash = hash_identifier_value('phone', phone_number)
+                ident = (
+                    Identifier.objects
+                    .filter(type='phone', value_hash=ph_hash)
+                    .select_related('subject')
+                    .first()
+                )
+                if ident:
+                    subject = ident.subject
+            except Exception:
+                pass
 
         if subject is None and nin_hash:
             ident = (
                 Identifier.objects
-                .filter(identifier_type='nin', value=nin_hash, is_active=True)
+                .filter(type='nin', value_hash=nin_hash)
                 .select_related('subject')
                 .first()
             )
@@ -80,14 +85,13 @@ def _trust_lookup(phone_number: str, nin_hash: str) -> dict:
                 'summary': 'No record found in VerifyNG database.',
             }
 
-        # Count verified fraud reports
+        # Count published verified fraud reports
         fraud_count = 0
         try:
             from reports.models import FraudReport
             fraud_count = FraudReport.objects.filter(
-                subject=subject,
-                status='verified',
-                is_active=True,
+                target_subject=subject,
+                state='published',
             ).count()
         except Exception:
             pass
@@ -95,9 +99,8 @@ def _trust_lookup(phone_number: str, nin_hash: str) -> dict:
         # Trust score
         score = None
         try:
-            trust = subject.trust_scores.filter(is_active=True).order_by('-updated_at').first()
-            if trust:
-                score = float(trust.score)
+            if hasattr(subject, 'trust_score') and subject.trust_score:
+                score = float(subject.trust_score.score)
         except Exception:
             pass
 
@@ -228,7 +231,7 @@ def process_bulk_upload_task(self, upload_id: str) -> dict:
 
 def _get_current_fraud_flag_count(nin_hash: str, phone_number: str) -> int:
     """
-    Return the current count of verified fraud reports matched to this subject.
+    Return the current count of published fraud reports matched to this subject.
     Matches by NIN hash first, then phone. Returns 0 if no subject found.
     """
     subject = None
@@ -244,22 +247,26 @@ def _get_current_fraud_flag_count(nin_hash: str, phone_number: str) -> int:
             subject = ident.subject
 
     if subject is None and phone_number:
-        ident = (
-            Identifier.objects
-            .filter(type='phone', value_hash=phone_number)
-            .select_related('subject')
-            .first()
-        )
-        if ident:
-            subject = ident.subject
+        try:
+            from identities.utils import hash_identifier_value
+            ph_hash = hash_identifier_value('phone', phone_number)
+            ident = (
+                Identifier.objects
+                .filter(type='phone', value_hash=ph_hash)
+                .select_related('subject')
+                .first()
+            )
+            if ident:
+                subject = ident.subject
+        except Exception:
+            pass
 
     if subject is None:
         return 0
 
     return FraudReport.objects.filter(
         target_subject=subject,
-        state='verified',
-        is_active=True,
+        state='published',
     ).count()
 
 
@@ -268,14 +275,11 @@ def _send_monitor_alert_email(monitor, previous_flags: int, current_flags: int) 
     Send a branded HTML email alert to the employer contact when a monitored
     staff member's fraud flag count changes.
     """
-
     check = monitor.check_request
     employer = monitor.employer
 
-    # Determine the employer contact email
-    contact_email = employer.contact_email or (
-        employer.owner.email if employer.owner else None
-    )
+    # Determine the employer contact email via employer profile's user account
+    contact_email = employer.user.email if employer.user else None
     if not contact_email:
         logger.warning(
             "monitor_alert: no contact email for employer %s — skipping",
@@ -364,7 +368,7 @@ def run_monitor_checks_task(self) -> dict:
     monitors = (
         StaffCheckMonitor.objects
         .filter(monitor_status='active', is_active=True, alert_on_change=True)
-        .select_related('check_request', 'employer', 'employer__owner')
+        .select_related('check_request', 'employer', 'employer__user')
     )
 
     for monitor in monitors:

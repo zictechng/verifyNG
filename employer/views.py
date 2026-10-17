@@ -31,6 +31,13 @@ from django.utils import timezone
 
 from core.permissions import employer_required
 from .models import BulkCheckUpload, EmployerProfile, TeamMember
+import hashlib
+import json
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+
+
+from identities.utils import hash_identifier_value
 
 logger = logging.getLogger(__name__)
 
@@ -198,15 +205,14 @@ def team_list(request):
 # Staff Checks — BATCH 1
 # ---------------------------------------------------------------------------
 
-import hashlib
-import json
-from django.http import JsonResponse
-from django.views.decorators.http import require_POST
-
-
 def _hash_nin(raw_nin: str) -> str:
-    return hashlib.sha256(raw_nin.strip().encode('utf-8')).hexdigest()
-
+    """Peppered HMAC-SHA256 hash of a raw NIN string matching VerifyNG storage standard."""
+    if not raw_nin or not raw_nin.strip():
+        return ''
+    try:
+        return hash_identifier_value('nin', raw_nin.strip())
+    except Exception:
+        return ''
 
 @login_required
 @employer_required
@@ -477,7 +483,10 @@ def bulk_upload_create(request):
                 if len(raw_nin) != 11 or not raw_nin.isdigit():
                     parse_errors.append(f'Row {row_num}: NIN "{raw_nin}" is not 11 digits — NIN ignored for this row.')
                 else:
-                    nin_hash = hashlib.sha256(raw_nin.encode('utf-8')).hexdigest()
+                    try:
+                        nin_hash = hash_identifier_value('nin', raw_nin)
+                    except Exception:
+                        parse_errors.append(f'Row {row_num}: Failed to hash NIN — ignored.')
 
             rows_data.append({
                 'full_name': full_name,
@@ -818,7 +827,6 @@ def person_check_search(request):
                     )
                 }
             else:
-                from identities.models import Identifier, SubjectEntity
 
                 # Decide identifier type by prefix
                 phone_prefixes = ('070', '080', '081', '090', '091', '071', '091')
@@ -859,7 +867,6 @@ def person_check_search(request):
                     fraud_reports = []
                     fraud_count   = 0
                     try:
-                        from reports.models import FraudReport
                         fraud_qs = (
                             FraudReport.objects
                             .filter(
