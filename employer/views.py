@@ -602,9 +602,13 @@ def bulk_upload_create(request):
             process_bulk_upload_task.delay(str(upload.id))
         except Exception as exc:
             logger.warning("Could not dispatch Celery task for upload %s: %s", upload.id, exc)
-            # Task will need to be triggered manually or via admin — upload still created
-
+            # Resilient fallback: process inline if Celery/Redis is offline in local dev
+            try:
+                process_bulk_upload_task(str(upload.id))
+            except Exception as e:
+                logger.exception("Inline execution failed for upload %s: %s", upload.id, e)
         warn_count = len(parse_errors)
+        
         if warn_count:
             messages.warning(
                 request,
