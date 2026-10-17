@@ -13,8 +13,8 @@ import requests
 from django.conf import settings
 from django.utils import timezone
 
-from .models import Plan, Subscription, Transaction, SiteSettings, FreeUsageQuota, PaymentAuditLog
-
+from .models import Plan, Subscription, Transaction, SiteSettings, FreeUsageQuota, PaymentAuditLog, PlatformConfiguration
+from django.db.models import F
 logger = logging.getLogger(__name__)
 
 PAYSTACK_BASE_URL = 'https://api.paystack.co'
@@ -276,24 +276,101 @@ def get_active_subscription(user) -> Subscription | None:
     ).select_related('plan').first()
 
 
+def check_user_entitlement(user, cost: int = 1) -> tuple[bool, str, dict]:
+    """
+    Universal credit & subscription entitlement checker.
+    Can be called from any portal/module before executing a check or verification.
+    Returns:
+        (allowed: bool, reason: str, details: dict)
+    """
+    # 1. Master Admin Toggle — Free Platform Mode
+    try:
+        config = PlatformConfiguration.get()
+        if config.free_access_mode:
+            return True, 'free_platform_mode', {
+                'message': 'Platform is operating in free access mode. All checks are complimentary.',
+                'remaining': 'unlimited',
+            }
+    except Exception as e:
+        logger.warning("Could not check PlatformConfiguration free_access_mode: %s", e)
+    # 2. Staff / Superuser privileges
+    if getattr(user, 'is_superuser', False) or getattr(user, 'is_staff', False):
+        return True, 'staff_bypass', {
+            'message': 'Staff administrative privileges active.',
+            'remaining': 'unlimited',
+        }
+    # 3. Active Subscription Check
+    sub = get_active_subscription(user)
+    if sub:
+        # Unlimited Plan
+        if sub.plan.has_unlimited_checks:
+            return True, 'unlimited', {
+                'plan': sub.plan.name,
+                'remaining': 'unlimited',
+            }
+        # Capped Plan
+        current_used = getattr(sub, 'checks_used', 0)
+        limit = sub.plan.check_limit
+        if current_used + cost <= limit:
+            return True, 'subscribed', {
+                'plan': sub.plan.name,
+                'remaining': max(0, limit - (current_used + cost)),
+                'limit': limit,
+                'used': current_used,
+            }
+        else:
+            return False, 'subscription_quota_exceeded', {
+                'plan': sub.plan.name,
+                'remaining': max(0, limit - current_used),
+                'limit': limit,
+                'used': current_used,
+            }
+    # 4. Standard Free Tier Quota (unsubscribed users)
+    quota = FreeUsageQuota.for_user(user)
+    site_settings = SiteSettings.get()
+    limit = site_settings.free_check_limit
+    if quota.checks_used + cost <= limit:
+        return True, 'free_tier', {
+            'remaining': max(0, limit - (quota.checks_used + cost)),
+            'limit': limit,
+            'used': quota.checks_used,
+        }
+    return False, 'quota_exceeded', {
+        'remaining': 0,
+        'limit': limit,
+        'used': quota.checks_used,
+    }
 def user_can_perform_check(user) -> tuple[bool, str]:
     """
-    Check if user has quota for a check.
-    Returns (allowed: bool, reason: str).
+    Backwards-compatible wrapper matching original 2-tuple signature (allowed, reason).
     """
-    # Active subscribers always allowed
+    allowed, reason, _ = check_user_entitlement(user, cost=1)
+    return allowed, reason
+def consume_user_entitlement(user, cost: int = 1) -> bool:
+    """
+    Deducts check entitlement after an operation succeeds.
+    - In free platform mode or staff bypass: no deduction is made.
+    - Active subscribers with capped plans: increments subscription.checks_used.
+    - Free tier users: increments FreeUsageQuota.checks_used.
+    """
+    try:
+        config = PlatformConfiguration.get()
+        if config.free_access_mode:
+            return True
+    except Exception:
+        pass
+    if getattr(user, 'is_superuser', False) or getattr(user, 'is_staff', False):
+        return True
     sub = get_active_subscription(user)
     if sub:
         if sub.plan.has_unlimited_checks:
-            return True, 'unlimited'
-        # Check count-based limit (future: track per-subscription usage)
-        return True, 'subscribed'
-
-    # Free tier check
+            return True
+       
+        Subscription.objects.filter(pk=sub.pk).update(checks_used=F('checks_used') + cost)
+        return True
+    # Free tier deduction
     quota = FreeUsageQuota.for_user(user)
-    site_settings = SiteSettings.get()
-    if quota.checks_used < site_settings.free_check_limit:
-        return True, 'free_tier'
-
-    return False, 'quota_exceeded'
+    
+    FreeUsageQuota.objects.filter(pk=quota.pk).update(checks_used=F('checks_used') + cost)
+    return True
 

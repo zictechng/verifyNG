@@ -96,6 +96,10 @@ class PlatformConfiguration(models.Model):
         default='This service is temporarily unavailable. Please try again later.',
         help_text="Message shown to users when a service is suspended."
     )
+    free_access_mode = models.BooleanField(
+        default=False,
+        help_text="Master toggle: when True, all users can perform checks and verifications for free without subscription or quota restrictions."
+    )
     footer_copyright_text = models.CharField(max_length=255, blank=True, default='© 2024 VerifyNG Limited. All rights reserved.')
 
     updated_at = models.DateTimeField(auto_now=True)
@@ -238,6 +242,10 @@ class Subscription(models.Model):
     current_period_end = models.DateTimeField(null=True, blank=True)
     cancel_at_period_end = models.BooleanField(default=False)
     cancelled_at = models.DateTimeField(null=True, blank=True)
+    checks_used = models.PositiveIntegerField(
+        default=0,
+        help_text="Number of checks consumed during the current subscription billing period."
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=True)
