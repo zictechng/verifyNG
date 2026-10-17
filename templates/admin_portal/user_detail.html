@@ -23,6 +23,15 @@
         <tr><th style="color:var(--adm-muted);font-weight:500;">Username</th><td class="fw-semibold">{{ target_user.username }}</td></tr>
         <tr><th style="color:var(--adm-muted);font-weight:500;">Email</th><td>{{ target_user.email }}</td></tr>
         <tr><th style="color:var(--adm-muted);font-weight:500;">Role</th><td><span class="adm-badge blue">{{ target_user.get_role_display }}</span></td></tr>
+        <tr><th style="color:var(--adm-muted);font-weight:500;">Free Usage</th>
+          <td>
+            {% if target_user.is_billing_exempt %}
+              <span class="adm-badge green"><span class="dot"></span>Active ({{ target_user.billing_exempt_notes|default:"Exempt" }})</span>
+            {% else %}
+              <span class="adm-badge gray">Standard Billing</span>
+            {% endif %}
+          </td>
+        </tr>
         <tr><th style="color:var(--adm-muted);font-weight:500;">Status</th>
           <td>{% if target_user.is_active %}<span class="adm-badge green"><span class="dot"></span>Active</span>{% else %}<span class="adm-badge red"><span class="dot"></span>Suspended</span>{% endif %}</td>
         </tr>
@@ -120,6 +129,44 @@
         </button>
     </div>
   </div>
+
+  <!-- ── Free Platform Usage / Billing Exemption Card ────────── -->
+    <div class="card shadow-sm mb-4">
+      <div class="card-header bg-white fw-semibold py-3 d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-gift text-success me-2"></i>Free Usage Control</span>
+        {% if target_user.is_billing_exempt %}
+          <span class="adm-badge green">Exempt</span>
+        {% else %}
+          <span class="adm-badge gray">Standard</span>
+        {% endif %}
+      </div>
+      <div class="card-body">
+        <form method="post" action="{% url 'admin_portal:user_detail' target_user.public_id %}">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="update_billing_exempt">
+          
+          <div class="form-check form-switch mb-3">
+            <input class="form-check-input" type="checkbox" role="switch"
+                   name="is_billing_exempt" id="userBillingExempt"
+                   {% if target_user.is_billing_exempt %}checked{% endif %}
+                   style="cursor:pointer;width:2.2em;height:1.2em;">
+            <label class="form-check-label fw-bold small ms-1" for="userBillingExempt">
+              Grant Free Platform Usage
+            </label>
+          </div>
+          
+          <div class="mb-3">
+            <label class="form-label small text-muted mb-1" for="userExemptNotes">Exemption Reason</label>
+            <input type="text" name="billing_exempt_notes" id="userExemptNotes" class="form-control form-control-sm"
+                   value="{{ target_user.billing_exempt_notes }}"
+                   placeholder="e.g. Authorized Agency MoU, VIP Partner">
+          </div>
+          <button type="submit" class="btn btn-primary btn-sm w-100">
+            Save Exemption Setting
+          </button>
+        </form>
+      </div>
+    </div>
 
 
       <!-- ── Credit Subscription Modal (Bootstrap 5 — renders outside card, at body level) ── -->

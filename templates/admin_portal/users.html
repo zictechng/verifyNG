@@ -106,7 +106,10 @@
                         </div>
                     </td>
                     <td class="td-muted">{{ u.email|default:"—" }}</td>
-                    <td><span class="adm-badge gray">{{ u.get_role_display }}</span></td>
+                    <td>
+                      <span class="adm-badge gray">{{ u.get_role_display }}</span>
+                      {% if u.is_billing_exempt %}<span class="adm-badge blue ms-1" title="{{ u.billing_exempt_notes|default:'Free Usage' }}">Free</span>{% endif %}
+                    </td>
                     <td>
                         {% if not u.is_active %}
                             <span class="adm-badge red"><span class="dot"></span>Blocked</span>

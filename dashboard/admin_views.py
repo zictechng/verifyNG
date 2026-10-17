@@ -460,6 +460,27 @@ class AdminCommunicationsView(SuperAdminRequiredMixin, TemplateView):
 class AdminUserDetailView(SuperAdminRequiredMixin, TemplateView):
     """Full user profile: all fields, login history, reports, verifications, subscriptions."""
     template_name = "admin_portal/user_detail.html"
+    def post(self, request, public_id):
+        target_user = get_object_or_404(User, public_id=public_id)
+        action = request.POST.get('action')
+        if action == 'update_billing_exempt':
+            target_user.is_billing_exempt = request.POST.get('is_billing_exempt') == 'on'
+            target_user.billing_exempt_notes = request.POST.get('billing_exempt_notes', '').strip()
+            target_user.save(update_fields=['is_billing_exempt', 'billing_exempt_notes'])
+            AuditLog.objects.create(
+                action="ADMIN_USER_BILLING_EXEMPT_UPDATE",
+                performed_by=request.user,
+                details={
+                    "target_username": target_user.username,
+                    "is_billing_exempt": target_user.is_billing_exempt,
+                    "notes": target_user.billing_exempt_notes,
+                }
+            )
+            state = "granted" if target_user.is_billing_exempt else "revoked"
+            messages.success(request, f"Free platform usage {state} for user '{target_user.username}'.")
+            return redirect('admin_portal:user_detail', public_id=public_id)
+        messages.error(request, "Invalid action.")
+        return redirect('admin_portal:user_detail', public_id=public_id)
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         target_user = get_object_or_404(User, public_id=self.kwargs['public_id'])
