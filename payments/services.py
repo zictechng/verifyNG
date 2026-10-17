@@ -299,7 +299,36 @@ def check_user_entitlement(user, cost: int = 1) -> tuple[bool, str, dict]:
             'message': 'Staff administrative privileges active.',
             'remaining': 'unlimited',
         }
-    # 3. Active Subscription Check
+    # 3. Individual / Agency Account-Level Exemption
+    if getattr(user, 'is_billing_exempt', False):
+        return True, 'billing_exempt', {
+            'message': 'Account billing exemption active.',
+            'remaining': 'unlimited',
+            'notes': getattr(user, 'billing_exempt_notes', ''),
+        }
+    # 4. Organization-Level Exemption (Employer or Invited Team Members)
+    try:
+        # Direct employer owner
+        employer = getattr(user, 'employer_profile', None)
+        if employer and employer.is_billing_exempt:
+            return True, 'organization_billing_exempt', {
+                'message': f'Complimentary access granted to {employer.company_name}.',
+                'remaining': 'unlimited',
+                'notes': employer.billing_exempt_notes,
+            }
+        # Organization team member
+        membership = getattr(user, 'employer_memberships', None)
+        if membership:
+            active_mem = membership.filter(is_active=True).select_related('employer').first()
+            if active_mem and active_mem.employer and active_mem.employer.is_billing_exempt:
+                return True, 'organization_billing_exempt', {
+                    'message': f'Complimentary access granted to {active_mem.employer.company_name}.',
+                    'remaining': 'unlimited',
+                    'notes': active_mem.employer.billing_exempt_notes,
+                }
+    except Exception as e:
+        logger.warning("Could not check organization billing exemption: %s", e)
+    # 5. Active Subscription Check
     sub = get_active_subscription(user)
     if sub:
         # Unlimited Plan
@@ -361,6 +390,20 @@ def consume_user_entitlement(user, cost: int = 1) -> bool:
         pass
     if getattr(user, 'is_superuser', False) or getattr(user, 'is_staff', False):
         return True
+    # Account or organization billing exemption skips deduction
+    if getattr(user, 'is_billing_exempt', False):
+        return True
+    try:
+        employer = getattr(user, 'employer_profile', None)
+        if employer and employer.is_billing_exempt:
+            return True
+        membership = getattr(user, 'employer_memberships', None)
+        if membership:
+            active_mem = membership.filter(is_active=True).select_related('employer').first()
+            if active_mem and active_mem.employer and active_mem.employer.is_billing_exempt:
+                return True
+    except Exception:
+        pass
     sub = get_active_subscription(user)
     if sub:
         if sub.plan.has_unlimited_checks:

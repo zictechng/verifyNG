@@ -31,6 +31,15 @@ class EmployerProfile(models.Model):
         help_text="True when VerifyNG has confirmed the company identity"
     )
     verified_at = models.DateTimeField(null=True, blank=True)
+    is_billing_exempt = models.BooleanField(
+        default=False,
+        help_text="When True, check and verification fees are waived for this company."
+    )
+    billing_exempt_notes = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Reason for billing exemption (e.g. 'Law Enforcement MoU', 'Enterprise Pilot')"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=True)

@@ -28,6 +28,15 @@ class User(AbstractUser):
         default=False,
         help_text="User identity verification status"
     )
+    is_billing_exempt = models.BooleanField(
+        default=False,
+        help_text="When True, check and verification fees are waived for this specific user/agency account."
+    )
+    billing_exempt_notes = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Reason for billing exemption (e.g. 'Security Agency Exemption', 'Official Regulator')"
+    )
     is_suspended = models.BooleanField(
         default=False,
         help_text=(
@@ -64,6 +73,8 @@ class User(AbstractUser):
     # which can leak into instance attributes during save(). Force bool types.
         if not isinstance(self.identity_verified, bool):
             self.identity_verified = False
+        if not isinstance(self.is_billing_exempt, bool):
+            self.is_billing_exempt = False
         if not isinstance(self.is_active, bool):
             self.is_active = bool(self.is_active)
         super().save(*args, **kwargs)
