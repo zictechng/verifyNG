@@ -370,11 +370,11 @@
                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
                                         Admin Portal
                                     </a>
-                                    {% elif user.role == 'employer' %}
-                                    <a href="{% url 'employer:dashboard' %}" class="vng-avatar-item">
-                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-                                        Dashboard
-                                    </a>
+                                    {% elif user.role in 'employer,agency,business' %}
+                                     <a href="{% url 'employer:dashboard' %}" class="vng-avatar-item">
+                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                                         Organization Portal
+                                     </a>
                                     {% else %}
                                     <a href="{% url 'dashboard:index' %}" class="vng-avatar-item">
                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
@@ -407,7 +407,7 @@
                     {% if user.is_authenticated %}
                         {% if user.is_superuser or user.is_staff or user.role == 'moderator' or user.role == 'officer' %}
                         <a href="{% url 'admin_portal:overview' %}" class="btn btn-vng-outline btn-sm py-1 px-2">Portal</a>
-                        {% elif user.role == 'employer' %}
+                        {% elif user.role in 'employer,agency,business' %}
                         <a href="{% url 'employer:dashboard' %}" class="btn btn-vng-outline btn-sm py-1 px-2">Portal</a>
                         {% else %}
                         <a href="{% url 'dashboard:index' %}" class="btn btn-vng-outline btn-sm py-1 px-2">Account</a>

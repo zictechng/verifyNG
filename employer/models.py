@@ -62,6 +62,21 @@ class EmployerProfile(models.Model):
         """Return the unique UUID public_id of the associated user."""
         return self.user.public_id
 
+    @property
+    def organization_type(self):
+        """Return the raw role code ('employer', 'agency', 'business')."""
+        return getattr(self.user, 'role', 'employer')
+    @property
+    def organization_type_display(self):
+        """Human-readable entity type for badges and UI headers."""
+        role = getattr(self.user, 'role', 'employer')
+        labels = {
+            'employer': 'Employer',
+            'agency': 'Authorized Agency',
+            'business': 'Business Entity',
+        }
+        return labels.get(role, 'Organization')
+
 
 class TeamMember(models.Model):
     """

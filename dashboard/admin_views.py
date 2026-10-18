@@ -312,8 +312,8 @@ class AdminUserChangeRoleView(SuperAdminRequiredMixin, View):
         target_user.role = new_role
         target_user.save(update_fields=['role'])
 
-        # Auto-create EmployerProfile when role is set to 'employer'
-        if new_role == 'employer' and EmployerProfile is not None:
+        # Auto-create EmployerProfile when role is set to any organization entity
+        if new_role in ('employer', 'agency', 'business') and EmployerProfile is not None:
             EmployerProfile.objects.get_or_create(
                 user=target_user,
                 defaults={

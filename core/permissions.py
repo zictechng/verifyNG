@@ -25,12 +25,17 @@ def is_verification_officer(user):
 def is_employer(user):
     if not user or not user.is_authenticated:
         return False
-    if getattr(user, 'role', None) == 'employer' or user.is_superuser:
+    # Allow direct employers, screening/authorized agencies, and business entities
+    if getattr(user, 'role', None) in ('employer', 'agency', 'business') or user.is_superuser:
         return True
     try:
         return user.employer_memberships.filter(is_active=True).exists()
     except Exception:
         return False
+
+
+# Semantic aliases for multi-entity B2B access
+is_organization_user = is_employer
 
 
 def is_business(user):

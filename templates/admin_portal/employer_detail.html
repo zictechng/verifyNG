@@ -15,10 +15,11 @@
     <h1 class="adm-page-title">{{ profile.company_name }}</h1>
     <p class="mb-0">
       {% if profile.is_verified %}
-        <span class="adm-badge green"><span class="dot"></span>Verified Employer</span>
+        <span class="adm-badge green"><span class="dot"></span>Verified {{ profile.organization_type_display }}</span>
       {% else %}
         <span class="adm-badge amber"><span class="dot"></span>Unverified</span>
       {% endif %}
+      <span class="adm-badge purple ms-2"><span class="dot"></span>Type: {{ profile.organization_type_display }}</span>
       {% if active_subscription %}
         <span class="adm-badge blue ms-2"><span class="dot"></span>Plan: {{ active_subscription.plan.name }}</span>
       {% endif %}

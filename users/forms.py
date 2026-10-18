@@ -7,7 +7,7 @@ from django.contrib.auth.forms import (
     PasswordChangeForm,  
 )
 from users.models import User
-
+from employer.models import EmployerProfile
 
 class CustomUserCreationForm(UserCreationForm):
     """
@@ -314,6 +314,14 @@ class AgencyRegistrationForm(UserCreationForm):
         user.role = 'agency'   # forced — never trust client
         if commit:
             user.save()
+        # Auto-provision organization profile on agency registration
+            try:
+                EmployerProfile.objects.get_or_create(
+                    user=user,
+                    defaults={'company_name': self.cleaned_data.get('agency_name', '')},
+                )
+            except Exception:
+                pass
         return user
 
 
