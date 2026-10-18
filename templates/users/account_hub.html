@@ -44,14 +44,54 @@
                 <div class="vng-profile-meta mb-1">
                     <span class="fw-semibold">Email:</span> {{ request.user.email }}
                 </div>
-                <div class="vng-profile-meta mb-1">
-                    <span class="fw-semibold">Account ID:</span> <code>{{ request.user.public_id|stringformat:".13s" }}...</code>
-                </div>
+                
                 <div class="vng-profile-meta">
                     <span class="fw-semibold">Account Type:</span> {{ request.user.get_role_display }}
                 </div>
             {% endif %}
+
+            <!-- Identity Status (Matches Desktop Experience) -->
+            <div class="mt-2 pt-2 border-top border-primary border-opacity-10">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="small fw-semibold" style="color:#0F3A78;">Identity Status</span>
+                    {% if request.user.identity_verified or employer_profile.is_verified %}
+                        <span class="badge bg-success">Verified</span>
+                    {% else %}
+                        <span class="badge bg-warning text-dark">Unverified</span>
+                    {% endif %}
+                </div>
+                {% if request.user.identity_verified or employer_profile.is_verified %}
+                    <div class="d-flex align-items-center gap-2 p-2 rounded-2" style="background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.25);">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--vng-success)" stroke-width="2" class="flex-shrink-0">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                            <polyline points="9 12 11 14 15 10" stroke-width="2.5"/>
+                        </svg>
+                        <div>
+                            <div class="fw-bold text-success" style="font-size:13px;">Identity Confirmed</div>
+                            <div class="small text-muted" style="font-size:11.5px;">NIN/BVN verified by VerifyNG</div>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="p-2 rounded-2" style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.25);">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" class="flex-shrink-0">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="12" y1="8" x2="12" y2="12"/>
+                                <line x1="12" y1="16" x2="12.01" y2="16"/>
+                            </svg>
+                            <div>
+                                <div class="fw-bold" style="font-size:13px;color:#92400E;">Verify Your Identity</div>
+                                <div class="small text-muted" style="font-size:11.5px;">Required to submit reports and get certified</div>
+                            </div>
+                        </div>
+                        <a href="{% url 'verification:create' %}" class="btn btn-outline-primary btn-sm w-100 py-1 fw-semibold" style="font-size:12.5px;">
+                            Start Verification &rarr;
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
         </div>
+    
 
         <!-- Manage Profile Action Row (Replaces "Family and carer access") -->
         <a href="{% url 'users:profile' %}" class="vng-profile-card-action">
@@ -61,6 +101,66 @@
             </div>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
         </a>
+    </div>
+
+
+    <!-- Quick Access Section -->
+    <div class="mb-4">
+        <h2 class="vng-section-title">Quick access</h2>
+        <div class="vng-menu-group shadow-sm">
+            <!-- 1. Apply for Certificate -->
+            <a href="{% url 'verification:certificate_apply' %}" class="vng-menu-item">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="vng-menu-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>
+                    </div>
+                    <div>
+                        <div class="vng-item-title">Apply for certificate</div>
+                        <div class="vng-item-desc">Issue a verifiable identity certificate</div>
+                    </div>
+                </div>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="vng-chevron"><polyline points="9 18 15 12 9 6"/></svg>
+            </a>
+            <!-- 2. My Certificates -->
+            <a href="{% url 'verification:my_certificates' %}" class="vng-menu-item">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="vng-menu-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    </div>
+                    <div>
+                        <div class="vng-item-title">My certificates</div>
+                        <div class="vng-item-desc">View and download your issued certificates</div>
+                    </div>
+                </div>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="vng-chevron"><polyline points="9 18 15 12 9 6"/></svg>
+            </a>
+            <!-- 3. Who Checked Me -->
+            <a href="{% url 'dashboard:who_checked_me' %}" class="vng-menu-item">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="vng-menu-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </div>
+                    <div>
+                        <div class="vng-item-title">Who checked me</div>
+                        <div class="vng-item-desc">See which organizations inquired about you</div>
+                    </div>
+                </div>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="vng-chevron"><polyline points="9 18 15 12 9 6"/></svg>
+            </a>
+            <!-- 4. New Verification -->
+            <a href="{% url 'verification:create' %}" class="vng-menu-item">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="vng-menu-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                    </div>
+                    <div>
+                        <div class="vng-item-title">New verification</div>
+                        <div class="vng-item-desc">Submit a new identity verification check</div>
+                    </div>
+                </div>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="vng-chevron"><polyline points="9 18 15 12 9 6"/></svg>
+            </a>
+        </div>
     </div>
 
     <!-- 2. App Settings Section -->
