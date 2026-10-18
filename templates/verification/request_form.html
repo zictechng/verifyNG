@@ -46,7 +46,7 @@
                     </div>
                 {% endif %}
 
-                <form method="post" novalidate>
+                <form method="post" id="verificationRequestForm" novalidate>
                     {% csrf_token %}
 
                     <!-- Section 1: Subject Identity -->
@@ -131,8 +131,12 @@
                         <a href="{% url 'dashboard:index' %}" class="btn btn-vng-outline">
                             Cancel
                         </a>
-                        <button type="submit" class="btn btn-vng-primary">
-                            Submit Verification Request &rarr;
+                        <button type="submit" id="btnSubmitVerification" class="btn btn-vng-primary btn-sm d-inline-flex align-items-center justify-content-center">
+                            <span class="btn-text">Submit Request &rarr;</span>
+                            <span class="btn-spinner d-none">
+                                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                Submitting Request...
+                            </span>
                         </button>
                     </div>
                 </form>
@@ -141,5 +145,23 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('verificationRequestForm');
+    const submitBtn = document.getElementById('btnSubmitVerification');
+    if (form && submitBtn) {
+        form.addEventListener('submit', function () {
+            const btnText = submitBtn.querySelector('.btn-text');
+            const btnSpinner = submitBtn.querySelector('.btn-spinner');
+            if (btnText && btnSpinner) {
+                btnText.classList.add('d-none');
+                btnSpinner.classList.remove('d-none');
+            }
+            submitBtn.disabled = true;
+        });
+    }
+});
+</script>
 {% endblock %}
 

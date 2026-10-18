@@ -50,7 +50,7 @@
                 All requests are tracked in your <a href="{% url 'dashboard:index' %}" class="text-decoration-none fw-semibold">member dashboard</a>.
             </div>
 
-            <form method="post" novalidate
+            <form method="post" id="publicVerifyForm" novalidate
                   x-data="{
                       idType: '{{ form.identifier_type.value|default:'' }}',
                       showIdentifier() { return this.idType !== '' && this.idType !== null; }
@@ -169,8 +169,12 @@
                     <a href="{% url 'home' %}" class="btn btn-outline-secondary px-4">
                         &larr; Cancel
                     </a>
-                    <button type="submit" class="btn btn-vng-primary px-5 py-2">
-                        Submit Verification Request &rarr;
+                    <button type="submit" id="btnSubmitPublicVerify" class="btn btn-vng-primary px-5 py-2 d-inline-flex align-items-center justify-content-center">
+                        <span class="btn-text">Submit Request &rarr;</span>
+                        <span class="btn-spinner d-none">
+                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                            Submitting Request...
+                        </span>
                     </button>
                 </div>
             </form>
@@ -178,4 +182,22 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('publicVerifyForm');
+    const submitBtn = document.getElementById('btnSubmitPublicVerify');
+    if (form && submitBtn) {
+        form.addEventListener('submit', function () {
+            const btnText = submitBtn.querySelector('.btn-text');
+            const btnSpinner = submitBtn.querySelector('.btn-spinner');
+            if (btnText && btnSpinner) {
+                btnText.classList.add('d-none');
+                btnSpinner.classList.remove('d-none');
+            }
+            submitBtn.disabled = true;
+        });
+    }
+});
+</script>
 {% endblock %}
