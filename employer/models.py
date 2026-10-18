@@ -56,6 +56,11 @@ class EmployerProfile(models.Model):
 
     def __str__(self):
         return f"{self.company_name} ({self.user.username})"
+    
+    @property
+    def public_id(self):
+        """Return the unique UUID public_id of the associated user."""
+        return self.user.public_id
 
 
 class TeamMember(models.Model):

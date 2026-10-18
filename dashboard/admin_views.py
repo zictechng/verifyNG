@@ -1163,7 +1163,10 @@ class AdminEmployerDetailView(SuperAdminRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        profile = get_object_or_404(EmployerProfile, pk=self.kwargs['pk'])
+        profile = get_object_or_404(
+            EmployerProfile.objects.select_related('user'),
+            user__public_id=self.kwargs['public_id']
+        )
 
         # Team members (no pagination — usually small number)
         team_members = TeamMember.objects.select_related('user').filter(
@@ -1208,9 +1211,12 @@ class AdminEmployerDetailView(SuperAdminRequiredMixin, TemplateView):
 
 class AdminEmployerActivityExportView(SuperAdminRequiredMixin, View):
     """Printable activity export for an employer account."""
-    def get(self, request, pk):
+    def get(self, request, public_id):
 
-        profile = get_object_or_404(EmployerProfile, pk=pk)
+        profile = get_object_or_404(
+            EmployerProfile.objects.select_related('user'),
+            user__public_id=public_id
+        )
         export_type = request.GET.get('type', 'login')
         date_from = parse_date(request.GET.get('date_from', '') or '')
         date_to   = parse_date(request.GET.get('date_to', '')   or '')
@@ -1242,11 +1248,22 @@ class AdminEmployerActivityExportView(SuperAdminRequiredMixin, View):
             'generated_by': request.user,
             'total_records': len(records),
         })
-    
+
+
+class AdminEmployerLegacyRedirectView(SuperAdminRequiredMixin, View):
+    """Backward-compatible redirect from integer PK to UUID-based employer detail."""
+    def get(self, request, pk):
+        profile = get_object_or_404(EmployerProfile.objects.select_related('user'), pk=pk)
+        return redirect('admin_portal:employer_detail', public_id=profile.user.public_id)
+
+
 class AdminEmployerActionView(SuperAdminRequiredMixin, View):
     """POST: verify, unverify, or toggle billing exemption for an employer profile."""
-    def post(self, request, pk):
-        profile = get_object_or_404(EmployerProfile, pk=pk)
+    def post(self, request, public_id):
+        profile = get_object_or_404(
+            EmployerProfile.objects.select_related('user'),
+            user__public_id=public_id
+        )
         action = request.POST.get('action', '')
         if action == 'verify':
             profile.is_verified = True

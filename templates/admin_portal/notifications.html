@@ -138,7 +138,7 @@
             <tr>
               <td class="fw-semibold" style="font-size:0.85rem;">{{ ep.company_name }}</td>
               <td class="td-muted" style="font-size:0.8rem;">{{ ep.created_at|date:"d M Y" }}</td>
-              <td><a href="{% url 'admin_portal:employer_detail' ep.pk %}" class="btn btn-sm btn-outline-secondary" style="font-size:0.75rem;">Review</a></td>
+              <td><a href="{% url 'admin_portal:employer_detail' ep.public_id %}" class="btn btn-sm btn-outline-secondary" style="font-size:0.75rem;">Review</a></td>
             </tr>
             {% endfor %}
           </tbody>

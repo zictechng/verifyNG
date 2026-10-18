@@ -52,14 +52,14 @@
       Revoke Plan
     </button>
     {% endif %}
-    {% if not profile.is_verified %}
+        {% if not profile.is_verified %}
     <button type="button" class="btn-adm-outline-primary"
             data-confirm-action=""
             data-title="Verify Employer Profile"
             data-body="Are you sure you want to approve and mark <strong>{{ profile.company_name }}</strong> as a Verified Employer? This will activate their verified organization badge and team access."
             data-confirm-label="Yes, Verify Employer"
             data-confirm-class="btn-primary"
-            data-form-action="{% url 'admin_portal:employer_action' profile.pk %}"
+            data-form-action="{% url 'admin_portal:employer_action' profile.public_id %}"
             data-hidden-action="verify">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
       Verify Employer
@@ -71,7 +71,7 @@
             data-body="Are you sure you want to remove the verified badge for <strong>{{ profile.company_name }}</strong>?"
             data-confirm-label="Yes, Remove"
             data-confirm-class="btn-warning"
-            data-form-action="{% url 'admin_portal:employer_action' profile.pk %}"
+            data-form-action="{% url 'admin_portal:employer_action' profile.public_id %}"
             data-hidden-action="unverify">
       Remove Verification
     </button>
@@ -83,7 +83,7 @@
             data-body="Suspending <strong>{{ profile.company_name }}</strong> will immediately block all its team members from running background checks or accessing candidate data."
             data-confirm-label="Yes, Suspend Account"
             data-confirm-class="btn-danger"
-            data-form-action="{% url 'admin_portal:employer_action' profile.pk %}"
+            data-form-action="{% url 'admin_portal:employer_action' profile.public_id %}"
             data-hidden-action="suspend">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
       Suspend Account
@@ -95,7 +95,7 @@
             data-body="This will restore active login and check processing access for <strong>{{ profile.company_name }}</strong>."
             data-confirm-label="Yes, Reinstate"
             data-confirm-class="btn-success"
-            data-form-action="{% url 'admin_portal:employer_action' profile.pk %}"
+            data-form-action="{% url 'admin_portal:employer_action' profile.public_id %}"
             data-hidden-action="reinstate">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
       Reinstate Account
@@ -207,7 +207,7 @@
     {% endif %}
   </div>
   <div class="p-3 p-md-4">
-    <form method="post" action="{% url 'admin_portal:employer_action' profile.pk %}">
+    <form method="post" action="{% url 'admin_portal:employer_action' profile.public_id %}">
       {% csrf_token %}
       <input type="hidden" name="action" value="update_billing_exempt">
       <input type="hidden" name="next" value="{{ request.path }}">
@@ -566,7 +566,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-primary btn-sm" onclick="doExport({{ profile.pk }})">Generate Report</button>
+        <button type="button" class="btn btn-primary btn-sm" onclick="doExport({{ profile.public_id }})">Generate Report</button>
       </div>
     </div>
   </div>
@@ -666,11 +666,11 @@
       document.getElementById('exportType').value = type;
     });
   });
-  function doExport(profilePk) {
+  function doExport(profilePublicId) {
     const type = document.getElementById('exportType').value;
     const from = document.getElementById('exportFrom').value;
     const to   = document.getElementById('exportTo').value;
-    let url = `/admin-portal/employers/${profilePk}/export/?type=${type}`;
+    let url = `/admin-portal/employers/${profilePublicId}/export/?type=${type}`;
     if (from) url += `&date_from=${from}`;
     if (to)   url += `&date_to=${to}`;
     window.open(url, '_blank');

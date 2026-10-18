@@ -30,6 +30,7 @@ from dashboard.admin_views import (
     AdminEmployerActionView,
     AdminEmployerDetailView,
     AdminEmployerActivityExportView,
+    AdminEmployerLegacyRedirectView,
     # Subscriptions
     AdminSubscriptionsView,
     # Analytics
@@ -100,6 +101,7 @@ urlpatterns = [
     path('employers/<int:pk>/action/', AdminEmployerActionView.as_view(), name='employer_action'),
     path('employers/<int:pk>/', AdminEmployerDetailView.as_view(), name='employer_detail'),
     path('employers/<int:pk>/export/', AdminEmployerActivityExportView.as_view(), name='employer_activity_export'),
+    path('employers/<int:pk>/', AdminEmployerLegacyRedirectView.as_view(), name='employer_legacy_redirect'),
 
     # ── Subscriptions / Payments ────────────────────────────────────────────
     path('subscriptions/', AdminSubscriptionsView.as_view(), name='subscriptions'),
