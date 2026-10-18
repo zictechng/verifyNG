@@ -1,7 +1,12 @@
 
 {% load static %}
 <!-- Mobile: horizontal pill tabs (visible only on small screens) -->
+<!-- Mobile: horizontal pill tabs with Back to Account link -->
 <div class="col-12 d-md-none mb-3">
+    <a href="{% url 'users:account_hub' %}" class="d-inline-flex align-items-center gap-1 text-decoration-none fw-semibold mb-2" style="color:var(--vng-primary);font-size:14px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+        Back to Account
+    </a>
     <div class="d-flex gap-2 overflow-auto pb-1" style="scrollbar-width:none;">
         <a href="{% url 'users:profile' %}" class="btn btn-vng-sm {% if active_section == 'profile' %}btn-vng-primary{% else %}btn-vng-outline{% endif %} flex-shrink-0">Profile</a>
         <a href="{% url 'users:password_change' %}" class="btn btn-vng-sm {% if active_section == 'settings' %}btn-vng-primary{% else %}btn-vng-outline{% endif %} flex-shrink-0">Settings</a>

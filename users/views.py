@@ -14,7 +14,7 @@ from django.http import HttpResponse
 from django.shortcuts import render
 from django.urls import reverse_lazy
 from django.utils.timezone import localtime, now
-from django.views.generic import CreateView, DetailView, View
+from django.views.generic import CreateView, DetailView, TemplateView, View
 from django.urls import reverse
 
 from django.contrib import messages
@@ -263,6 +263,22 @@ class CustomPasswordChangeView(LoginRequiredMixin, PasswordChangeView):
             )
         return response
 
+class AccountHubView(LoginRequiredMixin, TemplateView):
+    """
+    Mobile-first Account & Settings Hub inspired by modern digital identity apps.
+    Serves Individual, Employer, Agency, and Business accounts with single-touch navigation.
+    """
+    template_name = 'users/account_hub.html'
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        user = self.request.user
+        employer_profile = None
+        if hasattr(user, 'employer_profile'):
+            employer_profile = user.employer_profile
+        elif user.employer_memberships.filter(is_active=True).exists():
+            employer_profile = user.employer_memberships.filter(is_active=True).first().employer
+        ctx['employer_profile'] = employer_profile
+        return ctx
 
 class UserProfileUpdateView(LoginRequiredMixin, View):
     """

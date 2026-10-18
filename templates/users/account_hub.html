@@ -1,0 +1,328 @@
+
+{% extends 'public/base.html' %}
+{% load static %}
+
+{% block title %}Account & Profile | {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
+
+{% block content %}
+<div class="container py-3 py-md-4" style="max-width: 520px;">
+
+    <!-- Top Header Bar matching reference: Brand left, App Help right -->
+    <div class="d-flex align-items-center justify-content-between mb-3 pt-1">
+        <a href="{% url 'home' %}" class="d-inline-flex align-items-center text-decoration-none">
+            <span class="fw-bold fs-4" style="color:var(--vng-primary);letter-spacing:-0.5px;">
+                {{ site_config.site_name|default:"VerifyNG" }}
+            </span>
+        </a>
+        <a href="mailto:support@verifyng.com?subject=VerifyNG%20Support%20Inquiry%20(Account%3A%20{{ request.user.username }})"
+           class="vng-help-pill text-decoration-none">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="me-1" style="vertical-align:-2px;"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            App help
+        </a>
+    </div>
+
+    <!-- Title -->
+    <h1 class="vng-hub-title mb-3">Profile</h1>
+
+    <!-- 1. Top Identity Card (Light Blue Card) -->
+    <div class="vng-profile-card mb-4 shadow-sm">
+        <div class="p-3 p-sm-4">
+            <div class="d-flex align-items-start justify-content-between gap-2 mb-2">
+                <div class="vng-profile-name">
+                    {{ request.user.get_full_name|default:request.user.username }}
+                </div>
+                {% if request.user.identity_verified or employer_profile.is_verified %}
+                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill px-2 py-1 small">
+                        ✓ Verified
+                    </span>
+                {% else %}
+                    <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 rounded-pill px-2 py-1 small">
+                        Standard
+                    </span>
+                {% endif %}
+            </div>
+
+            <!-- Contextual details based on user type -->
+            {% if employer_profile %}
+                <div class="vng-profile-meta mb-1">
+                    <span class="fw-semibold">Organization:</span> {{ employer_profile.company_name }}
+                </div>
+                <div class="vng-profile-meta mb-1">
+                    <span class="fw-semibold">Type:</span> {{ employer_profile.organization_type_display }}
+                </div>
+                {% if employer_profile.company_rc_number %}
+                <div class="vng-profile-meta">
+                    <span class="fw-semibold">RC / CAC:</span> {{ employer_profile.company_rc_number }}
+                </div>
+                {% endif %}
+            {% else %}
+                <div class="vng-profile-meta mb-1">
+                    <span class="fw-semibold">Email:</span> {{ request.user.email }}
+                </div>
+                <div class="vng-profile-meta mb-1">
+                    <span class="fw-semibold">Account ID:</span> <code>{{ request.user.public_id|stringformat:".13s" }}...</code>
+                </div>
+                <div class="vng-profile-meta">
+                    <span class="fw-semibold">Account Type:</span> {{ request.user.get_role_display }}
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Manage Profile Action Row (Replaces "Family and carer access") -->
+        <a href="{% url 'users:profile' %}" class="vng-profile-card-action">
+            <div class="min-w-0">
+                <div class="vng-action-title">Manage profile</div>
+                <div class="vng-action-desc">Update your personal details, name and email</div>
+            </div>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        </a>
+    </div>
+
+    <!-- 2. App Settings Section -->
+    <div class="mb-4">
+        <h2 class="vng-section-title">App settings</h2>
+        <div class="vng-menu-group shadow-sm">
+
+            <!-- 1. Settings (Password & Security) -->
+            <a href="{% url 'users:password_change' %}" class="vng-menu-item">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="vng-menu-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                    </div>
+                    <div>
+                        <div class="vng-item-title">Settings</div>
+                        <div class="vng-item-desc">Change password and security options</div>
+                    </div>
+                </div>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="vng-chevron"><polyline points="9 18 15 12 9 6"/></svg>
+            </a>
+
+            <!-- 2. Notifications -->
+            <a href="{% url 'notifications:list' %}" class="vng-menu-item">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="vng-menu-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0 1 18 14.158V11a6.002 6.002 0 0 0-4-5.659V5a2 2 0 1 0-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 1 1-6 0v-1m6 0H9"/></svg>
+                    </div>
+                    <div>
+                        <div class="vng-item-title">Notifications</div>
+                        <div class="vng-item-desc">Verification updates and alerts</div>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    {% if unread_notification_count > 0 %}
+                        <span class="badge rounded-pill bg-primary px-2" style="font-size:11px;">{{ unread_notification_count }}</span>
+                    {% endif %}
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="vng-chevron"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+            </a>
+
+            <!-- 3. Contact Support -->
+            <a href="mailto:support@verifyng.com?subject=VerifyNG%20Support%20Inquiry%20(User%3A%20{{ request.user.username }})" class="vng-menu-item">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="vng-menu-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                    </div>
+                    <div>
+                        <div class="vng-item-title">Contact support</div>
+                        <div class="vng-item-desc">Send issues directly to support@verifyng.com</div>
+                    </div>
+                </div>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="vng-chevron"><polyline points="9 18 15 12 9 6"/></svg>
+            </a>
+
+            <!-- 4. Delete Profile -->
+            <a href="{% url 'users:delete_account' %}" class="vng-menu-item vng-menu-item--danger">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="vng-menu-icon text-danger">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                    </div>
+                    <div>
+                        <div class="vng-item-title text-danger">Delete profile</div>
+                        <div class="vng-item-desc">Permanently remove your account and data</div>
+                    </div>
+                </div>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="vng-chevron text-danger"><polyline points="9 18 15 12 9 6"/></svg>
+            </a>
+
+        </div>
+    </div>
+
+    <!-- 3. Dynamic About Section -->
+    <div class="mb-4">
+        <h2 class="vng-section-title">About {{ site_config.site_name|default:"VerifyNG" }}</h2>
+        <div class="vng-menu-group shadow-sm">
+            <a href="{% url 'privacy_legal' %}" class="vng-menu-item">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="vng-menu-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    </div>
+                    <div>
+                        <div class="vng-item-title">Privacy and legal information</div>
+                        <div class="vng-item-desc">NDPR compliance, terms and platform policies</div>
+                    </div>
+                </div>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="vng-chevron"><polyline points="9 18 15 12 9 6"/></svg>
+            </a>
+        </div>
+    </div>
+
+    <!-- 4. Logout Button (Matching reference) -->
+    <div class="mb-4">
+        <button type="button" class="btn btn-outline-primary w-100 py-2 fw-semibold rounded-3 shadow-sm"
+                style="border-color:var(--vng-primary);color:var(--vng-primary);font-size:16px;background:#fff;"
+                onclick="document.getElementById('vng-logout-modal').style.display='flex'; document.getElementById('vng-logout-modal').removeAttribute('hidden');">
+            Logout
+        </button>
+    </div>
+
+    <!-- 5. Feedback & App Version Footer -->
+    <div class="text-center pb-4">
+        <a href="mailto:support@verifyng.com?subject=VerifyNG%20User%20Feedback"
+           class="small text-decoration-none fw-medium" style="color:var(--vng-primary);">
+            Give feedback about {{ site_config.site_name|default:"VerifyNG" }}
+        </a>
+        <div class="text-muted small mt-2" style="font-size:12px;">
+            Version: 1.0.0 (Build 2026.1)
+        </div>
+    </div>
+
+</div>
+
+<style>
+/* Header help pill */
+.vng-help-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 14px;
+    background: #fff;
+    border: 1px solid #C7D9EC;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--vng-primary);
+    transition: all 0.15s ease;
+}
+.vng-help-pill:hover {
+    background: #F0F6FC;
+    color: var(--vng-primary-dark, #0d3b66);
+}
+
+/* Page title */
+.vng-hub-title {
+    font-size: 32px;
+    font-weight: 800;
+    color: #0b1a30;
+    letter-spacing: -0.6px;
+}
+
+/* Section headings */
+.vng-section-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #0b1a30;
+    margin-bottom: 10px;
+    letter-spacing: -0.2px;
+}
+
+/* Light blue top profile card */
+.vng-profile-card {
+    background: #E8F1FC;
+    border: 1px solid #CBE0F8;
+    border-radius: 14px;
+    overflow: hidden;
+}
+.vng-profile-name {
+    font-size: 20px;
+    font-weight: 700;
+    color: #0F3A78;
+    letter-spacing: -0.3px;
+}
+.vng-profile-meta {
+    font-size: 13.5px;
+    color: #274D82;
+}
+
+/* Action row inside profile card */
+.vng-profile-card-action {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 13px 18px;
+    background: rgba(255, 255, 255, 0.45);
+    border-top: 1px solid #C8DDF5;
+    text-decoration: none;
+    transition: background 0.15s ease;
+}
+.vng-profile-card-action:hover {
+    background: rgba(255, 255, 255, 0.8);
+}
+.vng-action-title {
+    font-size: 14.5px;
+    font-weight: 700;
+    color: #0F3A78;
+}
+.vng-action-desc {
+    font-size: 12.5px;
+    color: #3B6096;
+}
+.vng-profile-card-action svg {
+    color: #0F3A78;
+    flex-shrink: 0;
+}
+
+/* Grouped menu lists */
+.vng-menu-group {
+    background: #ffffff;
+    border: 1px solid #E2E8F0;
+    border-radius: 14px;
+    overflow: hidden;
+}
+.vng-menu-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    text-decoration: none;
+    border-bottom: 1px solid #F1F5F9;
+    transition: background 0.12s ease;
+}
+.vng-menu-item:last-child {
+    border-bottom: none;
+}
+.vng-menu-item:hover {
+    background: #F8FAFC;
+}
+.vng-menu-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    background: #F1F5F9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--vng-primary);
+    flex-shrink: 0;
+}
+.vng-item-title {
+    font-size: 14.5px;
+    font-weight: 600;
+    color: #0F172A;
+}
+.vng-item-desc {
+    font-size: 12px;
+    color: #64748B;
+}
+.vng-chevron {
+    color: #94A3B8;
+    flex-shrink: 0;
+}
+.vng-menu-item:hover .vng-chevron {
+    color: var(--vng-primary);
+    transform: translateX(2px);
+    transition: transform 0.15s ease;
+}
+.vng-menu-item--danger .vng-menu-icon {
+    background: #FEF2F2;
+}
+</style>
+{% endblock %}

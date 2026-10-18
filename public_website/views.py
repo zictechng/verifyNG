@@ -35,6 +35,17 @@ def check(request):
     return render(request, 'public/check.html')
 
 
+
+def privacy_legal(request, tab=None):
+    """
+    Dual-tab Privacy Policy and Legal/Terms view with instant mobile tab switching.
+    """
+    active_tab = tab or request.GET.get('tab', 'privacy')
+    if active_tab not in ('privacy', 'legal'):
+        active_tab = 'privacy'
+    return render(request, 'public/privacy_legal.html', {'active_tab': active_tab})
+
+
 @login_required
 def report(request):
     """

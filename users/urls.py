@@ -7,6 +7,7 @@ from users.views import (
     UserLoginView,
     UserLogoutView,
     UserProfileView,
+    AccountHubView,
     UserProfileUpdateView,
     DeleteAccountView,
     CustomPasswordResetView,
@@ -29,6 +30,7 @@ urlpatterns = [
 
     path('login/', UserLoginView.as_view(), name='login'),
     path('logout/', UserLogoutView.as_view(), name='logout'),
+    path('account/', AccountHubView.as_view(), name='account_hub'),
     path('profile/', UserProfileUpdateView.as_view(), name='profile'),
     path('delete-account/', DeleteAccountView.as_view(), name='delete_account'),
     path(

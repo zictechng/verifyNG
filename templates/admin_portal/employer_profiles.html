@@ -32,6 +32,7 @@
     <tbody>
       {% for ep in page_obj %}
       <tr>
+        <td>
         <a href="{% url 'admin_portal:employer_detail' ep.public_id %}" class="fw-semibold text-decoration-none" style="color:var(--adm-accent);">{{ ep.company_name }}</a>
           <div><span class="adm-badge adm-badge-gray" style="font-size:0.68rem;padding:2px 6px;">{{ ep.organization_type_display }}</span></div></td>
         <td>{{ ep.user.email }}</td>
