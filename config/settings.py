@@ -1,6 +1,6 @@
 from pathlib import Path
 import environ
-
+import socket
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 env = environ.Env(
@@ -11,13 +11,24 @@ environ.Env.read_env(BASE_DIR / '.env', overwrite=False)
 
 SECRET_KEY = env('SECRET_KEY')   # No default — server refuses to start without it
 
+# Strict whitelist: localhost, local loopback, and your private Wi-Fi IP only
 DEBUG = env('DEBUG')
 
-# Strict whitelist: localhost, local loopback, and your private Wi-Fi IP only
 _raw_hosts = env.list(
     'ALLOWED_HOSTS',
-    default=['localhost', '127.0.0.1', '[::1]', '192.168.0.239']
+    default=['localhost', '127.0.0.1', '[::1]']
 )
+
+# Auto-detect local Wi-Fi/LAN IP when in development mode (Home, Office, Hotspot)
+if DEBUG:
+    try:
+        current_local_ips = socket.gethostbyname_ex(socket.gethostname())[2]
+        for ip in current_local_ips:
+            if ip not in _raw_hosts:
+                _raw_hosts.append(ip)
+    except Exception:
+        pass
+
 ALLOWED_HOSTS = _raw_hosts
 
 INSTALLED_APPS = [
