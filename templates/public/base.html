@@ -213,6 +213,16 @@
 
         .vng-footer-muted { color: #94A3B8 !important; }
 
+        @media (max-width: 767.98px) {
+            .vng-footer.vng-footer-authenticated {
+                padding: 1.25rem 0 1.25rem 0 !important;
+            }
+            .vng-footer.vng-footer-authenticated .border-top {
+                border-top: none !important;
+                padding-top: 0 !important;
+            }
+        }
+
         .vng-footer a {
             color: #CBD5E1 !important;
             text-decoration: none;
@@ -458,9 +468,11 @@
     </main>
 
     <!-- Desktop & Tablet Footer (Matching Mockup 5.jpg Dark Navy) -->
-    <footer class="vng-footer">
+        <!-- Desktop & Tablet Footer (Matching Mockup 5.jpg Dark Navy) -->
+    <footer class="vng-footer {% if user.is_authenticated %}vng-footer-authenticated{% endif %}">
         <div class="container">
-            <div class="row g-4 mb-4">
+            <!-- Full footer columns (hidden on mobile when logged in) -->
+            <div class="row g-4 mb-4 {% if user.is_authenticated %}d-none d-md-flex{% endif %}">
                 <div class="col-lg-4 col-md-6">
                     <div class="vng-footer-brand d-flex align-items-center gap-2 mb-3">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -548,22 +560,6 @@
             </svg>
             <span>Report</span>
         </a>
-
-        <!-- Tab 4: Notifications (authenticated only) -->
-        {% if user.is_authenticated %}
-            <a href="{% url 'notifications:list' %}"
-               class="vng-bottom-tab position-relative {% if request.resolver_match.app_name == 'notifications' %}active{% endif %}">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
-                </svg>
-                {% if unread_notification_count > 0 %}
-                <span style="position:absolute;top:4px;right:calc(50% - 14px);background:#DC2626;color:#fff;font-size:8px;font-weight:700;min-width:14px;height:14px;padding:0 3px;border-radius:999px;display:flex;align-items:center;justify-content:center;line-height:1;">
-                    {% if unread_notification_count > 9 %}9+{% else %}{{ unread_notification_count }}{% endif %}
-                </span>
-                {% endif %}
-                <span>Alerts</span>
-            </a>
-        {% endif %}
 
         <!-- Tab 5: Account -->
         {% if user.is_authenticated %}
