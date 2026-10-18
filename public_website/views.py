@@ -18,6 +18,7 @@ from django.conf import settings
 from django.utils import timezone
 from notifications.tasks import send_broadcast_email_task
 from notifications.email_service import send_email
+from core.email_utils import render_email
 
 logger = logging.getLogger(__name__)
 
@@ -191,38 +192,21 @@ def help_support(request):
                 f"Role: {request.user.get_role_display()} | "
                 f"Public ID: {request.user.public_id}"
             )
+
         email_subject = f"[{config.site_name}] {category}: {subject or 'New Inquiry'}"
-        submitted_at = timezone.now().strftime('%Y-%m-%d %H:%M:%S UTC')
-        html_body = f"""
-        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #1e293b; max-width: 600px;">
-            <h2 style="color: #2457D6; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">
-                New Support Inquiry / Complaint
-            </h2>
-            <p><strong>From:</strong> {name} (&lt;{email}&gt;)</p>
-            <p><strong>Category:</strong> {category}</p>
-            <p><strong>Subject:</strong> {subject or 'N/A'}</p>
-            <p><strong>Account Context:</strong> {account_info}</p>
-            <p><strong>Submitted At:</strong> {submitted_at}</p>
-            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 16px 0;">
-                <h4 style="margin-top: 0; color: #0f172a;">Message / Complaint:</h4>
-                <p style="white-space: pre-wrap; margin-bottom: 0;">{message}</p>
-            </div>
-            <p style="font-size: 12px; color: #64748b; margin-top: 24px;">
-                Submitted via the {config.site_name} Help Portal and routed to the platform support inbox ({admin_support_email}).
-            </p>
-        </div>
-        """
-        text_body = f"""
-New Support Inquiry / Complaint
---------------------------------
-From: {name} <{email}>
-Category: {category}
-Subject: {subject or 'N/A'}
-Account Context: {account_info}
-Submitted At: {submitted_at}
-Message:
-{message}
-        """
+        submitted_at = timezone.now().strftime('%d %b %Y, %I:%M %p UTC')
+
+        # 1. Render Admin Notification using the official VerifyNG email layout
+        html_body, text_body = render_email('support_inquiry', {
+            'sender_name': name,
+            'sender_email': email,
+            'category': category,
+            'subject_line': subject,
+            'account_context': account_info,
+            'submitted_at': submitted_at,
+            'message_content': message,
+        })
+
         try:
             send_broadcast_email_task.delay(
                 to_email=admin_support_email,
@@ -231,6 +215,53 @@ Message:
                 text_body=text_body,
             )
         except Exception:
+            try:
+                send_email(
+                    to_email=admin_support_email,
+                    subject=email_subject,
+                    html_body=html_body,
+                    text_body=text_body,
+                )
+            except Exception as e:
+                logger.exception("Failed to send support inquiry email: %s", e)
+                messages.error(
+                    request,
+                    f"Unable to deliver your request right now. Please email us directly at {admin_support_email}."
+                )
+                return render(request, 'public/help.html', {
+                    'name': name,
+                    'email': email,
+                    'category': category,
+                    'subject': subject,
+                    'message': message,
+                    'support_email': admin_support_email,
+                })
+
+        # 2. Send an automated branded acknowledgment receipt to the user
+        try:
+            ack_html, ack_text = render_email('generic_notification', {
+                'user_name': name,
+                'heading': 'We Received Your Support Request',
+                'body_html': f"""
+                    <p>Thank you for contacting {config.site_name} Support.</p>
+                    <p>We have received your inquiry regarding <strong>{category}</strong>. Our support team will review your message and reply directly to this email address ({email}) shortly.</p>
+                    <div style="background:#f5f5f7;border-radius:10px;padding:14px 18px;margin:18px 0;font-size:14px;color:#444;">
+                        <strong style="color:#1d1d1f;">Subject:</strong> {subject or 'N/A'}<br>
+                        <strong style="color:#1d1d1f;">Reference Time:</strong> {submitted_at}
+                    </div>
+                """,
+                'cta_url': config.base_url,
+                'cta_label': f'Visit {config.site_name}',
+                'subject': f'[{config.site_name}] Support Request Received',
+            })
+            send_broadcast_email_task.delay(
+                to_email=email,
+                subject=f'[{config.site_name}] Support Request Received: {category}',
+                html_body=ack_html,
+                text_body=ack_text,
+            )
+        except Exception:
+            pass
             try:
                 send_email(
                     to_email=admin_support_email,
