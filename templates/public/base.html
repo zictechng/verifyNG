@@ -328,7 +328,17 @@
         <nav class="navbar navbar-expand-md vng-navbar sticky-top">
             <div class="container">
                 <!-- Brand Logo & Name -->
-                <a class="vng-brand" href="{% url 'home' %}">
+                {% if user.is_authenticated %}
+                    {% if user.is_superuser or user.is_staff or user.role == 'moderator' or user.role == 'officer' %}
+                        <a class="vng-brand" href="{% url 'admin_portal:overview' %}">
+                    {% elif user.role in 'employer,agency,business' %}
+                        <a class="vng-brand" href="{% url 'employer:dashboard' %}">
+                    {% else %}
+                        <a class="vng-brand" href="{% url 'dashboard:index' %}">
+                    {% endif %}
+                {% else %}
+                    <a class="vng-brand" href="{% url 'home' %}">
+                {% endif %}
                     {% if site_config and site_config.logo %}
                         <img src="{{ site_config.logo.url }}" alt="{{ site_config.site_name|default:'VerifyNG' }}" height="32" class="me-1">
                     {% else %}
@@ -501,8 +511,19 @@
     {% block mobile_bottom_nav %}
     {% if request.resolver_match.url_name != 'login' and request.resolver_match.url_name != 'register' and request.resolver_match.url_name != 'password_reset' %}
     <nav class="vng-bottom-nav d-md-none" aria-label="Mobile Navigation">
-        <!-- Tab 1: Home -->
-        <a href="{% url 'home' %}" class="vng-bottom-tab {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
+       
+        <!-- Tab 1: Home / Dashboard -->
+        {% if user.is_authenticated %}
+            {% if user.is_superuser or user.is_staff or user.role == 'moderator' or user.role == 'officer' %}
+                <a href="{% url 'admin_portal:overview' %}" class="vng-bottom-tab {% if request.resolver_match.app_name == 'admin_portal' %}active{% endif %}">
+            {% elif user.role in 'employer,agency,business' %}
+                <a href="{% url 'employer:dashboard' %}" class="vng-bottom-tab {% if request.resolver_match.app_name == 'employer' %}active{% endif %}">
+            {% else %}
+                <a href="{% url 'dashboard:index' %}" class="vng-bottom-tab {% if request.resolver_match.app_name == 'dashboard' and request.resolver_match.url_name != 'account_hub' and request.resolver_match.url_name != 'profile' %}active{% endif %}">
+            {% endif %}
+        {% else %}
+            <a href="{% url 'home' %}" class="vng-bottom-tab {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
+        {% endif %}
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <path d="M3 9.5L12 3L21 9.5V20C21 20.5523 20.5523 21 20 21H4C3.44772 21 3 20.5523 3 20V9.5Z"/>
                 <path d="M9 21V12H15V21"/>
