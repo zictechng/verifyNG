@@ -13,7 +13,11 @@ SECRET_KEY = env('SECRET_KEY')   # No default — server refuses to start withou
 
 DEBUG = env('DEBUG')
 
-_raw_hosts = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1', '[::1]'])
+# Strict whitelist: localhost, local loopback, and your private Wi-Fi IP only
+_raw_hosts = env.list(
+    'ALLOWED_HOSTS',
+    default=['localhost', '127.0.0.1', '[::1]', '192.168.0.239']
+)
 ALLOWED_HOSTS = _raw_hosts
 
 INSTALLED_APPS = [
