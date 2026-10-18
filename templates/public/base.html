@@ -405,7 +405,12 @@
                 <!-- Mobile Header Right Quick Action Pill -->
                 <div class="d-flex d-md-none align-items-center gap-2">
                     {% if user.is_authenticated %}
-                        <a href="{% url 'users:account_hub' %}" class="btn btn-vng-outline btn-sm py-1 px-2">Account</a>
+                        {% comment %} <a href="{% url 'users:account_hub' %}" class="btn btn-vng-outline btn-sm py-1 px-2"></a> {% endcomment %}
+                        <a href="#"
+                            class="vng-help-pill text-decoration-none">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="me-1" style="vertical-align:-2px;"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                                App help
+                            </a>
                     {% else %}
                         <a href="{% url 'users:login' %}" class="btn btn-vng-primary btn-sm py-1 px-3">Login</a>
                     {% endif %}

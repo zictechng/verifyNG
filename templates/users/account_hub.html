@@ -7,22 +7,8 @@
 {% block content %}
 <div class="container py-3 py-md-4" style="max-width: 520px;">
 
-    <!-- Top Header Bar matching reference: Brand left, App Help right -->
-    <div class="d-flex align-items-center justify-content-between mb-3 pt-1">
-        <a href="{% url 'home' %}" class="d-inline-flex align-items-center text-decoration-none">
-            <span class="fw-bold fs-4" style="color:var(--vng-primary);letter-spacing:-0.5px;">
-                {{ site_config.site_name|default:"VerifyNG" }}
-            </span>
-        </a>
-        <a href="mailto:support@verifyng.com?subject=VerifyNG%20Support%20Inquiry%20(Account%3A%20{{ request.user.username }})"
-           class="vng-help-pill text-decoration-none">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="me-1" style="vertical-align:-2px;"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-            App help
-        </a>
-    </div>
-
     <!-- Title -->
-    <h1 class="vng-hub-title mb-3">Profile</h1>
+    <h3 class="vng-hub-title mb-3">Profile</h3>
 
     <!-- 1. Top Identity Card (Light Blue Card) -->
     <div class="vng-profile-card mb-4 shadow-sm">

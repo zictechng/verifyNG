@@ -7,11 +7,6 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
         Back to Account
     </a>
-    <div class="d-flex gap-2 overflow-auto pb-1" style="scrollbar-width:none;">
-        <a href="{% url 'users:profile' %}" class="btn btn-vng-sm {% if active_section == 'profile' %}btn-vng-primary{% else %}btn-vng-outline{% endif %} flex-shrink-0">Profile</a>
-        <a href="{% url 'users:password_change' %}" class="btn btn-vng-sm {% if active_section == 'settings' %}btn-vng-primary{% else %}btn-vng-outline{% endif %} flex-shrink-0">Settings</a>
-        <a href="{% url 'users:delete_account' %}" class="btn btn-vng-sm {% if active_section == 'delete' %}btn-vng-outline{% else %}btn-vng-outline{% endif %} flex-shrink-0" style="color:#DC2626;border-color:#DC2626;">Delete Profile</a>
-    </div>
 </div>
 
 <!-- Desktop: vertical sidebar (hidden on mobile) -->
