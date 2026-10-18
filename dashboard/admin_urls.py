@@ -98,11 +98,11 @@ urlpatterns = [
 
     # ── Employer Profiles ───────────────────────────────────────────────────
     path('employers/', AdminEmployerProfilesView.as_view(), name='employer_profiles'),
-    path('employers/<int:pk>/action/', AdminEmployerActionView.as_view(), name='employer_action'),
-    path('employers/<int:pk>/', AdminEmployerDetailView.as_view(), name='employer_detail'),
-    path('employers/<int:pk>/export/', AdminEmployerActivityExportView.as_view(), name='employer_activity_export'),
+    path('employers/<uuid:public_id>/', AdminEmployerDetailView.as_view(), name='employer_detail'),
+    path('employers/<uuid:public_id>/action/', AdminEmployerActionView.as_view(), name='employer_action'),
+    path('employers/<uuid:public_id>/export/', AdminEmployerActivityExportView.as_view(), name='employer_activity_export'),
     path('employers/<int:pk>/', AdminEmployerLegacyRedirectView.as_view(), name='employer_legacy_redirect'),
-
+    
     # ── Subscriptions / Payments ────────────────────────────────────────────
     path('subscriptions/', AdminSubscriptionsView.as_view(), name='subscriptions'),
     path('subscriptions/<uuid:pk>/action/', AdminSubscriptionActionView.as_view(), name='subscription_action'),
