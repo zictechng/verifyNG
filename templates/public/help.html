@@ -62,19 +62,21 @@
             </div>
 
             <div class="mb-3">
-                <label class="form-label small fw-semibold text-dark">Inquiry Category</label>
-                <select name="category" class="form-select">
-                    <option value="General Support" {% if category == 'General Support' %}selected{% endif %}>General Support</option>
+                <label class="form-label small fw-semibold text-dark">Inquiry Type</label>
+                <select name="category" class="form-select w-100 text-truncate" style="max-width:100%;box-sizing:border-box;">
+                    <option value="">Select Type</option>
+                    <option value="Account Approval" {% if category == 'Account Approval' %}selected{% endif %}>Account Approval</option>
                     <option value="Account & Login Assistance" {% if category == 'Account & Login Assistance' %}selected{% endif %}>Account & Login Assistance</option>
                     <option value="Identity & NIN Verification" {% if category == 'Identity & NIN Verification' %}selected{% endif %}>Identity & NIN Verification</option>
                     <option value="Employer / Agency Screening" {% if category == 'Employer / Agency Screening' %}selected{% endif %}>Employer / Agency Screening</option>
                     <option value="Billing & Subscription Plans" {% if category == 'Billing & Subscription Plans' %}selected{% endif %}>Billing & Subscription Plans</option>
                     <option value="Report an Issue / Complaint" {% if category == 'Report an Issue / Complaint' %}selected{% endif %}>Report an Issue / Complaint</option>
+                    <option value="General Support" {% if category == 'General Support' %}selected{% endif %}>General Support</option>
                 </select>
             </div>
 
             <div class="mb-3">
-                <label class="form-label small fw-semibold text-dark">Subject</label>
+                <label class="form-label small fw-semibold text-dark">Subject (optional)</label>
                 <input type="text" name="subject" value="{{ subject|default:'' }}" class="form-control" placeholder="Brief summary of your inquiry">
             </div>
 
@@ -124,5 +126,26 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 </script>
+
+<style>
+/* Prevent select dropdown and inputs from overflowing mobile viewports */
+#supportHelpForm select.form-select,
+#supportHelpForm input.form-control,
+#supportHelpForm textarea.form-control {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+}
+#supportHelpForm select.form-select {
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+    padding-right: 2.2rem; /* Keep native select arrow from covering text */
+}
+#supportHelpForm select.form-select option {
+    white-space: normal;
+    word-break: break-word;
+}
+</style>
 {% endblock %}
 
