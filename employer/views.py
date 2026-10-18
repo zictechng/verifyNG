@@ -431,17 +431,27 @@ def monitoring_toggle(request, check_id):
             msg = f'Monitoring paused for {check.full_name}.'
             new_status = 'paused'
         else:
+            allowed, reason, details = check_user_entitlement(request.user, service='monitoring')
+            if not allowed:
+                return JsonResponse({
+                    'ok': False,
+                    'message': 'Active subscription or monitoring entitlement required to resume staff monitoring.'
+                }, status=403)
             monitor.monitor_status = 'active'
             monitor.save(update_fields=['monitor_status', 'updated_at'])
             msg = f'Monitoring resumed for {check.full_name}.'
             new_status = 'active'
     else:
+        allowed, reason, details = check_user_entitlement(request.user, service='monitoring')
+        if not allowed:
+            monitor.delete()
+            return JsonResponse({
+                'ok': False,
+                'message': 'Active subscription or monitoring entitlement required to enable staff monitoring.'
+            }, status=403)
         msg = f'Monitoring started for {check.full_name}.'
         new_status = 'active'
-
     return JsonResponse({'ok': True, 'message': msg, 'monitor_status': new_status})
-
-
 
 
 # ---------------------------------------------------------------------------
@@ -898,7 +908,6 @@ def person_check_search(request):
                         'subscription_required': True,
                     }
                 else:
-                    consume_user_entitlement(request.user, cost=1)
                     # Decide identifier type by prefix
                     phone_prefixes = ('070', '080', '081', '090', '091', '071', '091')
                     if digits_only[:3] in phone_prefixes:
@@ -907,62 +916,57 @@ def person_check_search(request):
                     else:
                         query_type = 'nin'
                         id_type    = 'nin'
-
-                # Compute peppered HMAC-SHA256 digest matching identities database
-                try:
-                    value_hash = hash_identifier_value(id_type, digits_only)
-                except ValueError as val_err:
-                    result = {'error': str(val_err)}
-                    value_hash = None
-
-                ident = None
-                if value_hash:
-                    ident = (
-                        Identifier.objects
-                        .filter(type=id_type, value_hash=value_hash)
-                        .select_related('subject')
-                        .first()
-                    )
-
-                if ident is None:
-                    result = {
-                        'found':      False,
-                        'query':      raw_query,
-                        'query_type': query_type,
-                    }
-                else:
-                    subject = ident.subject
-
-                    # Trust score (OneToOne relation on SubjectEntity)
-                    trust_score = getattr(subject, 'trust_score', None)
-
-                    # Published fraud reports only — never raw allegations
-                    fraud_reports = []
-                    fraud_count   = 0
+                    # Compute peppered HMAC-SHA256 digest matching identities database
                     try:
-
-                        fraud_qs = (
-                            FraudReport.objects
-                            .filter(
-                                target_subject=subject,
-                                state='published',
-                            )
-                            .order_by('-created_at')[:5]
+                        value_hash = hash_identifier_value(id_type, digits_only)
+                    except ValueError as val_err:
+                        result = {'error': str(val_err)}
+                        value_hash = None
+                    ident = None
+                    if value_hash:
+                        ident = (
+                            Identifier.objects
+                            .filter(type=id_type, value_hash=value_hash)
+                            .select_related('subject')
+                            .first()
                         )
-                        fraud_count   = fraud_qs.count()
-                        fraud_reports = list(fraud_qs)
-                    except Exception:
-                        pass
-
-                    result = {
-                        'found':         True,
-                        'subject':       subject,
-                        'trust_score':   trust_score,
-                        'fraud_reports': fraud_reports,
-                        'fraud_count':   fraud_count,
-                        'query':         raw_query,
-                        'query_type':    query_type,
-                    }
+                    # Deduct check entitlement after search succeeds
+                    consume_user_entitlement(request.user, cost=1)
+                    if ident is None:
+                        result = {
+                            'found':      False,
+                            'query':      raw_query,
+                            'query_type': query_type,
+                        }
+                    else:
+                        subject = ident.subject
+                        # Trust score (OneToOne relation on SubjectEntity)
+                        trust_score = getattr(subject, 'trust_score', None)
+                        # Published fraud reports only — never raw allegations
+                        fraud_reports = []
+                        fraud_count   = 0
+                        try:
+                            fraud_qs = (
+                                FraudReport.objects
+                                .filter(
+                                    target_subject=subject,
+                                    state='published',
+                                )
+                                .order_by('-created_at')[:5]
+                            )
+                            fraud_count   = fraud_qs.count()
+                            fraud_reports = list(fraud_qs)
+                        except Exception:
+                            pass
+                        result = {
+                            'found':         True,
+                            'subject':       subject,
+                            'trust_score':   trust_score,
+                            'fraud_reports': fraud_reports,
+                            'fraud_count':   fraud_count,
+                            'query':         raw_query,
+                            'query_type':    query_type,
+                        }
 
     context = {
         'profile':    profile,

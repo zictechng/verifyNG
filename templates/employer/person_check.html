@@ -48,7 +48,17 @@
 
         {% if result.error %}
         <div class="alert alert-danger" style="border-radius:var(--vng-radius-md);">
-            {{ result.error }}
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-exclamation-octagon-fill fs-5 text-danger flex-shrink-0"></i>
+                <div>{{ result.error }}</div>
+            </div>
+            {% if result.subscription_required %}
+            <div class="mt-3 pt-2 border-top border-danger border-opacity-25 d-flex gap-2">
+                <a href="{% url 'payments:plans' %}" class="btn btn-vng-primary btn-sm">
+                    View Plans &amp; Upgrade →
+                </a>
+            </div>
+            {% endif %}
         </div>
 
         {% elif not result.found %}

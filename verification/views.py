@@ -8,7 +8,7 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.http import HttpResponseRedirect, Http404
 from django.urls import reverse
 from verification.tasks import generate_certificate_pdf
-
+from payments.services import check_user_entitlement, consume_user_entitlement
 from verification.models import VerificationRequest, VerificationResult
 from reports.models import AuditLog
 from verification.forms import (
@@ -73,8 +73,15 @@ class VerificationCreateView(LoginRequiredMixin, FormView):
     """Allows authenticated users to request an identity or background verification."""
     form_class = VerificationRequestCreateForm
     template_name = 'verification/request_form.html'
-
     def form_valid(self, form):
+        allowed, reason, details = check_user_entitlement(self.request.user, service='verification')
+        if not allowed:
+            messages.error(
+                self.request,
+                "An active subscription or verified entitlement is required to request identity & document verifications. "
+                "Please upgrade your plan to continue."
+            )
+            return redirect('payments:plans')
         ip_addr = get_client_ip(self.request)
         try:
             verif_request = create_verification_request(
@@ -87,11 +94,13 @@ class VerificationCreateView(LoginRequiredMixin, FormView):
                 identifier_value=form.cleaned_data.get('identifier_value') or None,
                 ip_address=ip_addr
             )
+            consume_user_entitlement(self.request.user, service='verification')
             messages.success(
                 self.request,
                 f"Verification request [{verif_request.reference_number}] submitted successfully."
             )
             return redirect('verification:detail', reference_number=verif_request.reference_number)
+        
         except ValidationError as e:
             form.add_error(None, e.message if hasattr(e, 'message') else str(e))
             return self.form_invalid(form)
