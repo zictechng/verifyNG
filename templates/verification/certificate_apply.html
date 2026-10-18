@@ -29,7 +29,7 @@
         <div class="col-lg-7">
             <div class="vng-card p-4">
                 <h2 class="h6 fw-semibold mb-3 text-uppercase text-muted" style="letter-spacing:.05em;">Certificate Details</h2>
-                <form method="post" novalidate>
+                <form method="post" id="certificateApplyForm" novalidate>
                     {% csrf_token %}
 
                     {% for field in form %}
@@ -56,7 +56,13 @@
                     {% endif %}
 
                     <div class="d-flex gap-2 mt-4">
-                        <button type="submit" class="btn btn-vng-primary">Issue Certificate</button>
+                        <button type="submit" id="btnIssueCert" class="btn btn-vng-primary d-inline-flex align-items-center justify-content-center">
+                            <span class="btn-text">Issue Certificate</span>
+                            <span class="btn-spinner d-none">
+                                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                Issuing Certificate...
+                            </span>
+                        </button>
                         <a href="javascript:void(0)" onclick="if(document.referrer){history.back();}else{window.location.href='{% url 'verification:my_certificates' %}';}" class="btn btn-vng-outline">Cancel</a>
                     </div>
                 </form>
@@ -80,7 +86,24 @@
         </div>
         {% endif %}
     </div>
-
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('certificateApplyForm');
+    const submitBtn = document.getElementById('btnIssueCert');
+    if (form && submitBtn) {
+        form.addEventListener('submit', function () {
+            const btnText = submitBtn.querySelector('.btn-text');
+            const btnSpinner = submitBtn.querySelector('.btn-spinner');
+            if (btnText && btnSpinner) {
+                btnText.classList.add('d-none');
+                btnSpinner.classList.remove('d-none');
+            }
+            submitBtn.disabled = true;
+        });
+    }
+});
+</script>
 {% endblock %}
 
