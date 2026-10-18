@@ -292,8 +292,31 @@
         .vng-avatar-item:hover { background: var(--vng-page-bg); color: var(--vng-primary); text-decoration: none; }
         .vng-avatar-item svg { opacity: 0.65; flex-shrink: 0; }
         .vng-avatar-item:hover svg { opacity: 1; }
-        .vng-avatar-item-danger { color: #DC2626 !important; }
+                .vng-avatar-item-danger { color: #DC2626 !important; }
         .vng-avatar-item-danger:hover { background: #FEF2F2 !important; color: #B91C1C !important; }
+
+        /* ── Global Header App Help Pill ── */
+        .vng-help-pill {
+            display: inline-flex;
+            align-items: center;
+            padding: 5px 13px;
+            background: #ffffff;
+            border: 1px solid #C7D9EC;
+            border-radius: 999px;
+            font-size: 12.5px;
+            font-weight: 600;
+            color: var(--vng-primary);
+            text-decoration: none;
+            transition: all 0.15s ease;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+        }
+        .vng-help-pill:hover, .vng-help-pill:focus {
+            background: #F0F6FC;
+            color: var(--vng-primary-dark, #0d3b66);
+            border-color: var(--vng-primary);
+            text-decoration: none;
+        }
+    
     </style>
     
     {% block extra_head %}{% endblock %}
@@ -407,10 +430,10 @@
                     {% if user.is_authenticated %}
                         {% comment %} <a href="{% url 'users:account_hub' %}" class="btn btn-vng-outline btn-sm py-1 px-2"></a> {% endcomment %}
                         <a href="#"
-                            class="vng-help-pill text-decoration-none">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="me-1" style="vertical-align:-2px;"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                                App help
-                            </a>
+                           class="vng-help-pill text-decoration-none">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="me-1" style="vertical-align:-1px;"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                            App help
+                        </a>
                     {% else %}
                         <a href="{% url 'users:login' %}" class="btn btn-vng-primary btn-sm py-1 px-3">Login</a>
                     {% endif %}
