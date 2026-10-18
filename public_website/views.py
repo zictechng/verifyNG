@@ -13,6 +13,11 @@ from reports.services import create_fraud_report
 from reports.storage_services import StorageError
 from verification.forms import VerificationRequestCreateForm
 from verification.services import create_verification_request
+from core.models import SiteConfiguration
+from django.conf import settings
+from django.utils import timezone
+from notifications.tasks import send_broadcast_email_task
+from notifications.email_service import send_email
 
 logger = logging.getLogger(__name__)
 
@@ -154,4 +159,113 @@ def verify(request):
         form = VerificationRequestCreateForm()
 
     return render(request, 'public/verify.html', {'form': form})
+
+
+def help_support(request):
+    """
+    Dedicated Help & Support / Complaint submission view.
+    Routes user inquiries directly to the platform Support Email configured in admin settings.
+    """
+    config = SiteConfiguration.get_solo()
+    admin_support_email = config.support_email or getattr(settings, 'SUPPORT_EMAIL', 'support@verifyng.com')
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        email = request.POST.get('email', '').strip()
+        category = request.POST.get('category', 'General Support').strip()
+        subject = request.POST.get('subject', '').strip()
+        message = request.POST.get('message', '').strip()
+        if not name or not email or not message:
+            messages.error(request, "Please fill in all required fields (Name, Email, and Message).")
+            return render(request, 'public/help.html', {
+                'name': name,
+                'email': email,
+                'category': category,
+                'subject': subject,
+                'message': message,
+                'support_email': admin_support_email,
+            })
+        account_info = "Guest User (Unauthenticated)"
+        if request.user.is_authenticated:
+            account_info = (
+                f"User: {request.user.username} | "
+                f"Role: {request.user.get_role_display()} | "
+                f"Public ID: {request.user.public_id}"
+            )
+        email_subject = f"[{config.site_name}] {category}: {subject or 'New Inquiry'}"
+        submitted_at = timezone.now().strftime('%Y-%m-%d %H:%M:%S UTC')
+        html_body = f"""
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #1e293b; max-width: 600px;">
+            <h2 style="color: #2457D6; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">
+                New Support Inquiry / Complaint
+            </h2>
+            <p><strong>From:</strong> {name} (&lt;{email}&gt;)</p>
+            <p><strong>Category:</strong> {category}</p>
+            <p><strong>Subject:</strong> {subject or 'N/A'}</p>
+            <p><strong>Account Context:</strong> {account_info}</p>
+            <p><strong>Submitted At:</strong> {submitted_at}</p>
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 16px 0;">
+                <h4 style="margin-top: 0; color: #0f172a;">Message / Complaint:</h4>
+                <p style="white-space: pre-wrap; margin-bottom: 0;">{message}</p>
+            </div>
+            <p style="font-size: 12px; color: #64748b; margin-top: 24px;">
+                Submitted via the {config.site_name} Help Portal and routed to the platform support inbox ({admin_support_email}).
+            </p>
+        </div>
+        """
+        text_body = f"""
+New Support Inquiry / Complaint
+--------------------------------
+From: {name} <{email}>
+Category: {category}
+Subject: {subject or 'N/A'}
+Account Context: {account_info}
+Submitted At: {submitted_at}
+Message:
+{message}
+        """
+        try:
+            send_broadcast_email_task.delay(
+                to_email=admin_support_email,
+                subject=email_subject,
+                html_body=html_body,
+                text_body=text_body,
+            )
+        except Exception:
+            try:
+                send_email(
+                    to_email=admin_support_email,
+                    subject=email_subject,
+                    html_body=html_body,
+                    text_body=text_body,
+                )
+            except Exception as e:
+                logger.exception("Failed to send support inquiry email: %s", e)
+                messages.error(
+                    request,
+                    f"Unable to deliver your request right now. Please email us directly at {admin_support_email}."
+                )
+                return render(request, 'public/help.html', {
+                    'name': name,
+                    'email': email,
+                    'category': category,
+                    'subject': subject,
+                    'message': message,
+                    'support_email': admin_support_email,
+                })
+        messages.success(
+            request,
+            "Your support request has been submitted successfully! Our support team will review it and get back to you shortly."
+        )
+        return redirect('help')
+    default_name = ''
+    default_email = ''
+    if request.user.is_authenticated:
+        default_name = request.user.get_full_name() or request.user.username
+        default_email = request.user.email
+    return render(request, 'public/help.html', {
+        'name': default_name,
+        'email': default_email,
+        'support_email': admin_support_email,
+    })
+
 

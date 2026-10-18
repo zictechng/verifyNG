@@ -9,7 +9,6 @@
 
     <!-- Title -->
     <h3 class="vng-hub-title mb-3">Profile</h3>
-
     <!-- 1. Top Identity Card (Light Blue Card) -->
     <div class="vng-profile-card mb-4 shadow-sm">
         <div class="p-3 p-sm-4">
@@ -103,7 +102,7 @@
             </a>
 
             <!-- 3. Contact Support -->
-            <a href="mailto:support@verifyng.com?subject=VerifyNG%20Support%20Inquiry%20(User%3A%20{{ request.user.username }})" class="vng-menu-item">
+            <a href="{% url 'help' %}" class="vng-menu-item">
                 <div class="d-flex align-items-center gap-3">
                     <div class="vng-menu-icon">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
