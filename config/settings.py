@@ -1,6 +1,7 @@
 from pathlib import Path
 import environ
 import socket
+import os
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 env = environ.Env(
@@ -11,7 +12,6 @@ environ.Env.read_env(BASE_DIR / '.env', overwrite=False)
 
 SECRET_KEY = env('SECRET_KEY')   # No default — server refuses to start without it
 
-# Strict whitelist: localhost, local loopback, and your private Wi-Fi IP only
 DEBUG = env('DEBUG')
 
 _raw_hosts = env.list(
@@ -19,13 +19,24 @@ _raw_hosts = env.list(
     default=['localhost', '127.0.0.1', '[::1]']
 )
 
-# Auto-detect local Wi-Fi/LAN IP when in development mode (Home, Office, Hotspot)
+# Auto-detect local Wi-Fi IP and computer hostname in development mode (Home, Office, Hotspot)
 if DEBUG:
     try:
-        current_local_ips = socket.gethostbyname_ex(socket.gethostname())[2]
-        for ip in current_local_ips:
+        pc_hostname = socket.gethostname()
+        if pc_hostname:
+            _raw_hosts.extend([pc_hostname, f"{pc_hostname.lower()}.local"])
+        
+        local_ips = socket.gethostbyname_ex(pc_hostname)[2]
+        for ip in local_ips:
             if ip not in _raw_hosts:
                 _raw_hosts.append(ip)
+
+        # Print the exact iPhone URL once when starting the dev server
+        if os.environ.get('RUN_MAIN') == 'true' and local_ips:
+            print("\n" + "=" * 55)
+            print(f"📱 iPhone / Mobile URL: http://{local_ips[0]}:8000/")
+            print(f"📱 Or via Hostname:     http://{pc_hostname.lower()}.local:8000/")
+            print("=" * 55 + "\n")
     except Exception:
         pass
 
