@@ -50,7 +50,7 @@
                 verified identity. Reports are subject to moderation — publication is not automatic.
             </div>
 
-            <form method="post" enctype="multipart/form-data" novalidate>
+            <form method="post" enctype="multipart/form-data" novalidate id="publicReportForm">
                 {% csrf_token %}
 
                 <!-- ── Section 1: Subject Identity ── -->
@@ -304,8 +304,12 @@
                     <a href="{% url 'home' %}" class="btn btn-outline-secondary px-4">
                         &larr; Cancel
                     </a>
-                    <button type="submit" class="btn btn-vng-primary px-5 py-2">
-                        Submit Report for Review &rarr;
+                    <button type="submit" id="btnSubmitPublicReport" class="btn btn-vng-primary px-5 py-2 d-inline-flex align-items-center justify-content-center">
+                        <span id="reportBtnText">Submit Report for Review &rarr;</span>
+                        <span id="reportBtnSpinner" class="d-none">
+                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                            Submitting Report...
+                        </span>
                     </button>
                 </div>
             </form>
@@ -335,6 +339,22 @@ document.addEventListener('DOMContentLoaded', function () {
     if (subjectTypeSelect) {
         subjectTypeSelect.addEventListener('change', updateCacVisibility);
         updateCacVisibility();
+    }
+    // Submit button loading spinner
+    const form = document.getElementById('publicReportForm');
+    const submitBtn = document.getElementById('btnSubmitPublicReport');
+    const btnText = document.getElementById('reportBtnText');
+    const btnSpinner = document.getElementById('reportBtnSpinner');
+    if (form && submitBtn && btnText && btnSpinner) {
+        form.addEventListener('submit', function () {
+            btnText.classList.add('d-none');
+            btnSpinner.classList.remove('d-none');
+            submitBtn.style.pointerEvents = 'none';
+            submitBtn.style.opacity = '0.85';
+            setTimeout(function () {
+                submitBtn.disabled = true;
+            }, 0);
+        });
     }
 });
 </script>
