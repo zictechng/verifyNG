@@ -153,8 +153,8 @@
                             {% endif %}
                         </div>
 
-                        <!-- CAC Number -->
-                        <div class="col-md-6">
+                        <!-- CAC Number (Visible only for Business entities) -->
+                        <div class="col-md-6" id="cac_field_container" style="{% if form.subject_type.value != 'business' %}display: none;{% endif %}">
                             <label for="{{ form.suspect_cac_number.id_for_label }}" class="form-label small fw-semibold">
                                 CAC / RC Number
                             </label>
@@ -314,3 +314,30 @@
     </div>
 </div>
 {% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const subjectTypeSelect = document.getElementById('{{ form.subject_type.id_for_label }}');
+    const cacContainer = document.getElementById('cac_field_container');
+    const cacInput = document.getElementById('{{ form.suspect_cac_number.id_for_label }}');
+    function updateCacVisibility() {
+        if (!subjectTypeSelect || !cacContainer) return;
+        if (subjectTypeSelect.value === 'business') {
+            cacContainer.style.display = '';
+        } else {
+            cacContainer.style.display = 'none';
+            if (cacInput) {
+                cacInput.value = '';
+            }
+        }
+    }
+    if (subjectTypeSelect) {
+        subjectTypeSelect.addEventListener('change', updateCacVisibility);
+        updateCacVisibility();
+    }
+});
+</script>
+{% endblock %}
+
+

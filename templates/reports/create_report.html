@@ -3,6 +3,11 @@
 
 {% block title %}Report Suspicious Activity | VerifyNG{% endblock %}
 
+{% block extra_head %}
+<style>
+    [x-cloak] { display: none !important; }
+</style>
+{% endblock %}
 {% block content %}
 <div class="container py-4 py-md-5">
     <div class="row justify-content-center">
@@ -153,7 +158,7 @@
                         <!-- Entity Type -->
                         <div class="mb-3">
                             <label for="{{ form.subject_type.id_for_label }}" class="form-label small fw-semibold">Entity Type *</label>
-                            <select name="subject_type" id="{{ form.subject_type.id_for_label }}" class="form-select" x-model="subjectType">
+                            <select name="subject_type" id="{{ form.subject_type.id_for_label }}" class="form-select" x-model="subjectType" @change="if (subjectType !== 'business') cac = ''">
                                 {% for val, label in form.subject_type.field.choices %}
                                     <option value="{{ val }}" {% if form.subject_type.value == val %}selected{% endif %}>{{ label }}</option>
                                 {% endfor %}
@@ -194,14 +199,14 @@
 
                             <!-- CAC Number & Email -->
                             <div class="row g-2">
-                                <div class="col-sm-6">
+                                <div class="col-sm-6" x-show="subjectType === 'business'" x-cloak>
                                     <label for="{{ form.suspect_cac_number.id_for_label }}" class="form-label small fw-semibold">CAC Registration / RC Number</label>
                                     <input type="text" name="suspect_cac_number" id="{{ form.suspect_cac_number.id_for_label }}" class="form-control" placeholder="e.g. RC123456 or BN987654" x-model="cac" value="{{ form.suspect_cac_number.value|default:'' }}">
                                     {% if form.suspect_cac_number.errors %}
                                         <div class="text-danger small mt-1">{{ form.suspect_cac_number.errors.0 }}</div>
                                     {% endif %}
                                 </div>
-                                <div class="col-sm-6">
+                                <div :class="subjectType === 'business' ? 'col-sm-6' : 'col-12'">
                                     <label for="{{ form.suspect_email.id_for_label }}" class="form-label small fw-semibold">Suspect Email Address</label>
                                     <input type="email" name="suspect_email" id="{{ form.suspect_email.id_for_label }}" class="form-control" placeholder="e.g. suspect@domain.com" x-model="email" value="{{ form.suspect_email.value|default:'' }}">
                                     {% if form.suspect_email.errors %}
@@ -373,9 +378,9 @@
                                 <dd class="col-sm-8">
                                     <template x-if="phone"><span class="badge bg-secondary me-1" x-text="'Phone: ' + phone"></span></template>
                                     <template x-if="bankAccount"><span class="badge bg-secondary me-1" x-text="'Acct: ' + bankAccount + (bankName ? ' (' + bankName + ')' : '')"></span></template>
-                                    <template x-if="cac"><span class="badge bg-secondary me-1" x-text="'CAC: ' + cac"></span></template>
+                                    <template x-if="subjectType === 'business' && cac"><span class="badge bg-secondary me-1" x-text="'CAC: ' + cac"></span></template>
                                     <template x-if="email"><span class="badge bg-secondary me-1" x-text="'Email: ' + email"></span></template>
-                                    <template x-if="!phone && !bankAccount && !cac && !email"><span class="text-muted">None specified</span></template>
+                                    <template x-if="!phone && !bankAccount && !(subjectType === 'business' && cac) && !email"><span class="text-muted">None specified</span></template>
                                 </dd>
 
                                 <dt class="col-sm-4 text-muted">Title:</dt>

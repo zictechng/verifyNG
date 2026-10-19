@@ -233,6 +233,13 @@ class FraudReportSubmissionForm(forms.Form):
         file = self.cleaned_data.get('evidence_file')
         return validate_file_upload(file)
 
+    def clean(self):
+        cleaned_data = super().clean()
+        # If subject is a person, ensure CAC registration is cleared
+        if cleaned_data.get('subject_type') != 'business':
+            cleaned_data['suspect_cac_number'] = ''
+        return cleaned_data
+
 
 class DisputeSubmissionForm(forms.Form):
     reason = forms.CharField(
