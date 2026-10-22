@@ -15,6 +15,7 @@ urlpatterns = [
     path('certificate/', views.MyCertificatesListView.as_view(), name='my_certificates'),
     path('certificate/query/result/', views.CertificateQueryResultView.as_view(), name='certificate_query_result'),
     path('certificate/<str:certificate_id>/', views.MyCertificateView.as_view(), name='my_certificate'),
+    path('certificate/<str:certificate_id>/verify/', views.CertificatePublicVerifyView.as_view(), name='certificate_public_verify'),
     path('certificate/<str:certificate_id>/log/', views.CertificateQueryLogView.as_view(), name='query_log'),
     path('certificate/<str:certificate_id>/download/', views.CertificateDownloadPDFView.as_view(), name='certificate_download_pdf'),
     path('certificate/<str:certificate_id>/activate/', views.CertificateActivateView.as_view(), name='certificate_activate'),

@@ -653,10 +653,9 @@ def generate_certificate_pdf_bytes(certificate, base_url: str = None) -> bytes:
     - Dynamic QR code and issuing officer digital seal
     """
     if not base_url:
-        from django.conf import settings
-        base_url = getattr(settings, 'SITE_BASE_URL', 'http://localhost:8000').rstrip('/')
+       base_url = getattr(settings, 'SITE_BASE_URL', 'http://localhost:8000').rstrip('/')
 
-    verif_url = f"{base_url}/verification/certificate/{certificate.certificate_id}/"
+    verif_url = f"{base_url}/verification/certificate/{certificate.certificate_id}/verify/"
 
     # Extract candidate application metadata for identity binding
     app_log = None

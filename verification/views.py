@@ -452,7 +452,73 @@ class CertificateDownloadPDFView(LoginRequiredMixin, View):
         response = HttpResponse(pdf_bytes, content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="VerifyNG_Certificate_{cert.certificate_id}.pdf"'
         return response
-    
+
+
+
+class CertificatePublicVerifyView(View):
+    """
+    Public digital verification badge for physical & PDF certificate QR scans.
+    No login required. Allows employers, landlords, and embassies to instantly
+    confirm authenticity while keeping candidate private PII masked and safe.
+    """
+    template_name = 'verification/certificate_public_verify.html'
+    def get(self, request, certificate_id):
+        cert = VerificationCertificate.objects.filter(certificate_id=certificate_id).select_related('holder', 'subject').first()
+        # Audit scan event
+        try:
+            AuditLog.objects.create(
+                report=None,
+                action="CERTIFICATE_PUBLIC_QR_SCANNED",
+                performed_by=request.user if request.user.is_authenticated else None,
+                ip_address=get_client_ip(request),
+                details={
+                    "certificate_id": certificate_id,
+                    "found": cert is not None,
+                    "status": cert.status if cert else "NOT_FOUND",
+                    "user_agent": request.META.get('HTTP_USER_AGENT', '')[:200],
+                }
+            )
+        except Exception:
+            pass
+        if not cert:
+            return render(request, self.template_name, {
+                'certificate': None,
+                'certificate_id': certificate_id,
+                'is_valid': False,
+            })
+        # Application metadata
+        app_log = None
+        for l in AuditLog.objects.filter(action="TRUSTPASS_APPLICATION_SUBMITTED").order_by('-timestamp')[:50]:
+            det = l.details if isinstance(l.details, dict) else {}
+            if det.get('certificate_id') == cert.certificate_id:
+                app_log = l
+                break
+        det = app_log.details if (app_log and isinstance(app_log.details, dict)) else {}
+        candidate_name = cert.subject_name
+        if not candidate_name and cert.holder:
+            candidate_name = cert.holder.get_full_name() or cert.holder.username
+        nin_raw = det.get('nin', '')
+        nin_masked = det.get('nin_masked')
+        if not nin_masked and nin_raw and len(nin_raw) >= 6:
+            nin_masked = nin_raw[:3] + '****' + nin_raw[-2:]
+        elif not nin_masked:
+            nin_masked = 'Verified Record'
+        return render(request, self.template_name, {
+            'certificate': cert,
+            'certificate_id': cert.certificate_id,
+            'candidate_name': candidate_name,
+            'check_level': cert.get_check_level_display() if hasattr(cert, 'get_check_level_display') else cert.check_level,
+            'status': cert.status,
+            'is_valid': (cert.status == 'active'),
+            'dob': det.get('date_of_birth', '—'),
+            'nin_masked': nin_masked,
+            'employer_name': det.get('employer_name', '—'),
+            'job_role': det.get('job_role', '—'),
+            'issued_date': cert.created_at,
+            'expires_at': cert.expires_at,
+        })
+
+
 
 class MyCertificatesListView(LoginRequiredMixin, ListView):
     """

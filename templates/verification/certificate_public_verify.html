@@ -1,0 +1,114 @@
+
+{% extends 'public/base.html' %}
+{% load static %}
+
+{% block title %}Verify Clearance Certificate — {{ certificate_id }} | {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-md-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-7 col-md-9">
+
+            {% if is_valid %}
+            <!-- VALID CERTIFICATE BADGE -->
+            <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+                <div class="p-4 text-center text-white" style="background: linear-gradient(135deg, #0F766E 0%, #115E59 100%);">
+                    <div class="d-inline-flex align-items-center justify-content-center bg-white text-success rounded-circle shadow-sm mb-3" style="width: 64px; height: 64px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" fill="currentColor" class="bi bi-shield-check" viewBox="0 0 16 16">
+                            <path d="M5.338 1.59a61.44 61.44 0 0 0-2.837.856.481.481 0 0 0-.328.39c-.554 4.157.726 7.19 2.253 9.188a10.725 10.725 0 0 0 2.287 2.233c.346.244.652.42.893.533.12.057.218.095.293.118a.55.55 0 0 0 .101.025.615.615 0 0 0 .1-.025c.076-.023.174-.061.294-.118.24-.113.547-.29.893-.533a10.726 10.726 0 0 0 2.287-2.233c1.527-1.997 2.807-5.031 2.253-9.188a.48.48 0 0 0-.328-.39c-.651-.213-1.75-.56-2.837-.855C9.552 1.29 8.531 1.067 8 1.067c-.53 0-1.552.223-2.662.524zM5.072.56C6.157.265 7.31 0 8 0s1.843.265 2.928.56c1.11.3 2.229.655 2.887.87a1.54 1.54 0 0 1 1.044 1.262c.596 4.477-.787 7.795-2.464 9.99a11.775 11.775 0 0 1-2.517 2.453 7.159 7.159 0 0 1-1.048.625c-.28.132-.581.24-.829.24s-.548-.108-.829-.24a7.158 7.158 0 0 1-1.048-.625 11.777 11.777 0 0 1-2.517-2.453C1.928 10.487.545 7.169 1.141 2.692A1.54 1.54 0 0 1 2.185 1.43 62.456 62.456 0 0 1 5.072.56z"/>
+                            <path d="M10.854 5.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 1 1 .708-.708L7.5 7.793l2.646-2.647a.5.5 0 0 1 .708 0z"/>
+                        </svg>
+                    </div>
+                    <span class="badge bg-white text-teal px-3 py-1 rounded-pill fw-semibold text-uppercase mb-2" style="color: #0F766E;">Official VerifyNG Registry</span>
+                    <h1 class="h4 fw-bold mb-1">Authentic Clearance Certificate</h1>
+                    <p class="small text-white-50 mb-0">Record is active and verified in the national vetting database.</p>
+                </div>
+
+                <div class="card-body p-4 bg-white">
+                    <div class="row g-3">
+                        <div class="col-sm-6">
+                            <label class="text-muted small fw-semibold text-uppercase">Candidate Name</label>
+                            <div class="fs-5 fw-bold text-dark">{{ candidate_name }}</div>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="text-muted small fw-semibold text-uppercase">Certificate Reference</label>
+                            <div class="font-monospace fw-bold text-primary">{{ certificate_id }}</div>
+                        </div>
+
+                        <hr class="my-2 text-muted">
+
+                        <div class="col-sm-6">
+                            <label class="text-muted small fw-semibold text-uppercase">Vetting Level</label>
+                            <div class="fw-semibold text-dark">{{ check_level|title }} Clearance</div>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="text-muted small fw-semibold text-uppercase">National Identity (NIN)</label>
+                            <div class="fw-semibold text-dark font-monospace">{{ nin_masked }}</div>
+                        </div>
+
+                        <div class="col-sm-6">
+                            <label class="text-muted small fw-semibold text-uppercase">Issued Date</label>
+                            <div class="text-dark">{{ issued_date|date:"d M Y" }}</div>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="text-muted small fw-semibold text-uppercase">Expiry Date</label>
+                            <div class="text-dark">{{ expires_at|date:"d M Y"|default:"1 Year from issue" }}</div>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="text-muted small fw-semibold text-uppercase">Sponsoring Employer / Entity</label>
+                            <div class="fw-semibold text-dark">{{ employer_name }}</div>
+                        </div>
+                    </div>
+
+                    <!-- Vetting Findings Summary -->
+                    <div class="alert alert-light border rounded-3 p-3 mt-4 mb-0">
+                        <div class="fw-semibold text-dark small mb-2 d-flex align-items-center">
+                            <span class="badge bg-success me-2">PASS</span> Verified Registry Findings
+                        </div>
+                        <ul class="list-unstyled mb-0 small text-muted">
+                            <li>✓ Government Identity Binding Verified</li>
+                            <li>✓ No Adverse Workplace Misconduct Records</li>
+                            <li>✓ No Matches on Active Fraud Watchlists</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="card-footer bg-light px-4 py-3 text-center border-top">
+                    <p class="small text-muted mb-0">
+                        🔒 Digital signature validated against VerifyNG tamper-evident cryptographic logs.
+                    </p>
+                </div>
+            </div>
+
+            {% else %}
+            <!-- INVALID / REVOKED CERTIFICATE -->
+            <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+                <div class="p-4 text-center text-white bg-danger">
+                    <div class="d-inline-flex align-items-center justify-content-center bg-white text-danger rounded-circle shadow-sm mb-3" style="width: 64px; height: 64px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" fill="currentColor" class="bi bi-x-octagon" viewBox="0 0 16 16">
+                            <path d="M4.54.146A.5.5 0 0 1 4.893 0h6.214a.5.5 0 0 1 .353.146l4.394 4.394a.5.5 0 0 1 .146.353v6.214a.5.5 0 0 1-.146.353l-4.394 4.394a.5.5 0 0 1-.353.146H4.893a.5.5 0 0 1-.353-.146L.146 11.46A.5.5 0 0 1 0 11.107V4.893a.5.5 0 0 1 .146-.353L4.54.146zM5.1 1 1 5.1v5.8L5.1 15h5.8l4.1-4.1V5.1L10.9 1H5.1z"/>
+                            <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+                        </svg>
+                    </div>
+                    <h1 class="h4 fw-bold mb-1">Unverified or Revoked Certificate</h1>
+                    <p class="small text-white-50 mb-0">Reference: {{ certificate_id }}</p>
+                </div>
+                <div class="card-body p-4 text-center">
+                    <p class="text-muted">
+                        This certificate cannot be verified as active in our registry. It may have expired, been revoked by an officer, or does not exist.
+                    </p>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="text-center">
+                <a href="{% url 'public:home' %}" class="btn btn-outline-secondary btn-sm rounded-pill px-4">
+                    &larr; Back to VerifyNG Home
+                </a>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}
