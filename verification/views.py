@@ -5,7 +5,7 @@ from django.views.generic import FormView, DetailView, ListView, View
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied, ValidationError
-from django.http import HttpResponseRedirect, Http404
+from django.http import HttpResponseRedirect, Http404, HttpResponse
 from django.urls import reverse
 from verification.tasks import generate_certificate_pdf
 from payments.services import check_user_entitlement, consume_user_entitlement
@@ -33,6 +33,7 @@ from verification.services import (
     get_certificate_pdf_url,
     initialize_certificate_query_transaction,
     log_certificate_query,
+    generate_certificate_pdf_bytes
 )
 from core.permissions import officer_required, is_verification_officer
 from core.rate_limiting import get_client_ip
@@ -412,6 +413,26 @@ class MyCertificateView(LoginRequiredMixin, DetailView):
         )
         return ctx
 
+
+class CertificateDownloadPDFView(LoginRequiredMixin, View):
+    """
+    Directly streams the official Certificate PDF for the requester, candidate, or officer.
+    """
+    def get(self, request, certificate_id):
+        cert = get_object_or_404(
+            VerificationCertificate.objects.select_related('subject', 'holder'),
+            certificate_id=certificate_id
+        )
+        if not (request.user.is_superuser or is_verification_officer(request.user) or (cert.holder and cert.holder.id == request.user.id)):
+            raise PermissionDenied("You do not have authorization to download this certificate.")
+        if cert.status != 'active':
+            messages.warning(request, f"Certificate {cert.certificate_id} is in status '{cert.get_status_display()}'. PDFs can only be downloaded once activated.")
+            return redirect('verification:my_certificate', certificate_id=cert.certificate_id)
+        pdf_bytes = generate_certificate_pdf_bytes(cert)
+        response = HttpResponse(pdf_bytes, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="VerifyNG_Certificate_{cert.certificate_id}.pdf"'
+        return response
+    
 
 class MyCertificatesListView(LoginRequiredMixin, ListView):
     """

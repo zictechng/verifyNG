@@ -7,7 +7,10 @@ import secrets
 from django.utils import timezone
 from django.db import transaction, IntegrityError
 from django.core.exceptions import ValidationError
-
+import requests
+from django.conf import settings
+from payments.models import Transaction
+from payments.services import generate_reference
 from verification.models import VerificationRequest, VerificationResult
 from identities.models import SubjectEntity, Identifier
 from identities.utils import normalize_identifier, hash_identifier_value, SUPPORTED_IDENTIFIER_TYPES
@@ -19,6 +22,13 @@ from identities.utils import hash_identifier_value
 from reports.models import AuditLog
 from reports.storage_services import get_storage_service
 from decimal import Decimal
+import io
+import qrcode
+from reportlab.lib.pagesizes import A4
+from reportlab.lib import colors
+from reportlab.lib.units import mm
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image as RLImage, HRFlowable
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 
 logger = logging.getLogger(__name__)
 
@@ -634,7 +644,114 @@ def upload_certificate_pdf(certificate, pdf_file_obj) -> str:
     return public_id
 
 
-
+def generate_certificate_pdf_bytes(certificate) -> bytes:
+    """
+    Renders an official clearance certificate PDF with live QR code using ReportLab.
+    Runs reliably with zero external C-library dependencies.
+    """
+   
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=A4, leftMargin=16*mm, rightMargin=16*mm, topMargin=16*mm, bottomMargin=16*mm)
+    styles = getSampleStyleSheet()
+    # QR Code generation pointing to public verification page
+    qr = qrcode.QRCode(version=1, box_size=4, border=1)
+    qr.add_data(f"https://verifyng.com/verification/certificate/{certificate.certificate_id}/")
+    qr.make(fit=True)
+    qr_img = qr.make_image(fill_color="#006D5B", back_color="white")
+    qr_buf = io.BytesIO()
+    qr_img.save(qr_buf, format="PNG")
+    qr_buf.seek(0)
+    rl_qr = RLImage(qr_buf, width=28*mm, height=28*mm)
+    story = []
+    title_st = ParagraphStyle('T', fontName='Helvetica-Bold', fontSize=22, leading=26, textColor=colors.HexColor('#006D5B'))
+    sub_st = ParagraphStyle('Sub', fontName='Helvetica', fontSize=9, leading=12, textColor=colors.HexColor('#555555'))
+    right_st = ParagraphStyle('R', fontName='Helvetica-Bold', fontSize=12, leading=16, alignment=2, textColor=colors.HexColor('#1a1a2e'))
+    right_sub = ParagraphStyle('RSub', fontName='Helvetica', fontSize=8, leading=11, alignment=2, textColor=colors.HexColor('#777777'))
+    header_tbl = Table([
+        [Paragraph('VerifyNG', title_st), Paragraph('CLEARANCE CERTIFICATE', right_st)],
+        [Paragraph('Nigeria Public Trust &amp; Identity Safety Platform', sub_st), Paragraph('Official Verification Credential', right_sub)]
+    ], colWidths=[100*mm, 78*mm])
+    header_tbl.setStyle(TableStyle([('VALIGN', (0,0), (-1,-1), 'TOP'), ('BOTTOMPADDING', (0,0), (-1,-1), 0)]))
+    story.append(header_tbl)
+    story.append(Spacer(1, 3*mm))
+    story.append(HRFlowable(width='100%', thickness=2, color=colors.HexColor('#006D5B'), spaceAfter=4*mm))
+    # Status Banner
+    status_text = f"STATUS: {certificate.get_status_display().upper()} &bull; VALID VERIFICATION CREDENTIAL"
+    status_p = Paragraph(f"<b>{status_text}</b>", ParagraphStyle('Stat', fontName='Helvetica-Bold', fontSize=10, leading=13, alignment=1, textColor=colors.HexColor('#006D5B')))
+    status_tbl = Table([[status_p]], colWidths=[178*mm])
+    status_tbl.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#E6F4F1')),
+        ('BOX', (0,0), (-1,-1), 1.5, colors.HexColor('#006D5B')),
+        ('TOPPADDING', (0,0), (-1,-1), 6),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 6),
+    ]))
+    story.append(status_tbl)
+    story.append(Spacer(1, 5*mm))
+    # Section 1: Certificate Details
+    sec_hdr_st = ParagraphStyle('Sec', fontName='Helvetica-Bold', fontSize=10, leading=13, textColor=colors.HexColor('#006D5B'))
+    lbl_st = ParagraphStyle('Lbl', fontName='Helvetica', fontSize=8, leading=11, textColor=colors.HexColor('#6b7280'))
+    val_st = ParagraphStyle('Val', fontName='Helvetica-Bold', fontSize=10, leading=13, textColor=colors.HexColor('#111827'))
+    mono_st = ParagraphStyle('Mono', fontName='Helvetica-Bold', fontSize=11, leading=14, textColor=colors.HexColor('#006D5B'))
+    story.append(Paragraph('CERTIFICATE DETAILS', sec_hdr_st))
+    story.append(Spacer(1, 2*mm))
+    issued_str = certificate.issued_at.strftime('%d %B %Y') if certificate.issued_at else '—'
+    expires_str = certificate.expires_at.strftime('%d %B %Y') if certificate.expires_at else 'No Expiry'
+    holder_name = certificate.holder.get_full_name() or certificate.holder.username
+    cert_grid = Table([
+        [Paragraph('CERTIFICATE REFERENCE', lbl_st), Paragraph('CHECK LEVEL', lbl_st)],
+        [Paragraph(certificate.certificate_id, mono_st), Paragraph(certificate.get_check_level_display(), val_st)],
+        [Paragraph('DATE ISSUED', lbl_st), Paragraph('VALID UNTIL', lbl_st)],
+        [Paragraph(issued_str, val_st), Paragraph(expires_str, val_st)],
+    ], colWidths=[89*mm, 89*mm])
+    cert_grid.setStyle(TableStyle([
+        ('VALIGN', (0,0), (-1,-1), 'TOP'),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 3),
+        ('TOPPADDING', (0,0), (-1,-1), 1),
+    ]))
+    story.append(cert_grid)
+    story.append(Spacer(1, 5*mm))
+    # Section 2: Subject & Requester
+    story.append(Paragraph('CANDIDATE &amp; APPLICANT DETAILS', sec_hdr_st))
+    story.append(Spacer(1, 2*mm))
+    subj_grid = Table([
+        [Paragraph('CANDIDATE / STAFF SUBJECT', lbl_st), Paragraph('APPLIED BY (ORGANIZATION / EMPLOYER)', lbl_st)],
+        [Paragraph(certificate.subject.name, val_st), Paragraph(holder_name, val_st)],
+    ], colWidths=[89*mm, 89*mm])
+    subj_grid.setStyle(TableStyle([
+        ('VALIGN', (0,0), (-1,-1), 'TOP'),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 3),
+        ('TOPPADDING', (0,0), (-1,-1), 1),
+    ]))
+    story.append(subj_grid)
+    story.append(Spacer(1, 5*mm))
+    # Section 3: Verification & Security Seal
+    story.append(Paragraph('VERIFICATION &amp; AUTHENTICITY', sec_hdr_st))
+    story.append(Spacer(1, 2*mm))
+    verif_url = f"https://verifyng.com/verification/certificate/{certificate.certificate_id}/"
+    verif_text = Paragraph(
+        f"<b>Instant Authenticity Verification:</b><br/>"
+        f"To confirm that this credential is genuine, valid, and has not been altered or revoked, "
+        f"scan the QR code or verify online at:<br/>"
+        f"<u>{verif_url}</u><br/><br/>"
+        f"<font size='7' color='#6b7280'>This certificate was issued by VerifyNG after thorough identity vetting and records clearance. "
+        f"Any unauthorized alteration, copying, or falsification of this certificate constitutes a federal offense.</font>",
+        ParagraphStyle('VTxt', fontName='Helvetica', fontSize=8, leading=12, textColor=colors.HexColor('#374151'))
+    )
+    qr_tbl = Table([
+        [rl_qr, verif_text]
+    ], colWidths=[35*mm, 143*mm])
+    qr_tbl.setStyle(TableStyle([
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#F9FAFB')),
+        ('BOX', (0,0), (-1,-1), 1, colors.HexColor('#E5E7EB')),
+        ('TOPPADDING', (0,0), (-1,-1), 8),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 8),
+        ('LEFTPADDING', (0,0), (-1,-1), 8),
+        ('RIGHTPADDING', (0,0), (-1,-1), 8),
+    ]))
+    story.append(qr_tbl)
+    doc.build(story)
+    return buf.getvalue()
 
 
 def initialize_certificate_query_transaction(user, certificate) -> dict:
@@ -645,11 +762,6 @@ def initialize_certificate_query_transaction(user, certificate) -> dict:
     Returns dict with 'reference' and 'authorization_url' for Paystack popup.
     Raises RuntimeError on Paystack API failure.
     """
-    import uuid
-    import requests
-    from django.conf import settings
-    from payments.models import Transaction
-    from payments.services import generate_reference
 
     price_kobo = get_certificate_query_price(certificate.check_level)
     reference = generate_reference()
