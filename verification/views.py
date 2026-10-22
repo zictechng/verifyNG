@@ -428,7 +428,8 @@ class CertificateDownloadPDFView(LoginRequiredMixin, View):
         if cert.status != 'active':
             messages.warning(request, f"Certificate {cert.certificate_id} is in status '{cert.get_status_display()}'. PDFs can only be downloaded once activated.")
             return redirect('verification:my_certificate', certificate_id=cert.certificate_id)
-        pdf_bytes = generate_certificate_pdf_bytes(cert)
+        base_url = request.build_absolute_uri('/')[:-1]
+        pdf_bytes = generate_certificate_pdf_bytes(cert, base_url=base_url)
         response = HttpResponse(pdf_bytes, content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="VerifyNG_Certificate_{cert.certificate_id}.pdf"'
         return response

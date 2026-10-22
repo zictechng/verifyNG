@@ -76,36 +76,7 @@
             {% endif %}
         </div>
 
-        <<<<
-        {# ── PDF download ── #}
-        {% if pdf_url %}
-        <div class="mb-4">
-            <a href="{{ pdf_url }}" class="btn btn-vng-primary btn-vng-sm" target="_blank" rel="noopener">
-                ↓ Download Certificate PDF
-            </a>
-        </div>
-        {% endif %}
-
-        {# ── Verification History / Access Audit Log ── #}
-        {% if certificate.status == 'active' %}
-        <div class="mb-3 pt-2 border-top">
-            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2">
-                <div>
-                    <div class="small fw-semibold text-dark">Verification Access History</div>
-                    <div class="text-muted" style="font-size: 0.8rem;">Audit log tracking third parties who have scanned or verified this credential.</div>
-                </div>
-                <a href="{% url 'verification:query_log' certificate.certificate_id %}" class="btn btn-vng-outline btn-vng-sm d-inline-flex align-items-center">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <polyline points="12 6 12 12 16 14"></polyline>
-                    </svg>
-                    View Access History
-                </a>
-            </div>
-        </div>
-        {% endif %}
-        
-        {# ── Official Certificate PDF Download ── #}
+                {# ── Official Certificate PDF Download ── #}
         {% if certificate.status == 'active' %}
         <div class="mb-4">
             <a href="{% url 'verification:certificate_download_pdf' certificate.certificate_id %}" class="btn btn-vng-primary btn-vng-sm d-inline-flex align-items-center">
@@ -144,9 +115,9 @@
         </div>
         {% endif %}
 
-           <!-- ========================================== -->
-             Officer Actions — only visible to officers and superusers
-            <!-- ========================================== -->
+        <!-- ========================================== -->
+            Officer Actions — only visible to officers and superusers
+        <!-- ========================================== -->
         {% if is_officer %}
         <hr class="my-4">
         <div class="d-flex flex-wrap gap-2 align-items-center">
