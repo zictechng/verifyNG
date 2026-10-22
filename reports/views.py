@@ -259,8 +259,9 @@ class DisputeCreateView(LoginRequiredMixin, FormView):
 
     def dispatch(self, request, *args, **kwargs):
         self.report = get_object_or_404(FraudReport, reference_number=kwargs['reference_number'])
-        if self.report.state != 'published':
-            messages.error(request, "Disputes can only be submitted against published reports.")
+        # Allow employee response/dispute during 7-day fair-hearing notice or when published
+        if self.report.state not in ('published', 'submitted', 'under_review'):
+            messages.error(request, f"This report is currently {self.report.get_state_display().lower()} and cannot be disputed.")
             return redirect('reports:detail', reference_number=self.report.reference_number)
         return super().dispatch(request, *args, **kwargs)
 

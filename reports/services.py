@@ -270,11 +270,11 @@ def transition_report_state(report, new_state, actor=None, ip_address=None, mode
 @transaction.atomic
 def file_dispute_for_report(report, disputant, reason, counter_evidence=None, ip_address=None):
     """
-    Files a right-of-response dispute against a published fraud report.
+    Files a right-of-response dispute against a fraud or misconduct report.
     Transitions report state to 'disputed' and dispatches transactional alert.
     """
-    if report.state != 'published':
-        raise ValueError("Disputes can only be filed against published reports.")
+    if report.state not in ('published', 'submitted', 'under_review'):
+        raise ValueError(f"Disputes cannot be filed on a report in '{report.state}' state.")
 
     dispute = Dispute.objects.create(
         report=report,

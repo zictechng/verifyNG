@@ -43,6 +43,47 @@
                 </div>
             </div>
 
+           <!-- Workplace Clearance Integrity Status -->
+            {% if adjudicated_reports %}
+            <div class="vng-card p-4 mb-4" style="background:#FEF2F2;border:1px solid #FCA5A5;border-left:5px solid #DC2626 !important;">
+                <div class="d-flex align-items-start gap-3">
+                    <div class="rounded-circle bg-danger d-flex align-items-center justify-content-center flex-shrink-0" style="width:44px;height:44px;">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                            <line x1="12" y1="9" x2="12" y2="13"/>
+                            <line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="fw-bold text-danger fs-6">Adverse Workplace Integrity Record on File</div>
+                        <p class="small text-danger mb-2">
+                            A verified misconduct determination has been adjudicated and published against this certificate holder following due compliance review.
+                        </p>
+                        <div class="bg-white rounded p-3 border border-danger-subtle">
+                            {% for rep in adjudicated_reports %}
+                            <div class="small mb-1">
+                                <strong>Record Reference:</strong> <code>{{ rep.reference_number }}</code> &bull; 
+                                <strong>Adjudicated:</strong> {{ rep.updated_at|date:"d M Y" }}
+                            </div>
+                            <div class="small text-muted mb-0">
+                                <strong>Incident Category:</strong> {{ rep.title }}
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="vng-card p-3 mb-4" style="background:#F0FDF4;border:1px solid #BBF7D0;">
+                <div class="d-flex align-items-center gap-2">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        <path d="M9 12l2 2 4-4"/>
+                    </svg>
+                    <span class="small fw-semibold text-success">Clean Record: No Adverse Workplace Misconduct Records on File</span>
+                </div>
+            </div>
+            {% endif %}
             <!-- Certificate details -->
             <div class="vng-card p-4">
                 <h2 class="h6 fw-semibold mb-3 text-uppercase text-muted" style="letter-spacing:.05em;">Certificate Details</h2>

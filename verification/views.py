@@ -36,7 +36,8 @@ from verification.services import (
 )
 from core.permissions import officer_required, is_verification_officer
 from core.rate_limiting import get_client_ip
-
+from reports.models import FraudReport
+        
 logger = logging.getLogger(__name__)
 
 
@@ -573,10 +574,17 @@ class CertificateQueryResultView(LoginRequiredMixin, View):
             }
         )
 
+        # Query verified (published) misconduct determinations for this certificate's subject
+        adjudicated_reports = FraudReport.objects.filter(
+            target_subject=certificate.subject,
+            state='published'
+        ).order_by('-created_at')
         return render(request, self.template_name, {
             'certificate': certificate,
             'is_valid': certificate.is_valid,
             'query_purpose': purpose,
+            'adjudicated_reports': adjudicated_reports,
+            'is_clean_record': not adjudicated_reports.exists(),
         })
 
 
