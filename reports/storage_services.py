@@ -71,7 +71,7 @@ class LocalEvidenceStorage:
             'asset_id': actual_path,
         }
 
-    def generate_signed_url(self, public_id, format, resource_type="image", expires_in_seconds=300):
+    def generate_signed_url(self, public_id, format, resource_type="image", expires_in_seconds=300, attachment=False):
         """Returns direct media URL for local storage in development."""
         if not public_id:
             raise ValueError("public_id is required.")
@@ -213,10 +213,11 @@ class CloudinaryEvidenceStorage:
             'asset_id': upload_result.get('asset_id', '')
         }
 
-    def generate_signed_url(self, public_id, format, resource_type="image", expires_in_seconds=300):
+    def generate_signed_url(self, public_id, format, resource_type="image", expires_in_seconds=300, attachment=False):
         """
-        Generates a time-limited signed private download URL.
-        Validates all arguments. Expiry is strictly bounded 1-3600 seconds.
+        Generates a signed private URL.
+        - attachment=False (default): signed delivery CDN URL that opens inline in a new tab.
+        - attachment=True: signed download API URL that forces file download.
         """
         if not public_id:
             raise ValueError("public_id is required.")
@@ -226,22 +227,33 @@ class CloudinaryEvidenceStorage:
             raise ValueError(f"Unsupported resource_type '{resource_type}'.")
         if not isinstance(expires_in_seconds, int) or not (1 <= expires_in_seconds <= 3600):
             raise ValueError("expires_in_seconds must be an integer between 1 and 3600.")
-
         expires_at = int(time.time()) + expires_in_seconds
-
         try:
-            signed_url = cloudinary.utils.private_download_url(
-                public_id=public_id,
-                format=format,
-                resource_type=resource_type,
-                type="private",
-                attachment=True,
-                expires_at=expires_at
-            )
-            return signed_url
+            if not attachment:
+                # Delivers signed CDN URL that renders inline in browser
+                signed_url, _ = cloudinary.utils.cloudinary_url(
+                    public_id,
+                    format=format,
+                    resource_type=resource_type,
+                    type="private",
+                    sign_url=True,
+                    secure=True
+                )
+                return signed_url
+            else:
+                # Hits Cloudinary download API with attachment header
+                signed_url = cloudinary.utils.private_download_url(
+                    public_id=public_id,
+                    format=format,
+                    resource_type=resource_type,
+                    type="private",
+                    attachment=True,
+                    expires_at=expires_at
+                )
+                return signed_url
         except Exception as e:
             logger.error("Signed URL generation failed: %s", type(e).__name__)
-            raise StorageError("Failed to generate secure download URL.") from e
+            raise StorageError("Failed to generate secure URL.") from e
 
     def delete_evidence(self, public_id, resource_type="image"):
         """

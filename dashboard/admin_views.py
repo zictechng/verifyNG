@@ -2260,6 +2260,7 @@ class AdminCertificateDetailView(SuperAdminRequiredMixin, TemplateView):
         ctx['id_number'] = id_number
         # Resolve uploaded document URL for officer inspection
         doc_url = ''
+        doc_download_url = ''
         if app_log and isinstance(app_log.details, dict):
             doc_pid = app_log.details.get('doc_public_id') or ''
             if doc_pid:
@@ -2267,11 +2268,14 @@ class AdminCertificateDetailView(SuperAdminRequiredMixin, TemplateView):
                     storage = get_storage_service()
                     ext = doc_pid.split('.')[-1].lower() if '.' in doc_pid else 'jpg'
                     res_type = 'raw' if ext in ['pdf', 'doc', 'docx'] else 'image'
-                    doc_url = storage.generate_signed_url(public_id=doc_pid, format=ext, resource_type=res_type)
+                    # 1. Inline view URL for opening in a new tab (attachment=False)
+                    doc_url = storage.generate_signed_url(public_id=doc_pid, format=ext, resource_type=res_type, attachment=False)
+                    # 2. Direct download URL (attachment=True)
+                    doc_download_url = storage.generate_signed_url(public_id=doc_pid, format=ext, resource_type=res_type, attachment=True)
                 except Exception:
                     doc_url = f"/media/{doc_pid}" if doc_pid.startswith('trustpass_documents') else f"/media/trustpass_documents/{doc_pid}"
+                    doc_download_url = doc_url
             elif app_log.details.get('has_document'):
-                # Fallback: scan media/trustpass_documents/ for uploaded proof files from previous tests
                 import os
                 from django.conf import settings
                 tp_dir = os.path.join(settings.MEDIA_ROOT, 'trustpass_documents')
@@ -2284,7 +2288,9 @@ class AdminCertificateDetailView(SuperAdminRequiredMixin, TemplateView):
                     if matched:
                         matched.sort(reverse=True)
                         doc_url = f"{settings.MEDIA_URL}{matched[0][1].replace('\\', '/')}"
+                        doc_download_url = doc_url
         ctx['doc_url'] = doc_url
+        ctx['doc_download_url'] = doc_download_url
         ctx['alias_flag'] = app_log.details.get('alias_flag', False) if app_log and isinstance(app_log.details, dict) else False
         ctx['previous_registered_name'] = app_log.details.get('previous_registered_name', '') if app_log and isinstance(app_log.details, dict) else ''
         return ctx
