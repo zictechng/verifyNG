@@ -1,5 +1,6 @@
 
 import logging
+import socket
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import FormView, DetailView, ListView, View
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -425,10 +426,28 @@ class CertificateDownloadPDFView(LoginRequiredMixin, View):
         )
         if not (request.user.is_superuser or is_verification_officer(request.user) or (cert.holder and cert.holder.id == request.user.id)):
             raise PermissionDenied("You do not have authorization to download this certificate.")
+        
         if cert.status != 'active':
             messages.warning(request, f"Certificate {cert.certificate_id} is in status '{cert.get_status_display()}'. PDFs can only be downloaded once activated.")
             return redirect('verification:my_certificate', certificate_id=cert.certificate_id)
-        base_url = request.build_absolute_uri('/')[:-1]
+
+        # Resolve base URL for QR code (prefer local network Wi-Fi IP in development so mobile scans work)
+        host = request.get_host().split(':')[0]
+        if host in ('localhost', '127.0.0.1', '::1'):
+            try:
+                hostname = socket.gethostname()
+                local_ips = socket.gethostbyname_ex(hostname)[2]
+                routable_ips = [ip for ip in local_ips if not ip.startswith('127.')]
+                if routable_ips:
+                    port = request.get_port()
+                    base_url = f"{request.scheme}://{routable_ips[0]}:{port}"
+                else:
+                    base_url = request.build_absolute_uri('/')[:-1]
+            except Exception:
+                base_url = request.build_absolute_uri('/')[:-1]
+        else:
+            base_url = request.build_absolute_uri('/')[:-1]
+
         pdf_bytes = generate_certificate_pdf_bytes(cert, base_url=base_url)
         response = HttpResponse(pdf_bytes, content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="VerifyNG_Certificate_{cert.certificate_id}.pdf"'
