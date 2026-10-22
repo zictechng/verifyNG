@@ -18,6 +18,7 @@ from identities.models import SubjectEntity, Identifier
 from identities.utils import hash_identifier_value
 from reports.models import AuditLog
 from reports.storage_services import get_storage_service
+from decimal import Decimal
 
 logger = logging.getLogger(__name__)
 
@@ -301,12 +302,7 @@ def reject_verification_request(
         return req
 
 
-
-
 # ─── W-08: Certificate Service Functions ──────────────────────────────────────
-
-from decimal import Decimal
-
 
 def get_certificate_query_price(check_level: str) -> int:
     """

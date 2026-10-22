@@ -13,10 +13,17 @@
             <h1 class="h3 fw-bold mb-1">{{ profile.company_name }}</h1>
             <p class="small text-muted mb-0">Manage your team, run background checks, and review bulk uploads.</p>
         </div>
+      
         <div class="d-flex gap-2 flex-wrap">
-            <a href="{% url 'employer:staff_check_create' %}" class="btn btn-vng-primary btn-vng-sm">+ New Staff Check</a>
+            <a href="{% url 'verification:certificate_apply' %}" class="btn btn-vng-primary btn-vng-sm d-inline-flex align-items-center">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    <path d="M9 12l2 2 4-4"/>
+                </svg>
+                Apply for WCC
+            </a>
+            <a href="{% url 'employer:staff_check_create' %}" class="btn btn-vng-outline btn-vng-sm">+ New Staff Check</a>
             <a href="{% url 'employer:person_check_search' %}" class="btn btn-vng-outline btn-vng-sm">Person Quick-Check</a>
-            <a href="{% url 'employer:profile' %}" class="btn btn-vng-outline btn-vng-sm">Company Profile</a>
         </div>
     </div>
 
