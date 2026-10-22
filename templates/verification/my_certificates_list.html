@@ -7,18 +7,38 @@
 {% block content %}
 <div class="container py-4 py-md-5">
 
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    {% if request.user.role == 'employer' or request.user.is_employer or request.user.role == 'business' %}
+        <a href="{% url 'employer:dashboard' %}" class="text-decoration-none small text-muted d-inline-block mb-3">&larr; Back to Employer Dashboard</a>
+    {% else %}
+        <a href="{% url 'dashboard:index' %}" class="text-decoration-none small text-muted d-inline-block mb-3">&larr; Back to Dashboard</a>
+    {% endif %}
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
         <div>
             <h1 class="h4 fw-bold mb-1">
-                {% if request.user.is_superuser or is_officer %}All Certificates{% else %}My Certificates{% endif %}
+                {% if request.user.is_superuser or is_officer %}
+                    All Certificates (Officer View)
+                {% elif request.user.role == 'employer' or request.user.is_employer or request.user.role == 'business' %}
+                    Staff Clearance Applications (WCC / DBS)
+                {% else %}
+                    My Certificates
+                {% endif %}
             </h1>
-            <p class="small text-muted mb-0">VerifyNG verification certificates</p>
+            <p class="small text-muted mb-0">
+                {% if request.user.role == 'employer' or request.user.is_employer or request.user.role == 'business' %}
+                    Clearance certificates and vetting checks submitted for your organization's candidates and staff.
+                {% else %}
+                    VerifyNG verification credentials issued to your account.
+                {% endif %}
+            </p>
         </div>
         <a href="{% url 'verification:certificate_apply' %}" class="btn btn-vng-primary btn-vng-sm">
-            + Apply for Certificate
+            {% if request.user.role == 'employer' or request.user.is_employer or request.user.role == 'business' %}
+                + Apply for (WCC)
+            {% else %}
+                + Apply for Certificate
+            {% endif %}
         </a>
     </div>
-
     {% if messages %}
         {% for message in messages %}
             <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
@@ -27,7 +47,6 @@
             </div>
         {% endfor %}
     {% endif %}
-
     {% if certificates %}
     <div class="vng-card p-0">
         <div class="table-responsive">
@@ -35,7 +54,13 @@
                 <thead class="table-light">
                     <tr>
                         <th class="ps-4 py-3 fw-semibold small">Certificate ID</th>
-                        <th class="py-3 fw-semibold small">Subject</th>
+                        <th class="py-3 fw-semibold small">
+                            {% if request.user.role == 'employer' or request.user.is_employer or request.user.role == 'business' %}
+                                Candidate / Staff Name
+                            {% else %}
+                                Credential Subject
+                            {% endif %}
+                        </th>
                         <th class="py-3 fw-semibold small d-none d-md-table-cell">Check Level</th>
                         <th class="py-3 fw-semibold small">Status</th>
                         <th class="py-3 fw-semibold small d-none d-md-table-cell">Issued</th>

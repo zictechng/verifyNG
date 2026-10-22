@@ -7,8 +7,11 @@
 <div class="container py-4 py-md-5">
 
     {# ── Back link ── #}
-    <a href="{% url 'dashboard:index' %}" class="text-decoration-none small text-muted">&larr; Back to Member Portal</a>
-
+    {% if request.user.role == 'employer' or request.user.is_employer or request.user.role == 'business' %}
+        <a href="{% url 'verification:my_certificates' %}" class="text-decoration-none small text-muted">&larr; Back to Staff Clearances</a>
+    {% else %}
+        <a href="{% url 'dashboard:index' %}" class="text-decoration-none small text-muted">&larr; Back to Member Portal</a>
+    {% endif %}
     {# ── Django messages ── #}
     {% if messages %}
         {% for message in messages %}
