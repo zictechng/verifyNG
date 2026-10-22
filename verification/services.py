@@ -409,16 +409,22 @@ def create_trustpass_certificate_application(
     if check_level not in valid_levels:
         raise ValidationError(f"Invalid check level: {check_level}")
     # Guard: Prevent duplicate pending or active certificates at the same level
-    existing = VerificationCertificate.objects.filter(
-        holder=holder,
-        check_level=check_level,
-        status__in=('pending', 'active', 'suspended'),
-    ).first()
+    existing = None
+    if nin and str(nin).strip():
+        try:
+            nin_h = hash_identifier_value('nin', nin.strip())
+            existing = VerificationCertificate.objects.filter(
+                subject__identifiers__value_hash=nin_h,
+                check_level=check_level,
+                status__in=('pending', 'active', 'suspended'),
+            ).select_related('subject').first()
+        except Exception:
+            pass
     if existing:
         raise ValidationError(
-            f"You already have an existing {existing.get_check_level_display()} "
-            f"({existing.get_status_display()}: {existing.certificate_id}). "
-            f"Active or pending certificates must be revoked before reapplying."
+            f"An active or pending {existing.get_check_level_display()} already exists for this candidate "
+            f"({existing.subject.name} — Certificate Ref: {existing.certificate_id}). "
+            f"A new clearance cannot be submitted while an existing credential is in {existing.get_status_display()} status."
         )
     # Secure upload of ID document if provided
     doc_public_id = ''
