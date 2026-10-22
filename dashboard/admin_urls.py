@@ -50,6 +50,7 @@ from dashboard.admin_views import (
     AdminCreditSubscriptionView,
     AdminCertificatesView,
     AdminCertificateActionView,
+    AdminCertificateDocumentView,
     AdminDisputeDetailView,
     AdminNotificationsView,
     AdminVerificationDetailView,
@@ -132,6 +133,7 @@ urlpatterns = [
     # ── Certificates ─────────────────────────────────────────────────────────
     path('certificates/', AdminCertificatesView.as_view(), name='certificates'),
     path('certificates/<int:pk>/action/', AdminCertificateActionView.as_view(), name='certificate_action'),
+    path('certificates/<int:pk>/document/', AdminCertificateDocumentView.as_view(), name='certificate_document'),
     path('certificates/<int:pk>/', AdminCertificateDetailView.as_view(), name='certificate_detail'),
 
     # ── Financial Reports ──────────────────────────────────────────────────────

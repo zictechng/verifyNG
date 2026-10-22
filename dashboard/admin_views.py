@@ -21,7 +21,9 @@ from core.tasks import send_email_notification_task
 from payments.models import Plan as PlanModel
 from dateutil.relativedelta import relativedelta
 from reports.storage_services import get_storage_service
-                    
+import mimetypes
+import urllib.request
+from django.http import Http404, HttpResponse                   
 from django.db.models import Q
 from django.utils.dateparse import parse_date
 from django.utils import timezone as tz
@@ -2294,6 +2296,61 @@ class AdminCertificateDetailView(SuperAdminRequiredMixin, TemplateView):
         ctx['alias_flag'] = app_log.details.get('alias_flag', False) if app_log and isinstance(app_log.details, dict) else False
         ctx['previous_registered_name'] = app_log.details.get('previous_registered_name', '') if app_log and isinstance(app_log.details, dict) else ''
         return ctx
+
+
+class AdminCertificateDocumentView(SuperAdminRequiredMixin, View):
+    """
+    Secure document stream proxy for verification officers.
+    Serves the candidate's uploaded identity proof inline in the browser tab
+    (or as file download if ?download=1) without exposing raw Cloudinary CDN or 404ing.
+    """
+    def get(self, request, pk):
+        
+        if not VerificationCertificate:
+            raise Http404("Certificate model not available.")
+        cert = get_object_or_404(VerificationCertificate, pk=pk)
+        # Locate the application audit log strictly for THIS certificate
+        app_log = None
+        for l in AuditLog.objects.filter(action="TRUSTPASS_APPLICATION_SUBMITTED").order_by('-timestamp')[:200]:
+            det = l.details if isinstance(l.details, dict) else {}
+            if det.get('certificate_id') == cert.certificate_id:
+                app_log = l
+                break
+        if not app_log or not isinstance(app_log.details, dict):
+            raise Http404("No application metadata found for this certificate.")
+        doc_pid = app_log.details.get('doc_public_id') or ''
+        if not doc_pid:
+            raise Http404("No document proof attached to this application.")
+        # Determine file extension and MIME type
+        ext = doc_pid.split('.')[-1].lower() if '.' in doc_pid else 'jpg'
+        content_type, _ = mimetypes.guess_type(f"proof.{ext}")
+        if not content_type:
+            content_type = 'application/pdf' if ext == 'pdf' else 'image/jpeg'
+        as_download = request.GET.get('download') == '1'
+        disposition_type = 'attachment' if as_download else 'inline'
+        safe_filename = f"{cert.certificate_id}_proof.{ext}"
+        # 1. Local storage check
+        
+        local_path = os.path.join(settings.MEDIA_ROOT, doc_pid)
+        if os.path.exists(local_path):
+            with open(local_path, 'rb') as f:
+                resp = HttpResponse(f.read(), content_type=content_type)
+                resp['Content-Disposition'] = f'{disposition_type}; filename="{safe_filename}"'
+                return resp
+        # 2. Cloudinary storage stream
+        try:
+            storage = get_storage_service()
+            res_type = 'raw' if ext in ['pdf', 'doc', 'docx'] else 'image'
+            signed_url = storage.generate_signed_url(public_id=doc_pid, format=ext, resource_type=res_type, attachment=True)
+            req_obj = urllib.request.Request(signed_url, headers={'User-Agent': 'VerifyNG-Officer/1.0'})
+            with urllib.request.urlopen(req_obj, timeout=20) as cloud_resp:
+                content = cloud_resp.read()
+                resp = HttpResponse(content, content_type=content_type)
+                resp['Content-Disposition'] = f'{disposition_type}; filename="{safe_filename}"'
+                return resp
+        except Exception as e:
+            logger.error("Failed streaming verification document for %s: %s", cert.certificate_id, e)
+            raise Http404("Unable to load document proof from storage.")
 
 
 class AdminMenuAccessView(SuperAdminRequiredMixin, View):

@@ -116,32 +116,26 @@
         </dd>
         <dt class="col-5 text-muted">Document Status</dt>
         <dd class="col-7">
-          {% if doc_url %}
+          {% if has_doc %}
             <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Attached & Available for Inspection</span>
-          {% elif app_log.details.has_document %}
-            <span class="badge bg-warning text-dark"><i class="bi bi-clock me-1"></i>Attached in Archive</span>
           {% else %}
             <span class="badge bg-secondary">No document uploaded</span>
           {% endif %}
         </dd>
       </dl>
-      {% if doc_url %}
+      {% if has_doc %}
       <!-- Inline Preview for Images -->
       <div class="mb-3 mt-2 text-center p-2 rounded bg-light border">
-        <img src="{{ doc_url }}" alt="Verification Proof Preview" class="img-fluid rounded" style="max-height:220px;object-fit:contain;"
+        <img src="{% url 'admin_portal:certificate_document' cert.pk %}" alt="Verification Proof Preview" class="img-fluid rounded" style="max-height:220px;object-fit:contain;"
              onerror="this.parentElement.style.display='none';">
       </div>
       <div class="d-flex flex-wrap gap-2 pt-2 border-top">
-        <a href="{{ doc_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-adm-primary btn-sm px-3 d-inline-flex align-items-center">
+        <a href="{% url 'admin_portal:certificate_document' cert.pk %}" target="_blank" rel="noopener noreferrer" class="btn btn-adm-primary btn-sm px-3 d-inline-flex align-items-center">
           <i class="bi bi-box-arrow-up-right me-1"></i>Open Document in New Tab
         </a>
-        <a href="{{ doc_download_url|default:doc_url }}" download class="btn btn-adm-outline btn-sm px-3 d-inline-flex align-items-center">
+        <a href="{% url 'admin_portal:certificate_document' cert.pk %}?download=1" class="btn btn-adm-outline btn-sm px-3 d-inline-flex align-items-center">
           <i class="bi bi-download me-1"></i>Download Proof
         </a>
-      </div>
-      {% elif app_log.details.has_document %}
-      <div class="alert alert-info py-2 px-3 small mb-0">
-        <i class="bi bi-info-circle me-1"></i>Document was recorded during application. Submit a new application with an attached image or PDF to inspect live.
       </div>
       {% endif %}
     </div>
