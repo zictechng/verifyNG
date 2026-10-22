@@ -434,6 +434,18 @@ def create_trustpass_certificate_application(
             logger.warning("Document upload failed during TrustPass application: %s", e)
     with transaction.atomic():
         subject_name = full_name.strip() or holder.get_full_name().strip() or holder.username
+        # Check for Alias / Identity Discrepancy (e.g. Maiden name, legal change, or duplicate check)
+        alias_flag = False
+        previous_registered_name = ''
+        if nin and str(nin).strip():
+            try:
+                nin_h = hash_identifier_value('nin', nin.strip())
+                existing_nin_ident = Identifier.objects.filter(type='nin', value_hash=nin_h).select_related('subject').first()
+                if existing_nin_ident and existing_nin_ident.subject.name.strip().lower() != subject_name.lower():
+                    alias_flag = True
+                    previous_registered_name = existing_nin_ident.subject.name.strip()
+            except Exception:
+                pass
         # Always create the SubjectEntity with the exact candidate name entered by the user
         subject = SubjectEntity.objects.create(
             name=subject_name,
@@ -498,6 +510,8 @@ def create_trustpass_certificate_application(
                 "id_document_type": id_document_type,
                 "doc_public_id": doc_public_id,
                 "nin": nin,
+                "alias_flag": alias_flag,
+                "previous_registered_name": previous_registered_name,
                 "nin_masked": (nin[:3] + '****' + nin[-2:]) if nin and len(nin) >= 6 else (nin or ''),
                 "phone_number": phone_number,
                 "email": email,

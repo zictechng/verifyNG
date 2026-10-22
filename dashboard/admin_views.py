@@ -2285,6 +2285,8 @@ class AdminCertificateDetailView(SuperAdminRequiredMixin, TemplateView):
                         matched.sort(reverse=True)
                         doc_url = f"{settings.MEDIA_URL}{matched[0][1].replace('\\', '/')}"
         ctx['doc_url'] = doc_url
+        ctx['alias_flag'] = app_log.details.get('alias_flag', False) if app_log and isinstance(app_log.details, dict) else False
+        ctx['previous_registered_name'] = app_log.details.get('previous_registered_name', '') if app_log and isinstance(app_log.details, dict) else ''
         return ctx
 
 

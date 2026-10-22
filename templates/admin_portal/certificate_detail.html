@@ -42,6 +42,22 @@
   <!-- Left column: certificate info -->
   <div class="col-lg-7">
 
+    {% if alias_flag %}
+    <!-- Identity Discrepancy / Alias Alert -->
+    <div class="alert alert-warning border-warning d-flex align-items-start gap-3 p-3 mb-4 shadow-sm" style="border-left:5px solid #d97706!important;background:#fffbeb;">
+      <i class="bi bi-exclamation-triangle-fill fs-4 text-warning flex-shrink-0"></i>
+      <div>
+        <h6 class="fw-bold mb-1 text-dark">Identity Discrepancy / Alias Flag Detected</h6>
+        <p class="small mb-1 text-dark">
+          This National ID (NIN) was previously registered in the system under the name <strong>"{{ previous_registered_name }}"</strong>, but this application was submitted for <strong>"{{ cert.subject.name }}"</strong>.
+        </p>
+        <div class="small text-muted">
+          <strong>Officer Directive:</strong> Verify candidate identity documents, marriage certificate, or legal name-change affidavit before certificate activation.
+        </div>
+      </div>
+    </div>
+    {% endif %}
+    
     <!-- Candidate / Subject card -->
     <div class="adm-card p-4 mb-4">
       <h6 class="fw-semibold mb-3" style="color:var(--adm-ink);border-bottom:1px solid var(--adm-border);padding-bottom:.5rem;">
