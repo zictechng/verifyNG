@@ -8,6 +8,9 @@ from __future__ import annotations
 
 import logging
 from django.utils import timezone
+from reports.models import AuditLog
+from core.rate_limiting import get_client_ip
+from users.signals import resolve_ip_location, get_sanitized_client_ip
 
 logger = logging.getLogger(__name__)
 
@@ -84,26 +87,26 @@ def log_admin_action(
         )
     """
     try:
-        from reports.models import AuditLog
-        from core.rate_limiting import get_client_ip
-
         ip_address = None
         url_path = ''
         http_method = ''
         user_agent = ''
-        device_type = ''
-        browser = ''
-        os_name = ''
+        device_type = 'Desktop'
+        browser = 'Unknown'
+        os_name = 'Unknown'
+        location_country = ''
+        location_city = ''
 
         if request is not None:
-            ip_address = get_client_ip(request)
+            ip_address = get_sanitized_client_ip(request)
             url_path = request.path[:500]
             http_method = request.method
             user_agent = request.META.get('HTTP_USER_AGENT', '')[:1000]
             parsed = _parse_user_agent(user_agent)
-            device_type = parsed['device_type']
-            browser = parsed['browser']
-            os_name = parsed['os']
+            device_type = parsed.get('device_type', 'Desktop')
+            browser = parsed.get('browser', 'Unknown')
+            os_name = parsed.get('os', 'Unknown')
+            location_city, location_country = resolve_ip_location(ip_address)
 
         AuditLog.objects.create(
             action=action,
@@ -118,8 +121,8 @@ def log_admin_action(
             device_type=device_type,
             browser=browser,
             os=os_name,
-            location_country='',   # GeoIP not required yet — leave blank
-            location_city='',
+            location_country=location_country,
+            location_city=location_city,
             details=details or {},
         )
     except Exception:

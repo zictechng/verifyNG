@@ -37,4 +37,11 @@ urlpatterns = [
 
     # Person / Landlord quick-check — BATCH 4
     path('checks/person/', views.person_check_search, name='person_check_search'),
+
+    # Team invitation accept — public (no employer_required)
+    path('invite/accept/<str:token>/', views.team_invite_accept, name='team_invite_accept'),
+    # Person / Landlord quick-check — BATCH 4
+    path('checks/person/', views.person_check_search, name='person_check_search'),
+    # Staff Misconduct Reporting on Clearance Certificate
+    path('misconduct/report/', views.staff_misconduct_report, name='staff_misconduct_report'),
 ]

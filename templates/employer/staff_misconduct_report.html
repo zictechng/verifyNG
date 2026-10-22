@@ -1,0 +1,405 @@
+
+{% extends 'public/base.html' %}
+{% load static %}
+
+{% block title %}Report Staff Misconduct | VerifyNG{% endblock %}
+
+{% block extra_head %}
+<style>
+    [x-cloak] { display: none !important; }
+    .vng-category-card {
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: 2px solid var(--vng-border, #E3E9F2);
+        border-radius: var(--vng-radius-md, 12px);
+    }
+    .vng-category-card:hover {
+        border-color: #DC2626;
+        background-color: #FEF2F2;
+    }
+    .vng-category-card.selected {
+        border-color: #DC2626;
+        background-color: #FEF2F2;
+        box-shadow: 0 0 0 1px #DC2626;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-md-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-9 col-md-11">
+
+            <!-- Header -->
+            <div class="mb-4 text-center">
+                <span class="badge bg-danger-subtle text-danger px-3 py-1 mb-2 fw-semibold rounded-pill">Workplace Integrity Desk</span>
+                <h1 class="h3 fw-bold">File a Staff Misconduct Report</h1>
+                <p class="text-muted mb-0">Legally grounded reporting against a Clearance Certificate to protect Nigerian businesses from repeat workplace theft and fraud.</p>
+            </div>
+
+            <!-- Errors Alert -->
+            {% if errors %}
+                <div class="alert alert-danger mb-4" role="alert">
+                    <strong>Please correct the following:</strong>
+                    <ul class="mb-0 mt-1 ps-3">
+                        {% for err in errors %}
+                            <li class="small">{{ err }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+
+            <!-- Multi-Step Wizard Container -->
+            <div class="vng-card p-4 p-md-5" x-data="{
+                step: 1,
+                submitting: false,
+                certId: '{% if form_data.certificate_id %}{{ form_data.certificate_id|escapejs }}{% elif certificate_id_prefill %}{{ certificate_id_prefill|escapejs }}{% endif %}',
+                staffName: '{{ form_data.staff_name|default:''|escapejs }}',
+                jobRole: '{{ form_data.job_role|default:''|escapejs }}',
+                incidentDate: '{{ form_data.incident_date|default:''|escapejs }}',
+                category: '{{ form_data.misconduct_category|default:'theft'|escapejs }}',
+                lossAmount: '{{ form_data.financial_loss|default:''|escapejs }}',
+                allegation: `{{ form_data.allegation|default:''|escapejs }}`,
+                docType: '{{ form_data.evidence_doc_type|default:'internal_query'|escapejs }}',
+                fileName: '',
+                fileSize: '',
+                warrantTruth: false,
+                indemnify: false,
+                errors: {
+                    certId: '',
+                    staffName: '',
+                    allegation: '',
+                    evidenceFile: ''
+                },
+                validateStep1() {
+                    this.errors.certId = '';
+                    this.errors.staffName = '';
+                    let valid = true;
+                    if (!this.certId.trim()) {
+                        this.errors.certId = 'Please enter the Staff Clearance Certificate ID.';
+                        valid = false;
+                    }
+                    if (!this.staffName.trim()) {
+                        this.errors.staffName = 'Please enter the staff member\'s full legal name.';
+                        valid = false;
+                    }
+                    if (valid) {
+                        this.step = 2;
+                    }
+                },
+                validateStep2() {
+                    this.errors.allegation = '';
+                    if (!this.allegation.trim() || this.allegation.trim().length < 30) {
+                        this.errors.allegation = 'Please provide a factual statement of at least 30 characters.';
+                        return false;
+                    }
+                    this.step = 3;
+                    return true;
+                },
+                validateStep3() {
+                    this.errors.evidenceFile = '';
+                    if (!this.fileName) {
+                        this.errors.evidenceFile = 'Please attach at least one verifiable documentary proof file.';
+                        return false;
+                    }
+                    this.step = 4;
+                    return true;
+                },
+                handleFileSelect(event) {
+                    const file = event.target.files[0];
+                    if (file) {
+                        this.fileName = file.name;
+                        this.fileSize = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+                        this.errors.evidenceFile = '';
+                    }
+                }
+            }">
+
+                <!-- Progress Bar -->
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between align-items-center position-relative mb-2">
+                        <div class="position-absolute top-50 start-0 w-100" style="height: 3px; background-color: var(--vng-border, #E3E9F2); z-index: 1;"></div>
+                        <div class="position-absolute top-50 start-0" :style="'height: 3px; background-color: #DC2626; z-index: 1; transition: width 0.3s; width: ' + ((step - 1) / 3 * 100) + '%;'"></div>
+
+                        <button type="button" @click="step = 1" class="btn btn-sm rounded-circle d-flex align-items-center justify-content-center p-0 position-relative" style="width: 38px; height: 38px; z-index: 2;" :class="step >= 1 ? 'btn-danger' : 'btn-light border'">
+                            <span class="fw-bold">1</span>
+                        </button>
+                        <button type="button" @click="validateStep1()" class="btn btn-sm rounded-circle d-flex align-items-center justify-content-center p-0 position-relative" style="width: 38px; height: 38px; z-index: 2;" :class="step >= 2 ? 'btn-danger' : 'btn-light border'">
+                            <span class="fw-bold">2</span>
+                        </button>
+                        <button type="button" @click="if (certId.trim() && staffName.trim()) { validateStep2(); } else { validateStep1(); }" class="btn btn-sm rounded-circle d-flex align-items-center justify-content-center p-0 position-relative" style="width: 38px; height: 38px; z-index: 2;" :class="step >= 3 ? 'btn-danger' : 'btn-light border'">
+                            <span class="fw-bold">3</span>
+                        </button>
+                        <button type="button" @click="if (certId.trim() && staffName.trim() && allegation.trim().length >= 30) { validateStep3(); } else { if (!certId.trim() || !staffName.trim()) validateStep1(); else validateStep2(); }" class="btn btn-sm rounded-circle d-flex align-items-center justify-content-center p-0 position-relative" style="width: 38px; height: 38px; z-index: 2;" :class="step === 4 ? 'btn-danger' : 'btn-light border'">
+                            <span class="fw-bold">4</span>
+                        </button>
+                    </div>
+                    <div class="d-flex justify-content-between text-muted small px-1">
+                        <span :class="step === 1 ? 'fw-bold text-danger' : ''">1. Staff Identity</span>
+                        <span :class="step === 2 ? 'fw-bold text-danger' : ''">2. Incident Details</span>
+                        <span :class="step === 3 ? 'fw-bold text-danger' : ''">3. Mandatory Evidence</span>
+                        <span :class="step === 4 ? 'fw-bold text-danger' : ''">4. Legal Warranty</span>
+                    </div>
+                </div>
+
+                <form method="post" enctype="multipart/form-data" novalidate @submit="submitting = true">
+                    {% csrf_token %}
+
+                    <!-- ========================================== -->
+                    <!-- STEP 1: Staff & Certificate Identification -->
+                    <!-- ========================================== -->
+                    <div x-show="step === 1" x-transition>
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <span class="badge bg-danger px-2 py-1">Step 1 of 4</span>
+                            <h5 class="fw-bold mb-0">Staff Member & Clearance Certificate</h5>
+                        </div>
+                        <p class="small text-muted mb-4">
+                            Specify the employee and their VerifyNG Clearance Certificate ID. This ensures the incident is correctly linked to their platform record.
+                        </p>
+
+                        <!-- Certificate ID -->
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold" for="certificate_id">Staff Clearance Certificate ID <span class="text-danger">*</span></label>
+                            <input type="text" name="certificate_id" id="certificate_id" 
+                                   class="form-control font-monospace text-uppercase" 
+                                   :class="{'is-invalid': errors.certId}"
+                                   placeholder="e.g. VNG-2026-XXXXXXXX" 
+                                   x-model="certId" 
+                                   @input="errors.certId = ''">
+                            <div class="invalid-feedback d-block" x-show="errors.certId" x-text="errors.certId" x-cloak></div>
+                            <div class="form-text" x-show="!errors.certId">Enter the 16-character certificate ID from the staff member's VerifyNG certificate.</div>
+                        </div>
+                        <!-- Staff Full Name & Job Role -->
+                        <div class="row g-3 mb-4">
+                            <div class="col-sm-6">
+                                <label class="form-label small fw-semibold" for="staff_name">Staff Full Legal Name <span class="text-danger">*</span></label>
+                                <input type="text" name="staff_name" id="staff_name" 
+                                       class="form-control" 
+                                       :class="{'is-invalid': errors.staffName}"
+                                       placeholder="Full name of employee" 
+                                       x-model="staffName" 
+                                       @input="errors.staffName = ''">
+                                <div class="invalid-feedback d-block" x-show="errors.staffName" x-text="errors.staffName" x-cloak></div>
+                            </div>
+                            <div class="col-sm-6">
+                                <label class="form-label small fw-semibold" for="job_role">Job Role / Designation at Company</label>
+                                <input type="text" name="job_role" id="job_role" class="form-control" placeholder="e.g. Delivery Driver, Cashier, Operations" x-model="jobRole">
+                            </div>
+                        </div>
+                        <!-- Step 1 Navigation -->
+                        <div class="d-flex justify-content-end">
+                            <button type="button" class="btn btn-danger px-4" @click="validateStep1()">
+                                Continue to Incident Details &rarr;
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- ========================================== -->
+                    <!-- STEP 2: Misconduct Category & Timeline    -->
+                    <!-- ========================================== -->
+                    <div x-show="step === 2" x-transition x-cloak>
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <span class="badge bg-danger px-2 py-1">Step 2 of 4</span>
+                            <h5 class="fw-bold mb-0">Misconduct Category & Factual Statement</h5>
+                        </div>
+                        <p class="small text-muted mb-4">
+                            Select the specific factual category of misconduct and provide a chronological account.
+                        </p>
+
+                        <!-- Misconduct Categories Cards -->
+                        <div class="mb-4">
+                            <label class="form-label small fw-semibold">Misconduct Category <span class="text-danger">*</span></label>
+                            <div class="row g-2">
+                                <div class="col-sm-6">
+                                    <div class="p-3 vng-category-card" :class="category === 'theft' ? 'selected' : ''" @click="category = 'theft'">
+                                        <div class="fw-bold small text-dark">💰 Financial Theft & Misappropriation</div>
+                                        <div class="small text-muted">Cash diversion, unremitted sales, POS manipulation.</div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <div class="p-3 vng-category-card" :class="category === 'absconded' ? 'selected' : ''" @click="category = 'absconded'">
+                                        <div class="fw-bold small text-dark">🚗 Absconded with Assets / Vehicle</div>
+                                        <div class="small text-muted">Fled with delivery vehicle, company laptop, or client goods.</div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <div class="p-3 vng-category-card" :class="category === 'inventory' ? 'selected' : ''" @click="category = 'inventory'">
+                                        <div class="fw-bold small text-dark">📦 Inventory Diversion / Warehouse Loss</div>
+                                        <div class="small text-muted">Unexplained stock shortage, off-book sales.</div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <div class="p-3 vng-category-card" :class="category === 'forgery' ? 'selected' : ''" @click="category = 'forgery'">
+                                        <div class="fw-bold small text-dark">📝 Falsification of Invoices / Records</div>
+                                        <div class="small text-muted">Fake vendor receipts, forged signatures.</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <input type="hidden" name="misconduct_category" :value="category">
+                        </div>
+
+                        <!-- Incident Date & Estimated Loss -->
+                        <div class="row g-3 mb-3">
+                            <div class="col-sm-6">
+                                <label class="form-label small fw-semibold" for="incident_date">Date of Incident / Discovery</label>
+                                <input type="date" name="incident_date" id="incident_date" class="form-control" x-model="incidentDate">
+                            </div>
+                            <div class="col-sm-6">
+                                <label class="form-label small fw-semibold" for="financial_loss">Estimated Financial Loss (in ₦)</label>
+                                <input type="text" name="financial_loss" id="financial_loss" class="form-control" placeholder="e.g. ₦350,000" x-model="lossAmount">
+                            </div>
+                        </div>
+
+                        <!-- Factual Statement -->
+                        <div class="mb-4">
+                            <label class="form-label small fw-semibold" for="allegation">Factual Chronological Statement <span class="text-danger">*</span></label>
+                            <textarea name="allegation" id="allegation" rows="4" 
+                                      class="form-control" 
+                                      :class="{'is-invalid': errors.allegation}"
+                                      placeholder="State specific facts: dates, transaction numbers, actions taken, and police station involved if applicable..." 
+                                      x-model="allegation" 
+                                      @input="if (allegation.trim().length >= 30) errors.allegation = ''"></textarea>
+                            <div class="invalid-feedback d-block" x-show="errors.allegation" x-text="errors.allegation" x-cloak></div>
+                            <div class="form-text small" x-show="!errors.allegation">Minimum 30 characters. Subjective insults or hearsay will be rejected by compliance.</div>
+                        </div>
+                        <!-- Step 2 Navigation -->
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-outline-secondary px-3" @click="step = 1">&larr; Back</button>
+                            <button type="button" class="btn btn-danger px-4" @click="validateStep2()">
+                                Continue to Evidence &rarr;
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- ========================================== -->
+                    <!-- STEP 3: Mandatory Documentary Proof       -->
+                    <!-- ========================================== -->
+                    <div x-show="step === 3" x-transition x-cloak>
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <span class="badge bg-danger px-2 py-1">Step 3 of 4</span>
+                            <h5 class="fw-bold mb-0">Mandatory Documentary Evidence</h5>
+                        </div>
+                        <p class="small text-muted mb-4">
+                            To ensure legal protection for both your company and VerifyNG, you must attach verifiable documentary proof.
+                        </p>
+
+                        <!-- Evidence Document Type -->
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold" for="evidence_doc_type">Document Category <span class="text-danger">*</span></label>
+                            <select name="evidence_doc_type" id="evidence_doc_type" class="form-select" x-model="docType">
+                                <option value="internal_query">Internal Disciplinary Query & Verdict Letter</option>
+                                <option value="police_extract">Police Report / First Information Report (FIR)</option>
+                                <option value="audit_sheet">Audit Reconciliation Statement / Bank Statement</option>
+                                <option value="termination_notice">Formal Summary Dismissal Letter for Cause</option>
+                            </select>
+                        </div>
+
+                        <!-- File Upload Drop Zone -->
+                        <div class="mb-4">
+                            <label class="form-label small fw-semibold">Upload Document Proof (PDF, PNG, JPG — Max 10 MB) <span class="text-danger">*</span></label>
+                            <div class="border rounded p-4 text-center bg-light position-relative" 
+                                 :class="{'border-danger bg-danger-subtle': errors.evidenceFile}"
+                                 style="border-style: dashed !important; border-color: #DC2626 !important;">
+                                <input type="file" name="evidence_file" id="evidence_file" class="position-absolute top-0 start-0 w-100 h-100 opacity-0 cursor-pointer" @change="handleFileSelect($event)" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx">
+                                
+                                <template x-if="!fileName">
+                                    <div>
+                                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="1.5" class="mb-2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                                        <div class="fw-semibold small">Drag & drop or click to upload documentary evidence</div>
+                                        <div class="text-muted small">PDF, PNG, JPG (Up to 10 MB)</div>
+                                    </div>
+                                </template>
+                                <template x-if="fileName">
+                                    <div class="d-flex align-items-center justify-content-center gap-3">
+                                        <div class="text-start">
+                                            <div class="fw-bold text-danger small" x-text="fileName"></div>
+                                            <div class="text-muted small" x-text="fileSize"></div>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                            <div class="text-danger small mt-2 fw-semibold" x-show="errors.evidenceFile" x-text="errors.evidenceFile" x-cloak></div>
+                        </div>
+                        <!-- Step 3 Navigation -->
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-outline-secondary px-3" @click="step = 2">&larr; Back</button>
+                            <button type="button" class="btn btn-danger px-4" @click="validateStep3()">
+                                Continue to Legal Warranty &rarr;
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- ========================================== -->
+                    <!-- STEP 4: Legal Warranty & Indemnity        -->
+                    <!-- ========================================== -->
+                    <div x-show="step === 4" x-transition x-cloak>
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <span class="badge bg-danger px-2 py-1">Step 4 of 4</span>
+                            <h5 class="fw-bold mb-0">Legal Warranty & Due Process Notice</h5>
+                        </div>
+                        <p class="small text-muted mb-4">
+                            Review the submission summary and sign the employer legal indemnity statement.
+                        </p>
+
+                        <!-- Summary Box -->
+                        <div class="card bg-light border-0 p-3 mb-4">
+                            <h6 class="fw-bold small text-uppercase mb-2 text-danger">Report Overview</h6>
+                            <dl class="row small mb-0">
+                                <dt class="col-sm-4 text-muted">Staff Member:</dt>
+                                <dd class="col-sm-8 fw-semibold" x-text="staffName + ' (' + certId + ')'"></dd>
+
+                                <dt class="col-sm-4 text-muted">Role & Incident Date:</dt>
+                                <dd class="col-sm-8" x-text="(jobRole || 'Staff') + (incidentDate ? ' &middot; ' + incidentDate : '')"></dd>
+
+                                <dt class="col-sm-4 text-muted">Category & Loss:</dt>
+                                <dd class="col-sm-8" x-text="category + (lossAmount ? ' &middot; ' + lossAmount : '')"></dd>
+
+                                <dt class="col-sm-4 text-muted">Evidence Attached:</dt>
+                                <dd class="col-sm-8 text-danger fw-semibold" x-text="fileName + ' (' + fileSize + ')'"></dd>
+                            </dl>
+                        </div>
+
+                        <!-- Natural Justice Notice -->
+                        <div class="alert alert-warning small mb-4">
+                            <strong>7-Day Natural Justice Notice:</strong> Upon submission, VerifyNG compliance will review your documentary proof. Once validated, the staff member will receive an automated 7-day notice allowing them to review the allegation and provide counter-evidence before any permanent public flag is displayed on their certificate.
+                        </div>
+
+                        <!-- Legal Warranties Checkboxes -->
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" name="warrant_truth" id="warrant_truth" x-model="warrantTruth" required>
+                            <label class="form-check-label small" for="warrant_truth">
+                                <strong>Warranty of Truth:</strong> I warrant under penalty of platform suspension and legal liability that this report represents verifiable workplace facts and is not submitted with malicious intent or personal grudge.
+                            </label>
+                        </div>
+                        <div class="form-check mb-4">
+                            <input class="form-check-input" type="checkbox" name="indemnify_platform" id="indemnify_platform" x-model="indemnify" required>
+                            <label class="form-check-label small" for="indemnify_platform">
+                                <strong>Employer Indemnity Agreement:</strong> My company warrants that it holds original documentary evidence supporting this report and agrees to fully indemnify VerifyNG against any third-party claims or damages resulting from this submission.
+                            </label>
+                        </div>
+
+                        <!-- Step 4 Navigation & Submit -->
+                        <div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <button type="button" class="btn btn-outline-secondary px-3" @click="step = 3" :disabled="submitting">&larr; Back</button>
+                                <button type="submit" class="btn btn-danger px-5 py-2 d-inline-flex align-items-center justify-content-center" :disabled="!warrantTruth || !indemnify || submitting">
+                                    <span x-show="!submitting">Submit Misconduct Report for Compliance Review &rarr;</span>
+                                    <span x-show="submitting" x-cloak class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                    <span x-show="submitting" x-cloak>Submitting Report...</span>
+                                </button>
+                            </div>
+                            <div class="text-end mt-2" x-show="!warrantTruth || !indemnify" x-cloak>
+                                <span class="text-muted small">
+                                    <i class="bi bi-info-circle me-1"></i>Please check both legal warranty declarations above to submit.
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

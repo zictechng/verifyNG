@@ -53,6 +53,8 @@ EMAIL_TEMPLATES: dict[str, str] = {
     'account_suspended':     'emails/account_suspended.html',
     'generic_notification':  'emails/generic_notification.html',
     'support_inquiry':       'emails/support_inquiry.html',
+    'misconduct_receipt':    'emails/misconduct_report_receipt.html',
+    'misconduct_notice':     'emails/staff_misconduct_notice.html',
 }
 
 

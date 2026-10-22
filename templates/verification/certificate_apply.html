@@ -58,6 +58,49 @@
                 isImage: false,
                 imagePreview: null,
                 declared: false,
+                errors: {
+                    fullName: '',
+                    dob: '',
+                    phone: '',
+                    email: '',
+                    nin: ''
+                },
+                validateStep1() {
+                    this.errors.fullName = '';
+                    this.errors.dob = '';
+                    this.errors.phone = '';
+                    this.errors.email = '';
+                    let valid = true;
+                    if (!this.fullName.trim()) {
+                        this.errors.fullName = 'Please enter your legal full name.';
+                        valid = false;
+                    }
+                    if (!this.dob) {
+                        this.errors.dob = 'Please select your date of birth.';
+                        valid = false;
+                    }
+                    if (!this.phone.trim()) {
+                        this.errors.phone = 'Please enter your mobile phone number.';
+                        valid = false;
+                    }
+                    if (!this.email.trim() || !this.email.includes('@')) {
+                        this.errors.email = 'Please enter a valid email address.';
+                        valid = false;
+                    }
+                    if (valid) {
+                        this.step = 2;
+                    }
+                },
+                validateStep2() {
+                    this.errors.nin = '';
+                    const cleanNin = this.nin.replace(/\D/g, '');
+                    if (cleanNin.length !== 11) {
+                        this.errors.nin = 'NIN must be exactly 11 numeric digits.';
+                        return false;
+                    }
+                    this.step = 3;
+                    return true;
+                },
                 handleFileSelect(event) {
                     const file = event.target.files[0];
                     if (file) {
@@ -88,15 +131,15 @@
                             <span class="fw-bold">1</span>
                         </button>
                         <!-- Step 2 Indicator -->
-                        <button type="button" @click="if (fullName.trim() && dob && phone.trim()) step = 2" class="btn btn-sm rounded-circle d-flex align-items-center justify-content-center p-0 position-relative" style="width: 38px; height: 38px; z-index: 2;" :class="step >= 2 ? 'btn-primary' : 'btn-light border'">
+                        <button type="button" @click="validateStep1()" class="btn btn-sm rounded-circle d-flex align-items-center justify-content-center p-0 position-relative" style="width: 38px; height: 38px; z-index: 2;" :class="step >= 2 ? 'btn-primary' : 'btn-light border'">
                             <span class="fw-bold">2</span>
                         </button>
                         <!-- Step 3 Indicator -->
-                        <button type="button" @click="if (fullName.trim() && dob && phone.trim() && nin.trim().length === 11) step = 3" class="btn btn-sm rounded-circle d-flex align-items-center justify-content-center p-0 position-relative" style="width: 38px; height: 38px; z-index: 2;" :class="step >= 3 ? 'btn-primary' : 'btn-light border'">
+                        <button type="button" @click="if (fullName.trim() && dob && phone.trim() && email.trim()) { validateStep2(); } else { validateStep1(); }" class="btn btn-sm rounded-circle d-flex align-items-center justify-content-center p-0 position-relative" style="width: 38px; height: 38px; z-index: 2;" :class="step >= 3 ? 'btn-primary' : 'btn-light border'">
                             <span class="fw-bold">3</span>
                         </button>
                         <!-- Step 4 Indicator -->
-                        <button type="button" @click="if (fullName.trim() && dob && phone.trim() && nin.trim().length === 11) step = 4" class="btn btn-sm rounded-circle d-flex align-items-center justify-content-center p-0 position-relative" style="width: 38px; height: 38px; z-index: 2;" :class="step === 4 ? 'btn-primary' : 'btn-light border'">
+                        <button type="button" @click="if (fullName.trim() && dob && phone.trim() && email.trim() && nin.replace(/\D/g, '').length === 11) { step = 4; } else { if (!fullName.trim() || !dob || !phone.trim() || !email.trim()) validateStep1(); else validateStep2(); }" class="btn btn-sm rounded-circle d-flex align-items-center justify-content-center p-0 position-relative" style="width: 38px; height: 38px; z-index: 2;" :class="step === 4 ? 'btn-primary' : 'btn-light border'">
                             <span class="fw-bold">4</span>
                         </button>
                     </div>
@@ -135,17 +178,29 @@
                         <!-- Full Name -->
                         <div class="mb-3">
                             <label for="{{ form.full_name.id_for_label }}" class="form-label small fw-semibold">Legal Full Name <span class="text-danger">*</span></label>
-                            <input type="text" name="full_name" id="{{ form.full_name.id_for_label }}" class="form-control" placeholder="Firstname Middlename Surname" x-model="fullName" required value="{{ form.full_name.value|default:'' }}">
+                            <input type="text" name="full_name" id="{{ form.full_name.id_for_label }}" 
+                                   class="form-control" 
+                                   :class="{'is-invalid': errors.fullName}"
+                                   placeholder="Firstname Middlename Surname" 
+                                   x-model="fullName" 
+                                   @input="errors.fullName = ''"
+                                   value="{{ form.full_name.value|default:'' }}">
+                            <div class="invalid-feedback d-block" x-show="errors.fullName" x-text="errors.fullName" x-cloak></div>
                             {% if form.full_name.errors %}
                                 <div class="text-danger small mt-1">{{ form.full_name.errors.0 }}</div>
                             {% endif %}
                         </div>
-
                         <!-- Date of Birth & Gender -->
                         <div class="row g-3 mb-3">
                             <div class="col-sm-6">
                                 <label for="{{ form.date_of_birth.id_for_label }}" class="form-label small fw-semibold">Date of Birth <span class="text-danger">*</span></label>
-                                <input type="date" name="date_of_birth" id="{{ form.date_of_birth.id_for_label }}" class="form-control" x-model="dob" required value="{{ form.date_of_birth.value|default:'' }}">
+                                <input type="date" name="date_of_birth" id="{{ form.date_of_birth.id_for_label }}" 
+                                       class="form-control" 
+                                       :class="{'is-invalid': errors.dob}"
+                                       x-model="dob" 
+                                       @change="errors.dob = ''"
+                                       value="{{ form.date_of_birth.value|default:'' }}">
+                                <div class="invalid-feedback d-block" x-show="errors.dob" x-text="errors.dob" x-cloak></div>
                                 {% if form.date_of_birth.errors %}
                                     <div class="text-danger small mt-1">{{ form.date_of_birth.errors.0 }}</div>
                                 {% endif %}
@@ -159,29 +214,40 @@
                                 </select>
                             </div>
                         </div>
-
                         <!-- Phone & Email -->
                         <div class="row g-3 mb-4">
                             <div class="col-sm-6">
                                 <label for="{{ form.phone_number.id_for_label }}" class="form-label small fw-semibold">Mobile Phone Number <span class="text-danger">*</span></label>
-                                <input type="text" name="phone_number" id="{{ form.phone_number.id_for_label }}" class="form-control" placeholder="08012345678 or +234..." x-model="phone" required value="{{ form.phone_number.value|default:'' }}">
+                                <input type="text" name="phone_number" id="{{ form.phone_number.id_for_label }}" 
+                                       class="form-control" 
+                                       :class="{'is-invalid': errors.phone}"
+                                       placeholder="08012345678 or +234..." 
+                                       x-model="phone" 
+                                       @input="errors.phone = ''"
+                                       value="{{ form.phone_number.value|default:'' }}">
+                                <div class="invalid-feedback d-block" x-show="errors.phone" x-text="errors.phone" x-cloak></div>
                                 {% if form.phone_number.errors %}
                                     <div class="text-danger small mt-1">{{ form.phone_number.errors.0 }}</div>
                                 {% endif %}
                             </div>
                             <div class="col-sm-6">
                                 <label for="{{ form.email.id_for_label }}" class="form-label small fw-semibold">Email Address <span class="text-danger">*</span></label>
-                                <input type="email" name="email" id="{{ form.email.id_for_label }}" class="form-control" placeholder="applicant@domain.com" x-model="email" required value="{{ form.email.value|default:'' }}">
+                                <input type="email" name="email" id="{{ form.email.id_for_label }}" 
+                                       class="form-control" 
+                                       :class="{'is-invalid': errors.email}"
+                                       placeholder="applicant@domain.com" 
+                                       x-model="email" 
+                                       @input="errors.email = ''"
+                                       value="{{ form.email.value|default:'' }}">
+                                <div class="invalid-feedback d-block" x-show="errors.email" x-text="errors.email" x-cloak></div>
                                 {% if form.email.errors %}
                                     <div class="text-danger small mt-1">{{ form.email.errors.0 }}</div>
                                 {% endif %}
                             </div>
                         </div>
-
                         <!-- Step 1 Navigation -->
                         <div class="d-flex justify-content-end">
-                            <button type="button" class="btn btn-vng-primary px-4 d-inline-flex align-items-center"
-                                    @click="if (!fullName.trim() || !dob || !phone.trim() || !email.trim()) { alert('Please complete all required profile fields before continuing.'); } else { step = 2; }">
+                            <button type="button" class="btn btn-vng-primary px-4 d-inline-flex align-items-center" @click="validateStep1()">
                                 Continue to National Identity &rarr;
                             </button>
                         </div>
@@ -202,8 +268,16 @@
                         <!-- NIN -->
                         <div class="mb-3">
                             <label for="{{ form.nin.id_for_label }}" class="form-label small fw-semibold">National Identity Number (NIN) <span class="text-danger">*</span></label>
-                            <input type="text" name="nin" id="{{ form.nin.id_for_label }}" class="form-control font-monospace" placeholder="11-digit numeric NIN" maxlength="11" x-model="nin" required value="{{ form.nin.value|default:'' }}">
-                            <div class="form-text small">Your NIN is protected and converted into an irreversible cryptographic hash adhering to NDPR standards.</div>
+                            <input type="text" name="nin" id="{{ form.nin.id_for_label }}" 
+                                   class="form-control font-monospace" 
+                                   :class="{'is-invalid': errors.nin}"
+                                   placeholder="11-digit numeric NIN" 
+                                   maxlength="11" 
+                                   x-model="nin" 
+                                   @input="errors.nin = ''"
+                                   value="{{ form.nin.value|default:'' }}">
+                            <div class="invalid-feedback d-block" x-show="errors.nin" x-text="errors.nin" x-cloak></div>
+                            <div class="form-text small" x-show="!errors.nin">Your NIN is protected and converted into an irreversible cryptographic hash adhering to NDPR standards.</div>
                             {% if form.nin.errors %}
                                 <div class="text-danger small mt-1">{{ form.nin.errors.0 }}</div>
                             {% endif %}
@@ -253,8 +327,7 @@
                         <!-- Step 2 Navigation -->
                         <div class="d-flex justify-content-between">
                             <button type="button" class="btn btn-outline-secondary px-3" @click="step = 1">&larr; Back</button>
-                            <button type="button" class="btn btn-vng-primary px-4"
-                                    @click="if (!nin.trim() || nin.trim().length !== 11) { alert('Please enter a valid 11-digit NIN.'); } else { step = 3; }">
+                            <button type="button" class="btn btn-vng-primary px-4" @click="validateStep2()">
                                 Continue to Clearance Tier &rarr;
                             </button>
                         </div>

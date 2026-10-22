@@ -30,6 +30,8 @@ from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.utils import timezone
 
+from core.email_utils import render_email
+from django.urls import reverse
 from core.permissions import employer_required
 from .models import BulkCheckUpload, EmployerProfile, TeamMember
 import hashlib
@@ -39,6 +41,12 @@ from django.views.decorators.http import require_POST
 
 from identities.utils import hash_identifier_value
 from payments.services import check_user_entitlement, consume_user_entitlement
+
+from verification.models import VerificationCertificate
+from reports.models import FraudReport, ReportEvidence
+from identities.models import SubjectEntity
+from core.audit_utils import log_admin_action
+from reports.storage_services import get_storage_service, StorageError
 
 logger = logging.getLogger(__name__)
 
@@ -98,6 +106,12 @@ def employer_dashboard(request):
         .filter(employer=profile, is_active=True)
         .order_by('-created_at')[:5]
     )
+    recent_misconduct_reports = (
+        FraudReport.objects
+        .filter(reporter=request.user)
+        .select_related('target_subject')
+        .order_by('-created_at')[:5]
+    )
 
     # Subscription / Plan widget — Batch 9
    
@@ -112,6 +126,7 @@ def employer_dashboard(request):
     context = {
         'profile':                profile,
         'recent_uploads':         recent_uploads,
+        'recent_misconduct_reports': recent_misconduct_reports,
         'team_count':             team_count,
         'total_uploads':          total_uploads,
         'staff_checks_total':     staff_checks_total,
@@ -976,6 +991,186 @@ def person_check_search(request):
     }
     return render(request, 'employer/person_check.html', context)
 
+
+# ---------------------------------------------------------------------------
+# Staff Misconduct Reporting on Clearance Certificate (DBS)
+# ---------------------------------------------------------------------------
+@login_required
+@employer_required
+def staff_misconduct_report(request):
+    """
+    Legally-grounded 4-step wizard for an employer to report workplace misconduct
+    against a staff member holding a VerifyNG Clearance Certificate.
+    Enforces mandatory documentary proof, legal indemnity warranty, and audit logging.
+    """
+    profile = _get_or_create_employer_profile(request.user)
+    certificate_id_prefill = request.GET.get('certificate_id', '').strip()
+    if request.method == 'POST':
+        cert_id = request.POST.get('certificate_id', '').strip().upper()
+        staff_name = request.POST.get('staff_name', '').strip()
+        job_role = request.POST.get('job_role', '').strip()
+        incident_date = request.POST.get('incident_date') or None
+        misconduct_category = request.POST.get('misconduct_category', 'theft')
+        financial_loss = request.POST.get('financial_loss', '').strip()
+        allegation = request.POST.get('allegation', '').strip()
+        evidence_doc_type = request.POST.get('evidence_doc_type', 'internal_query')
+        evidence_file = request.FILES.get('evidence_file')
+        warrant_truth = request.POST.get('warrant_truth') == 'on'
+        indemnify_platform = request.POST.get('indemnify_platform') == 'on'
+        errors = []
+        if not cert_id:
+            errors.append("Staff Clearance Certificate ID is required.")
+        if not staff_name:
+            errors.append("Staff member's legal name is required.")
+        if not allegation or len(allegation) < 30:
+            errors.append("Please provide a factual, detailed chronological statement (at least 30 characters).")
+        if not evidence_file:
+            errors.append("Mandatory documentary proof (Internal Query, Police FIR, or Audit Sheet) is required.")
+        if not (warrant_truth and indemnify_platform):
+            errors.append("You must warrant the truth of this report and accept the legal indemnity agreement.")
+        certificate = None
+        if cert_id:
+            certificate = VerificationCertificate.objects.filter(certificate_id=cert_id).select_related('subject', 'holder').first()
+            if not certificate:
+                errors.append(f"Clearance Certificate [{cert_id}] was not found on the VerifyNG registry. Please verify the ID.")
+        if errors:
+            context = {
+                'profile': profile,
+                'errors': errors,
+                'form_data': request.POST,
+                'certificate': certificate,
+                'certificate_id_prefill': cert_id or certificate_id_prefill,
+                'page_title': 'Report Staff Misconduct',
+            }
+            return render(request, 'employer/staff_misconduct_report.html', context)
+        # Upload documentary evidence to secure cloud/local storage
+        evidence_public_id = ''
+        if evidence_file:
+            try:
+                storage = get_storage_service()
+                res = storage.upload_evidence(evidence_file, folder_prefix='misconduct_evidence')
+                evidence_public_id = res.get('public_id', '')
+            except StorageError as e:
+                messages.error(request, f"Evidence upload failed: {e}")
+                return redirect('employer:staff_misconduct_report')
+        # Create the FraudReport tied directly to the Certificate's SubjectEntity
+        target_subject = certificate.subject if certificate else None
+        if not target_subject:
+            target_subject = SubjectEntity.objects.create(name=staff_name, type='person')
+        category_labels = {
+            'theft': 'Financial Misappropriation & Cash Theft',
+            'absconded': 'Absconded with Company Property or Goods',
+            'inventory': 'Inventory Diversion / Stock Shortage',
+            'forgery': 'Falsification of Business Records / Forgery',
+            'violence': 'Workplace Violence / Safety Threat',
+        }
+        title = f"Staff Misconduct [{cert_id}]: {category_labels.get(misconduct_category, 'Workplace Misconduct')}"
+        from reports.services import generate_report_reference_number
+        report_ref = generate_report_reference_number()
+        full_allegation = (
+            f"WORKPLACE MISCONDUCT REPORT\n"
+            f"Employer: {profile.company_name} (RC: {profile.company_rc_number or 'N/A'})\n"
+            f"Certificate ID: {cert_id}\n"
+            f"Role: {job_role or 'Staff'}\n"
+            f"Category: {category_labels.get(misconduct_category, misconduct_category)}\n"
+            f"Estimated Loss: {financial_loss or 'Not specified'}\n"
+            f"Evidence Type: {evidence_doc_type}\n\n"
+            f"Factual Timeline & Details:\n{allegation}"
+        )
+        with transaction.atomic():
+            report = FraudReport.objects.create(
+                reference_number=report_ref,
+                reporter=request.user,
+                target_subject=target_subject,
+                title=title,
+                allegation=full_allegation,
+                incident_date=incident_date,
+                state='submitted',
+            )
+            if evidence_public_id or evidence_file:
+                ReportEvidence.objects.create(
+                    report=report,
+                    file=evidence_file,
+                    file_type='document',
+                    description=f"{evidence_doc_type} uploaded by employer {profile.company_name}",
+                    storage_public_id=evidence_public_id,
+                    is_confidential=True,
+                )
+            # Log complete audit trail with IP, Device, Browser, OS, and Location
+            log_admin_action(
+                action='STAFF_MISCONDUCT_REPORTED',
+                action_type='REPORT',
+                performed_by=request.user,
+                report=report,
+                request=request,
+                details={
+                    'certificate_id': cert_id,
+                    'staff_name': staff_name,
+                    'employer': profile.company_name,
+                    'misconduct_category': misconduct_category,
+                    'estimated_loss': financial_loss,
+                    'evidence_public_id': evidence_public_id,
+                }
+            )
+        # 1. Dispatch Employer Confirmation Receipt via built-in email template
+        try:
+            emp_html, emp_text = render_email('misconduct_receipt', {
+                'employer_name': profile.company_name,
+                'staff_name': staff_name,
+                'certificate_id': cert_id,
+                'report_ref': report_ref,
+                'category_display': category_labels.get(misconduct_category, misconduct_category),
+                'submitted_at': timezone.now().strftime('%d %B %Y, %H:%M UTC'),
+            })
+            emp_msg = EmailMultiAlternatives(
+                subject=f"Misconduct Report Received [{report_ref}] — VerifyNG Compliance Desk",
+                body=emp_text,
+                from_email=None,
+                to=[request.user.email],
+            )
+            emp_msg.attach_alternative(emp_html, 'text/html')
+            emp_msg.send(fail_silently=True)
+        except Exception as exc:
+            logger.warning("Failed to dispatch employer misconduct receipt email: %s", exc)
+        # 2. Dispatch 7-Day Due Process Notice to Certificate Holder (if registered)
+        if certificate and certificate.holder and certificate.holder.email:
+            try:
+                deadline_str = (timezone.now() + timedelta(days=7)).strftime('%d %B %Y')
+                dispute_url = request.build_absolute_uri(
+                    reverse('reports:create_dispute', kwargs={'reference_number': report_ref})
+                )
+                staff_html, staff_text = render_email('misconduct_notice', {
+                    'staff_name': certificate.holder.get_full_name() or certificate.holder.username,
+                    'certificate_id': cert_id,
+                    'employer_name': profile.company_name,
+                    'category_display': category_labels.get(misconduct_category, misconduct_category),
+                    'report_ref': report_ref,
+                    'dispute_deadline': deadline_str,
+                    'dispute_url': dispute_url,
+                })
+                staff_msg = EmailMultiAlternatives(
+                    subject=f"Important Notice Regarding Your Workforce Clearance Certificate [{cert_id}]",
+                    body=staff_text,
+                    from_email=None,
+                    to=[certificate.holder.email],
+                )
+                staff_msg.attach_alternative(staff_html, 'text/html')
+                staff_msg.send(fail_silently=True)
+            except Exception as exc:
+                logger.warning("Failed to dispatch employee 7-day misconduct notice email: %s", exc)
+        
+        messages.success(
+            request,
+            f"Workplace misconduct report [{report_ref}] submitted successfully. "
+            "Our compliance desk will review your documentary proof before initiating due-process notification."
+        )
+        return redirect('employer:dashboard')
+    context = {
+        'profile': profile,
+        'certificate_id_prefill': certificate_id_prefill,
+        'page_title': 'Report Staff Misconduct',
+    }
+    return render(request, 'employer/staff_misconduct_report.html', context)
 
 # ---------------------------------------------------------------------------
 # CSV Export — BATCH 8

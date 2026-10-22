@@ -1,0 +1,40 @@
+
+{% extends 'emails/base_email.html' %}
+
+{% block subject %}Misconduct Report Received [{{ report_ref }}] — VerifyNG Compliance Desk{% endblock %}
+
+{% block body %}
+<h1>Misconduct Report Received</h1>
+
+<p>Hi {{ employer_name }},</p>
+
+<p>
+    We have received your workplace misconduct report filed against staff clearance certificate 
+    <strong>{{ certificate_id }}</strong> (Staff: <strong>{{ staff_name }}</strong>).
+</p>
+
+<div class="notice">
+    <p style="margin:0 0 8px;"><strong>Reference Number:</strong> <code>{{ report_ref }}</code></p>
+    <p style="margin:0 0 8px;"><strong>Category:</strong> {{ category_display }}</p>
+    <p style="margin:0 0 8px;"><strong>Submitted On:</strong> {{ submitted_at }}</p>
+    <p style="margin:0;"><strong>Current Status:</strong> Under Compliance Moderation</p>
+</div>
+
+<p><strong>What Happens Next:</strong></p>
+<ol style="font-size:16px;line-height:1.65;color:#1d1d1f;padding-left:20px;margin-bottom:24px;">
+    <li>Our compliance moderation team will inspect your documentary evidence.</li>
+    <li>A formal 7-day fair-hearing notice has been dispatched to the certificate holder allowing them to review the summary and submit counter-evidence.</li>
+    <li>Once reviewed, you will receive an update in your employer dashboard regarding any public registry determination.</li>
+</ol>
+
+<div class="btn-wrap">
+    <a href="{{ site_url }}/employer/" class="btn">View Employer Dashboard</a>
+</div>
+
+<hr class="divider">
+
+<p style="font-size:14px;color:#6e6e73;">
+    If you have additional supporting documents or law enforcement extracts to add to this case, 
+    please reply directly to this email or reach our compliance desk at <a href="mailto:{{ support_email }}" style="color:#0071e3;">{{ support_email }}</a>.
+</p>
+{% endblock %}

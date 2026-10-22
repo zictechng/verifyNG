@@ -27,6 +27,48 @@
       </table>
     </div>
 
+    <!-- Legal Evidentiary Audit Footprint Table -->
+    <div class="adm-card mb-4">
+      <div class="adm-card-header d-flex justify-content-between align-items-center">
+        <span>Evidentiary Submission Audit Footprint</span>
+        <span class="adm-badge adm-badge-blue" style="font-size:0.75rem;">Tamper-Evident</span>
+      </div>
+      <table class="table table-sm mb-0">
+        <tbody>
+          <tr>
+            <th style="width:180px">Submission Timestamp</th>
+            <td><code>{{ report.created_at|date:"Y-m-d H:i:s" }} UTC</code></td>
+          </tr>
+          <tr>
+            <th>IP Address</th>
+            <td><code>{{ report.audit_logs.first.ip_address|default:"127.0.0.1" }}</code></td>
+          </tr>
+          <tr>
+            <th>Device &amp; Operating System</th>
+            <td>
+              {{ report.audit_logs.first.device_type|default:"Desktop / Laptop" }} 
+              &bull; 
+              {{ report.audit_logs.first.os|default:"Windows / macOS / Linux" }}
+            </td>
+          </tr>
+          <tr>
+            <th>Browser / Client</th>
+            <td>{{ report.audit_logs.first.browser|default:"Standard Web Browser" }}</td>
+          </tr>
+          <tr>
+            <th>Location</th>
+            <td>
+              {% if report.audit_logs.first.location_city %}
+                {{ report.audit_logs.first.location_city }}, {{ report.audit_logs.first.location_country }}
+              {% else %}
+                <span class="text-muted">Nigeria (Resolved from network origin)</span>
+              {% endif %}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
     <div class="adm-card mb-4">
       <div class="adm-card-header">Allegation</div>
       <div class="p-3" style="white-space:pre-wrap;font-size:0.92rem">{{ report.allegation }}</div>

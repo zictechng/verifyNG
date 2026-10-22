@@ -1,0 +1,40 @@
+
+{% extends 'emails/base_email.html' %}
+
+{% block subject %}Important Notice Regarding Your Workforce Clearance Certificate [{{ certificate_id }}]{% endblock %}
+
+{% block body %}
+<h1>Notice of Incident Filing</h1>
+
+<p>Dear {{ staff_name }},</p>
+
+<p>
+    A formal workplace misconduct report has been submitted by <strong>{{ employer_name }}</strong> 
+    referencing your VerifyNG Workforce Clearance Certificate (<strong>{{ certificate_id }}</strong>).
+</p>
+
+<div class="notice" style="background:#FFFBEB;border:1px solid #FDE68A;">
+    <p style="margin:0 0 8px;color:#92400E;"><strong>Category:</strong> {{ category_display }}</p>
+    <p style="margin:0 0 8px;color:#92400E;"><strong>Report ID:</strong> <code>{{ report_ref }}</code></p>
+    <p style="margin:0;color:#92400E;"><strong>Dispute Window Closes:</strong> <strong>{{ dispute_deadline }}</strong> (7 Days)</p>
+</div>
+
+<p>
+    In accordance with VerifyNG platform standards and natural justice principles, <strong>no adverse public flag has been placed on your certificate at this time</strong>. 
+    You have a statutory 7-day window to review the factual summary and submit a formal dispute with any counter-evidence before compliance moderation adjudicates the report.
+</p>
+
+<div class="btn-wrap">
+    <a href="{{ dispute_url }}" class="btn">Review Allegation &amp; Submit Defense</a>
+</div>
+
+<p style="font-size:15px;color:#6e6e73;">
+    If you do not submit a dispute before <strong>{{ dispute_deadline }}</strong>, the compliance desk will make an administrative decision based solely on the employer's filed documentation.
+</p>
+
+<hr class="divider">
+
+<p style="font-size:14px;color:#6e6e73;">
+    VerifyNG Dispute Resolution Desk &bull; Reference: {{ report_ref }} &bull; Need help? Contact <a href="mailto:{{ support_email }}" style="color:#0071e3;">{{ support_email }}</a>.
+</p>
+{% endblock %}
