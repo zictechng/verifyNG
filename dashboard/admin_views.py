@@ -19,7 +19,9 @@ from identities.models import Identifier, SubjectEntity
 from core.permissions import is_superadmin
 from core.tasks import send_email_notification_task
 from payments.models import Plan as PlanModel
-
+from dateutil.relativedelta import relativedelta
+from reports.storage_services import get_storage_service
+                    
 from django.db.models import Q
 from django.utils.dateparse import parse_date
 from django.utils import timezone as tz
@@ -2185,6 +2187,7 @@ class AdminCertificateActionView(SuperAdminRequiredMixin, View):
         if action == 'activate':
             cert.status = 'active'
             cert.issued_at = cert.issued_at or now
+            cert.expires_at = (cert.issued_at or now) + relativedelta(years=cert.expiry_years)
             cert.revoked_at = None
             cert.suspended_at = None
             cert.revocation_reason = ''
@@ -2234,10 +2237,30 @@ class AdminCertificateDetailView(SuperAdminRequiredMixin, TemplateView):
         ctx['cert'] = cert
         ctx['now'] = timezone.now()
         ctx['action_url'] = f'/admin-portal/certificates/{cert.pk}/action/'
-        ctx['app_log'] = AuditLog.objects.filter(
-            action="TRUSTPASS_APPLICATION_SUBMITTED",
-            details__certificate_id=cert.certificate_id
-        ).first()
+        # Robust multi-strategy lookup for application audit log (SQLite & Postgres compatible)
+        app_log = None
+        logs = AuditLog.objects.filter(
+            action="TRUSTPASS_APPLICATION_SUBMITTED"
+        ).order_by('-timestamp')[:50]
+        for l in logs:
+            det = l.details if isinstance(l.details, dict) else {}
+            if det.get('certificate_id') == cert.certificate_id or l.performed_by_id == cert.holder_id:
+                app_log = l
+                break
+        ctx['app_log'] = app_log
+        # Resolve uploaded document URL for officer inspection
+        doc_url = ''
+        if app_log and isinstance(app_log.details, dict):
+            doc_pid = app_log.details.get('doc_public_id') or ''
+            if doc_pid:
+                try:
+                    storage = get_storage_service()
+                    ext = doc_pid.split('.')[-1].lower() if '.' in doc_pid else 'jpg'
+                    res_type = 'raw' if ext in ['pdf', 'doc', 'docx'] else 'image'
+                    doc_url = storage.generate_signed_url(public_id=doc_pid, format=ext, resource_type=res_type)
+                except Exception:
+                    doc_url = f"/media/{doc_pid}" if doc_pid.startswith('trustpass_documents') else f"/media/trustpass_documents/{doc_pid}"
+        ctx['doc_url'] = doc_url
         return ctx
 
 

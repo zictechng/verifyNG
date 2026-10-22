@@ -50,21 +50,67 @@
       <dl class="row mb-0 small">
         <dt class="col-5 text-muted">Candidate Name</dt>
         <dd class="col-7 fw-semibold fs-6 text-dark">{{ cert.subject.name }}</dd>
+        <dt class="col-5 text-muted">NIN</dt>
+        <dd class="col-7 font-monospace fw-semibold">
+          {% if app_log.details.nin_masked %}
+            {{ app_log.details.nin_masked }}
+          {% elif app_log.details.nin %}
+            {{ app_log.details.nin }}
+          {% else %}
+            <span class="text-success"><i class="bi bi-shield-lock-fill me-1"></i>Hashed & Encrypted in Registry</span>
+          {% endif %}
+        </dd>
         {% if app_log.details %}
         <dt class="col-5 text-muted">Date of Birth</dt>
         <dd class="col-7">{{ app_log.details.date_of_birth|default:"—" }}</dd>
         <dt class="col-5 text-muted">Gender</dt>
         <dd class="col-7">{{ app_log.details.gender|title|default:"—" }}</dd>
-        <dt class="col-5 text-muted">ID Document Type</dt>
-        <dd class="col-7"><span class="badge bg-light text-dark border">{{ app_log.details.id_document_type|upper|default:"NIN / National ID" }}</span></dd>
+        <dt class="col-5 text-muted">Candidate Phone</dt>
+        <dd class="col-7">{{ app_log.details.phone_number|default:"—" }}</dd>
+        <dt class="col-5 text-muted">Candidate Email</dt>
+        <dd class="col-7">{{ app_log.details.email|default:"—" }}</dd>
+        <dt class="col-5 text-muted">Location</dt>
+        <dd class="col-7">{{ app_log.details.residential_city|default:"" }}{% if app_log.details.residential_state %}, {{ app_log.details.residential_state }}{% endif %}{% if not app_log.details.residential_city and not app_log.details.residential_state %}—{% endif %}</dd>
         <dt class="col-5 text-muted">Employer / Org</dt>
         <dd class="col-7">{{ app_log.details.employer_name|default:"—" }}</dd>
-        <dt class="col-5 text-muted">Job Role</dt>
+        <dt class="col-5 text-muted">Target Job Role</dt>
         <dd class="col-7">{{ app_log.details.job_role|default:"—" }}</dd>
-        <dt class="col-5 text-muted">Location</dt>
-        <dd class="col-7">{{ app_log.details.residential_city|default:"" }}{% if app_log.details.residential_state %}, {{ app_log.details.residential_state }}{% endif %}</dd>
         {% endif %}
       </dl>
+    </div>
+    <!-- Uploaded ID Verification Document Card -->
+    <div class="adm-card p-4 mb-4">
+      <h6 class="fw-semibold mb-3" style="color:var(--adm-ink);border-bottom:1px solid var(--adm-border);padding-bottom:.5rem;">
+        <i class="bi bi-file-earmark-check-fill me-2 text-primary"></i>Verification Document Proof
+      </h6>
+      <dl class="row mb-3 small">
+        <dt class="col-5 text-muted">Document Type</dt>
+        <dd class="col-7">
+          <span class="badge bg-light text-dark border">{{ app_log.details.id_document_type|upper|default:"NIN Slip / National ID" }}</span>
+        </dd>
+        <dt class="col-5 text-muted">Document Status</dt>
+        <dd class="col-7">
+          {% if doc_url or app_log.details.has_document %}
+            <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Attached & Available for Inspection</span>
+          {% else %}
+            <span class="badge bg-secondary">No document uploaded</span>
+          {% endif %}
+        </dd>
+      </dl>
+      {% if doc_url %}
+      <div class="d-flex gap-2">
+        <a href="{{ doc_url }}" target="_blank" class="btn btn-adm-primary btn-sm px-3">
+          <i class="bi bi-box-arrow-up-right me-1"></i>View / Inspect Document
+        </a>
+        <a href="{{ doc_url }}" download class="btn btn-adm-outline btn-sm px-3">
+          <i class="bi bi-download me-1"></i>Download Proof
+        </a>
+      </div>
+      {% elif app_log.details.has_document %}
+      <div class="alert alert-info py-2 px-3 small mb-0">
+        <i class="bi bi-info-circle me-1"></i>Document attached in application archive.
+      </div>
+      {% endif %}
     </div>
     <!-- Applicant / Employer Account card -->
     <div class="adm-card p-4 mb-4">
@@ -82,24 +128,24 @@
         <dd class="col-7">{{ cert.holder.phone_number|default:"—" }}</dd>
       </dl>
     </div>
-
     <!-- Certificate details card -->
     <div class="adm-card p-4 mb-4">
       <h6 class="fw-semibold mb-3" style="color:var(--adm-ink);border-bottom:1px solid var(--adm-border);padding-bottom:.5rem;">
-        <i class="bi bi-award me-2"></i>Certificate Details
+        <i class="bi bi-award me-2"></i>Certificate & Clearance Level Details
       </h6>
       <dl class="row mb-0 small">
         <dt class="col-5 text-muted">Certificate ID</dt>
         <dd class="col-7 font-monospace fw-semibold">{{ cert.certificate_id }}</dd>
-
-        <dt class="col-5 text-muted">Check Level</dt>
+        <dt class="col-5 text-muted">Check Level & Validity</dt>
         <dd class="col-7">
           {% if cert.check_level == 'enhanced' %}
-            <span class="badge" style="background:#6f42c1;">Enhanced Check</span>
+            <span class="badge text-white" style="background:#6f42c1;">Enhanced Check — 3 Years Validity</span>
           {% else %}
-            <span class="badge bg-info text-dark">Employment Check</span>
+            <span class="badge bg-info text-dark">Employment Standard Check — 1 Year Validity</span>
           {% endif %}
         </dd>
+        <dt class="col-5 text-muted">Validity Term</dt>
+        <dd class="col-7">{{ cert.expiry_years }} Year{% if cert.expiry_years > 1 %}s{% endif %} from date of officer activation</dd>
 
         <dt class="col-5 text-muted">Status</dt>
         <dd class="col-7">{{ cert.get_status_display }}</dd>

@@ -31,32 +31,41 @@
 <div class="alert alert-warning">VerificationCertificate model is not available in this environment.</div>
 {% else %}
 <!-- Filters -->
-<form method="get" class="adm-card p-3 mb-4 d-flex flex-wrap gap-2 align-items-end">
-  <div>
-    <label class="form-label fw-semibold small mb-1">Search</label>
-    <input type="text" name="q" class="form-control form-control-sm" placeholder="Candidate name, Cert ID, employer…" value="{{ q }}">
-  </div>
-  <div>
-    <label class="form-label fw-semibold small mb-1">Status</label>
-    <select name="status" class="form-select form-select-sm">
-      <option value="">All Statuses</option>
-      {% for val, lbl in status_choices %}
-      <option value="{{ val }}" {% if status_filter == val %}selected{% endif %}>{{ lbl }}</option>
-      {% endfor %}
-    </select>
-  </div>
-  <div>
-    <label class="form-label fw-semibold small mb-1">Level</label>
-    <select name="level" class="form-select form-select-sm">
-      <option value="">All Levels</option>
-      {% for val, lbl in level_choices %}
-      <option value="{{ val }}" {% if level_filter == val %}selected{% endif %}>{{ lbl }}</option>
-      {% endfor %}
-    </select>
-  </div>
-  <div class="d-flex gap-2">
-    <button type="submit" class="btn btn-adm-primary btn-sm px-4">Filter</button>
-    <a href="{% url 'admin_portal:certificates' %}" class="btn btn-outline-secondary btn-sm">Clear</a>
+<form method="get" class="adm-filter-bar mb-4" style="position:relative;z-index:2;">
+  <div class="row g-2 align-items-end w-100">
+    <div class="col-md-5">
+      <label class="form-label small fw-semibold mb-1" style="color:var(--adm-muted);">Search</label>
+      <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Candidate name, Cert ID, employer…" style="height:38px;">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label small fw-semibold mb-1" style="color:var(--adm-muted);">Status</label>
+      <select name="status" class="form-select" style="height:38px;">
+        <option value="">All Statuses</option>
+        {% for val, lbl in status_choices %}
+        <option value="{{ val }}" {% if status_filter == val %}selected{% endif %}>{{ lbl }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <label class="form-label small fw-semibold mb-1" style="color:var(--adm-muted);">Clearance Level</label>
+      <select name="level" class="form-select" style="height:38px;">
+        <option value="">All Levels</option>
+        {% for val, lbl in level_choices %}
+        <option value="{{ val }}" {% if level_filter == val %}selected{% endif %}>{{ lbl }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <label class="form-label small mb-1" style="color:transparent;">x</label>
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn-adm-primary w-100" style="justify-content:center;height:38px;">Filter</button>
+        {% if q or status_filter or level_filter %}
+        <a href="{% url 'admin_portal:certificates' %}" class="btn-adm-outline" title="Clear filters" style="height:38px;padding:0 12px;display:flex;align-items:center;justify-content:center;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </a>
+        {% endif %}
+      </div>
+    </div>
   </div>
 </form>
 
@@ -203,7 +212,8 @@
 
 <script>
 (function () {
-  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+  const csrfTokenEl = document.querySelector('[name=csrfmiddlewaretoken]');
+  const csrfToken = csrfTokenEl ? csrfTokenEl.value : '';
   let pendingPk = null;
   let pendingAction = null;
   let pendingCertId = null;
