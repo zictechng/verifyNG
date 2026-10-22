@@ -110,9 +110,9 @@
         <i class="bi bi-file-earmark-check-fill me-2 text-primary"></i>Verification Document Proof
       </h6>
       <dl class="row mb-3 small">
-        <dt class="col-5 text-muted">Document Type</dt>
+                <dt class="col-5 text-muted">Document Type</dt>
         <dd class="col-7">
-          <span class="badge bg-light text-dark border">{{ app_log.details.id_document_type|upper|default:"NIN Slip / National ID" }}</span>
+          <span class="badge bg-light text-dark border">{{ app_details.id_document_type|upper|default:"NIN Slip / National ID" }}</span>
         </dd>
         <dt class="col-5 text-muted">Document Status</dt>
         <dd class="col-7">
@@ -124,11 +124,18 @@
         </dd>
       </dl>
       {% if has_doc %}
-      <!-- Inline Preview for Images -->
+      <!-- Inline Preview -->
+      {% if is_pdf %}
+      <div class="mb-3 mt-2 text-center p-3 rounded bg-light border text-muted">
+        <i class="bi bi-file-earmark-pdf text-danger" style="font-size: 2.5rem;"></i>
+        <div class="small mt-1 fw-semibold">PDF Document Attached</div>
+      </div>
+      {% else %}
       <div class="mb-3 mt-2 text-center p-2 rounded bg-light border">
         <img src="{% url 'admin_portal:certificate_document' cert.pk %}" alt="Verification Proof Preview" class="img-fluid rounded" style="max-height:220px;object-fit:contain;"
              onerror="this.parentElement.style.display='none';">
       </div>
+      {% endif %}
       <div class="d-flex flex-wrap gap-2 pt-2 border-top">
         <a href="{% url 'admin_portal:certificate_document' cert.pk %}" target="_blank" rel="noopener noreferrer" class="btn btn-adm-primary btn-sm px-3 d-inline-flex align-items-center">
           <i class="bi bi-box-arrow-up-right me-1"></i>Open Document in New Tab

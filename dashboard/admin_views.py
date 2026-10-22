@@ -2240,61 +2240,55 @@ class AdminCertificateDetailView(SuperAdminRequiredMixin, TemplateView):
         ctx['now'] = timezone.now()
         ctx['action_url'] = f'/admin-portal/certificates/{cert.pk}/action/'
         # Robust multi-strategy lookup for application audit log (SQLite & Postgres compatible)
+                # Robust lookup for application audit log strictly matching THIS certificate_id
         app_log = None
         logs = AuditLog.objects.filter(
             action="TRUSTPASS_APPLICATION_SUBMITTED"
-        ).order_by('-timestamp')[:50]
+        ).order_by('-timestamp')[:100]
         for l in logs:
-            det = l.details if isinstance(l.details, dict) else {}
-            if det.get('certificate_id') == cert.certificate_id or l.performed_by_id == cert.holder_id:
+            det = l.details
+            if isinstance(det, str):
+                try:
+                    det = json.loads(det)
+                except Exception:
+                    det = {}
+            elif not isinstance(det, dict):
+                det = {}
+            if det.get('certificate_id') == cert.certificate_id:
                 app_log = l
                 break
-        ctx['app_log'] = app_log
-        # Extract full ID number for national database verification
-        id_number = ''
-        if app_log and isinstance(app_log.details, dict):
-            id_number = (
-                app_log.details.get('nin') or
-                app_log.details.get('id_number') or
-                app_log.details.get('nin_masked') or
-                ''
-            )
-        ctx['id_number'] = id_number
-        # Resolve uploaded document URL for officer inspection
-        doc_url = ''
-        doc_download_url = ''
-        if app_log and isinstance(app_log.details, dict):
-            doc_pid = app_log.details.get('doc_public_id') or ''
-            if doc_pid:
+
+        app_details = {}
+        if app_log:
+            if isinstance(app_log.details, dict):
+                app_details = app_log.details
+            elif isinstance(app_log.details, str):
                 try:
-                    storage = get_storage_service()
-                    ext = doc_pid.split('.')[-1].lower() if '.' in doc_pid else 'jpg'
-                    res_type = 'raw' if ext in ['pdf', 'doc', 'docx'] else 'image'
-                    # 1. Inline view URL for opening in a new tab (attachment=False)
-                    doc_url = storage.generate_signed_url(public_id=doc_pid, format=ext, resource_type=res_type, attachment=False)
-                    # 2. Direct download URL (attachment=True)
-                    doc_download_url = storage.generate_signed_url(public_id=doc_pid, format=ext, resource_type=res_type, attachment=True)
+                    app_details = json.loads(app_log.details)
                 except Exception:
-                    doc_url = f"/media/{doc_pid}" if doc_pid.startswith('trustpass_documents') else f"/media/trustpass_documents/{doc_pid}"
-                    doc_download_url = doc_url
-            elif app_log.details.get('has_document'):
-                import os
-                from django.conf import settings
-                tp_dir = os.path.join(settings.MEDIA_ROOT, 'trustpass_documents')
-                if os.path.exists(tp_dir):
-                    matched = []
-                    for root, _, filenames in os.walk(tp_dir):
-                        for f in filenames:
-                            full_p = os.path.join(root, f)
-                            matched.append((os.path.getmtime(full_p), os.path.relpath(full_p, settings.MEDIA_ROOT)))
-                    if matched:
-                        matched.sort(reverse=True)
-                        doc_url = f"{settings.MEDIA_URL}{matched[0][1].replace('\\', '/')}"
-                        doc_download_url = doc_url
-        ctx['doc_url'] = doc_url
-        ctx['doc_download_url'] = doc_download_url
-        ctx['alias_flag'] = app_log.details.get('alias_flag', False) if app_log and isinstance(app_log.details, dict) else False
-        ctx['previous_registered_name'] = app_log.details.get('previous_registered_name', '') if app_log and isinstance(app_log.details, dict) else ''
+                    app_details = {}
+
+        ctx['app_log'] = app_log
+        ctx['app_details'] = app_details
+
+        # Extract full ID number for national database verification
+        id_number = (
+            app_details.get('nin') or
+            app_details.get('id_number') or
+            app_details.get('nin_masked') or
+            ''
+        )
+        ctx['id_number'] = id_number
+
+        # Document detection strictly for this certificate
+        doc_pid = app_details.get('doc_public_id') or ''
+        has_doc = bool(doc_pid or app_details.get('has_document'))
+        ext = doc_pid.split('.')[-1].lower() if '.' in doc_pid else 'jpg'
+
+        ctx['has_doc'] = has_doc
+        ctx['is_pdf'] = (ext == 'pdf')
+        ctx['alias_flag'] = app_details.get('alias_flag', False)
+        ctx['previous_registered_name'] = app_details.get('previous_registered_name', '')
         return ctx
 
 
@@ -2312,13 +2306,28 @@ class AdminCertificateDocumentView(SuperAdminRequiredMixin, View):
         # Locate the application audit log strictly for THIS certificate
         app_log = None
         for l in AuditLog.objects.filter(action="TRUSTPASS_APPLICATION_SUBMITTED").order_by('-timestamp')[:200]:
-            det = l.details if isinstance(l.details, dict) else {}
+            det = l.details
+            if isinstance(det, str):
+                try:
+                    det = json.loads(det)
+                except Exception:
+                    det = {}
+            elif not isinstance(det, dict):
+                det = {}
             if det.get('certificate_id') == cert.certificate_id:
                 app_log = l
                 break
-        if not app_log or not isinstance(app_log.details, dict):
+        if not app_log:
             raise Http404("No application metadata found for this certificate.")
-        doc_pid = app_log.details.get('doc_public_id') or ''
+        det = app_log.details
+        if isinstance(det, str):
+            try:
+                det = json.loads(det)
+            except Exception:
+                det = {}
+        elif not isinstance(det, dict):
+            det = {}
+        doc_pid = det.get('doc_public_id') or ''
         if not doc_pid:
             raise Http404("No document proof attached to this application.")
         # Determine file extension and MIME type
