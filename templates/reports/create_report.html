@@ -253,6 +253,7 @@
                         <div class="mb-3">
                             <label for="{{ form.subject_type.id_for_label }}" class="form-label small fw-semibold">Entity Type <span class="text-danger">*</span></label>
                             <select name="subject_type" id="{{ form.subject_type.id_for_label }}" class="form-select" x-model="subjectType" @change="if (subjectType !== 'business') cac = ''">
+                                <option value="">select</option>
                                 {% for val, label in form.subject_type.field.choices %}
                                     <option value="{{ val }}" {% if form.subject_type.value == val %}selected{% endif %}>{{ label }}</option>
                                 {% endfor %}

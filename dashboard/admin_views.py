@@ -19,7 +19,7 @@ from identities.models import Identifier, SubjectEntity
 from core.permissions import is_superadmin
 from core.tasks import send_email_notification_task
 from payments.models import Plan as PlanModel
-            
+
 from django.db.models import Q
 from django.utils.dateparse import parse_date
 from django.utils import timezone as tz
@@ -1046,6 +1046,8 @@ class AdminVerificationsView(SuperAdminRequiredMixin, TemplateView):
         ctx['type_choices'] = VerificationRequest.VERIFICATION_TYPES if VerificationRequest else []
         ctx['selected_status'] = status_filter
         ctx['selected_type'] = type_filter
+        if VerificationCertificate:
+            ctx['pending_certificates_count'] = VerificationCertificate.objects.filter(status='pending').count()
         return ctx
 
 
@@ -2150,9 +2152,9 @@ class AdminCertificatesView(SuperAdminRequiredMixin, TemplateView):
             qs = qs.filter(
                 Q(certificate_id__icontains=q) |
                 Q(holder__username__icontains=q) |
-                Q(holder__email__icontains=q)
+                Q(holder__email__icontains=q) |
+                Q(subject__name__icontains=q)
             )
-
         paginator = Paginator(qs, 30)
         page = self.request.GET.get('page', 1)
         ctx['certificates'] = paginator.get_page(page)
@@ -2162,6 +2164,7 @@ class AdminCertificatesView(SuperAdminRequiredMixin, TemplateView):
         ctx['status_choices'] = VerificationCertificate.STATUS_CHOICES
         ctx['level_choices'] = VerificationCertificate.CHECK_LEVEL_CHOICES
         ctx['total'] = qs.count()
+        ctx['pending_count'] = VerificationCertificate.objects.filter(status='pending').count()
         ctx['now'] = timezone.now()
         return ctx
 
@@ -2231,6 +2234,10 @@ class AdminCertificateDetailView(SuperAdminRequiredMixin, TemplateView):
         ctx['cert'] = cert
         ctx['now'] = timezone.now()
         ctx['action_url'] = f'/admin-portal/certificates/{cert.pk}/action/'
+        ctx['app_log'] = AuditLog.objects.filter(
+            action="TRUSTPASS_APPLICATION_SUBMITTED",
+            details__certificate_id=cert.certificate_id
+        ).first()
         return ctx
 
 

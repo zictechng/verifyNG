@@ -3,25 +3,38 @@
 {% block title %}Verification Certificates — Admin{% endblock %}
 
 {% block admin_body %}
-<div class="adm-page-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+<div class="adm-page-header d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
   <div>
-    <h1 class="adm-page-title">Verification Certificates</h1>
-    <p class="adm-page-sub">Manage issued VerifyNG verification certificates.</p>
+    <h1 class="adm-page-title">TrustPass & DBS Clearance Certificates</h1>
+    <p class="adm-page-sub">Manage candidate background clearance applications and issued credentials.</p>
   </div>
   <span class="badge bg-secondary fs-6 fw-semibold">{{ total }} total</span>
 </div>
-
+<!-- Moderation Navigation Tabs -->
+<ul class="nav nav-pills mb-4 gap-2">
+  <li class="nav-item">
+    <a class="nav-link bg-light text-dark border fw-semibold small" href="{% url 'admin_portal:verifications' %}">
+      <i class="bi bi-person-check me-1"></i>Identity & Document Verifications
+    </a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link active fw-semibold small" href="{% url 'admin_portal:certificates' %}">
+      <i class="bi bi-award me-1"></i>DBS / WCC Clearance Certificates
+      {% if pending_count %}
+      <span class="badge bg-warning text-dark ms-1">{{ pending_count }} Pending</span>
+      {% endif %}
+    </a>
+  </li>
+</ul>
 {% include "admin_portal/_messages.html" %}
-
 {% if no_model %}
 <div class="alert alert-warning">VerificationCertificate model is not available in this environment.</div>
 {% else %}
-
 <!-- Filters -->
 <form method="get" class="adm-card p-3 mb-4 d-flex flex-wrap gap-2 align-items-end">
   <div>
     <label class="form-label fw-semibold small mb-1">Search</label>
-    <input type="text" name="q" class="form-control form-control-sm" placeholder="Cert ID, username, email…" value="{{ q }}">
+    <input type="text" name="q" class="form-control form-control-sm" placeholder="Candidate name, Cert ID, employer…" value="{{ q }}">
   </div>
   <div>
     <label class="form-label fw-semibold small mb-1">Status</label>
@@ -54,10 +67,11 @@
       <thead>
         <tr>
           <th>Certificate ID</th>
-          <th>Holder</th>
-          <th>Level</th>
+          <th>Candidate / Subject</th>
+          <th>Applied By (Employer)</th>
+          <th>Check Level</th>
           <th>Status</th>
-          <th>Issued</th>
+          <th>Submitted</th>
           <th>Expires</th>
           <th class="text-end">Actions</th>
         </tr>
@@ -71,12 +85,18 @@
                style="color:var(--adm-accent);">{{ cert.certificate_id }}</a>
           </td>
           <td>
+            <div class="fw-semibold small text-dark">
+              <i class="bi bi-person-fill text-muted me-1"></i>{{ cert.subject.name|default:"—" }}
+            </div>
+            <div class="text-muted" style="font-size:0.75rem;">Subject ID: #{{ cert.subject.pk }}</div>
+          </td>
+          <td>
             <div class="fw-semibold small">{{ cert.holder.get_full_name|default:cert.holder.username }}</div>
             <div class="text-muted" style="font-size:0.75rem;">{{ cert.holder.email }}</div>
           </td>
           <td>
             {% if cert.check_level == 'enhanced' %}
-            <span class="badge bg-purple text-white" style="background:#6f42c1!important;">Enhanced</span>
+            <span class="badge text-white" style="background:#6f42c1!important;">Enhanced</span>
             {% else %}
             <span class="badge bg-info text-dark">Employment</span>
             {% endif %}
@@ -85,7 +105,7 @@
             {% if cert.status == 'active' %}
               <span class="badge bg-success">Active</span>
             {% elif cert.status == 'pending' %}
-              <span class="badge bg-warning text-dark">Pending</span>
+              <span class="badge bg-warning text-dark"><i class="bi bi-clock me-1"></i>Pending Review</span>
             {% elif cert.status == 'suspended' %}
               <span class="badge bg-warning text-dark">Suspended</span>
             {% elif cert.status == 'revoked' %}
@@ -96,7 +116,7 @@
               <span class="badge bg-secondary">{{ cert.status }}</span>
             {% endif %}
           </td>
-          <td class="small">{{ cert.issued_at|date:"d M Y"|default:"—" }}</td>
+          <td class="small">{{ cert.created_at|date:"d M Y, H:i" }}</td>
           <td class="small">
             {% if cert.expires_at %}
               {% if cert.expires_at < now %}

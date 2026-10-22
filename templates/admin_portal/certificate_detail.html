@@ -42,6 +42,47 @@
   <!-- Left column: certificate info -->
   <div class="col-lg-7">
 
+    <!-- Candidate / Subject card -->
+    <div class="adm-card p-4 mb-4">
+      <h6 class="fw-semibold mb-3" style="color:var(--adm-ink);border-bottom:1px solid var(--adm-border);padding-bottom:.5rem;">
+        <i class="bi bi-person-check-fill me-2 text-primary"></i>Candidate / Staff Profile
+      </h6>
+      <dl class="row mb-0 small">
+        <dt class="col-5 text-muted">Candidate Name</dt>
+        <dd class="col-7 fw-semibold fs-6 text-dark">{{ cert.subject.name }}</dd>
+        {% if app_log.details %}
+        <dt class="col-5 text-muted">Date of Birth</dt>
+        <dd class="col-7">{{ app_log.details.date_of_birth|default:"—" }}</dd>
+        <dt class="col-5 text-muted">Gender</dt>
+        <dd class="col-7">{{ app_log.details.gender|title|default:"—" }}</dd>
+        <dt class="col-5 text-muted">ID Document Type</dt>
+        <dd class="col-7"><span class="badge bg-light text-dark border">{{ app_log.details.id_document_type|upper|default:"NIN / National ID" }}</span></dd>
+        <dt class="col-5 text-muted">Employer / Org</dt>
+        <dd class="col-7">{{ app_log.details.employer_name|default:"—" }}</dd>
+        <dt class="col-5 text-muted">Job Role</dt>
+        <dd class="col-7">{{ app_log.details.job_role|default:"—" }}</dd>
+        <dt class="col-5 text-muted">Location</dt>
+        <dd class="col-7">{{ app_log.details.residential_city|default:"" }}{% if app_log.details.residential_state %}, {{ app_log.details.residential_state }}{% endif %}</dd>
+        {% endif %}
+      </dl>
+    </div>
+    <!-- Applicant / Employer Account card -->
+    <div class="adm-card p-4 mb-4">
+      <h6 class="fw-semibold mb-3" style="color:var(--adm-ink);border-bottom:1px solid var(--adm-border);padding-bottom:.5rem;">
+        <i class="bi bi-building me-2"></i>Submitted By (Employer Account)
+      </h6>
+      <dl class="row mb-0 small">
+        <dt class="col-5 text-muted">Account Name</dt>
+        <dd class="col-7 fw-semibold">{{ cert.holder.get_full_name|default:"—" }}</dd>
+        <dt class="col-5 text-muted">Username</dt>
+        <dd class="col-7">{{ cert.holder.username }}</dd>
+        <dt class="col-5 text-muted">Email</dt>
+        <dd class="col-7">{{ cert.holder.email }}</dd>
+        <dt class="col-5 text-muted">Phone</dt>
+        <dd class="col-7">{{ cert.holder.phone_number|default:"—" }}</dd>
+      </dl>
+    </div>
+    
     <!-- Holder card -->
     <div class="adm-card p-4 mb-4">
       <h6 class="fw-semibold mb-3" style="color:var(--adm-ink);border-bottom:1px solid var(--adm-border);padding-bottom:.5rem;">
