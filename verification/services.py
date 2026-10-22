@@ -434,40 +434,65 @@ def create_trustpass_certificate_application(
             logger.warning("Document upload failed during TrustPass application: %s", e)
     with transaction.atomic():
         subject_name = full_name.strip() or holder.get_full_name().strip() or holder.username
-        subject = SubjectEntity.objects.create(
-            name=subject_name,
-            type='person',
-        )
-        # Register identifiers for community fraud engine & employer reporting matching
+        # Reuse existing SubjectEntity if NIN or Phone is already registered in identity registry
+        subject = None
         if nin and str(nin).strip():
             try:
                 nin_h = hash_identifier_value('nin', nin.strip())
-                Identifier.objects.create(
-                    subject=subject,
-                    type='nin',
-                    value_hash=nin_h
-                )
-            except (ValueError, IntegrityError):
+                existing_nin = Identifier.objects.filter(type='nin', value_hash=nin_h).select_related('subject').first()
+                if existing_nin:
+                    subject = existing_nin.subject
+            except Exception:
+                pass
+        if not subject and phone_number and str(phone_number).strip():
+            try:
+                phone_h = hash_identifier_value('phone', phone_number.strip())
+                existing_phone = Identifier.objects.filter(type='phone', value_hash=phone_h).select_related('subject').first()
+                if existing_phone:
+                    subject = existing_phone.subject
+            except Exception:
+                pass
+        if not subject:
+            subject = SubjectEntity.objects.create(
+                name=subject_name,
+                type='person',
+            )
+        # Register identifiers safely with existence check and savepoint isolation
+        if nin and str(nin).strip():
+            try:
+                nin_h = hash_identifier_value('nin', nin.strip())
+                if not Identifier.objects.filter(value_hash=nin_h).exists():
+                    with transaction.atomic():
+                        Identifier.objects.create(
+                            subject=subject,
+                            type='nin',
+                            value_hash=nin_h
+                        )
+            except Exception:
                 pass
         if phone_number and str(phone_number).strip():
             try:
                 phone_h = hash_identifier_value('phone', phone_number.strip())
-                Identifier.objects.create(
-                    subject=subject,
-                    type='phone',
-                    value_hash=phone_h
-                )
-            except (ValueError, IntegrityError):
+                if not Identifier.objects.filter(value_hash=phone_h).exists():
+                    with transaction.atomic():
+                        Identifier.objects.create(
+                            subject=subject,
+                            type='phone',
+                            value_hash=phone_h
+                        )
+            except Exception:
                 pass
         if email and str(email).strip():
             try:
                 email_h = hash_identifier_value('email', email.strip())
-                Identifier.objects.create(
-                    subject=subject,
-                    type='email',
-                    value_hash=email_h
-                )
-            except (ValueError, IntegrityError):
+                if not Identifier.objects.filter(value_hash=email_h).exists():
+                    with transaction.atomic():
+                        Identifier.objects.create(
+                            subject=subject,
+                            type='email',
+                            value_hash=email_h
+                        )
+            except Exception:
                 pass
         cert_id = generate_certificate_id()
         certificate = VerificationCertificate.objects.create(
