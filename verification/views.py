@@ -494,7 +494,8 @@ class CertificatePublicVerifyView(View):
                 app_log = l
                 break
         det = app_log.details if (app_log and isinstance(app_log.details, dict)) else {}
-        candidate_name = cert.subject_name
+
+        candidate_name = (cert.subject.name if cert.subject else None) or det.get('full_name')
         if not candidate_name and cert.holder:
             candidate_name = cert.holder.get_full_name() or cert.holder.username
         nin_raw = det.get('nin', '')
