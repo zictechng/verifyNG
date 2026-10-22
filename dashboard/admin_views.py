@@ -2282,7 +2282,7 @@ class AdminCertificateDetailView(SuperAdminRequiredMixin, TemplateView):
 
         # Document detection strictly for this certificate
         doc_pid = app_details.get('doc_public_id') or ''
-        has_doc = bool(doc_pid or app_details.get('has_document'))
+        has_doc = bool(doc_pid)
         ext = doc_pid.split('.')[-1].lower() if '.' in doc_pid else 'jpg'
 
         ctx['has_doc'] = has_doc
@@ -2318,7 +2318,9 @@ class AdminCertificateDocumentView(SuperAdminRequiredMixin, View):
                 app_log = l
                 break
         if not app_log:
-            raise Http404("No application metadata found for this certificate.")
+            messages.warning(request, f"No application submission record found for certificate {cert.certificate_id}.")
+            return redirect('admin_portal:certificate_detail', pk=cert.pk)
+
         det = app_log.details
         if isinstance(det, str):
             try:
@@ -2327,9 +2329,12 @@ class AdminCertificateDocumentView(SuperAdminRequiredMixin, View):
                 det = {}
         elif not isinstance(det, dict):
             det = {}
+
         doc_pid = det.get('doc_public_id') or ''
         if not doc_pid:
-            raise Http404("No document proof attached to this application.")
+            messages.warning(request, f"No identity document proof was attached to application {cert.certificate_id}.")
+            return redirect('admin_portal:certificate_detail', pk=cert.pk)
+
         # Determine file extension and MIME type
         ext = doc_pid.split('.')[-1].lower() if '.' in doc_pid else 'jpg'
         content_type, _ = mimetypes.guess_type(f"proof.{ext}")
@@ -2338,14 +2343,15 @@ class AdminCertificateDocumentView(SuperAdminRequiredMixin, View):
         as_download = request.GET.get('download') == '1'
         disposition_type = 'attachment' if as_download else 'inline'
         safe_filename = f"{cert.certificate_id}_proof.{ext}"
+
         # 1. Local storage check
-        
         local_path = os.path.join(settings.MEDIA_ROOT, doc_pid)
         if os.path.exists(local_path):
             with open(local_path, 'rb') as f:
                 resp = HttpResponse(f.read(), content_type=content_type)
                 resp['Content-Disposition'] = f'{disposition_type}; filename="{safe_filename}"'
                 return resp
+
         # 2. Cloudinary storage stream
         try:
             storage = get_storage_service()
@@ -2359,7 +2365,8 @@ class AdminCertificateDocumentView(SuperAdminRequiredMixin, View):
                 return resp
         except Exception as e:
             logger.error("Failed streaming verification document for %s: %s", cert.certificate_id, e)
-            raise Http404("Unable to load document proof from storage.")
+            messages.error(request, f"Unable to retrieve document proof for {cert.certificate_id} from storage.")
+            return redirect('admin_portal:certificate_detail', pk=cert.pk)
 
 
 class AdminMenuAccessView(SuperAdminRequiredMixin, View):
