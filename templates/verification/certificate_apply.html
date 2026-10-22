@@ -1,109 +1,419 @@
-
 {% extends 'public/base.html' %}
 {% load static %}
 
-{% block title %}Apply for Certificate | {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
+{% block title %}Apply for TrustPass Clearance Certificate | {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
+
+{% block extra_head %}
+<style>
+    [x-cloak] { display: none !important; }
+    .vng-tier-card {
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: 2px solid var(--vng-border, #E3E9F2);
+        border-radius: var(--vng-radius-md, 12px);
+    }
+    .vng-tier-card:hover {
+        border-color: var(--vng-primary, #2457D6);
+        background-color: #F8FAFC;
+    }
+    .vng-tier-card.selected {
+        border-color: var(--vng-primary, #2457D6);
+        background-color: #F0F5FF;
+        box-shadow: 0 0 0 1px var(--vng-primary, #2457D6);
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="container py-4 py-md-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-9 col-md-11">
 
-     <div class="mb-4">
-        <a href="javascript:void(0)" onclick="if(document.referrer){history.back();}else{window.location.href='{% url 'verification:my_certificates' %}';}" class="text-decoration-none small fw-semibold text-muted d-inline-flex align-items-center gap-1">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-            Back
-        </a>
-        <h1 class="h3 fw-bold mt-1 mb-0">Apply for a Verification Certificate</h1>
-        <p class="small text-muted mb-0">Issue a portable VerifyNG certificate from a completed verification request.</p>
-    </div>
-
-    {% if messages %}
-        {% for message in messages %}
-            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show mb-3" role="alert">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            <!-- Breadcrumb & Header -->
+            <div class="mb-4 text-center">
+                <span class="vng-badge-trust mb-2">Workforce Trust & Integrity</span>
+                <h1 class="h3 fw-bold">Apply for TrustPass™ Clearance Certificate</h1>
+                <p class="small text-muted mb-0">Official workplace background and integrity clearance for employment and licensing across Nigeria.</p>
             </div>
-        {% endfor %}
-    {% endif %}
 
-    <div class="row g-4">
-        <div class="col-lg-7">
-            <div class="vng-card p-4">
-                <h2 class="h6 fw-semibold mb-3 text-uppercase text-muted" style="letter-spacing:.05em;">Certificate Details</h2>
-                <form method="post" id="certificateApplyForm" novalidate>
+            <!-- Stepper Container -->
+            <div class="vng-card p-4 p-md-5" x-data="{
+                step: 1,
+                maxStep: 4,
+                submitting: false,
+                fullName: '{{ form.full_name.value|default:''|escapejs }}',
+                dob: '{{ form.date_of_birth.value|default:''|escapejs }}',
+                gender: '{{ form.gender.value|default:'male'|escapejs }}',
+                phone: '{{ form.phone_number.value|default:''|escapejs }}',
+                email: '{{ form.email.value|default:''|escapejs }}',
+                nin: '{{ form.nin.value|default:''|escapejs }}',
+                docType: '{{ form.id_document_type.value|default:'nin_slip'|escapejs }}',
+                checkLevel: '{{ form.check_level.value|default:'employment'|escapejs }}',
+                employerName: '{{ form.employer_name.value|default:''|escapejs }}',
+                jobRole: '{{ form.job_role.value|default:''|escapejs }}',
+                state: '{{ form.residential_state.value|default:''|escapejs }}',
+                city: '{{ form.residential_city.value|default:''|escapejs }}',
+                fileName: '',
+                fileSize: '',
+                isImage: false,
+                imagePreview: null,
+                declared: false,
+                handleFileSelect(event) {
+                    const file = event.target.files[0];
+                    if (file) {
+                        this.fileName = file.name;
+                        this.fileSize = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+                        if (file.type.startsWith('image/')) {
+                            this.isImage = true;
+                            const reader = new FileReader();
+                            reader.onload = (e) => { this.imagePreview = e.target.result; };
+                            reader.readAsDataURL(file);
+                        } else {
+                            this.isImage = false;
+                            this.imagePreview = null;
+                        }
+                    }
+                }
+            }">
+
+                <!-- Wizard Progress Indicator -->
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between align-items-center position-relative mb-2">
+                        <!-- Progress line behind pills -->
+                        <div class="position-absolute top-50 start-0 w-100" style="height: 3px; background-color: var(--vng-border, #E3E9F2); z-index: 1;"></div>
+                        <div class="position-absolute top-50 start-0" :style="'height: 3px; background-color: var(--vng-primary, #2457D6); z-index: 1; transition: width 0.3s; width: ' + ((step - 1) / 3 * 100) + '%;'"></div>
+
+                        <!-- Step 1 Indicator -->
+                        <button type="button" @click="step = 1" class="btn btn-sm rounded-circle d-flex align-items-center justify-content-center p-0 position-relative" style="width: 38px; height: 38px; z-index: 2;" :class="step >= 1 ? 'btn-primary' : 'btn-light border'">
+                            <span class="fw-bold">1</span>
+                        </button>
+                        <!-- Step 2 Indicator -->
+                        <button type="button" @click="if (fullName.trim() && dob && phone.trim()) step = 2" class="btn btn-sm rounded-circle d-flex align-items-center justify-content-center p-0 position-relative" style="width: 38px; height: 38px; z-index: 2;" :class="step >= 2 ? 'btn-primary' : 'btn-light border'">
+                            <span class="fw-bold">2</span>
+                        </button>
+                        <!-- Step 3 Indicator -->
+                        <button type="button" @click="if (fullName.trim() && dob && phone.trim() && nin.trim().length === 11) step = 3" class="btn btn-sm rounded-circle d-flex align-items-center justify-content-center p-0 position-relative" style="width: 38px; height: 38px; z-index: 2;" :class="step >= 3 ? 'btn-primary' : 'btn-light border'">
+                            <span class="fw-bold">3</span>
+                        </button>
+                        <!-- Step 4 Indicator -->
+                        <button type="button" @click="if (fullName.trim() && dob && phone.trim() && nin.trim().length === 11) step = 4" class="btn btn-sm rounded-circle d-flex align-items-center justify-content-center p-0 position-relative" style="width: 38px; height: 38px; z-index: 2;" :class="step === 4 ? 'btn-primary' : 'btn-light border'">
+                            <span class="fw-bold">4</span>
+                        </button>
+                    </div>
+                    <div class="d-flex justify-content-between text-muted small px-1">
+                        <span :class="step === 1 ? 'fw-bold text-primary' : ''">1. Personal Profile</span>
+                        <span :class="step === 2 ? 'fw-bold text-primary' : ''">2. National ID</span>
+                        <span :class="step === 3 ? 'fw-bold text-primary' : ''">3. Purpose & Tier</span>
+                        <span :class="step === 4 ? 'fw-bold text-primary' : ''">4. Review & Submit</span>
+                    </div>
+                </div>
+
+                <!-- Global Form Errors Alert -->
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger mb-4" role="alert">
+                        {% for error in form.non_field_errors %}
+                            <p class="small mb-0">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <form method="post" enctype="multipart/form-data" novalidate @submit="submitting = true">
                     {% csrf_token %}
 
-                    {% for field in form %}
+                    <!-- ========================================== -->
+                    <!-- STEP 1: Personal Profile                   -->
+                    <!-- ========================================== -->
+                    <div x-show="step === 1" x-transition>
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <span class="badge bg-primary px-2 py-1">Step 1 of 4</span>
+                            <h5 class="fw-bold mb-0">Personal Profile & Contact Information</h5>
+                        </div>
+                        <p class="small text-muted mb-4">
+                            Provide your official personal details exactly as they appear on your government-issued credentials.
+                        </p>
+
+                        <!-- Full Name -->
                         <div class="mb-3">
-                            <label for="{{ field.id_for_label }}" class="form-label fw-semibold small">
-                                {{ field.label }}{% if field.field.required %} <span class="text-danger">*</span>{% endif %}
-                            </label>
-                            {{ field }}
-                            {% if field.help_text %}
-                                <div class="form-text text-muted">{{ field.help_text }}</div>
+                            <label for="{{ form.full_name.id_for_label }}" class="form-label small fw-semibold">Legal Full Name <span class="text-danger">*</span></label>
+                            <input type="text" name="full_name" id="{{ form.full_name.id_for_label }}" class="form-control" placeholder="Firstname Middlename Surname" x-model="fullName" required value="{{ form.full_name.value|default:'' }}">
+                            {% if form.full_name.errors %}
+                                <div class="text-danger small mt-1">{{ form.full_name.errors.0 }}</div>
                             {% endif %}
-                            {% for error in field.errors %}
-                                <div class="invalid-feedback d-block">{{ error }}</div>
-                            {% endfor %}
                         </div>
-                    {% endfor %}
 
-                    {% if form.non_field_errors %}
-                        <div class="alert alert-danger">
-                            {% for error in form.non_field_errors %}
-                                <div>{{ error }}</div>
-                            {% endfor %}
+                        <!-- Date of Birth & Gender -->
+                        <div class="row g-3 mb-3">
+                            <div class="col-sm-6">
+                                <label for="{{ form.date_of_birth.id_for_label }}" class="form-label small fw-semibold">Date of Birth <span class="text-danger">*</span></label>
+                                <input type="date" name="date_of_birth" id="{{ form.date_of_birth.id_for_label }}" class="form-control" x-model="dob" required value="{{ form.date_of_birth.value|default:'' }}">
+                                {% if form.date_of_birth.errors %}
+                                    <div class="text-danger small mt-1">{{ form.date_of_birth.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-sm-6">
+                                <label for="{{ form.gender.id_for_label }}" class="form-label small fw-semibold">Gender <span class="text-danger">*</span></label>
+                                <select name="gender" id="{{ form.gender.id_for_label }}" class="form-select" x-model="gender">
+                                    {% for val, label in form.gender.field.choices %}
+                                        <option value="{{ val }}" {% if form.gender.value == val %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
                         </div>
-                    {% endif %}
 
-                    <div class="d-flex gap-2 mt-4">
-                        <button type="submit" id="btnIssueCert" class="btn btn-vng-primary d-inline-flex align-items-center justify-content-center">
-                            <span class="btn-text">Issue Certificate</span>
-                            <span class="btn-spinner d-none">
-                                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                                Issuing Certificate...
-                            </span>
-                        </button>
-                        <a href="javascript:void(0)" onclick="if(document.referrer){history.back();}else{window.location.href='{% url 'verification:my_certificates' %}';}" class="btn btn-vng-outline">Cancel</a>
+                        <!-- Phone & Email -->
+                        <div class="row g-3 mb-4">
+                            <div class="col-sm-6">
+                                <label for="{{ form.phone_number.id_for_label }}" class="form-label small fw-semibold">Mobile Phone Number <span class="text-danger">*</span></label>
+                                <input type="text" name="phone_number" id="{{ form.phone_number.id_for_label }}" class="form-control" placeholder="08012345678 or +234..." x-model="phone" required value="{{ form.phone_number.value|default:'' }}">
+                                {% if form.phone_number.errors %}
+                                    <div class="text-danger small mt-1">{{ form.phone_number.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-sm-6">
+                                <label for="{{ form.email.id_for_label }}" class="form-label small fw-semibold">Email Address <span class="text-danger">*</span></label>
+                                <input type="email" name="email" id="{{ form.email.id_for_label }}" class="form-control" placeholder="applicant@domain.com" x-model="email" required value="{{ form.email.value|default:'' }}">
+                                {% if form.email.errors %}
+                                    <div class="text-danger small mt-1">{{ form.email.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Step 1 Navigation -->
+                        <div class="d-flex justify-content-end">
+                            <button type="button" class="btn btn-vng-primary px-4 d-inline-flex align-items-center"
+                                    @click="if (!fullName.trim() || !dob || !phone.trim() || !email.trim()) { alert('Please complete all required profile fields before continuing.'); } else { step = 2; }">
+                                Continue to National Identity &rarr;
+                            </button>
+                        </div>
                     </div>
+
+                    <!-- ========================================== -->
+                    <!-- STEP 2: National Identity & Document Proof -->
+                    <!-- ========================================== -->
+                    <div x-show="step === 2" x-transition x-cloak>
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <span class="badge bg-primary px-2 py-1">Step 2 of 4</span>
+                            <h5 class="fw-bold mb-0">National Identity & Government Credentials</h5>
+                        </div>
+                        <p class="small text-muted mb-4">
+                            National identity records verify that your TrustPass certificate is unique, non-duplicable, and verifiable by prospective employers.
+                        </p>
+
+                        <!-- NIN -->
+                        <div class="mb-3">
+                            <label for="{{ form.nin.id_for_label }}" class="form-label small fw-semibold">National Identity Number (NIN) <span class="text-danger">*</span></label>
+                            <input type="text" name="nin" id="{{ form.nin.id_for_label }}" class="form-control font-monospace" placeholder="11-digit numeric NIN" maxlength="11" x-model="nin" required value="{{ form.nin.value|default:'' }}">
+                            <div class="form-text small">Your NIN is protected and converted into an irreversible cryptographic hash adhering to NDPR standards.</div>
+                            {% if form.nin.errors %}
+                                <div class="text-danger small mt-1">{{ form.nin.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- ID Document Type -->
+                        <div class="mb-3">
+                            <label for="{{ form.id_document_type.id_for_label }}" class="form-label small fw-semibold">Supporting ID Document Category <span class="text-danger">*</span></label>
+                            <select name="id_document_type" id="{{ form.id_document_type.id_for_label }}" class="form-select" x-model="docType">
+                                {% for val, label in form.id_document_type.field.choices %}
+                                    <option value="{{ val }}" {% if form.id_document_type.value == val %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Drag & Drop Upload -->
+                        <div class="mb-4">
+                            <label class="form-label small fw-semibold">Upload ID Document (Optional Proof — PNG, JPG, PDF up to 10 MB)</label>
+                            <div class="border rounded p-4 text-center bg-light position-relative" style="border-style: dashed !important; border-color: var(--vng-border, #E3E9F2) !important;">
+                                <input type="file" name="id_document_file" id="{{ form.id_document_file.id_for_label }}" class="position-absolute top-0 start-0 w-100 h-100 opacity-0 cursor-pointer" @change="handleFileSelect($event)" accept=".png,.jpg,.jpeg,.pdf">
+                                
+                                <template x-if="!fileName">
+                                    <div>
+                                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-muted mb-2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                        <div class="fw-semibold small">Drag & drop or click to upload ID copy</div>
+                                        <div class="text-muted small">PNG, JPG, or PDF (Max 10 MB)</div>
+                                    </div>
+                                </template>
+
+                                <template x-if="fileName">
+                                    <div class="d-flex align-items-center justify-content-center gap-3">
+                                        <template x-if="isImage && imagePreview">
+                                            <img :src="imagePreview" alt="ID Preview" style="max-height: 60px; max-width: 80px;" class="rounded border shadow-sm">
+                                        </template>
+                                        <div class="text-start">
+                                            <div class="fw-bold text-primary small" x-text="fileName"></div>
+                                            <div class="text-muted small" x-text="fileSize"></div>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                            {% if form.id_document_file.errors %}
+                                <div class="text-danger small mt-1">{{ form.id_document_file.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Step 2 Navigation -->
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-outline-secondary px-3" @click="step = 1">&larr; Back</button>
+                            <button type="button" class="btn btn-vng-primary px-4"
+                                    @click="if (!nin.trim() || nin.trim().length !== 11) { alert('Please enter a valid 11-digit NIN.'); } else { step = 3; }">
+                                Continue to Clearance Tier &rarr;
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- ========================================== -->
+                    <!-- STEP 3: Clearance Tier & Workplace Purpose -->
+                    <!-- ========================================== -->
+                    <div x-show="step === 3" x-transition x-cloak>
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <span class="badge bg-primary px-2 py-1">Step 3 of 4</span>
+                            <h5 class="fw-bold mb-0">Clearance Tier & Workplace Purpose</h5>
+                        </div>
+                        <p class="small text-muted mb-4">
+                            Select your clearance package and specify the employer or role requesting this certificate.
+                        </p>
+
+                        <!-- Clearance Tiers Selection Cards -->
+                        <div class="mb-4">
+                            <label class="form-label small fw-semibold">Select Clearance Tier <span class="text-danger">*</span></label>
+                            <div class="row g-3">
+                                <div class="col-sm-6">
+                                    <div class="p-3 vng-tier-card" :class="checkLevel === 'employment' ? 'selected' : ''" @click="checkLevel = 'employment'">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="check_level" id="tierEmployment" value="employment" x-model="checkLevel">
+                                            <label class="form-check-label fw-bold text-dark" for="tierEmployment">
+                                                Standard TrustPass
+                                            </label>
+                                        </div>
+                                        <div class="badge bg-success mt-2 mb-2">1-Year Validity</div>
+                                        <p class="small text-muted mb-0">
+                                            National identity confirmation + Fraud & Theft Registry check. Ideal for drivers, retail store cashiers, sales staff, and domestic workers.
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <div class="p-3 vng-tier-card" :class="checkLevel === 'enhanced' ? 'selected' : ''" @click="checkLevel = 'enhanced'">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="check_level" id="tierEnhanced" value="enhanced" x-model="checkLevel">
+                                            <label class="form-check-label fw-bold text-dark" for="tierEnhanced">
+                                                Enhanced TrustPass
+                                            </label>
+                                        </div>
+                                        <div class="badge bg-primary mt-2 mb-2">3-Year Validity</div>
+                                        <p class="small text-muted mb-0">
+                                            Comprehensive background vetting + multi-identifier integrity screening. Recommended for management, healthcare, accountants, and armed security.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Employer & Role -->
+                        <div class="row g-3 mb-3">
+                            <div class="col-sm-6">
+                                <label for="{{ form.employer_name.id_for_label }}" class="form-label small fw-semibold">Requesting Employer / Business Name</label>
+                                <input type="text" name="employer_name" id="{{ form.employer_name.id_for_label }}" class="form-control" placeholder="e.g. Acme Supermarkets Ltd or Personal" x-model="employerName" value="{{ form.employer_name.value|default:'' }}">
+                                <div class="form-text small">Enter your prospective employer or 'Independent Worker'.</div>
+                            </div>
+                            <div class="col-sm-6">
+                                <label for="{{ form.job_role.id_for_label }}" class="form-label small fw-semibold">Proposed Job Designation / Role</label>
+                                <input type="text" name="job_role" id="{{ form.job_role.id_for_label }}" class="form-control" placeholder="e.g. Driver, Cashier, Operations, Security" x-model="jobRole" value="{{ form.job_role.value|default:'' }}">
+                            </div>
+                        </div>
+
+                        <!-- State & City -->
+                        <div class="row g-3 mb-4">
+                            <div class="col-sm-6">
+                                <label for="{{ form.residential_state.id_for_label }}" class="form-label small fw-semibold">Residential State</label>
+                                <select name="residential_state" id="{{ form.residential_state.id_for_label }}" class="form-select" x-model="state">
+                                    {% for val, label in form.residential_state.field.choices %}
+                                        <option value="{{ val }}" {% if form.residential_state.value == val %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-sm-6">
+                                <label for="{{ form.residential_city.id_for_label }}" class="form-label small fw-semibold">Residential City / Area</label>
+                                <input type="text" name="residential_city" id="{{ form.residential_city.id_for_label }}" class="form-control" placeholder="e.g. Ikeja, Lekki, Wuse II" x-model="city" value="{{ form.residential_city.value|default:'' }}">
+                            </div>
+                        </div>
+
+                        <!-- Step 3 Navigation -->
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-outline-secondary px-3" @click="step = 2">&larr; Back</button>
+                            <button type="button" class="btn btn-vng-primary px-4" @click="step = 4">
+                                Review Summary &rarr;
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- ========================================== -->
+                    <!-- STEP 4: Review Summary & Submission        -->
+                    <!-- ========================================== -->
+                    <div x-show="step === 4" x-transition x-cloak>
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <span class="badge bg-primary px-2 py-1">Step 4 of 4</span>
+                            <h5 class="fw-bold mb-0">Review Application & Submit</h5>
+                        </div>
+                        <p class="small text-muted mb-4">
+                            Please review your details carefully before dispatching your application to the verification moderation desk.
+                        </p>
+
+                        <!-- Review Card -->
+                        <div class="card bg-light border-0 p-3 mb-4">
+                            <h6 class="fw-bold text-dark small text-uppercase mb-3">Application Summary</h6>
+                            <dl class="row small mb-0">
+                                <dt class="col-sm-4 text-muted">Applicant Name:</dt>
+                                <dd class="col-sm-8 fw-semibold" x-text="fullName"></dd>
+
+                                <dt class="col-sm-4 text-muted">DOB & Gender:</dt>
+                                <dd class="col-sm-8" x-text="dob + ' &middot; ' + gender"></dd>
+
+                                <dt class="col-sm-4 text-muted">Contact Info:</dt>
+                                <dd class="col-sm-8" x-text="phone + ' &middot; ' + email"></dd>
+
+                                <dt class="col-sm-4 text-muted">National Identity:</dt>
+                                <dd class="col-sm-8 font-monospace" x-text="'NIN: ' + nin.substring(0, 3) + '*****' + nin.substring(8)"></dd>
+
+                                <dt class="col-sm-4 text-muted">Selected Tier:</dt>
+                                <dd class="col-sm-8">
+                                    <span class="badge" :class="checkLevel === 'employment' ? 'bg-success' : 'bg-primary'" x-text="checkLevel === 'employment' ? 'Standard TrustPass (1-Year Validity)' : 'Enhanced TrustPass (3-Year Validity)'"></span>
+                                </dd>
+
+                                <dt class="col-sm-4 text-muted">Target Workplace:</dt>
+                                <dd class="col-sm-8" x-text="(employerName ? employerName : 'Independent') + (jobRole ? ' — ' + jobRole : '')"></dd>
+
+                                <dt class="col-sm-4 text-muted">Residential Location:</dt>
+                                <dd class="col-sm-8" x-text="[city, state].filter(Boolean).join(', ') || 'Not specified'"></dd>
+
+                                <dt class="col-sm-4 text-muted">Document Attached:</dt>
+                                <dd class="col-sm-8" x-text="fileName ? fileName + ' (' + fileSize + ')' : 'None provided'"></dd>
+                            </dl>
+                        </div>
+
+                        <!-- Legal Declaration Checkbox -->
+                        <div class="form-check mb-4">
+                            <input class="form-check-input" type="checkbox" name="declaration" id="{{ form.declaration.id_for_label }}" x-model="declared" required>
+                            <label class="form-check-label small" for="{{ form.declaration.id_for_label }}">
+                                <strong>Good-faith legal declaration:</strong> I declare under penalty of platform suspension and legal liability that the information provided in this clearance application is accurate and represents my true identity. I consent to VerifyNG performing background checks against national registries and community integrity databases.
+                            </label>
+                            {% if form.declaration.errors %}
+                                <div class="text-danger small mt-1">{{ form.declaration.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Step 4 Navigation & Submit -->
+                        <div class="d-flex justify-content-between align-items-center">
+                            <button type="button" class="btn btn-outline-secondary px-3" @click="step = 3" :disabled="submitting">&larr; Back</button>
+                            <button type="submit" class="btn btn-vng-primary px-5 py-2 d-inline-flex align-items-center justify-content-center" :disabled="!declared || submitting">
+                                <span x-show="!submitting">Submit Clearance Application &rarr;</span>
+                                <span x-show="submitting" x-cloak class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                <span x-show="submitting" x-cloak>Submitting Application...</span>
+                            </button>
+                        </div>
+                    </div>
+
                 </form>
             </div>
         </div>
-
-        {% if completed_requests %}
-        <div class="col-lg-5">
-            <div class="vng-card p-4">
-                <h2 class="h6 fw-semibold mb-3 text-uppercase text-muted" style="letter-spacing:.05em;">Your Eligible Requests</h2>
-                <div class="list-group list-group-flush">
-                    {% for req in completed_requests %}
-                        <div class="list-group-item px-0 py-2 border-0 border-bottom">
-                            <div class="fw-semibold small font-monospace">{{ req.reference_number }}</div>
-                            <div class="small text-muted">{{ req.target_subject.name }} &middot; {{ req.get_verification_type_display }}</div>
-                            <div class="small text-muted">{{ req.created_at|date:"M j, Y" }}</div>
-                        </div>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-        {% endif %}
     </div>
 </div>
-
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    const form = document.getElementById('certificateApplyForm');
-    const submitBtn = document.getElementById('btnIssueCert');
-    if (form && submitBtn) {
-        form.addEventListener('submit', function () {
-            const btnText = submitBtn.querySelector('.btn-text');
-            const btnSpinner = submitBtn.querySelector('.btn-spinner');
-            if (btnText && btnSpinner) {
-                btnText.classList.add('d-none');
-                btnSpinner.classList.remove('d-none');
-            }
-            submitBtn.disabled = true;
-        });
-    }
-});
-</script>
 {% endblock %}
-

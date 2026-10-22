@@ -6,6 +6,8 @@ from verification.models import VerificationRequest, VerificationResult
 from identities.models import SubjectEntity
 from identities.utils import SUPPORTED_IDENTIFIER_TYPES, normalize_identifier
 from verification.models import VerificationCertificate
+from identities.utils import normalize_identifier
+from reports.forms import validate_file_upload, NIGERIAN_STATES
 
 class VerificationRequestCreateForm(forms.Form):
     subject_name = forms.CharField(
@@ -113,41 +115,166 @@ class OfficerRejectionForm(forms.Form):
         })
     )
 
-
-
 # ============================================================
-# W-08: Certificate application form
+# TrustPass (Background Clearance Certificate) Application Form
 # ============================================================
 
 class CertificateApplyForm(forms.Form):
     """
-    Form for a user to apply for a VerificationCertificate
-    against one of their completed VerificationRequests.
+    Direct registration form for an individual to apply for an official
+    VerifyNG TrustPass (Background Clearance Certificate) — DBS-style workflow.
     """
-    verification_reference = forms.CharField(
-        max_length=50,
+    # ── Step 1: Personal Profile 
+    full_name = forms.CharField(
+        max_length=200,
         required=True,
         widget=forms.TextInput(attrs={
-            'class': 'form-control font-monospace',
-            'placeholder': 'e.g. VNG-VR-20261001-AB12',
+            'class': 'form-control',
+            'placeholder': 'Full legal name (First Middle Surname)',
+            'autocomplete': 'name',
         }),
-        help_text="The reference number of your completed verification request."
+        help_text="Provide your full legal name as recorded on official identity documents."
     )
-    certificate_type = forms.ChoiceField(
-        choices=VerificationCertificate.CERTIFICATE_TYPES,
+    date_of_birth = forms.DateField(
+        required=True,
+        widget=forms.DateInput(attrs={
+            'type': 'date',
+            'class': 'form-control',
+        })
+    )
+    gender = forms.ChoiceField(
+        choices=[
+            ('male', 'Male'),
+            ('female', 'Female'),
+            ('other', 'Other / Prefer not to say'),
+        ],
         required=True,
         widget=forms.Select(attrs={'class': 'form-select'})
     )
-    outcome_summary = forms.CharField(
+    phone_number = forms.CharField(
+        max_length=20,
         required=True,
-        max_length=1000,
-        widget=forms.Textarea(attrs={
+        widget=forms.TextInput(attrs={
             'class': 'form-control',
-            'rows': 4,
-            'placeholder': 'Brief plain-language summary of the verification outcome to appear on the certificate.'
+            'placeholder': 'e.g. 08012345678 or +23480...',
+            'autocomplete': 'tel',
         }),
-        help_text="This summary will be printed on the issued certificate."
+        help_text="Nigerian mobile number (11 digits) or international format."
     )
+    email = forms.EmailField(
+        required=True,
+        widget=forms.EmailInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'applicant@example.com',
+            'autocomplete': 'email',
+        })
+    )
+
+    # ── Step 2: National Identity & Document Proof 
+    nin = forms.CharField(
+        max_length=11,
+        min_length=11,
+        required=True,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control font-monospace',
+            'placeholder': '11-digit National Identity Number',
+            'maxlength': '11',
+            'pattern': '[0-9]{11}',
+            'inputmode': 'numeric',
+        }),
+        help_text="Your 11-digit NIN. Stored securely as an irreversible SHA-256 hash in compliance with NDPR."
+    )
+    id_document_type = forms.ChoiceField(
+        choices=[
+            ('nin_slip', 'National NIN Slip / NIMC Card'),
+            ('drivers_license', "Federal Driver's License (FRSC)"),
+            ('passport', 'International Passport (NIS)'),
+            ('voters_card', "Permanent Voter's Card (INEC)"),
+        ],
+        required=True,
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    id_document_file = forms.FileField(
+        required=False,
+        widget=forms.FileInput(attrs={
+            'class': 'form-control',
+            'accept': '.png,.jpg,.jpeg,.pdf',
+        }),
+        help_text="Optional document proof (PNG, JPG, PDF — max 10 MB)."
+    )
+
+    # ── Step 3: Clearance Level & Purpose 
+    check_level = forms.ChoiceField(
+        choices=VerificationCertificate.CHECK_LEVEL_CHOICES,
+        required=True,
+        initial='employment',
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    employer_name = forms.CharField(
+        max_length=200,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'e.g. Supermarket Ltd, Logistics Hub, or Personal Check',
+        }),
+        help_text="Company or prospective employer requesting this clearance."
+    )
+    job_role = forms.CharField(
+        max_length=150,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'e.g. Delivery Driver, Cashier, Operations, Security',
+        }),
+        help_text="Proposed job designation or role."
+    )
+    residential_state = forms.ChoiceField(
+        choices=NIGERIAN_STATES,
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    residential_city = forms.CharField(
+        max_length=100,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'e.g. Ikeja, Wuse II, Port Harcourt',
+        })
+    )
+
+    # ── Step 4: Legal Good-Faith Declaration
+    declaration = forms.BooleanField(
+        required=True,
+        error_messages={'required': "You must accept the legal declaration before submission."}
+    )
+
+    # Backwards-compatibility fields (optional so existing tests or routes never fail)
+    verification_reference = forms.CharField(max_length=50, required=False)
+    certificate_type = forms.CharField(max_length=50, required=False)
+    outcome_summary = forms.CharField(max_length=1000, required=False)
+
+    def clean_nin(self):
+        val = str(self.cleaned_data.get('nin', '')).strip()
+        if not val.isdigit() or len(val) != 11:
+            raise forms.ValidationError("NIN must consist of exactly 11 numeric digits.")
+        return val
+
+    def clean_phone_number(self):
+        val = str(self.cleaned_data.get('phone_number', '')).strip()
+        if val:
+            try:
+                return normalize_identifier('phone', val)
+            except ValueError:
+                raise forms.ValidationError(
+                    "Invalid Nigerian phone number. Must be 11 digits starting with 0 or international +234 format."
+                )
+        return val
+
+    def clean_id_document_file(self):
+        file = self.cleaned_data.get('id_document_file')
+        if file:
+            return validate_file_upload(file)
+        return file
 
 
 

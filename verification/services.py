@@ -13,6 +13,11 @@ from identities.models import SubjectEntity, Identifier
 from identities.utils import normalize_identifier, hash_identifier_value, SUPPORTED_IDENTIFIER_TYPES
 from reports.models import AuditLog
 from core.tasks import send_email_notification_task
+from verification.models import VerificationCertificate
+from identities.models import SubjectEntity, Identifier
+from identities.utils import hash_identifier_value
+from reports.models import AuditLog
+from reports.storage_services import get_storage_service
 
 logger = logging.getLogger(__name__)
 
@@ -378,6 +383,123 @@ def create_certificate_application(
             }
         )
 
+    return certificate
+
+def create_trustpass_certificate_application(
+    holder,
+    full_name: str,
+    check_level: str,
+    date_of_birth=None,
+    gender: str = '',
+    phone_number: str = '',
+    email: str = '',
+    nin: str = '',
+    id_document_type: str = '',
+    id_document_file=None,
+    employer_name: str = '',
+    job_role: str = '',
+    residential_state: str = '',
+    residential_city: str = '',
+    ip_address: str = None,
+):
+    """
+    Submits a standalone TrustPass Background Clearance application (DBS-style).
+    Creates a SubjectEntity and registers normalized identifier hashes (NIN, phone, email)
+    for community protection engine linkage.
+    Uploads document proof if provided.
+    Issues a VerificationCertificate in 'pending' status awaiting officer review/activation.
+    """
+    valid_levels = dict(VerificationCertificate.CHECK_LEVEL_CHOICES)
+    if check_level not in valid_levels:
+        raise ValidationError(f"Invalid check level: {check_level}")
+    # Guard: Prevent duplicate pending or active certificates at the same level
+    existing = VerificationCertificate.objects.filter(
+        holder=holder,
+        check_level=check_level,
+        status__in=('pending', 'active', 'suspended'),
+    ).first()
+    if existing:
+        raise ValidationError(
+            f"You already have an existing {existing.get_check_level_display()} "
+            f"({existing.get_status_display()}: {existing.certificate_id}). "
+            f"Active or pending certificates must be revoked before reapplying."
+        )
+    # Secure upload of ID document if provided
+    doc_public_id = ''
+    if id_document_file:
+        try:
+            storage = get_storage_service()
+            upload_res = storage.upload_evidence(
+                file_obj=id_document_file,
+                folder_prefix='trustpass_documents'
+            )
+            doc_public_id = upload_res.get('public_id', '')
+        except Exception as e:
+            logger.warning("Document upload failed during TrustPass application: %s", e)
+    with transaction.atomic():
+        subject_name = full_name.strip() or holder.get_full_name().strip() or holder.username
+        subject = SubjectEntity.objects.create(
+            name=subject_name,
+            type='person',
+        )
+        # Register identifiers for community fraud engine & employer reporting matching
+        if nin and str(nin).strip():
+            try:
+                nin_h = hash_identifier_value('nin', nin.strip())
+                Identifier.objects.create(
+                    subject=subject,
+                    type='nin',
+                    value_hash=nin_h
+                )
+            except (ValueError, IntegrityError):
+                pass
+        if phone_number and str(phone_number).strip():
+            try:
+                phone_h = hash_identifier_value('phone', phone_number.strip())
+                Identifier.objects.create(
+                    subject=subject,
+                    type='phone',
+                    value_hash=phone_h
+                )
+            except (ValueError, IntegrityError):
+                pass
+        if email and str(email).strip():
+            try:
+                email_h = hash_identifier_value('email', email.strip())
+                Identifier.objects.create(
+                    subject=subject,
+                    type='email',
+                    value_hash=email_h
+                )
+            except (ValueError, IntegrityError):
+                pass
+        cert_id = generate_certificate_id()
+        certificate = VerificationCertificate.objects.create(
+            certificate_id=cert_id,
+            subject=subject,
+            holder=holder,
+            check_level=check_level,
+            status='pending',
+        )
+        AuditLog.objects.create(
+            report=None,
+            action="TRUSTPASS_APPLICATION_SUBMITTED",
+            performed_by=holder,
+            ip_address=ip_address,
+            details={
+                "certificate_id": cert_id,
+                "check_level": check_level,
+                "applicant_name": subject_name,
+                "date_of_birth": str(date_of_birth) if date_of_birth else '',
+                "gender": gender,
+                "id_document_type": id_document_type,
+                "has_document": bool(doc_public_id),
+                "employer_name": employer_name,
+                "job_role": job_role,
+                "residential_state": residential_state,
+                "residential_city": residential_city,
+            }
+        )
     return certificate
 
 

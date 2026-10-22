@@ -22,6 +22,18 @@ from verification.services import (
     complete_verification_request,
     reject_verification_request,
 )
+
+from django.contrib.auth.decorators import login_required
+from verification.models import VerificationCertificate, CertificateQueryLog
+from verification.forms import CertificateApplyForm
+
+from verification.services import (
+    create_trustpass_certificate_application,
+    issue_verification_certificate,
+    get_certificate_pdf_url,
+    initialize_certificate_query_transaction,
+    log_certificate_query,
+)
 from core.permissions import officer_required, is_verification_officer
 from core.rate_limiting import get_client_ip
 
@@ -314,61 +326,49 @@ class VerificationReportDocumentView(LoginRequiredMixin, DetailView):
 # ============================================================
 # W-08: Certificate views
 # ============================================================
-from django.contrib.auth.decorators import login_required
-from verification.models import VerificationCertificate, CertificateQueryLog
-from verification.forms import CertificateApplyForm
-from verification.services import (
-    issue_verification_certificate,
-    get_certificate_pdf_url,
-    initialize_certificate_query_transaction,
-    log_certificate_query,
-)
-
 
 class CertificateApplyView(LoginRequiredMixin, View):
     """
-    GET:  Show form to apply for a certificate against a completed request.
-    POST: Issue the certificate atomically.
-
-    Access: Authenticated user who is the requester of the verification request.
+    Multi-step TrustPass Background Clearance application wizard (DBS-style).
+    Applicants apply directly for their employment or enhanced clearance certificate.
     """
     template_name = 'verification/certificate_apply.html'
-
     def get(self, request):
-        form = CertificateApplyForm(initial={
-            'verification_reference': request.GET.get('ref', '')
-        })
+        user = request.user
+        initial = {
+            'full_name': user.get_full_name().strip() or user.username,
+            'email': user.email or '',
+            'check_level': request.GET.get('level', 'employment'),
+        }
+        form = CertificateApplyForm(initial=initial)
         return render(request, self.template_name, {'form': form})
-
     def post(self, request):
-        form = CertificateApplyForm(request.POST)
+        form = CertificateApplyForm(request.POST, request.FILES)
         if not form.is_valid():
             return render(request, self.template_name, {'form': form})
-
-        ref = form.cleaned_data['verification_reference']
+        cd = form.cleaned_data
         ip_addr = get_client_ip(request)
-
-        vr = get_object_or_404(
-            VerificationRequest.objects.select_related('target_subject', 'requester', 'result'),
-            reference_number=ref
-        )
-
-        # Least-privilege: only the original requester may apply for a certificate
-        if vr.requester_id != request.user.id and not request.user.is_superuser:
-            raise PermissionDenied(
-                "You may only apply for a certificate on your own verification requests."
-            )
-
         try:
-            certificate = issue_verification_certificate(
-                verification_request=vr,
-                certificate_type=form.cleaned_data['certificate_type'],
-                outcome_summary=form.cleaned_data['outcome_summary'],
+            certificate = create_trustpass_certificate_application(
+                holder=request.user,
+                full_name=cd['full_name'],
+                check_level=cd.get('check_level') or cd.get('certificate_type') or 'employment',
+                date_of_birth=cd.get('date_of_birth'),
+                gender=cd.get('gender', ''),
+                phone_number=cd.get('phone_number', ''),
+                email=cd.get('email', ''),
+                nin=cd.get('nin', ''),
+                id_document_type=cd.get('id_document_type', ''),
+                id_document_file=cd.get('id_document_file'),
+                employer_name=cd.get('employer_name', ''),
+                job_role=cd.get('job_role', ''),
+                residential_state=cd.get('residential_state', ''),
+                residential_city=cd.get('residential_city', ''),
                 ip_address=ip_addr,
             )
             messages.success(
                 request,
-                f"Certificate [{certificate.certificate_id}] issued successfully."
+                f"Your TrustPass Clearance Application [{certificate.certificate_id}] has been submitted successfully for verification review."
             )
             return redirect('verification:my_certificate', certificate_id=certificate.certificate_id)
         except ValidationError as e:
