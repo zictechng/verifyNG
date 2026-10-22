@@ -708,16 +708,16 @@ def generate_certificate_pdf_bytes(certificate, base_url: str = None) -> bytes:
 
     # 1. Top Header
     header_tbl = Table([
-        [Paragraph('VerifyNG', brand_st), Paragraph('DISCLOSURE &amp; CLEARANCE CERTIFICATE', right_title)],
+        [Paragraph('VerifyNG', brand_st), Paragraph('TRUSTPASS&trade; VERIFICATION CERTIFICATE', right_title)],
         [Paragraph('National Public Trust &amp; Identity Safety Platform', sub_brand), Paragraph('Official Background Vetting Credential', right_sub)]
-    ], colWidths=[105*mm, 77*mm])
+    ], colWidths=[100*mm, 82*mm])
     header_tbl.setStyle(TableStyle([('VALIGN', (0,0), (-1,-1), 'TOP'), ('BOTTOMPADDING', (0,0), (-1,-1), 0)]))
     story.append(header_tbl)
     story.append(Spacer(1, 2.5*mm))
     story.append(HRFlowable(width='100%', thickness=2, color=colors.HexColor('#006D5B'), spaceAfter=3.5*mm))
 
     # 2. Status Banner
-    status_text = f"STATUS: {certificate.get_status_display().upper()} &bull; FORMAL VETTING CLEARANCE ISSUED"
+    status_text = f"STATUS: {certificate.get_status_display().upper()} &bull; FORMAL VETTING CREDENTIAL ISSUED"
     status_p = Paragraph(f"<b>{status_text}</b>", ParagraphStyle('Stat', fontName='Helvetica-Bold', fontSize=9.5, leading=12, alignment=1, textColor=colors.HexColor('#006D5B')))
     status_tbl = Table([[status_p]], colWidths=[182*mm])
     status_tbl.setStyle(TableStyle([
