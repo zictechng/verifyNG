@@ -50,14 +50,20 @@
       <dl class="row mb-0 small">
         <dt class="col-5 text-muted">Candidate Name</dt>
         <dd class="col-7 fw-semibold fs-6 text-dark">{{ cert.subject.name }}</dd>
-        <dt class="col-5 text-muted">NIN</dt>
-        <dd class="col-7 font-monospace fw-semibold">
-          {% if app_log.details.nin_masked %}
-            {{ app_log.details.nin_masked }}
-          {% elif app_log.details.nin %}
-            {{ app_log.details.nin }}
+        <dt class="col-5 text-muted">National ID / NIN</dt>
+        <dd class="col-7">
+          {% if id_number %}
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <span class="font-monospace fw-bold fs-6 text-dark bg-light px-2 py-1 rounded border">{{ id_number }}</span>
+              <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-2"
+                      onclick="navigator.clipboard.writeText('{{ id_number }}'); this.innerHTML='<i class=\'bi bi-check2\'></i> Copied'; setTimeout(() => this.innerHTML='<i class=\'bi bi-clipboard\'></i> Copy', 1500);"
+                      title="Copy National ID to clipboard">
+                <i class="bi bi-clipboard"></i> Copy
+              </button>
+            </div>
+            <div class="text-muted" style="font-size:0.75rem;">Verified identifier for NIMC / National Database checks.</div>
           {% else %}
-            <span class="text-success"><i class="bi bi-shield-lock-fill me-1"></i>Hashed & Encrypted in Registry</span>
+            <span class="badge bg-light text-muted border">No raw ID captured in this submission</span>
           {% endif %}
         </dd>
         {% if app_log.details %}
@@ -70,7 +76,11 @@
         <dt class="col-5 text-muted">Candidate Email</dt>
         <dd class="col-7">{{ app_log.details.email|default:"—" }}</dd>
         <dt class="col-5 text-muted">Location</dt>
-        <dd class="col-7">{{ app_log.details.residential_city|default:"" }}{% if app_log.details.residential_state %}, {{ app_log.details.residential_state }}{% endif %}{% if not app_log.details.residential_city and not app_log.details.residential_state %}—{% endif %}</dd>
+        <dd class="col-7">
+          {% if app_log.details.residential_city or app_log.details.residential_state %}
+            {{ app_log.details.residential_city|default:"" }}{% if app_log.details.residential_state %}, {{ app_log.details.residential_state }}{% endif %}
+          {% else %}—{% endif %}
+        </dd>
         <dt class="col-5 text-muted">Employer / Org</dt>
         <dd class="col-7">{{ app_log.details.employer_name|default:"—" }}</dd>
         <dt class="col-5 text-muted">Target Job Role</dt>
@@ -90,25 +100,27 @@
         </dd>
         <dt class="col-5 text-muted">Document Status</dt>
         <dd class="col-7">
-          {% if doc_url or app_log.details.has_document %}
+          {% if doc_url %}
             <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Attached & Available for Inspection</span>
+          {% elif app_log.details.has_document %}
+            <span class="badge bg-warning text-dark"><i class="bi bi-clock me-1"></i>Attached in Archive</span>
           {% else %}
             <span class="badge bg-secondary">No document uploaded</span>
           {% endif %}
         </dd>
       </dl>
       {% if doc_url %}
-      <div class="d-flex gap-2">
-        <a href="{{ doc_url }}" target="_blank" class="btn btn-adm-primary btn-sm px-3">
-          <i class="bi bi-box-arrow-up-right me-1"></i>View / Inspect Document
+      <div class="d-flex flex-wrap gap-2 pt-2 border-top">
+        <a href="{{ doc_url }}" target="_blank" class="btn btn-adm-primary btn-sm px-3 d-inline-flex align-items-center">
+          <i class="bi bi-box-arrow-up-right me-1"></i>Open Document in New Tab
         </a>
-        <a href="{{ doc_url }}" download class="btn btn-adm-outline btn-sm px-3">
+        <a href="{{ doc_url }}" download class="btn btn-adm-outline btn-sm px-3 d-inline-flex align-items-center">
           <i class="bi bi-download me-1"></i>Download Proof
         </a>
       </div>
       {% elif app_log.details.has_document %}
       <div class="alert alert-info py-2 px-3 small mb-0">
-        <i class="bi bi-info-circle me-1"></i>Document attached in application archive.
+        <i class="bi bi-info-circle me-1"></i>Document was recorded during application. Submit a new application with an attached image or PDF to inspect live.
       </div>
       {% endif %}
     </div>
@@ -281,83 +293,97 @@
 
 {% endif %}
 
+{% block admin_scripts %}
 <script>
-(function () {
-  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]') ?
-    document.querySelector('[name=csrfmiddlewaretoken]').value : '';
+document.addEventListener('DOMContentLoaded', function () {
+  const csrfTokenEl = document.querySelector('[name=csrfmiddlewaretoken]');
+  const csrfToken = csrfTokenEl ? csrfTokenEl.value : '';
   let pendingAction = null;
   let pendingPk = null;
   let pendingCertId = null;
-
+  const modalEl = document.getElementById('certDetailActionModal');
+  if (!modalEl) return;
   document.querySelectorAll('.cert-detail-action-btn').forEach(function (btn) {
-    btn.addEventListener('click', function () {
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
       pendingAction = btn.dataset.action;
       pendingPk = btn.dataset.pk;
       pendingCertId = btn.dataset.certId;
-
       const labels = { activate: 'Activate', suspend: 'Suspend', revoke: 'Revoke' };
       const colors = { activate: 'btn-success', suspend: 'btn-warning', revoke: 'btn-danger' };
       const label = labels[pendingAction] || pendingAction;
-
       document.getElementById('certDetailModalTitle').textContent = label + ' Certificate';
-      document.getElementById('certDetailModalMsg').innerHTML =
-        'You are about to <strong>' + label.toLowerCase() + '</strong> certificate <code>' + pendingCertId + '</code>. This action will be logged.';
+      let msg = '';
+      if (pendingAction === 'activate') {
+        msg = 'Are you sure you want to <strong>activate</strong> certificate <code>' + pendingCertId + '</code>? This will formally issue the clearance credential.';
+      } else if (pendingAction === 'suspend') {
+        msg = 'Are you sure you want to <strong>suspend</strong> certificate <code>' + pendingCertId + '</code>? The holder will temporarily lose active verification status.';
+      } else if (pendingAction === 'revoke') {
+        msg = '<span class="text-danger fw-bold">Critical Warning:</span> Are you sure you want to <strong>irrevocably revoke</strong> certificate <code>' + pendingCertId + '</code>? This cannot be undone.';
+      }
+      document.getElementById('certDetailModalMsg').innerHTML = msg;
       document.getElementById('certDetailModalReason').value = '';
       document.getElementById('certDetailSuccessBanner').classList.add('d-none');
-      document.getElementById('certDetailReasonWrap').style.display = pendingAction === 'activate' ? 'none' : '';
-
+      document.getElementById('certDetailReasonWrap').style.display = pendingAction === 'activate' ? 'none' : 'block';
       const confirmBtn = document.getElementById('certDetailModalConfirmBtn');
       confirmBtn.className = 'btn btn-sm px-4 fw-semibold ' + (colors[pendingAction] || 'btn-primary');
-      confirmBtn.textContent = label;
+      confirmBtn.textContent = 'Yes, ' + label + ' Certificate';
       confirmBtn.disabled = false;
-
-      new bootstrap.Modal(document.getElementById('certDetailActionModal')).show();
+      // Safe Bootstrap modal trigger
+      if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+        let bsModal = bootstrap.Modal.getInstance(modalEl);
+        if (!bsModal) {
+          bsModal = new bootstrap.Modal(modalEl);
+        }
+        bsModal.show();
+      } else {
+        modalEl.classList.add('show');
+        modalEl.style.display = 'block';
+      }
     });
   });
-
   document.getElementById('certDetailModalConfirmBtn').addEventListener('click', function () {
     if (!pendingPk || !pendingAction) return;
     const reason = document.getElementById('certDetailModalReason').value.trim();
     const btn = this;
     btn.disabled = true;
     btn.textContent = 'Processing…';
-
     const fd = new FormData();
     fd.append('action', pendingAction);
     fd.append('reason', reason);
     fd.append('csrfmiddlewaretoken', csrfToken);
-
     fetch('/admin-portal/certificates/' + pendingPk + '/action/', {
       method: 'POST',
       body: fd
     })
       .then(function (r) { return r.json(); })
       .then(function (data) {
-        const modal = bootstrap.Modal.getInstance(document.getElementById('certDetailActionModal'));
+        const modal = typeof bootstrap !== 'undefined' && bootstrap.Modal ?
+          bootstrap.Modal.getInstance(modalEl) : null;
         if (data.ok) {
           const banner = document.getElementById('certDetailSuccessBanner');
           banner.textContent = data.message;
           banner.classList.remove('d-none');
-          document.getElementById('certDetailReasonWrap').classList.add('d-none');
-          document.getElementById('certDetailModalMsg').classList.add('d-none');
-          btn.classList.remove('btn-success', 'btn-warning', 'btn-danger');
-          btn.classList.add('d-none');
+          document.getElementById('certDetailReasonWrap').style.display = 'none';
+          document.getElementById('certDetailModalMsg').style.display = 'none';
+          btn.style.display = 'none';
           setTimeout(function () {
             if (modal) modal.hide();
             location.reload();
-          }, 1500);
+          }, 1200);
         } else {
-          if (modal) modal.hide();
           alert(data.error || 'Action failed. Please try again.');
           btn.disabled = false;
+          btn.textContent = 'Confirm';
         }
       })
       .catch(function () {
         alert('Network error. Please try again.');
         btn.disabled = false;
+        btn.textContent = 'Confirm';
       });
   });
-})();
+});
 </script>
 {% endblock %}
 

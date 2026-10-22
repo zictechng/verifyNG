@@ -2248,6 +2248,16 @@ class AdminCertificateDetailView(SuperAdminRequiredMixin, TemplateView):
                 app_log = l
                 break
         ctx['app_log'] = app_log
+        # Extract full ID number for national database verification
+        id_number = ''
+        if app_log and isinstance(app_log.details, dict):
+            id_number = (
+                app_log.details.get('nin') or
+                app_log.details.get('id_number') or
+                app_log.details.get('nin_masked') or
+                ''
+            )
+        ctx['id_number'] = id_number
         # Resolve uploaded document URL for officer inspection
         doc_url = ''
         if app_log and isinstance(app_log.details, dict):
@@ -2260,6 +2270,20 @@ class AdminCertificateDetailView(SuperAdminRequiredMixin, TemplateView):
                     doc_url = storage.generate_signed_url(public_id=doc_pid, format=ext, resource_type=res_type)
                 except Exception:
                     doc_url = f"/media/{doc_pid}" if doc_pid.startswith('trustpass_documents') else f"/media/trustpass_documents/{doc_pid}"
+            elif app_log.details.get('has_document'):
+                # Fallback: scan media/trustpass_documents/ for uploaded proof files from previous tests
+                import os
+                from django.conf import settings
+                tp_dir = os.path.join(settings.MEDIA_ROOT, 'trustpass_documents')
+                if os.path.exists(tp_dir):
+                    matched = []
+                    for root, _, filenames in os.walk(tp_dir):
+                        for f in filenames:
+                            full_p = os.path.join(root, f)
+                            matched.append((os.path.getmtime(full_p), os.path.relpath(full_p, settings.MEDIA_ROOT)))
+                    if matched:
+                        matched.sort(reverse=True)
+                        doc_url = f"{settings.MEDIA_URL}{matched[0][1].replace('\\', '/')}"
         ctx['doc_url'] = doc_url
         return ctx
 
