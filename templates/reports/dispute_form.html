@@ -10,8 +10,16 @@
         <div class="col-lg-7 col-md-9">
             <div class="text-center mb-4">
                 <span class="vng-badge-trust mb-2">Right-of-Response</span>
-                <h1 class="h3 fw-bold">Dispute Published Report</h1>
-                <p class="small text-muted mb-0">Contest an allegation, submit proof of transaction fulfillment, or explain context.</p>
+                <h1 class="h3 fw-bold">
+                    {% if report.state == 'published' %}Dispute Published Report{% else %}Submit Fair-Hearing Defense{% endif %}
+                </h1>
+                <p class="small text-muted mb-0">
+                    {% if report.state == 'published' %}
+                        Contest an allegation, submit proof of transaction fulfillment, or explain context.
+                    {% else %}
+                        Submit your statement and counter-evidence within your 7-day fair-hearing notice period.
+                    {% endif %}
+                </p>
             </div>
 
             <!-- Target Report Reference Card -->
@@ -35,33 +43,32 @@
                     </div>
                 {% endif %}
 
-                <form method="post" enctype="multipart/form-data" novalidate>
+                <form method="post" enctype="multipart/form-data" novalidate x-data="{ submitting: false }" @submit="submitting = true">
                     {% csrf_token %}
-
                     <div class="mb-3">
-                        <label for="{{ form.reason.id_for_label }}" class="form-label small fw-semibold">Statement of Dispute *</label>
+                        <label for="{{ form.reason.id_for_label }}" class="form-label small fw-semibold">Statement of Defense / Dispute <span class="text-danger">*</span></label>
                         {{ form.reason }}
-                        <div class="form-text small">{{ form.reason.help_text }}</div>
+                        <div class="form-text small">Explain your factual account of the situation with dates and references.</div>
                         {% if form.reason.errors %}
                             <div class="text-danger small mt-1">{{ form.reason.errors.0 }}</div>
                         {% endif %}
                     </div>
-
                     <div class="mb-4">
-                        <label for="{{ form.counter_evidence.id_for_label }}" class="form-label small fw-semibold">Supporting Counter-Evidence File</label>
+                        <label for="{{ form.counter_evidence.id_for_label }}" class="form-label small fw-semibold">Supporting Counter-Evidence Document</label>
                         {{ form.counter_evidence }}
-                        <div class="form-text small">{{ form.counter_evidence.help_text }}</div>
+                        <div class="form-text small">Attach resignation letters, payment receipts, delivery slips, or chat records (PDF, PNG, JPG).</div>
                         {% if form.counter_evidence.errors %}
                             <div class="text-danger small mt-1">{{ form.counter_evidence.errors.0 }}</div>
                         {% endif %}
                     </div>
-
-                    <div class="d-flex gap-2">
-                        <a href="{% url 'reports:detail' report.reference_number %}" class="btn btn-vng-outline py-2 px-3">
+                    <div class="d-flex gap-2 align-items-center">
+                        <a href="{% url 'reports:detail' report.reference_number %}" class="btn btn-vng-outline py-2 px-3" :disabled="submitting">
                             Cancel
                         </a>
-                        <button type="submit" class="btn btn-vng-primary flex-grow-1 py-2">
-                            Submit Formal Dispute &rarr;
+                        <button type="submit" class="btn btn-vng-primary flex-grow-1 py-2 d-inline-flex align-items-center justify-content-center" :disabled="submitting">
+                            <span x-show="!submitting">Submit Formal Response &rarr;</span>
+                            <span x-show="submitting" x-cloak class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                            <span x-show="submitting" x-cloak>Submitting Response...</span>
                         </button>
                     </div>
                 </form>
