@@ -82,26 +82,6 @@
         <dd class="col-7">{{ cert.holder.phone_number|default:"—" }}</dd>
       </dl>
     </div>
-    
-    <!-- Holder card -->
-    <div class="adm-card p-4 mb-4">
-      <h6 class="fw-semibold mb-3" style="color:var(--adm-ink);border-bottom:1px solid var(--adm-border);padding-bottom:.5rem;">
-        <i class="bi bi-person-badge me-2"></i>Certificate Holder
-      </h6>
-      <dl class="row mb-0 small">
-        <dt class="col-5 text-muted">Full Name</dt>
-        <dd class="col-7 fw-semibold">{{ cert.holder.get_full_name|default:"—" }}</dd>
-
-        <dt class="col-5 text-muted">Username</dt>
-        <dd class="col-7">{{ cert.holder.username }}</dd>
-
-        <dt class="col-5 text-muted">Email</dt>
-        <dd class="col-7">{{ cert.holder.email }}</dd>
-
-        <dt class="col-5 text-muted">Phone</dt>
-        <dd class="col-7">{{ cert.holder.phone_number|default:"—" }}</dd>
-      </dl>
-    </div>
 
     <!-- Certificate details card -->
     <div class="adm-card p-4 mb-4">
