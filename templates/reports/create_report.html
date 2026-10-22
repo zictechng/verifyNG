@@ -42,9 +42,97 @@
                 location: '{{ form.suspect_location.value|default:''|escapejs }}',
                 allegation: `{{ form.allegation.value|default:''|escapejs }}`,
                 declared: false,
+                errors: {
+                    subjectName: '',
+                    phone: '',
+                    bankAccount: '',
+                    cac: '',
+                    email: '',
+                    title: '',
+                    allegation: '',
+                    file: ''
+                },
+                validateStep1() {
+                    this.errors.subjectName = '';
+                    this.errors.phone = '';
+                    this.errors.bankAccount = '';
+                    this.errors.cac = '';
+                    this.errors.email = '';
+                    let valid = true;
+                    if (!this.subjectName.trim()) {
+                        this.errors.subjectName = 'Please enter the suspect individual or business name.';
+                        valid = false;
+                    }
+                    if (this.phone.trim()) {
+                        const cleanPhone = this.phone.replace(/[\s\-\(\)]/g, '');
+                        const phoneRegex = /^(?:(?:\+?234)|0)[789]\d{9}$/;
+                        if (!phoneRegex.test(cleanPhone)) {
+                            this.errors.phone = 'Enter a valid Nigerian phone number (e.g. 08012345678 or +234...).';
+                            valid = false;
+                        }
+                    }
+                    if (this.bankAccount.trim()) {
+                        const cleanAcct = this.bankAccount.replace(/\D/g, '');
+                        if (cleanAcct.length !== 10) {
+                            this.errors.bankAccount = 'Nigerian NUBAN account number must be exactly 10 digits.';
+                            valid = false;
+                        }
+                    }
+                    if (this.subjectType === 'business' && this.cac.trim()) {
+                        if (this.cac.trim().length < 4) {
+                            this.errors.cac = 'Please enter a valid CAC registration number (e.g. RC123456 or BN987654).';
+                            valid = false;
+                        }
+                    }
+                    if (this.email.trim()) {
+                        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                        if (!emailRegex.test(this.email.trim())) {
+                            this.errors.email = 'Please enter a valid email address.';
+                            valid = false;
+                        }
+                    }
+                    if (valid) {
+                        this.step = 2;
+                    }
+                    return valid;
+                },
+                validateStep2() {
+                    this.errors.title = '';
+                    this.errors.allegation = '';
+                    let valid = true;
+                    if (!this.title.trim()) {
+                        this.errors.title = 'Please enter a summary title for this report.';
+                        valid = false;
+                    }
+                    if (!this.allegation.trim() || this.allegation.trim().length < 30) {
+                        this.errors.allegation = 'Please provide a detailed chronological account of at least 30 characters.';
+                        valid = false;
+                    }
+                    if (valid) {
+                        this.step = 3;
+                    }
+                    return valid;
+                },
                 handleFileSelect(event) {
+                    this.errors.file = '';
                     const file = event.target.files[0];
                     if (file) {
+                        if (file.size > 10 * 1024 * 1024) {
+                            this.errors.file = 'File size exceeds the 10 MB limit.';
+                            this.fileName = '';
+                            this.fileSize = '';
+                            event.target.value = '';
+                            return;
+                        }
+                        const allowedExts = ['.png', '.jpg', '.jpeg', '.pdf', '.doc', '.docx'];
+                        const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+                        if (!allowedExts.includes(ext)) {
+                            this.errors.file = 'Unsupported format. Allowed: PNG, JPG, PDF, DOCX.';
+                            this.fileName = '';
+                            this.fileSize = '';
+                            event.target.value = '';
+                            return;
+                        }
                         this.fileName = file.name;
                         this.fileSize = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
                         if (file.type.startsWith('image/')) {
@@ -72,15 +160,15 @@
                             <span class="fw-bold">1</span>
                         </button>
                         <!-- Step 2 Indicator -->
-                        <button type="button" @click="if (subjectName.trim()) step = 2" class="btn btn-sm rounded-circle d-flex align-items-center justify-content-center p-0 position-relative" style="width: 38px; height: 38px; z-index: 2;" :class="step >= 2 ? 'btn-primary' : 'btn-light border'">
+                        <button type="button" @click="validateStep1()" class="btn btn-sm rounded-circle d-flex align-items-center justify-content-center p-0 position-relative" style="width: 38px; height: 38px; z-index: 2;" :class="step >= 2 ? 'btn-primary' : 'btn-light border'">
                             <span class="fw-bold">2</span>
                         </button>
                         <!-- Step 3 Indicator -->
-                        <button type="button" @click="if (subjectName.trim() && title.trim() && allegation.trim()) step = 3" class="btn btn-sm rounded-circle d-flex align-items-center justify-content-center p-0 position-relative" style="width: 38px; height: 38px; z-index: 2;" :class="step >= 3 ? 'btn-primary' : 'btn-light border'">
+                        <button type="button" @click="if (validateStep1()) { validateStep2(); }" class="btn btn-sm rounded-circle d-flex align-items-center justify-content-center p-0 position-relative" style="width: 38px; height: 38px; z-index: 2;" :class="step >= 3 ? 'btn-primary' : 'btn-light border'">
                             <span class="fw-bold">3</span>
                         </button>
                         <!-- Step 4 Indicator -->
-                        <button type="button" @click="if (subjectName.trim() && title.trim() && allegation.trim()) step = 4" class="btn btn-sm rounded-circle d-flex align-items-center justify-content-center p-0 position-relative" style="width: 38px; height: 38px; z-index: 2;" :class="step === 4 ? 'btn-primary' : 'btn-light border'">
+                        <button type="button" @click="if (validateStep1() && validateStep2()) { step = 4; }" class="btn btn-sm rounded-circle d-flex align-items-center justify-content-center p-0 position-relative" style="width: 38px; height: 38px; z-index: 2;" :class="step === 4 ? 'btn-primary' : 'btn-light border'">
                             <span class="fw-bold">4</span>
                         </button>
                     </div>
@@ -148,45 +236,63 @@
 
                         <!-- Subject Name (Required) -->
                         <div class="mb-3">
-                            <label for="{{ form.subject_name.id_for_label }}" class="form-label small fw-semibold">Subject Name (Individual or Business) *</label>
-                            <input type="text" name="subject_name" id="{{ form.subject_name.id_for_label }}" class="form-control" placeholder="Full name of person or business" x-model="subjectName" required value="{{ form.subject_name.value|default:'' }}">
+                            <label for="{{ form.subject_name.id_for_label }}" class="form-label small fw-semibold">Subject Name (Individual or Business) <span class="text-danger">*</span></label>
+                            <input type="text" name="subject_name" id="{{ form.subject_name.id_for_label }}" 
+                                   class="form-control" 
+                                   :class="{'is-invalid': errors.subjectName}"
+                                   placeholder="Full name of person or business" 
+                                   x-model="subjectName" 
+                                   @input="errors.subjectName = ''"
+                                   value="{{ form.subject_name.value|default:'' }}">
+                            <div class="invalid-feedback d-block" x-show="errors.subjectName" x-text="errors.subjectName" x-cloak></div>
                             {% if form.subject_name.errors %}
                                 <div class="text-danger small mt-1">{{ form.subject_name.errors.0 }}</div>
                             {% endif %}
                         </div>
-
                         <!-- Entity Type -->
                         <div class="mb-3">
-                            <label for="{{ form.subject_type.id_for_label }}" class="form-label small fw-semibold">Entity Type *</label>
+                            <label for="{{ form.subject_type.id_for_label }}" class="form-label small fw-semibold">Entity Type <span class="text-danger">*</span></label>
                             <select name="subject_type" id="{{ form.subject_type.id_for_label }}" class="form-select" x-model="subjectType" @change="if (subjectType !== 'business') cac = ''">
                                 {% for val, label in form.subject_type.field.choices %}
                                     <option value="{{ val }}" {% if form.subject_type.value == val %}selected{% endif %}>{{ label }}</option>
                                 {% endfor %}
                             </select>
                         </div>
-
                         <div class="p-3 bg-light rounded border mb-4">
                             <div class="d-flex align-items-center gap-2 mb-2">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-primary"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                                 <span class="fw-semibold small text-primary">Public Registry Matching Identifiers (Optional)</span>
                             </div>
                             <p class="text-muted small mb-3">All identifiers entered below are cryptographically peppered & hashed (HMAC-SHA256). Any citizen querying these exact details will be alerted to this record once published.</p>
-
                             <!-- Suspect Phone -->
                             <div class="mb-3">
                                 <label for="{{ form.suspect_phone.id_for_label }}" class="form-label small fw-semibold">Suspect Phone Number</label>
-                                <input type="text" name="suspect_phone" id="{{ form.suspect_phone.id_for_label }}" class="form-control" placeholder="e.g. 08012345678 or +234..." x-model="phone" value="{{ form.suspect_phone.value|default:'' }}">
-                                <div class="form-text small">Nigerian 11-digit mobile or international +234 format.</div>
+                                <input type="text" name="suspect_phone" id="{{ form.suspect_phone.id_for_label }}" 
+                                       class="form-control" 
+                                       :class="{'is-invalid': errors.phone}"
+                                       placeholder="e.g. 08012345678 or +234..." 
+                                       x-model="phone" 
+                                       @input="errors.phone = ''"
+                                       value="{{ form.suspect_phone.value|default:'' }}">
+                                <div class="invalid-feedback d-block" x-show="errors.phone" x-text="errors.phone" x-cloak></div>
+                                <div class="form-text small" x-show="!errors.phone">Nigerian 11-digit mobile or international +234 format.</div>
                                 {% if form.suspect_phone.errors %}
                                     <div class="text-danger small mt-1">{{ form.suspect_phone.errors.0 }}</div>
                                 {% endif %}
                             </div>
-
                             <!-- Bank Account & Bank Name -->
                             <div class="row g-2 mb-3">
                                 <div class="col-sm-6">
                                     <label for="{{ form.suspect_bank_account.id_for_label }}" class="form-label small fw-semibold">Bank Account Number (NUBAN)</label>
-                                    <input type="text" name="suspect_bank_account" id="{{ form.suspect_bank_account.id_for_label }}" class="form-control font-monospace" placeholder="10-digit NUBAN" maxlength="10" x-model="bankAccount" value="{{ form.suspect_bank_account.value|default:'' }}">
+                                    <input type="text" name="suspect_bank_account" id="{{ form.suspect_bank_account.id_for_label }}" 
+                                           class="form-control font-monospace" 
+                                           :class="{'is-invalid': errors.bankAccount}"
+                                           placeholder="10-digit NUBAN" 
+                                           maxlength="10" 
+                                           x-model="bankAccount" 
+                                           @input="bankAccount = bankAccount.replace(/\D/g, ''); errors.bankAccount = ''"
+                                           value="{{ form.suspect_bank_account.value|default:'' }}">
+                                    <div class="invalid-feedback d-block" x-show="errors.bankAccount" x-text="errors.bankAccount" x-cloak></div>
                                     {% if form.suspect_bank_account.errors %}
                                         <div class="text-danger small mt-1">{{ form.suspect_bank_account.errors.0 }}</div>
                                     {% endif %}
@@ -196,29 +302,41 @@
                                     <input type="text" name="suspect_bank_name" id="{{ form.suspect_bank_name.id_for_label }}" class="form-control" placeholder="e.g. OPay, GTBank, Kuda, Zenith" list="nigerian_banks_list" x-model="bankName" value="{{ form.suspect_bank_name.value|default:'' }}">
                                 </div>
                             </div>
-
                             <!-- CAC Number & Email -->
                             <div class="row g-2">
                                 <div class="col-sm-6" x-show="subjectType === 'business'" x-cloak>
                                     <label for="{{ form.suspect_cac_number.id_for_label }}" class="form-label small fw-semibold">CAC Registration / RC Number</label>
-                                    <input type="text" name="suspect_cac_number" id="{{ form.suspect_cac_number.id_for_label }}" class="form-control" placeholder="e.g. RC123456 or BN987654" x-model="cac" value="{{ form.suspect_cac_number.value|default:'' }}">
+                                    <input type="text" name="suspect_cac_number" id="{{ form.suspect_cac_number.id_for_label }}" 
+                                           class="form-control" 
+                                           :class="{'is-invalid': errors.cac}"
+                                           placeholder="e.g. RC123456 or BN987654" 
+                                           x-model="cac" 
+                                           @input="errors.cac = ''"
+                                           value="{{ form.suspect_cac_number.value|default:'' }}">
+                                    <div class="invalid-feedback d-block" x-show="errors.cac" x-text="errors.cac" x-cloak></div>
                                     {% if form.suspect_cac_number.errors %}
                                         <div class="text-danger small mt-1">{{ form.suspect_cac_number.errors.0 }}</div>
                                     {% endif %}
                                 </div>
                                 <div :class="subjectType === 'business' ? 'col-sm-6' : 'col-12'">
                                     <label for="{{ form.suspect_email.id_for_label }}" class="form-label small fw-semibold">Suspect Email Address</label>
-                                    <input type="email" name="suspect_email" id="{{ form.suspect_email.id_for_label }}" class="form-control" placeholder="e.g. suspect@domain.com" x-model="email" value="{{ form.suspect_email.value|default:'' }}">
+                                    <input type="email" name="suspect_email" id="{{ form.suspect_email.id_for_label }}" 
+                                           class="form-control" 
+                                           :class="{'is-invalid': errors.email}"
+                                           placeholder="e.g. suspect@domain.com" 
+                                           x-model="email" 
+                                           @input="errors.email = ''"
+                                           value="{{ form.suspect_email.value|default:'' }}">
+                                    <div class="invalid-feedback d-block" x-show="errors.email" x-text="errors.email" x-cloak></div>
                                     {% if form.suspect_email.errors %}
                                         <div class="text-danger small mt-1">{{ form.suspect_email.errors.0 }}</div>
                                     {% endif %}
                                 </div>
                             </div>
                         </div>
-
                         <!-- Step 1 Navigation -->
                         <div class="d-flex justify-content-end">
-                            <button type="button" class="btn btn-vng-primary px-4" @click="if (!subjectName.trim()) { alert('Please specify the subject or business name before continuing.'); } else { step = 2; }">
+                            <button type="button" class="btn btn-vng-primary px-4" @click="validateStep1()">
                                 Continue to Incident Details &rarr;
                             </button>
                         </div>
@@ -236,8 +354,15 @@
 
                         <!-- Title -->
                         <div class="mb-3">
-                            <label for="{{ form.title.id_for_label }}" class="form-label small fw-semibold">Report Title / Summary *</label>
-                            <input type="text" name="title" id="{{ form.title.id_for_label }}" class="form-control" placeholder="Summary title (e.g. Unfulfilled electronics purchase after full transfer)" x-model="title" required value="{{ form.title.value|default:'' }}">
+                            <label for="{{ form.title.id_for_label }}" class="form-label small fw-semibold">Report Title / Summary <span class="text-danger">*</span></label>
+                            <input type="text" name="title" id="{{ form.title.id_for_label }}" 
+                                   class="form-control" 
+                                   :class="{'is-invalid': errors.title}"
+                                   placeholder="Summary title (e.g. Unfulfilled electronics purchase after full transfer)" 
+                                   x-model="title" 
+                                   @input="errors.title = ''"
+                                   value="{{ form.title.value|default:'' }}">
+                            <div class="invalid-feedback d-block" x-show="errors.title" x-text="errors.title" x-cloak></div>
                             {% if form.title.errors %}
                                 <div class="text-danger small mt-1">{{ form.title.errors.0 }}</div>
                             {% endif %}
@@ -274,18 +399,23 @@
 
                         <!-- Allegation Narrative -->
                         <div class="mb-4">
-                            <label for="{{ form.allegation.id_for_label }}" class="form-label small fw-semibold">Detailed Allegation Narrative *</label>
-                            <textarea name="allegation" id="{{ form.allegation.id_for_label }}" rows="5" class="form-control" placeholder="Explain what happened clearly and chronologically..." x-model="allegation" required>{{ form.allegation.value|default:'' }}</textarea>
-                            <div class="form-text small">Provide factual statements without abusive or threatening language.</div>
+                            <label for="{{ form.allegation.id_for_label }}" class="form-label small fw-semibold">Detailed Allegation Narrative <span class="text-danger">*</span></label>
+                            <textarea name="allegation" id="{{ form.allegation.id_for_label }}" rows="5" 
+                                      class="form-control" 
+                                      :class="{'is-invalid': errors.allegation}"
+                                      placeholder="Explain what happened clearly and chronologically..." 
+                                      x-model="allegation" 
+                                      @input="if (allegation.trim().length >= 30) errors.allegation = ''">{{ form.allegation.value|default:'' }}</textarea>
+                            <div class="invalid-feedback d-block" x-show="errors.allegation" x-text="errors.allegation" x-cloak></div>
+                            <div class="form-text small" x-show="!errors.allegation">Provide a detailed chronological factual statement (minimum 30 characters).</div>
                             {% if form.allegation.errors %}
                                 <div class="text-danger small mt-1">{{ form.allegation.errors.0 }}</div>
                             {% endif %}
                         </div>
-
                         <!-- Step 2 Navigation -->
                         <div class="d-flex justify-content-between">
                             <button type="button" class="btn btn-outline-secondary px-3" @click="step = 1">&larr; Back</button>
-                            <button type="button" class="btn btn-vng-primary px-4" @click="if (!title.trim() || !allegation.trim()) { alert('Please enter both the report title and detailed allegation.'); } else { step = 3; }">
+                            <button type="button" class="btn btn-vng-primary px-4" @click="validateStep2()">
                                 Continue to Evidence &rarr;
                             </button>
                         </div>
@@ -314,7 +444,9 @@
                         <!-- File Upload Drop Zone -->
                         <div class="mb-3">
                             <label class="form-label small fw-semibold">Upload File (Max 10 MB)</label>
-                            <div class="border rounded p-4 text-center bg-light position-relative" style="border-style: dashed !important; border-color: var(--vng-border) !important;">
+                            <div class="border rounded p-4 text-center bg-light position-relative" 
+                                 :class="{'border-danger bg-danger-subtle': errors.file}"
+                                 style="border-style: dashed !important; border-color: var(--vng-border) !important;">
                                 <input type="file" name="evidence_file" id="{{ form.evidence_file.id_for_label }}" class="position-absolute top-0 start-0 w-100 h-100 opacity-0 cursor-pointer" @change="handleFileSelect($event)" accept=".png,.jpg,.jpeg,.pdf,.doc,.docx">
                                 
                                 <template x-if="!fileName">
@@ -324,7 +456,6 @@
                                         <div class="text-muted small">PDF, PNG, JPG, DOCX (up to 10 MB)</div>
                                     </div>
                                 </template>
-
                                 <template x-if="fileName">
                                     <div class="d-flex align-items-center justify-content-center gap-3">
                                         <template x-if="isImage && imagePreview">
@@ -337,6 +468,7 @@
                                     </div>
                                 </template>
                             </div>
+                            <div class="text-danger small mt-2 fw-semibold" x-show="errors.file" x-text="errors.file" x-cloak></div>
                             {% if form.evidence_file.errors %}
                                 <div class="text-danger small mt-1">{{ form.evidence_file.errors.0 }}</div>
                             {% endif %}
@@ -410,13 +542,20 @@
                         </div>
 
                         <!-- Step 4 Navigation & Submit -->
-                        <div class="d-flex justify-content-between">
-                            <button type="button" class="btn btn-outline-secondary px-3" @click="step = 3" :disabled="submitting">&larr; Back</button>
-                            <button type="submit" class="btn btn-vng-primary px-4 py-2" :disabled="!declared || submitting">
-                                <span x-show="!submitting">Submit Report to Moderation Desk &rarr;</span>
-                                <span x-show="submitting" x-cloak class="spinner-border spinner-border-sm me-1"></span>
-                                <span x-show="submitting" x-cloak>Submitting Report...</span>
-                            </button>
+                        <div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <button type="button" class="btn btn-outline-secondary px-3" @click="step = 3" :disabled="submitting">&larr; Back</button>
+                                <button type="submit" class="btn btn-vng-primary px-4 py-2 d-inline-flex align-items-center justify-content-center" :disabled="!declared || submitting">
+                                    <span x-show="!submitting">Submit Report to Moderation Desk &rarr;</span>
+                                    <span x-show="submitting" x-cloak class="spinner-border spinner-border-sm me-2"></span>
+                                    <span x-show="submitting" x-cloak>Submitting Report...</span>
+                                </button>
+                            </div>
+                            <div class="text-end mt-2" x-show="!declared" x-cloak>
+                                <span class="text-muted small">
+                                    <i class="bi bi-info-circle me-1"></i>Please check the good-faith declaration checkbox to submit.
+                                </span>
+                            </div>
                         </div>
                     </div>
 
