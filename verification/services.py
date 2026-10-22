@@ -434,29 +434,11 @@ def create_trustpass_certificate_application(
             logger.warning("Document upload failed during TrustPass application: %s", e)
     with transaction.atomic():
         subject_name = full_name.strip() or holder.get_full_name().strip() or holder.username
-        # Reuse existing SubjectEntity if NIN or Phone is already registered in identity registry
-        subject = None
-        if nin and str(nin).strip():
-            try:
-                nin_h = hash_identifier_value('nin', nin.strip())
-                existing_nin = Identifier.objects.filter(type='nin', value_hash=nin_h).select_related('subject').first()
-                if existing_nin:
-                    subject = existing_nin.subject
-            except Exception:
-                pass
-        if not subject and phone_number and str(phone_number).strip():
-            try:
-                phone_h = hash_identifier_value('phone', phone_number.strip())
-                existing_phone = Identifier.objects.filter(type='phone', value_hash=phone_h).select_related('subject').first()
-                if existing_phone:
-                    subject = existing_phone.subject
-            except Exception:
-                pass
-        if not subject:
-            subject = SubjectEntity.objects.create(
-                name=subject_name,
-                type='person',
-            )
+        # Always create the SubjectEntity with the exact candidate name entered by the user
+        subject = SubjectEntity.objects.create(
+            name=subject_name,
+            type='person',
+        )
         # Register identifiers safely with existence check and savepoint isolation
         if nin and str(nin).strip():
             try:
