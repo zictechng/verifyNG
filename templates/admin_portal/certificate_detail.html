@@ -57,7 +57,7 @@
       </div>
     </div>
     {% endif %}
-    
+
     <!-- Candidate / Subject card -->
     <div class="adm-card p-4 mb-4">
       <h6 class="fw-semibold mb-3" style="color:var(--adm-ink);border-bottom:1px solid var(--adm-border);padding-bottom:.5rem;">
@@ -126,11 +126,16 @@
         </dd>
       </dl>
       {% if doc_url %}
+      <!-- Inline Preview for Images -->
+      <div class="mb-3 mt-2 text-center p-2 rounded bg-light border">
+        <img src="{{ doc_url }}" alt="Verification Proof Preview" class="img-fluid rounded" style="max-height:220px;object-fit:contain;"
+             onerror="this.parentElement.style.display='none';">
+      </div>
       <div class="d-flex flex-wrap gap-2 pt-2 border-top">
-        <a href="{{ doc_url }}" target="_blank" class="btn btn-adm-primary btn-sm px-3 d-inline-flex align-items-center">
+        <a href="{{ doc_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-adm-primary btn-sm px-3 d-inline-flex align-items-center">
           <i class="bi bi-box-arrow-up-right me-1"></i>Open Document in New Tab
         </a>
-        <a href="{{ doc_url }}" download class="btn btn-adm-outline btn-sm px-3 d-inline-flex align-items-center">
+        <a href="{{ doc_download_url|default:doc_url }}" download class="btn btn-adm-outline btn-sm px-3 d-inline-flex align-items-center">
           <i class="bi bi-download me-1"></i>Download Proof
         </a>
       </div>
