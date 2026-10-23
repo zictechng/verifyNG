@@ -92,23 +92,31 @@
             </div>
         </div>
     
-
-                <!-- Manage Profile Action Row -->
+        <!-- Manage Profile Action Rows (Both Company & Personal for Organizations) -->
         {% if request.user.role in 'employer,agency,business' %}
-        <a href="{% url 'employer:profile' %}" class="vng-profile-card-action">
+        <a href="{% url 'employer:profile' %}" class="vng-profile-card-action border-bottom">
             <div class="min-w-0">
                 <div class="vng-action-title">
-                    {% if request.user.role == 'agency' %}Manage Agency Profile{% elif request.user.role == 'business' %}Manage Business Profile{% else %}Manage Company Profile{% endif %}
+                    {% if request.user.role == 'agency' %}Agency Profile{% elif request.user.role == 'business' %}Business Profile{% else %}Company Profile{% endif %}
                 </div>
-                <div class="vng-action-desc">Update organization details, RC/CAC and address</div>
+                <div class="vng-action-desc">Organization details, CAC RC/BN and registered address</div>
+            </div>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        </a>
+        <a href="{% url 'users:profile' %}" class="vng-profile-card-action">
+            <div class="min-w-0">
+                <div class="vng-action-title">
+                    Personal Profile &amp; Login
+                </div>
+                <div class="vng-action-desc">Your contact name, personal login email and credentials</div>
             </div>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
         </a>
         {% else %}
         <a href="{% url 'users:profile' %}" class="vng-profile-card-action">
             <div class="min-w-0">
-                <div class="vng-action-title">Manage profile</div>
-                <div class="vng-action-desc">Update your personal details, NIN, name and email</div>
+                <div class="vng-action-title">Manage Personal Profile</div>
+                <div class="vng-action-desc">Update your personal details, name and email</div>
             </div>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
         </a>
