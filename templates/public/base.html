@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>{% block title %}{{ site_config.site_name|default:"VerifyNG" }} — {{ site_config.site_tagline|default:"Public Trust & Safety Platform" }}{% endblock %}</title>
     <meta name="description" content="{% block meta_description %}{{ site_config.site_tagline|default:'Verify information, check potential fraud risks, and report suspicious experiences across Nigeria.' }}{% endblock %}">
 
@@ -43,21 +43,42 @@
             --vng-bottom-nav-height: 60px;
         }
 
+                html {
+            width: 100%;
+            overflow-x: hidden;
+            -webkit-text-size-adjust: 100%;
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--vng-page-bg) !important;
             color: #334155;
             -webkit-font-smoothing: antialiased;
+            width: 100%;
+            max-width: 100vw;
+            overflow-x: hidden;
             min-height: 100vh;
+            min-height: 100dvh; /* Modern iOS Safari dynamic viewport height */
             display: flex;
             flex-direction: column;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior-y: contain; /* Prevents rubber-band jitter/bouncing */
         }
 
-        main { flex: 1 0 auto; }
+        main {
+            flex: 1 0 auto;
+            width: 100%;
+            max-width: 100vw;
+            overflow-x: hidden;
+        }
 
         @media (max-width: 767.98px) {
             body.has-bottom-nav {
-                padding-bottom: calc(var(--vng-bottom-nav-height) + env(safe-area-inset-bottom, 0px));
+                padding-bottom: calc(var(--vng-bottom-nav-height) + env(safe-area-inset-bottom, 16px) + 16px) !important;
+            }
+            /* Prevents iOS Safari from auto-zooming and displacing the viewport on tap */
+            input, select, textarea {
+                font-size: 16px !important;
             }
         }
 
@@ -496,17 +517,17 @@
                 <div class="d-flex d-md-none align-items-center gap-2">
                     {% if user.is_authenticated %}
                         {% if user.is_superuser or user.is_staff or user.role == 'moderator' or user.role == 'officer' %}
-                            <a href="{% url 'admin_portal:overview' %}" class="btn btn-vng-primary btn-sm py-1 px-2.5 d-inline-flex align-items-center gap-1" style="font-size:0.8rem;border-radius:20px;">
+                            <a href="{% url 'admin_portal:overview' %}" class="btn btn-outline-secondary btn-sm py-1 px-2.5 d-inline-flex align-items-center gap-1 rounded-pill" style="font-size:0.78rem;">
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
                                 Dashboard
                             </a>
                         {% elif user.role in 'employer,agency,business' %}
-                            <a href="{% url 'employer:dashboard' %}" class="btn btn-vng-primary btn-sm py-1 px-2.5 d-inline-flex align-items-center gap-1" style="font-size:0.8rem;border-radius:20px;">
+                            <a href="{% url 'employer:dashboard' %}" class="btn btn-outline-secondary btn-sm py-1 px-2.5 d-inline-flex align-items-center gap-1 rounded-pill" style="font-size:0.78rem;">
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
                                 Dashboard
                             </a>
                         {% else %}
-                            <a href="{% url 'dashboard:index' %}" class="btn btn-vng-primary btn-sm py-1 px-2.5 d-inline-flex align-items-center gap-1" style="font-size:0.8rem;border-radius:20px;">
+                            <a href="{% url 'dashboard:index' %}" class="btn btn-outline-secondary btn-sm py-1 px-2.5 d-inline-flex align-items-center gap-1 rounded-pill" style="font-size:0.78rem;">
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
                                 Dashboard
                             </a>
@@ -515,6 +536,7 @@
                         <a href="{% url 'users:login' %}" class="btn btn-vng-primary btn-sm py-1 px-3">Login</a>
                     {% endif %}
                 </div>
+                
             </div>
         </nav>
     </header>

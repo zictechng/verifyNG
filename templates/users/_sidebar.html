@@ -1,28 +1,41 @@
 
 {% load static %}
-<!-- Mobile: horizontal pill tabs with Back to Account link -->
+<!-- Mobile: Professional Sub-Navigation Bar (Stripe / GitHub App Pattern) -->
 <div class="col-12 d-md-none mb-3">
-    <div class="d-flex align-items-center justify-content-between mb-2">
-        <a href="{% url 'users:account_hub' %}" class="d-inline-flex align-items-center gap-1 text-decoration-none fw-semibold" style="color:var(--vng-primary);font-size:14px;">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+    <div class="d-flex align-items-center mb-2">
+        <a href="{% url 'users:account_hub' %}" class="d-inline-flex align-items-center gap-1 text-decoration-none fw-semibold small text-muted" style="font-size:13px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
             Back to Account
         </a>
     </div>
-    <!-- Mobile Quick-Switch Tabs (Swipeable) -->
-    <div class="d-flex gap-2 overflow-x-auto pb-1" style="scrollbar-width:none;-webkit-overflow-scrolling:touch;">
+    <br/>
+
+    <!-- Clean Segmented App Tabs -->
+    <div class="d-flex gap-3 border-bottom overflow-x-auto" style="scrollbar-width:none;-webkit-overflow-scrolling:touch;border-color:#E2E8F0!important;">
         {% if request.user.role in 'employer,agency,business' %}
-        <a href="{% url 'employer:profile' %}" class="btn btn-sm text-nowrap rounded-pill {% if active_section == 'company_profile' %}btn-vng-primary{% else %}btn-outline-secondary{% endif %}" style="font-size:12px;">
-            🏢 {% if request.user.role == 'agency' %}Agency{% elif request.user.role == 'business' %}Business{% else %}Company{% endif %}
+        <a href="{% url 'employer:profile' %}"
+           class="text-decoration-none pb-2 px-1 text-nowrap small fw-semibold {% if active_section == 'company_profile' %}text-primary border-bottom border-2 border-primary{% else %}text-muted{% endif %}"
+           style="font-size:13.5px;margin-bottom:-1px;">
+            {% if request.user.role == 'agency' %}Agency{% elif request.user.role == 'business' %}Business{% else %}Company{% endif %}
         </a>
         {% endif %}
-        <a href="{% url 'users:profile' %}" class="btn btn-sm text-nowrap rounded-pill {% if active_section == 'profile' %}btn-vng-primary{% else %}btn-outline-secondary{% endif %}" style="font-size:12px;">
-            👤 Personal Profile
+        <a href="{% url 'users:profile' %}"
+           class="text-decoration-none pb-2 px-1 text-nowrap small fw-semibold {% if active_section == 'profile' %}text-primary border-bottom border-2 border-primary{% else %}text-muted{% endif %}"
+           style="font-size:13.5px;margin-bottom:-1px;">
+            Personal
         </a>
-        <a href="{% url 'users:password_change' %}" class="btn btn-sm text-nowrap rounded-pill {% if active_section == 'settings' %}btn-vng-primary{% else %}btn-outline-secondary{% endif %}" style="font-size:12px;">
-            🔒 Security
+        <a href="{% url 'users:password_change' %}"
+           class="text-decoration-none pb-2 px-1 text-nowrap small fw-semibold {% if active_section == 'settings' %}text-primary border-bottom border-2 border-primary{% else %}text-muted{% endif %}"
+           style="font-size:13.5px;margin-bottom:-1px;">
+            Security
         </a>
-        <a href="{% url 'notifications:list' %}" class="btn btn-sm text-nowrap rounded-pill {% if active_section == 'notifications' %}btn-vng-primary{% else %}btn-outline-secondary{% endif %}" style="font-size:12px;">
-            🔔 Notifications
+        <a href="{% url 'notifications:list' %}"
+           class="text-decoration-none pb-2 px-1 text-nowrap small fw-semibold {% if active_section == 'notifications' %}text-primary border-bottom border-2 border-primary{% else %}text-muted{% endif %}"
+           style="font-size:13.5px;margin-bottom:-1px;">
+            Notifications
+            {% if unread_notification_count > 0 %}
+            <span class="badge rounded-pill bg-danger ms-1" style="font-size:9px;">{{ unread_notification_count }}</span>
+            {% endif %}
         </a>
     </div>
 </div>
