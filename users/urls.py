@@ -1,5 +1,6 @@
 from django.urls import path
 from users.views import (
+    LegalNameChangeRequestView,
     RegisterView,
     RegisterLandingView,
     EmployerRegisterView,
@@ -32,6 +33,7 @@ urlpatterns = [
     path('logout/', UserLogoutView.as_view(), name='logout'),
     path('account/', AccountHubView.as_view(), name='account_hub'),
     path('profile/', UserProfileUpdateView.as_view(), name='profile'),
+    path('profile/legal-name-change/', LegalNameChangeRequestView.as_view(), name='legal_name_change_request'),
     path('delete-account/', DeleteAccountView.as_view(), name='delete_account'),
     path(
         'suspended/',

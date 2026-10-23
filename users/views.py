@@ -11,8 +11,9 @@ from django.contrib.auth.views import (
     PasswordResetCompleteView,
 )
 from django.http import HttpResponse
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.urls import reverse_lazy
+from django.utils import timezone
 from django.utils.timezone import localtime, now
 from django.views.generic import CreateView, DetailView, TemplateView, View
 from django.urls import reverse
@@ -21,6 +22,12 @@ from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
 from django.http import HttpResponseRedirect
 from django.urls import reverse_lazy
+from django import forms as dj_forms
+import secrets
+from django.core.files.storage import default_storage
+import os
+from reports.models import AuditLog
+from verification.services import get_client_ip
 
 from core.email_utils import render_email
 from core.models import SiteConfiguration
@@ -288,8 +295,6 @@ class UserProfileUpdateView(LoginRequiredMixin, View):
     template_name = 'users/profile.html'
 
     def get(self, request):
-        from django import forms as dj_forms
-
         class ProfileForm(dj_forms.ModelForm):
             class Meta:
                 model = User
@@ -304,7 +309,6 @@ class UserProfileUpdateView(LoginRequiredMixin, View):
         return render(request, self.template_name, {'form': form, 'user_profile': request.user})
 
     def post(self, request):
-        from django import forms as dj_forms
 
         class ProfileForm(dj_forms.ModelForm):
             class Meta:
@@ -318,11 +322,93 @@ class UserProfileUpdateView(LoginRequiredMixin, View):
 
         form = ProfileForm(request.POST, instance=request.user)
         if form.is_valid():
+            # If identity is verified, strictly preserve legal first and last name from tampering
+            if request.user.identity_verified:
+                form.instance.first_name = request.user.first_name
+                form.instance.last_name = request.user.last_name
+
             form.save()
             messages.success(request, 'Profile updated successfully.')
             return HttpResponseRedirect(reverse_lazy('users:profile'))
         return render(request, self.template_name, {'form': form, 'user_profile': request.user})
 
+
+
+class LegalNameChangeRequestView(LoginRequiredMixin, View):
+    """
+    Handles submission of official legal name or corporate entity change requests.
+    Validates uploaded legal proof (CAC Certificate, Marriage Gazette, Court Affidavit)
+    and logs a pending compliance audit record.
+    """
+    def post(self, request):
+        user = request.user
+        request_type = request.POST.get('request_type', 'personal')
+        requested_name = request.POST.get('requested_name', '').strip()
+        requested_rc = request.POST.get('requested_rc', '').strip()
+        reason_category = request.POST.get('reason_category', '').strip()
+        reason_text = request.POST.get('reason_text', '').strip()
+        proof_file = request.FILES.get('proof_document')
+
+        redirect_url = 'employer:profile' if request_type == 'company' else 'users:profile'
+
+        if not requested_name:
+            messages.error(request, "Please enter the requested new legal name.")
+            return redirect(redirect_url)
+
+        doc_url = ''
+        doc_name = ''
+        if proof_file:
+            ext = os.path.splitext(proof_file.name)[1].lower()
+            if ext not in ('.pdf', '.jpg', '.jpeg', '.png'):
+                messages.error(request, "Supporting document must be a PDF, JPG, or PNG file.")
+                return redirect(redirect_url)
+            if proof_file.size > 10 * 1024 * 1024:
+                messages.error(request, "Document file size must be under 10MB.")
+                return redirect(redirect_url)
+
+            clean_filename = f"lnc_{user.id}_{timezone.now().strftime('%Y%m%d%H%M%S')}{ext}"
+            saved_path = default_storage.save(f"legal_name_changes/{clean_filename}", proof_file)
+            doc_url = default_storage.url(saved_path)
+            doc_name = proof_file.name
+
+        ref_number = f"LNC-{timezone.now().year}-{secrets.token_hex(3).upper()}"
+
+        current_name = (
+            getattr(getattr(user, 'employer_profile', None), 'company_name', '')
+            if request_type == 'company' else user.get_full_name() or user.username
+        )
+        current_rc = (
+            getattr(getattr(user, 'employer_profile', None), 'company_rc_number', '')
+            if request_type == 'company' else ''
+        )
+
+        AuditLog.objects.create(
+            report=None,
+            action="LEGAL_NAME_CHANGE_REQUESTED",
+            performed_by=user,
+            ip_address=get_client_ip(request),
+            details={
+                "reference_number": ref_number,
+                "request_type": request_type,
+                "current_name": current_name,
+                "requested_name": requested_name,
+                "current_rc": current_rc,
+                "requested_rc": requested_rc,
+                "reason_category": reason_category,
+                "reason_text": reason_text,
+                "document_url": doc_url,
+                "document_name": doc_name,
+                "status": "pending",
+                "submitted_at": timezone.now().isoformat(),
+            }
+        )
+
+        target_label = "company details" if request_type == 'company' else "legal name"
+        messages.success(
+            request,
+            f"Your request to update your {target_label} has been submitted (Ref: {ref_number}). Our compliance team will review your supporting documents within 24–48 business hours."
+        )
+        return redirect(redirect_url)
 
 class DeleteAccountView(LoginRequiredMixin, View):
     """

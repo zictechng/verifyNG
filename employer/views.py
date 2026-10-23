@@ -150,8 +150,11 @@ def employer_profile(request):
     profile = _get_or_create_employer_profile(request.user)
 
     if request.method == 'POST':
-        profile.company_name = request.POST.get('company_name', profile.company_name).strip()
-        profile.company_rc_number = request.POST.get('company_rc_number', '').strip()
+        # If company identity is verified, lock legal company name and CAC RC number
+        if not profile.is_verified:
+            profile.company_name = request.POST.get('company_name', profile.company_name).strip()
+            profile.company_rc_number = request.POST.get('company_rc_number', '').strip()
+
         profile.industry = request.POST.get('industry', '').strip()
         profile.company_address = request.POST.get('company_address', '').strip()
         profile.contact_phone = request.POST.get('contact_phone', '').strip()

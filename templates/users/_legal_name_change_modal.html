@@ -1,0 +1,101 @@
+
+<!-- Mobile-First Professional Legal Name Change Modal -->
+<div class="modal fade" id="legalNameChangeModal" tabindex="-1" aria-labelledby="legalNameChangeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 520px;">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <div class="modal-header bg-light border-bottom px-4 py-3">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-primary-subtle text-primary rounded-pill px-2.5 py-1 small fw-semibold">Compliance</span>
+                    <h5 class="modal-title h6 fw-bold mb-0" id="legalNameChangeModalLabel">
+                        {% if request_type == 'company' %}Request Corporate Entity Change{% else %}Request Legal Name Change{% endif %}
+                    </h5>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <form method="post" action="{% url 'users:legal_name_change_request' %}" enctype="multipart/form-data" novalidate>
+                {% csrf_token %}
+                <input type="hidden" name="request_type" value="{{ request_type|default:'personal' }}">
+
+                <div class="modal-body p-4">
+                    <p class="small text-muted mb-3">
+                        {% if request_type == 'company' %}
+                            Verified corporate credentials cannot be edited directly. To update your legal registered company name or CAC RC number, please submit official CAC documentation.
+                        {% else %}
+                            Your legal name is locked to your verified government identity (NIN/BVN). To reflect a legal change of name, please submit official supporting documentation.
+                        {% endif %}
+                    </p>
+
+                    <!-- Current Name (Readonly) -->
+                    <div class="mb-3">
+                        <label class="form-label small text-muted fw-semibold mb-1">Current Verified Record</label>
+                        <input type="text" class="form-control bg-light font-monospace small" value="{{ current_record_name }}" readonly disabled>
+                    </div>
+
+                    <!-- Requested New Name -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">
+                            {% if request_type == 'company' %}New Legal Company Name{% else %}New Legal Full Name{% endif %}
+                            <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" name="requested_name" class="form-control" placeholder="Enter full new legal name" required>
+                    </div>
+
+                    {% if request_type == 'company' %}
+                    <!-- New CAC Number (Company only) -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">New CAC Registration Number (RC/BN)</label>
+                        <input type="text" name="requested_rc" class="form-control" placeholder="Leave blank if RC number is unchanged">
+                    </div>
+                    {% endif %}
+
+                    <!-- Reason Category -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Reason for Legal Change <span class="text-danger">*</span></label>
+                        <select name="reason_category" class="form-select" required>
+                            <option value="" disabled selected>Select official reason...</option>
+                            {% if request_type == 'company' %}
+                                <option value="cac_change_of_name">CAC Certificate of Change of Name (Rebranding)</option>
+                                <option value="conversion_ltd_to_plc">Conversion (Ltd to Plc)</option>
+                                <option value="merger_acquisition">Corporate Merger or Acquisition</option>
+                                <option value="other_corporate">Other Corporate Filing</option>
+                            {% else %}
+                                <option value="marriage_divorce">Marriage / Change of Marital Status</option>
+                                <option value="official_gazette">Federal/State Gazette Publication</option>
+                                <option value="court_affidavit">Sworn Court Affidavit &amp; Newspaper Publication</option>
+                                <option value="deed_poll">Deed Poll</option>
+                                <option value="correction">Correction of Official Records</option>
+                            {% endif %}
+                        </select>
+                    </div>
+
+                    <!-- Document Upload -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">
+                            Upload Supporting Legal Proof <span class="text-danger">*</span>
+                        </label>
+                        <input type="file" name="proof_document" class="form-control" accept=".pdf,.png,.jpg,.jpeg" required>
+                        <div class="form-text small text-muted">
+                            {% if request_type == 'company' %}
+                                Upload official CAC Certificate of Change of Name or Status Report (PDF, PNG, JPG &bull; Max 10MB).
+                            {% else %}
+                                Upload Marriage Certificate, Gazette Publication, or Court Affidavit (PDF, PNG, JPG &bull; Max 10MB).
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Additional Notes -->
+                    <div class="mb-0">
+                        <label class="form-label small fw-semibold">Additional Explanation (Optional)</label>
+                        <textarea name="reason_text" class="form-control" rows="2" placeholder="Provide any extra details for the verification officer"></textarea>
+                    </div>
+                </div>
+
+                <div class="modal-footer bg-light border-top px-4 py-3 d-flex justify-content-between">
+                    <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-vng-primary btn-sm rounded-pill px-4">Submit for Review</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
