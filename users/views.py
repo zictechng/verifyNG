@@ -27,11 +27,10 @@ import secrets
 from django.core.files.storage import default_storage
 import os
 from reports.models import AuditLog
-from verification.services import get_client_ip
 
 from core.email_utils import render_email
 from core.models import SiteConfiguration
-from core.rate_limiting import check_rate_limit
+from core.rate_limiting import check_rate_limit, get_client_ip
 from notifications.tasks import send_broadcast_email_task
 from users.forms import (
     CustomAuthenticationForm,
