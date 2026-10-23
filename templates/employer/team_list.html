@@ -1,18 +1,28 @@
 {% extends 'public/base.html' %}
 {% load static %}
 
-{% block title %}Team Members | VerifyNG{% endblock %}
+{% block title %}Team Members & Invitations | VerifyNG{% endblock %}
 
 {% block content %}
 <div class="container py-4 py-md-5">
 
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
         <div>
-            <a href="{% url 'employer:dashboard' %}" class="small text-muted text-decoration-none">← Employer Portal</a>
-            <h1 class="h3 fw-bold mt-2 mb-1">Team Members</h1>
-            <p class="text-muted small mb-0">Manage who can run checks on behalf of {{ profile.company_name }}.</p>
+            <a href="{% url 'employer:dashboard' %}" class="small text-muted text-decoration-none">← Employer Dashboard</a>
+            <h1 class="h3 fw-bold mt-2 mb-1">Team Members &amp; Invitations</h1>
+            <p class="text-muted small mb-0">Manage who can run checks and track sent invitations for {{ profile.company_name }}.</p>
         </div>
     </div>
+
+    {# ── Messages ── #}
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show mb-4" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
 
     {# ── Invite form card ───────────────────────────────────────────────────── #}
     <div class="vng-card p-4 mb-4">
@@ -51,91 +61,283 @@
         </p>
     </div>
 
-    {# ── Members table ──────────────────────────────────────────────────────── #}
-    <div class="vng-card" id="membersCard">
-        {% if members %}
-        <div class="table-responsive">
-            <table class="table mb-0" style="font-size:0.875rem;">
-                <thead>
-                    <tr style="color:var(--vng-muted); border-bottom:2px solid var(--vng-border);">
-                        <th class="fw-semibold px-4 py-3">Member</th>
-                        <th class="fw-semibold py-3">Role</th>
-                        <th class="fw-semibold py-3">Invited By</th>
-                        <th class="fw-semibold py-3">Joined</th>
-                        <th class="fw-semibold py-3">Status</th>
-                        <th class="fw-semibold py-3"></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for member in members %}
-                    <tr id="member-row-{{ member.id }}" style="border-bottom:1px solid var(--vng-border);">
-                        <td class="px-4 py-3">
-                            <div class="d-flex align-items-center gap-2">
-                                <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
-                                     style="width:32px;height:32px;background:var(--vng-primary-light);color:var(--vng-primary);font-weight:700;font-size:13px;">
-                                    {{ member.user.get_full_name|default:member.user.username|slice:":1"|upper }}
-                                </div>
-                                <div>
-                                    <div class="fw-semibold" style="color:var(--vng-ink);">
-                                        {{ member.user.get_full_name|default:member.user.username }}
+    {# ── Tabs Strip: Active Members vs Sent Invitations ─────────────────────── #}
+    <div class="mb-4">
+        <ul class="nav nav-pills gap-2">
+            <li class="nav-item">
+                <a class="nav-link {% if active_tab == 'members' %}active{% endif %}"
+                   href="?tab=members">
+                    Active Members ({{ members_count }})
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if active_tab == 'invites' %}active{% endif %}"
+                   href="?tab=invites">
+                    Sent Invitations ({{ invites_count }})
+                    {% if pending_invites_count > 0 %}
+                        <span class="badge rounded-pill bg-warning text-dark ms-1" style="font-size:10px;">{{ pending_invites_count }} pending</span>
+                    {% endif %}
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    {# ── TAB CONTENT: Active Members ────────────────────────────────────────── #}
+    {% if active_tab == 'members' %}
+        <div class="vng-card" id="membersCard">
+            {% if members.object_list %}
+                {# Desktop Table #}
+                <div class="table-responsive d-none d-md-block">
+                    <table class="table mb-0" style="font-size:0.875rem;">
+                        <thead>
+                            <tr style="color:var(--vng-muted); border-bottom:2px solid var(--vng-border);">
+                                <th class="fw-semibold px-4 py-3">Member</th>
+                                <th class="fw-semibold py-3">Role</th>
+                                <th class="fw-semibold py-3">Invited By</th>
+                                <th class="fw-semibold py-3">Joined</th>
+                                <th class="fw-semibold py-3">Status</th>
+                                <th class="fw-semibold py-3 text-end px-4">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for member in members %}
+                            <tr id="member-row-{{ member.id }}" style="border-bottom:1px solid var(--vng-border);">
+                                <td class="px-4 py-3">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                                             style="width:32px;height:32px;background:var(--vng-primary-light);color:var(--vng-primary);font-weight:700;font-size:13px;">
+                                            {{ member.user.get_full_name|default:member.user.username|slice:":1"|upper }}
+                                        </div>
+                                        <div>
+                                            <div class="fw-semibold" style="color:var(--vng-ink);">
+                                                {{ member.user.get_full_name|default:member.user.username }}
+                                            </div>
+                                            <div class="text-muted" style="font-size:12px;">{{ member.user.email }}</div>
+                                        </div>
                                     </div>
-                                    <div class="text-muted" style="font-size:12px;">{{ member.user.email }}</div>
-                                </div>
-                            </div>
-                        </td>
-                        <td class="py-3">
+                                </td>
+                                <td class="py-3">
+                                    {% if member.team_role == 'admin' %}
+                                        <span class="badge" style="background:var(--vng-primary-light);color:var(--vng-primary);">Team Admin</span>
+                                    {% elif member.team_role == 'checker' %}
+                                        <span class="badge" style="background:var(--vng-teal-light);color:var(--vng-teal);">Checker</span>
+                                    {% else %}
+                                        <span class="badge bg-light text-dark">Viewer</span>
+                                    {% endif %}
+                                </td>
+                                <td class="py-3 text-muted">
+                                    {% if member.invited_by %}{{ member.invited_by.get_full_name|default:member.invited_by.username }}{% else %}—{% endif %}
+                                </td>
+                                <td class="py-3 text-muted">
+                                    {{ member.joined_at|date:"d M Y"|default:"Pending" }}
+                                </td>
+                                <td class="py-3">
+                                    {% if member.is_active %}
+                                        <span class="badge bg-success">Active</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Inactive</span>
+                                    {% endif %}
+                                </td>
+                                <td class="py-3 text-end px-4">
+                                    {% if member.user != request.user %}
+                                    <button
+                                        type="button"
+                                        class="btn btn-sm btn-outline-danger"
+                                        data-remove-id="{{ member.id }}"
+                                        data-remove-name="{{ member.user.get_full_name|default:member.user.username }}"
+                                        style="font-size:0.8rem;padding:0.25rem 0.6rem;"
+                                        onclick="confirmRemoveMember(this)">
+                                        Remove
+                                    </button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                {# Mobile Cards #}
+                <div class="d-md-none p-3 d-flex flex-column gap-3">
+                    {% for member in members %}
+                    <div class="p-3 border rounded-3 bg-white shadow-sm" id="member-card-{{ member.id }}">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="fw-bold" style="color:var(--vng-ink);">
+                                {{ member.user.get_full_name|default:member.user.username }}
+                            </span>
                             {% if member.team_role == 'admin' %}
-                                <span class="badge" style="background:var(--vng-primary-light);color:var(--vng-primary);">Team Admin</span>
-                            {% elif member.team_role == 'checker' %}
-                                <span class="badge" style="background:var(--vng-teal-light);color:var(--vng-teal);">Checker</span>
+                                <span class="badge bg-primary-subtle text-primary">Admin</span>
                             {% else %}
-                                <span class="badge bg-light text-dark">Viewer</span>
+                                <span class="badge bg-secondary-subtle text-secondary">{{ member.get_team_role_display }}</span>
                             {% endif %}
-                        </td>
-                        <td class="py-3 text-muted">
-                            {% if member.invited_by %}{{ member.invited_by.get_full_name|default:member.invited_by.username }}{% else %}—{% endif %}
-                        </td>
-                        <td class="py-3 text-muted">
-                            {{ member.joined_at|date:"d M Y"|default:"Pending" }}
-                        </td>
-                        <td class="py-3">
-                            {% if member.is_active %}
-                                <span class="badge bg-success">Active</span>
-                            {% else %}
-                                <span class="badge bg-secondary">Inactive</span>
-                            {% endif %}
-                        </td>
-                        <td class="py-3">
+                        </div>
+                        <div class="small text-muted mb-2">{{ member.user.email }}</div>
+                        <div class="d-flex justify-content-between align-items-center pt-2 border-top small text-muted">
+                            <span>Joined: {{ member.joined_at|date:"d M Y"|default:"Active" }}</span>
                             {% if member.user != request.user %}
                             <button
                                 type="button"
-                                class="btn btn-sm btn-outline-danger"
+                                class="btn btn-sm btn-outline-danger py-0 px-2"
                                 data-remove-id="{{ member.id }}"
                                 data-remove-name="{{ member.user.get_full_name|default:member.user.username }}"
-                                style="font-size:0.8rem;padding:0.25rem 0.6rem;"
+                                style="font-size:0.75rem;"
                                 onclick="confirmRemoveMember(this)">
                                 Remove
                             </button>
                             {% endif %}
-                        </td>
-                    </tr>
+                        </div>
+                    </div>
                     {% endfor %}
-                </tbody>
-            </table>
+                </div>
+
+                {# Pagination #}
+                {% if members.has_other_pages %}
+                <div class="d-flex justify-content-between align-items-center p-3 border-top">
+                    <div>
+                        {% if members.has_previous %}
+                            <a href="?tab=members&mpage={{ members.previous_page_number }}" class="btn btn-outline-secondary btn-sm rounded-pill">← Previous</a>
+                        {% endif %}
+                    </div>
+                    <span class="small text-muted">Page {{ members.number }} of {{ members.paginator.num_pages }}</span>
+                    <div>
+                        {% if members.has_next %}
+                            <a href="?tab=members&mpage={{ members.next_page_number }}" class="btn btn-outline-secondary btn-sm rounded-pill">Next →</a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
+            {% else %}
+                <div class="text-center py-5 text-muted">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="mb-3 opacity-40">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                    <div class="fw-semibold mb-1">No active members yet</div>
+                    <p class="small mb-0">Send an invitation above to add your first team member.</p>
+                </div>
+            {% endif %}
         </div>
-        {% else %}
-        <div class="text-center py-5 text-muted" id="emptyState">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="mb-3 opacity-40">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                <circle cx="9" cy="7" r="4"/>
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-            </svg>
-            <div class="fw-semibold mb-1">No team members yet</div>
-            <p class="small mb-0">Send an invitation above to add your first team member.</p>
+
+    {# ── TAB CONTENT: Sent Invitations ──────────────────────────────────────── #}
+    {% else %}
+        <div class="vng-card" id="invitesCard">
+            {% if invites.object_list %}
+                {# Desktop Table #}
+                <div class="table-responsive d-none d-md-block">
+                    <table class="table mb-0" style="font-size:0.875rem;">
+                        <thead>
+                            <tr style="color:var(--vng-muted); border-bottom:2px solid var(--vng-border);">
+                                <th class="fw-semibold px-4 py-3">Invited Email</th>
+                                <th class="fw-semibold py-3">Assigned Role</th>
+                                <th class="fw-semibold py-3">Invited By</th>
+                                <th class="fw-semibold py-3">Sent On</th>
+                                <th class="fw-semibold py-3">Expires</th>
+                                <th class="fw-semibold py-3">Status</th>
+                                <th class="fw-semibold py-3 text-end px-4">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for invite in invites %}
+                            <tr style="border-bottom:1px solid var(--vng-border);">
+                                <td class="px-4 py-3 fw-semibold text-dark">{{ invite.email }}</td>
+                                <td class="py-3">
+                                    <span class="badge bg-light text-dark border">{{ invite.get_team_role_display }}</span>
+                                </td>
+                                <td class="py-3 text-muted">
+                                    {{ invite.invited_by.get_full_name|default:invite.invited_by.username }}
+                                </td>
+                                <td class="py-3 text-muted">{{ invite.created_at|date:"d M Y" }}</td>
+                                <td class="py-3 text-muted">{{ invite.expires_at|date:"d M Y" }}</td>
+                                <td class="py-3">
+                                    {% if invite.status == 'pending' %}
+                                        <span class="badge bg-warning-subtle text-warning border border-warning border-opacity-25">Pending</span>
+                                    {% elif invite.status == 'accepted' %}
+                                        <span class="badge bg-success-subtle text-success border border-success border-opacity-25">Accepted</span>
+                                    {% elif invite.status == 'revoked' %}
+                                        <span class="badge bg-secondary-subtle text-secondary border">Cancelled</span>
+                                    {% else %}
+                                        <span class="badge bg-danger-subtle text-danger border">Expired</span>
+                                    {% endif %}
+                                </td>
+                                <td class="py-3 text-end px-4">
+                                    {% if invite.status == 'pending' %}
+                                    <form method="post" action="{% url 'employer:team_invite_revoke' invite.id %}" class="d-inline">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2" style="font-size:0.78rem;" onclick="return confirm('Cancel invitation to {{ invite.email }}?');">
+                                            Cancel
+                                        </button>
+                                    </form>
+                                    {% else %}
+                                        <span class="text-muted small">—</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                {# Mobile Cards #}
+                <div class="d-md-none p-3 d-flex flex-column gap-3">
+                    {% for invite in invites %}
+                    <div class="p-3 border rounded-3 bg-white shadow-sm">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="fw-bold" style="color:var(--vng-ink);font-size:14px;">{{ invite.email }}</span>
+                            {% if invite.status == 'pending' %}
+                                <span class="badge bg-warning-subtle text-warning" style="font-size:11px;">Pending</span>
+                            {% elif invite.status == 'accepted' %}
+                                <span class="badge bg-success-subtle text-success" style="font-size:11px;">Accepted</span>
+                            {% elif invite.status == 'revoked' %}
+                                <span class="badge bg-secondary-subtle text-secondary" style="font-size:11px;">Cancelled</span>
+                            {% else %}
+                                <span class="badge bg-danger-subtle text-danger" style="font-size:11px;">Expired</span>
+                            {% endif %}
+                        </div>
+                        <div class="small text-muted mb-2">Role: <strong>{{ invite.get_team_role_display }}</strong></div>
+                        <div class="d-flex justify-content-between align-items-center pt-2 border-top small text-muted">
+                            <span>Sent: {{ invite.created_at|date:"d M Y" }}</span>
+                            {% if invite.status == 'pending' %}
+                            <form method="post" action="{% url 'employer:team_invite_revoke' invite.id %}" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2" style="font-size:0.75rem;" onclick="return confirm('Cancel invitation to {{ invite.email }}?');">
+                                    Cancel
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                {# Pagination #}
+                {% if invites.has_other_pages %}
+                <div class="d-flex justify-content-between align-items-center p-3 border-top">
+                    <div>
+                        {% if invites.has_previous %}
+                            <a href="?tab=invites&ipage={{ invites.previous_page_number }}" class="btn btn-outline-secondary btn-sm rounded-pill">← Previous</a>
+                        {% endif %}
+                    </div>
+                    <span class="small text-muted">Page {{ invites.number }} of {{ invites.paginator.num_pages }}</span>
+                    <div>
+                        {% if invites.has_next %}
+                            <a href="?tab=invites&ipage={{ invites.next_page_number }}" class="btn btn-outline-secondary btn-sm rounded-pill">Next →</a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
+            {% else %}
+                <div class="text-center py-5 text-muted">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="mb-3 opacity-40">
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                        <polyline points="22,6 12,13 2,6"/>
+                    </svg>
+                    <div class="fw-semibold mb-1">No sent invitations</div>
+                    <p class="small mb-0">Use the form above to invite team members by email.</p>
+                </div>
+            {% endif %}
         </div>
-        {% endif %}
-    </div>
+    {% endif %}
 
 </div>
 
@@ -143,18 +345,20 @@
 {% include 'includes/confirm_modal.html' %}
 
 <script>
-/* ── State ── */
-let _pendingAction = null;   // 'invite' | 'remove'
+let _pendingAction = null;
 let _pendingMemberId = null;
 let _pendingMemberBtn = null;
 
-/* ── Confirm: Send Invite ── */
 function confirmSendInvite() {
     const email    = document.getElementById('invite-email').value.trim();
     const teamRole = document.getElementById('invite-role').value;
 
     if (!email) {
-        window.vng.toast('Please enter an email address.', 'warning');
+        if (window.vng && window.vng.toast) {
+            window.vng.toast('Please enter an email address.', 'warning');
+        } else {
+            alert('Please enter an email address.');
+        }
         return;
     }
 
@@ -177,7 +381,6 @@ function confirmSendInvite() {
     modal.show();
 }
 
-/* ── Confirm: Remove Member ── */
 function confirmRemoveMember(triggerBtn) {
     const memberId   = triggerBtn.dataset.removeId;
     const memberName = triggerBtn.dataset.removeName;
@@ -199,7 +402,6 @@ function confirmRemoveMember(triggerBtn) {
     modal.show();
 }
 
-/* ── Modal confirm button handler ── */
 document.getElementById('confirmModalBtn').addEventListener('click', async function () {
     const spinner = document.getElementById('confirmModalSpinner');
     const modal   = bootstrap.Modal.getInstance(document.getElementById('confirmActionModal'));
@@ -219,7 +421,6 @@ document.getElementById('confirmModalBtn').addEventListener('click', async funct
     _pendingAction = null;
 });
 
-/* ── Execute: send invite ── */
 async function doSendInvite() {
     const email    = document.getElementById('invite-email').value.trim();
     const teamRole = document.getElementById('invite-role').value;
@@ -237,14 +438,18 @@ async function doSendInvite() {
             loadingText: 'Sending…',
             onSuccess: function () {
                 document.getElementById('invite-email').value = '';
+                // Automatically switch to Sent Invitations tab so user sees the newly created invite
+                setTimeout(function () {
+                    window.location.href = "{% url 'employer:team_list' %}?tab=invites";
+                }, 800);
             }
         }
     );
 }
 
-/* ── Execute: remove member ── */
 async function doRemoveMember(memberId, triggerBtn) {
     const fd = new FormData();
+    fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
 
     await window.vng.fetchPost(
         `/employer/team/${memberId}/remove/`,
@@ -259,15 +464,15 @@ async function doRemoveMember(memberId, triggerBtn) {
                     row.style.opacity    = '0';
                     setTimeout(() => row.remove(), 300);
                 }
+                const card = document.getElementById(`member-card-${memberId}`);
+                if (card) card.remove();
             }
         }
     );
 }
 
-/* ── Util: escape HTML for safe interpolation ── */
 function escHtml(str) {
     return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 </script>
 {% endblock %}
-

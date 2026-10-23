@@ -30,6 +30,7 @@ urlpatterns = [
     # Team — BATCH 3
     path('team/', views.team_list, name='team_list'),
     path('team/invite/', views.team_invite_send, name='team_invite_send'),
+    path('team/invite/<uuid:invite_id>/revoke/', views.team_invite_revoke, name='team_invite_revoke'),
     path('team/<int:member_id>/remove/', views.team_member_remove, name='team_member_remove'),
 
     # Team invitation accept — public (no employer_required)

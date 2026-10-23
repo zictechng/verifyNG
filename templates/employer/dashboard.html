@@ -73,7 +73,7 @@
             </a>
         </div>
         <div class="col-6 col-md-3">
-            <a href="{% url 'employer:monitoring_list' %}" class="vng-card p-3 text-center h-100 d-block text-decoration-none">
+            <a href="{% url 'employer:team_list' %}" class="vng-card p-3 text-center h-100 d-block text-decoration-none">
                 <div class="fw-bold fs-3 mb-1" style="color:var(--vng-teal);">{{ team_count }}</div>
                 <div class="small text-muted">Team Members</div>
             </a>
@@ -142,58 +142,6 @@
             {% endif %}
         </div>
     </div>
-
-    {# ── Filed Workplace Misconduct Reports ──────────────────────────────── #}
-    {% if recent_misconduct_reports %}
-    <div class="vng-card mb-4">
-        <div class="d-flex justify-content-between align-items-center p-4 pb-0">
-            <div>
-                <h2 class="h6 fw-bold mb-1">Filed Misconduct Reports</h2>
-                <p class="small text-muted mb-0">Track workplace reports submitted by your organization against clearance certificates.</p>
-            </div>
-            <a href="{% url 'employer:staff_misconduct_report' %}" class="btn btn-sm btn-outline-danger">+ File Report</a>
-        </div>
-        <div class="p-4">
-            <div class="table-responsive">
-                <table class="table table-sm mb-0" style="font-size:0.875rem;">
-                    <thead>
-                        <tr style="color:var(--vng-muted);border-bottom:2px solid var(--vng-border);">
-                            <th class="fw-semibold pb-2">Reference</th>
-                            <th class="fw-semibold pb-2">Staff / Subject</th>
-                            <th class="fw-semibold pb-2">Incident Date</th>
-                            <th class="fw-semibold pb-2">Status</th>
-                            <th class="fw-semibold pb-2">Date Filed</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for report in recent_misconduct_reports %}
-                        <tr>
-                            <td class="font-monospace fw-semibold py-2"><code>{{ report.reference_number }}</code></td>
-                            <td class="py-2">{{ report.target_subject.name|default:"Staff Member" }}</td>
-                            <td class="py-2 text-muted">{{ report.incident_date|default:"Not specified" }}</td>
-                            <td class="py-2">
-                                {% if report.state == 'submitted' %}
-                                    <span class="badge bg-warning-subtle text-warning">Under Review</span>
-                                {% elif report.state == 'under_review' %}
-                                    <span class="badge bg-info-subtle text-info">7-Day Notice</span>
-                                {% elif report.state == 'published' %}
-                                    <span class="badge bg-danger-subtle text-danger">Published</span>
-                                {% elif report.state == 'resolved' %}
-                                    <span class="badge bg-success-subtle text-success">Resolved</span>
-                                {% else %}
-                                    <span class="badge bg-light text-dark border">{{ report.get_state_display }}</span>
-                                {% endif %}
-                            </td>
-                            <td class="py-2 text-muted">{{ report.created_at|date:"d M Y" }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-    {% endif %}
-
     
     {# ── Quick Links ─────────────────────────────────────────────────────── #}
     <div class="row g-3 mb-4">

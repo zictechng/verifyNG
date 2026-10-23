@@ -93,7 +93,9 @@ def employer_dashboard(request):
         BulkCheckUpload.objects.filter(employer=profile)
         .order_by('-created_at')[:5]
     )
-    team_count = TeamMember.objects.filter(employer=profile, is_active=True).count()
+    team_members_count = TeamMember.objects.filter(employer=profile, is_active=True).count()
+    pending_invites_count = TeamInvite.objects.filter(employer=profile, status='pending').count()
+    team_count = team_members_count + pending_invites_count
     total_uploads = BulkCheckUpload.objects.filter(employer=profile).count()
 
     # Staff check stats
@@ -227,19 +229,50 @@ def bulk_upload_detail(request, upload_id):
 @employer_required
 def team_list(request):
     profile = _get_or_create_employer_profile(request.user)
-
-    members = (
+    members_qs = (
         TeamMember.objects.filter(employer=profile, is_active=True)
         .select_related('user', 'invited_by')
         .order_by('-created_at')
     )
-
+    invites_qs = (
+        TeamInvite.objects.filter(employer=profile)
+        .select_related('invited_by')
+        .order_by('-created_at')
+    )
+    # If employer has no accepted members yet but has invites, default tab to invites
+    default_tab = 'invites' if (not members_qs.exists() and invites_qs.exists()) else 'members'
+    active_tab = request.GET.get('tab', default_tab)
+    if active_tab not in ('members', 'invites'):
+        active_tab = default_tab
+    members_paginator = Paginator(members_qs, 15)
+    members_page = members_paginator.get_page(request.GET.get('mpage', 1))
+    invites_paginator = Paginator(invites_qs, 15)
+    invites_page = invites_paginator.get_page(request.GET.get('ipage', 1))
     context = {
         'profile': profile,
-        'members': members,
-        'page_title': 'Team Members',
+        'members': members_page,
+        'invites': invites_page,
+        'members_count': members_qs.count(),
+        'invites_count': invites_qs.count(),
+        'pending_invites_count': invites_qs.filter(status='pending').count(),
+        'active_tab': active_tab,
+        'page_title': 'Team Members & Invitations',
     }
     return render(request, 'employer/team_list.html', context)
+
+
+@login_required
+@employer_required
+@require_POST
+def team_invite_revoke(request, invite_id):
+    """Cancel / revoke a pending team invitation."""
+    profile = _get_or_create_employer_profile(request.user)
+    invite = get_object_or_404(TeamInvite, id=invite_id, employer=profile)
+    if invite.status == 'pending':
+        invite.status = 'revoked'
+        invite.save(update_fields=['status'])
+        messages.success(request, f"Invitation to {invite.email} has been cancelled.")
+    return redirect(reverse('employer:team_list') + '?tab=invites')
 
 
 # ---------------------------------------------------------------------------
