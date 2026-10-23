@@ -7,16 +7,32 @@
 <div class="container py-4 py-md-5">
     <div class="row justify-content-center">
         <div class="col-lg-7 col-md-9">
-            <!-- Header Card -->
+                        <!-- Header Card -->
             <div class="text-center mb-4">
-                <span class="vng-badge-trust mb-2">Public Directory</span>
-                <h1 class="h3 fw-bold">Verification & Record Lookup</h1>
-                <p class="small text-muted mb-0">Check official verification status and active community reports for Nigerian entities.</p>
+                <span class="vng-badge-trust mb-2">Public Trust & Safety Search</span>
+                <h1 class="h3 fw-bold">Check Before You Trust: Individual & Business Lookup</h1>
+                <p class="text-muted mb-3" style="max-width: 580px; margin: 0 auto;">
+                    Verify prospective tenants, contractors, sellers, or business partners. Check confirmed identity, workplace certificates, and reported misconduct before you commit money or property.
+                </p>
+                <div class="d-flex flex-wrap justify-content-center gap-2">
+                    <div class="d-inline-flex align-items-center gap-1.5 px-3 py-2 rounded-pill bg-white border shadow-sm" style="font-size: 13px; color: var(--vng-ink); border-color: #CBD5E1 !important;">
+                        <span>🏠</span>
+                        <span><strong>Rentals:</strong> Tenant integrity &amp; disputes</span>
+                    </div>
+                    <div class="d-inline-flex align-items-center gap-1.5 px-3 py-2 rounded-pill bg-white border shadow-sm" style="font-size: 13px; color: var(--vng-ink); border-color: #CBD5E1 !important;">
+                        <span>💳</span>
+                        <span><strong>Transactions:</strong> Vendor &amp; seller check</span>
+                    </div>
+                    <div class="d-inline-flex align-items-center gap-1.5 px-3 py-2 rounded-pill bg-white border shadow-sm" style="font-size: 13px; color: var(--vng-ink); border-color: #CBD5E1 !important;">
+                        <span>🤝</span>
+                        <span><strong>Partners:</strong> Know who you do business with</span>
+                    </div>
+                </div>
             </div>
 
             <!-- Search Card Container -->
             <div class="vng-card p-4 mb-4" x-data="{ 
-                idType: 'phone',
+                idType: new URLSearchParams(window.location.search).get('type') || '',
                 identifier: new URLSearchParams(window.location.search).get('q') || '', 
                 result: null,
                 certResult: null,
@@ -24,7 +40,7 @@
                 searched: false,
                 error: null,
                 performSearch() {
-                    if (!this.identifier.trim()) return;
+                    if (!this.idType || !this.identifier.trim()) return;
                     this.loading = true;
                     this.error = null;
                     this.searched = true;
@@ -92,12 +108,13 @@
                         });
                     }
                 }
-            }" x-init="if (identifier) performSearch()">
+            }" x-init="if (idType && identifier) performSearch()">
                 
                 <div class="row g-2 mb-3">
                     <div class="col-sm-5">
                         <label for="idTypeSelect" class="form-label small fw-semibold text-muted">Identifier Type</label>
                         <select id="idTypeSelect" class="form-select py-2" x-model="idType" style="border-color: var(--vng-border);">
+                            <option value="" disabled selected>— Choose what to check —</option>
                             <option value="phone">Phone Number</option>
                             <option value="account">Bank Account (10 Digits)</option>
                             <option value="cac">CAC / RC Number</option>
@@ -114,7 +131,7 @@
                                    id="checkInput"
                                    class="form-control py-2" 
                                    style="border-color: var(--vng-border);"
-                                    :placeholder="idType === 'phone' ? 'e.g. 08012345678' : (idType === 'cac' ? 'e.g. RC123456' : (idType === 'email' ? 'e.g. user@domain.com' : (idType === 'certificate_id' ? 'e.g. VNG-2026-A7F2B9C1' : 'Enter value...')))"
+                                   :placeholder="!idType ? 'First select an option on the left...' : (idType === 'phone' ? 'e.g. 08012345678' : (idType === 'account' ? 'e.g. 0123456789 (10 digits)' : (idType === 'cac' ? 'e.g. RC123456' : (idType === 'email' ? 'e.g. person@example.com' : (idType === 'nin' ? 'e.g. 12345678901' : (idType === 'certificate_id' ? 'e.g. VNG-2026-A7F2B9C1' : 'Enter identifier value...'))))))"
                                    x-model="identifier"
                                    @keydown.enter="performSearch()">
                         </div>
@@ -123,7 +140,7 @@
 
                 <button class="btn btn-vng-primary w-100 py-2" 
                         @click="performSearch()" 
-                        :disabled="loading || !identifier.trim()">
+                        :disabled="loading || !idType || !identifier.trim()">
                     <span x-show="!loading">Search Verification Records &rarr;</span>
                     <span x-show="loading" x-cloak class="spinner-border spinner-border-sm me-1"></span>
                     <span x-show="loading" x-cloak>Searching database...</span>
@@ -177,8 +194,8 @@
                                 <span class="small fw-semibold text-dark" x-text="certResult.expires_at || 'No expiry'"></span>
                             </div>
                             <div class="mt-3">
-                                <a :href="certResult.verification_url" class="btn btn-success btn-sm w-100">
-                                    View Full Certificate &rarr;
+                                <a :href="'/verification/certificate/' + certResult.certificate_id + '/verify/'" class="btn btn-success btn-sm w-100">
+                                    View Verification Badge &rarr;
                                 </a>
                             </div>
                         </div>
@@ -354,9 +371,9 @@
                                         <span class="small text-dark" x-text="cert.expires_at || 'No expiry set'"></span>
                                     </div>
                                     <div class="mt-2" x-show="cert.is_valid">
-                                        <a :href="'/verification/certificate/' + cert.certificate_id + '/'"
+                                        <a :href="'/verification/certificate/' + cert.certificate_id + '/verify/'"
                                            class="btn btn-outline-success btn-sm w-100">
-                                            View Certificate &rarr;
+                                            View Verification Badge &rarr;
                                         </a>
                                     </div>
                                 </div>

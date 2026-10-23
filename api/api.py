@@ -165,7 +165,7 @@ def certificate_lookup(request, certificate_id: str):
         "subject_name":        subject_name,
         "entity_type":         entity_type,
         "identity_verified":   id_verified,
-        "verification_url":    f"/verification/certificate/{cert.certificate_id}/",
+        "verification_url":    f"/verification/certificate/{cert.certificate_id}/verify/",
     }
 
 class ReportSubmitRequest(Schema):
