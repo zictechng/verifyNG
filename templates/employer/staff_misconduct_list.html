@@ -17,7 +17,7 @@
         <div class="d-flex gap-2">
             <a href="{% url 'employer:staff_misconduct_report' %}" class="btn btn-danger d-inline-flex align-items-center gap-1 shadow-sm">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                + File Misconduct Report
+                File Misconduct Report
             </a>
         </div>
     </div>
@@ -34,6 +34,9 @@
                     {% if search_query or status_filter %}
                         <a href="{% url 'employer:staff_misconduct_list' %}" class="btn btn-outline-secondary btn-sm d-flex align-items-center" title="Clear search">✕</a>
                     {% endif %}
+                    <button type="submit" class="btn btn-primary btn-sm px-3 d-inline-flex align-items-center gap-1" title="Search">
+                        Search
+                    </button>
                 </div>
             </div>
 
