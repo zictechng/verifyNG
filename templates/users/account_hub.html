@@ -93,14 +93,24 @@
         </div>
     
 
-        <!-- Manage Profile Action Row (Replaces "Family and carer access") -->
-        <a href="{% url 'users:profile' %}" class="vng-profile-card-action">
+        <!-- Manage Profile Action Row -->
+        {% if request.user.role in 'employer,agency,business' %}
+        <a href="{% url 'employer:profile' %}" class="vng-profile-card-action">
             <div class="min-w-0">
-                <div class="vng-action-title">Manage profile</div>
-                <div class="vng-action-desc">Update your personal details, name and email</div>
+                <div class="vng-action-title">Manage Company Profile</div>
+                <div class="vng-action-desc">Update organization details, RC/CAC and address</div>
             </div>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
         </a>
+        {% else %}
+        <a href="{% url 'users:profile' %}" class="vng-profile-card-action">
+            <div class="min-w-0">
+                <div class="vng-action-title">Manage profile</div>
+                <div class="vng-action-desc">Update your personal details, NIN, name and email</div>
+            </div>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        </a>
+        {% endif %}
     </div>
 
 
@@ -108,15 +118,110 @@
     <div class="mb-4">
         <h2 class="vng-section-title">Quick access</h2>
         <div class="vng-menu-group shadow-sm">
-            <!-- 1. Apply for Certificate -->
-            <a href="{% url 'verification:certificate_apply' %}" class="vng-menu-item">
+            {% if request.user.role in 'employer,agency,business' %}
+            <!-- ── EMPLOYER PORTAL ACTIONS ──────────────────────────────── -->
+            <!-- 1. Employer Dashboard -->
+            <a href="{% url 'employer:dashboard' %}" class="vng-menu-item">
                 <div class="d-flex align-items-center gap-3">
                     <div class="vng-menu-icon">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
                     </div>
                     <div>
-                        <div class="vng-item-title">Apply for certificate</div>
-                        <div class="vng-item-desc">Issue a verifiable identity certificate</div>
+                        <div class="vng-item-title">Employer Dashboard</div>
+                        <div class="vng-item-desc">Overview, active metrics and staff activity</div>
+                    </div>
+                </div>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="vng-chevron"><polyline points="9 18 15 12 9 6"/></svg>
+            </a>
+            <!-- 2. Staff Checks -->
+            <a href="{% url 'employer:staff_check_list' %}" class="vng-menu-item">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="vng-menu-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    </div>
+                    <div>
+                        <div class="vng-item-title">Staff Checks</div>
+                        <div class="vng-item-desc">Submit and monitor employee background checks</div>
+                    </div>
+                </div>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="vng-chevron"><polyline points="9 18 15 12 9 6"/></svg>
+            </a>
+            <!-- 3. WCC Applications -->
+            <a href="{% url 'verification:my_certificates' %}" class="vng-menu-item">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="vng-menu-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+                    </div>
+                    <div>
+                        <div class="vng-item-title">WCC Applications</div>
+                        <div class="vng-item-desc">Track and download Workplace Clearance Certificates</div>
+                    </div>
+                </div>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="vng-chevron"><polyline points="9 18 15 12 9 6"/></svg>
+            </a>
+            <!-- 4. Person Quick-Check -->
+            <a href="{% url 'employer:person_check_search' %}" class="vng-menu-item">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="vng-menu-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    </div>
+                    <div>
+                        <div class="vng-item-title">Person Quick-Check</div>
+                        <div class="vng-item-desc">Instant background lookup by phone number or NIN</div>
+                    </div>
+                </div>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="vng-chevron"><polyline points="9 18 15 12 9 6"/></svg>
+            </a>
+            <!-- 5. Misconduct Report -->
+            <a href="{% url 'employer:staff_misconduct_report' %}" class="vng-menu-item">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="vng-menu-icon text-danger">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    </div>
+                    <div>
+                        <div class="vng-item-title text-danger">Misconduct Report</div>
+                        <div class="vng-item-desc">File workplace theft or integrity incident report</div>
+                    </div>
+                </div>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="vng-chevron text-danger"><polyline points="9 18 15 12 9 6"/></svg>
+            </a>
+            {% elif request.user.is_superuser or request.user.is_staff or request.user.role in 'moderator,officer' %}
+            <!-- ── OFFICER / ADMIN ACTIONS ──────────────────────────────── -->
+            <a href="{% url 'admin_portal:overview' %}" class="vng-menu-item">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="vng-menu-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                    </div>
+                    <div>
+                        <div class="vng-item-title">Admin Portal</div>
+                        <div class="vng-item-desc">Platform administration and analytics</div>
+                    </div>
+                </div>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="vng-chevron"><polyline points="9 18 15 12 9 6"/></svg>
+            </a>
+            <a href="{% url 'verification:officer_queue' %}" class="vng-menu-item">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="vng-menu-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                    </div>
+                    <div>
+                        <div class="vng-item-title">Officer Queue</div>
+                        <div class="vng-item-desc">Review and resolve verification requests</div>
+                    </div>
+                </div>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="vng-chevron"><polyline points="9 18 15 12 9 6"/></svg>
+            </a>
+            {% else %}
+            <!-- ── INDIVIDUAL CANDIDATE ACTIONS ─────────────────────────── -->
+            <!-- 1. My Dashboard -->
+            <a href="{% url 'dashboard:index' %}" class="vng-menu-item">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="vng-menu-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                    </div>
+                    <div>
+                        <div class="vng-item-title">My Dashboard</div>
+                        <div class="vng-item-desc">Overview of your verification status and reports</div>
                     </div>
                 </div>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="vng-chevron"><polyline points="9 18 15 12 9 6"/></svg>
@@ -125,11 +230,11 @@
             <a href="{% url 'verification:my_certificates' %}" class="vng-menu-item">
                 <div class="d-flex align-items-center gap-3">
                     <div class="vng-menu-icon">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
                     </div>
                     <div>
-                        <div class="vng-item-title">My certificates</div>
-                        <div class="vng-item-desc">View and download your issued certificates</div>
+                        <div class="vng-item-title">My Certificates</div>
+                        <div class="vng-item-desc">View and download your TrustPass certificates</div>
                     </div>
                 </div>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="vng-chevron"><polyline points="9 18 15 12 9 6"/></svg>
@@ -141,25 +246,26 @@
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                     </div>
                     <div>
-                        <div class="vng-item-title">Who checked me</div>
-                        <div class="vng-item-desc">See which organizations inquired about you</div>
+                        <div class="vng-item-title">Who Checked Me</div>
+                        <div class="vng-item-desc">See which employers and organizations verified you</div>
                     </div>
                 </div>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="vng-chevron"><polyline points="9 18 15 12 9 6"/></svg>
             </a>
-            <!-- 4. New Verification -->
-            <a href="{% url 'verification:create' %}" class="vng-menu-item">
+            <!-- 4. Apply for Certificate -->
+            <a href="{% url 'verification:certificate_apply' %}" class="vng-menu-item">
                 <div class="d-flex align-items-center gap-3">
                     <div class="vng-menu-icon">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>
                     </div>
                     <div>
-                        <div class="vng-item-title">New verification</div>
-                        <div class="vng-item-desc">Submit a new identity verification check</div>
+                        <div class="vng-item-title">Apply for TrustPass</div>
+                        <div class="vng-item-desc">Issue a verifiable background credential</div>
                     </div>
                 </div>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="vng-chevron"><polyline points="9 18 15 12 9 6"/></svg>
             </a>
+            {% endif %}
         </div>
     </div>
 
