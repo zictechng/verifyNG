@@ -160,6 +160,19 @@
                 </div>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="vng-chevron"><polyline points="9 18 15 12 9 6"/></svg>
             </a>
+             <!-- 2b. Bulk Upload -->
+            <a href="{% url 'employer:bulk_upload_list' %}" class="vng-menu-item">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="vng-menu-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    </div>
+                    <div>
+                        <div class="vng-item-title">Bulk Upload</div>
+                        <div class="vng-item-desc">Batch verify multiple staff via CSV upload</div>
+                    </div>
+                </div>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="vng-chevron"><polyline points="9 18 15 12 9 6"/></svg>
+            </a>
             <!-- 3. WCC Applications -->
             <a href="{% url 'verification:my_certificates' %}" class="vng-menu-item">
                 <div class="d-flex align-items-center gap-3">
@@ -187,18 +200,19 @@
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="vng-chevron"><polyline points="9 18 15 12 9 6"/></svg>
             </a>
             <!-- 5. Misconduct Report -->
-            <a href="{% url 'employer:staff_misconduct_report' %}" class="vng-menu-item">
+            <a href="{% url 'employer:staff_misconduct_list' %}" class="vng-menu-item">
                 <div class="d-flex align-items-center gap-3">
                     <div class="vng-menu-icon text-danger">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                     </div>
                     <div>
                         <div class="vng-item-title text-danger">Misconduct Report</div>
-                        <div class="vng-item-desc">File workplace theft or integrity incident report</div>
+                        <div class="vng-item-desc">View filed integrity incident reports &amp; due-process status</div>
                     </div>
                 </div>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="vng-chevron text-danger"><polyline points="9 18 15 12 9 6"/></svg>
             </a>
+            
             {% elif request.user.is_superuser or request.user.is_staff or request.user.role in 'moderator,officer' %}
             <!-- ── OFFICER / ADMIN ACTIONS ──────────────────────────────── -->
             <a href="{% url 'admin_portal:overview' %}" class="vng-menu-item">

@@ -17,7 +17,7 @@ from .models import BulkCheckUpload, BulkCheckRow
 from reports.models import FraudReport
 from identities.models import Identifier, SubjectEntity
 from django.core.mail import EmailMultiAlternatives
-
+from django.db.models import Q
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from django.shortcuts import redirect as _redirect
@@ -1174,6 +1174,49 @@ def staff_misconduct_report(request):
         'page_title': 'Report Staff Misconduct',
     }
     return render(request, 'employer/staff_misconduct_report.html', context)
+
+
+@login_required
+@employer_required
+def staff_misconduct_list(request):
+    """
+    Dedicated paginated list of all workplace misconduct reports filed by the employer.
+    Mobile-first with quick status filtering and search.
+    """
+    profile = _get_or_create_employer_profile(request.user)
+    status_filter = request.GET.get('status', '').strip()
+    search_query = request.GET.get('q', '').strip()
+    qs = (
+        FraudReport.objects
+        .filter(reporter=request.user)
+        .select_related('target_subject')
+        .order_by('-created_at')
+    )
+    if status_filter in ('submitted', 'under_review', 'published', 'resolved', 'rejected'):
+        qs = qs.filter(state=status_filter)
+    if search_query:
+        qs = qs.filter(
+            Q(reference_number__icontains=search_query) |
+            Q(target_subject__name__icontains=search_query) |
+            Q(title__icontains=search_query)
+        )
+    paginator = Paginator(qs, 15)
+    page_obj = paginator.get_page(request.GET.get('page', 1))
+    status_tabs = [
+        ('submitted', 'Under Review'),
+        ('under_review', '7-Day Notice'),
+        ('published', 'Published'),
+        ('resolved', 'Resolved'),
+    ]
+    context = {
+        'profile': profile,
+        'page_obj': page_obj,
+        'status_filter': status_filter,
+        'search_query': search_query,
+        'status_tabs': status_tabs,
+        'page_title': 'Filed Misconduct Reports',
+    }
+    return render(request, 'employer/staff_misconduct_list.html', context)
 
 # ---------------------------------------------------------------------------
 # CSV Export — BATCH 8

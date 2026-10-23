@@ -194,69 +194,77 @@
     </div>
     {% endif %}
 
-    {# ── Recent Bulk Uploads ──────────────────────────────────────────────── #}
-    <div class="vng-card mb-4">
-        <div class="d-flex justify-content-between align-items-center p-4 pb-0">
-            <h2 class="h6 fw-bold mb-0">Recent Bulk Uploads</h2>
-            <a href="{% url 'employer:bulk_upload_list' %}" class="small text-primary fw-semibold">View all</a>
+    
+    {# ── Quick Links ─────────────────────────────────────────────────────── #}
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <a href="{% url 'employer:staff_check_create' %}" class="vng-card p-4 d-block text-decoration-none h-100">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+                         style="width:44px;height:44px;background:var(--vng-primary-light);">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--vng-primary)" stroke-width="2">
+                            <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="fw-semibold" style="color:var(--vng-ink);">New Staff Check</div>
+                        <div class="small text-muted">Background check a candidate</div>
+                    </div>
+                </div>
+            </a>
         </div>
-        <div class="p-4">
-            {% if recent_uploads %}
-            <div class="table-responsive">
-                <table class="table table-sm mb-0" style="font-size:0.875rem;">
-                    <thead>
-                        <tr style="color:var(--vng-muted);border-bottom:2px solid var(--vng-border);">
-                            <th class="fw-semibold pb-2">File</th>
-                            <th class="fw-semibold pb-2 text-center">Rows</th>
-                            <th class="fw-semibold pb-2 text-center">Progress</th>
-                            <th class="fw-semibold pb-2">Status</th>
-                            <th class="fw-semibold pb-2">Uploaded</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for upload in recent_uploads %}
-                        <tr style="border-bottom:1px solid var(--vng-border);">
-                            <td class="py-2">
-                                <a href="{% url 'employer:bulk_upload_detail' upload.id %}" class="text-primary fw-semibold text-decoration-none">
-                                    {{ upload.original_filename|truncatechars:40 }}
-                                </a>
-                            </td>
-                            <td class="py-2 text-center">{{ upload.row_count }}</td>
-                            <td class="py-2 text-center">
-                                <div class="progress" style="height:6px;min-width:60px;">
-                                    <div class="progress-bar bg-primary" style="width:{{ upload.progress_pct }}%"></div>
-                                </div>
-                                <div class="text-muted" style="font-size:11px;">{{ upload.progress_pct }}%</div>
-                            </td>
-                            <td class="py-2">
-                                {% if upload.status == 'completed' %}
-                                    <span class="badge bg-success">Completed</span>
-                                {% elif upload.status == 'processing' %}
-                                    <span class="badge bg-primary">Processing</span>
-                                {% elif upload.status == 'failed' %}
-                                    <span class="badge bg-danger">Failed</span>
-                                {% else %}
-                                    <span class="badge bg-secondary">Pending</span>
-                                {% endif %}
-                            </td>
-                            <td class="py-2 text-muted">{{ upload.created_at|date:"d M Y" }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <div class="text-center py-4 text-muted">
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="mb-3 opacity-50">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                    <polyline points="14 2 14 8 20 8"/>
-                </svg>
-                <div class="fw-semibold mb-1">No bulk uploads yet</div>
-                <a href="{% url 'employer:bulk_upload_create' %}" class="btn btn-vng-primary btn-sm mt-2">Upload CSV</a>
-            </div>
-            {% endif %}
+        <div class="col-md-3">
+            <a href="{% url 'employer:person_check_search' %}" class="vng-card p-4 d-block text-decoration-none h-100">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+                         style="width:44px;height:44px;background:#EFF6FF;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="fw-semibold" style="color:var(--vng-ink);">Person Quick-Check</div>
+                        <div class="small text-muted">Lookup by phone or NIN</div>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-3">
+            <a href="{% url 'employer:team_list' %}" class="vng-card p-4 d-block text-decoration-none h-100">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+                         style="width:44px;height:44px;background:var(--vng-teal-light);">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--vng-teal)" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="fw-semibold" style="color:var(--vng-ink);">Team Members</div>
+                        <div class="small text-muted">{{ team_count }} active member{{ team_count|pluralize }}</div>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-3">
+            <a href="{% url 'employer:bulk_upload_create' %}" class="vng-card p-4 d-block text-decoration-none h-100">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+                         style="width:44px;height:44px;background:#F0FDF4;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--vng-success)" stroke-width="2">
+                            <polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/>
+                            <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="fw-semibold" style="color:var(--vng-ink);">Bulk CSV Upload</div>
+                        <div class="small text-muted">Verify multiple candidates</div>
+                    </div>
+                </div>
+            </a>
         </div>
     </div>
+
         {# ── Plan / Subscription Widget — Batch 9 ──────────────────────────── #}
     <div class="vng-card mb-4">
         <div class="d-flex justify-content-between align-items-center p-4 pb-0">
@@ -359,75 +367,6 @@
         </div>
     </div>
     
-    {# ── Quick Links ─────────────────────────────────────────────────────── #}
-    <div class="row g-3">
-        <div class="col-md-3">
-            <a href="{% url 'employer:staff_check_create' %}" class="vng-card p-4 d-block text-decoration-none h-100">
-                <div class="d-flex align-items-center gap-3">
-                    <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
-                         style="width:44px;height:44px;background:var(--vng-primary-light);">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--vng-primary)" stroke-width="2">
-                            <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
-                        </svg>
-                    </div>
-                    <div>
-                        <div class="fw-semibold" style="color:var(--vng-ink);">New Staff Check</div>
-                        <div class="small text-muted">Background check a candidate</div>
-                    </div>
-                </div>
-            </a>
-        </div>
-        <div class="col-md-3">
-            <a href="{% url 'employer:person_check_search' %}" class="vng-card p-4 d-block text-decoration-none h-100">
-                <div class="d-flex align-items-center gap-3">
-                    <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
-                         style="width:44px;height:44px;background:#EFF6FF;">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2">
-                            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                        </svg>
-                    </div>
-                    <div>
-                        <div class="fw-semibold" style="color:var(--vng-ink);">Person Quick-Check</div>
-                        <div class="small text-muted">Lookup by phone or NIN</div>
-                    </div>
-                </div>
-            </a>
-        </div>
-        <div class="col-md-3">
-            <a href="{% url 'employer:team_list' %}" class="vng-card p-4 d-block text-decoration-none h-100">
-                <div class="d-flex align-items-center gap-3">
-                    <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
-                         style="width:44px;height:44px;background:var(--vng-teal-light);">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--vng-teal)" stroke-width="2">
-                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                        </svg>
-                    </div>
-                    <div>
-                        <div class="fw-semibold" style="color:var(--vng-ink);">Team Members</div>
-                        <div class="small text-muted">{{ team_count }} active member{{ team_count|pluralize }}</div>
-                    </div>
-                </div>
-            </a>
-        </div>
-        <div class="col-md-3">
-            <a href="{% url 'employer:bulk_upload_create' %}" class="vng-card p-4 d-block text-decoration-none h-100">
-                <div class="d-flex align-items-center gap-3">
-                    <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
-                         style="width:44px;height:44px;background:#F0FDF4;">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--vng-success)" stroke-width="2">
-                            <polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/>
-                            <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
-                        </svg>
-                    </div>
-                    <div>
-                        <div class="fw-semibold" style="color:var(--vng-ink);">Bulk CSV Upload</div>
-                        <div class="small text-muted">Verify multiple candidates</div>
-                    </div>
-                </div>
-            </a>
-        </div>
-    </div>
 
 </div>
 {% endblock %}

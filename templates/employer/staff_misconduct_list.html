@@ -1,0 +1,211 @@
+
+{% extends 'public/base.html' %}
+{% load static %}
+
+{% block title %}Filed Misconduct Reports | VerifyNG{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-md-5">
+
+    {# Header #}
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <span class="vng-badge-trust mb-2">Employer Compliance</span>
+            <h1 class="h3 fw-bold mb-1">Filed Misconduct Reports</h1>
+            <p class="small text-muted mb-0">Track workplace incident reports and due-process status filed by your organization.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'employer:staff_misconduct_report' %}" class="btn btn-danger d-inline-flex align-items-center gap-1 shadow-sm">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                + File Misconduct Report
+            </a>
+        </div>
+    </div>
+
+    {# Search & Filter Strip #}
+    <div class="vng-card p-3 mb-4">
+        <form method="get" class="row g-2 align-items-center">
+            <div class="col-12 col-md-5">
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0 text-muted">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    </span>
+                    <input type="text" name="q" value="{{ search_query }}" class="form-control border-start-0" placeholder="Search reference, staff name...">
+                    {% if search_query or status_filter %}
+                        <a href="{% url 'employer:staff_misconduct_list' %}" class="btn btn-outline-secondary btn-sm d-flex align-items-center" title="Clear search">✕</a>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if status_filter %}
+                <input type="hidden" name="status" value="{{ status_filter }}">
+            {% endif %}
+
+            <div class="col-12 col-md-7">
+                {# Mobile Horizontal Scrollable Filter Tabs #}
+                <div class="d-flex gap-2 overflow-x-auto pb-1" style="scrollbar-width:none;-webkit-overflow-scrolling:touch;">
+                    <a href="{% url 'employer:staff_misconduct_list' %}{% if search_query %}?q={{ search_query }}{% endif %}"
+                       class="btn btn-sm text-nowrap rounded-pill {% if not status_filter %}btn-primary{% else %}btn-outline-secondary{% endif %}"
+                       style="font-size:0.8rem;">
+                        All Reports
+                    </a>
+                    {% for val, label in status_tabs %}
+                    <a href="?status={{ val }}{% if search_query %}&q={{ search_query }}{% endif %}"
+                       class="btn btn-sm text-nowrap rounded-pill {% if status_filter == val %}btn-primary{% else %}btn-outline-secondary{% endif %}"
+                       style="font-size:0.8rem;">
+                        {{ label }}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </form>
+    </div>
+
+    {# Reports Listing #}
+    {% if page_obj.object_list %}
+
+        {# 1. DESKTOP VIEW: Full Table (Hidden on Mobile) #}
+        <div class="vng-card d-none d-md-block">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" style="font-size:0.875rem;">
+                    <thead class="table-light">
+                        <tr style="color:var(--vng-muted);">
+                            <th class="fw-semibold">Reference</th>
+                            <th class="fw-semibold">Staff Subject</th>
+                            <th class="fw-semibold">Incident Date</th>
+                            <th class="fw-semibold">Status</th>
+                            <th class="fw-semibold">Filed Date</th>
+                            <th class="text-end fw-semibold">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for report in page_obj %}
+                        <tr>
+                            <td class="font-monospace fw-semibold">
+                                <a href="{% url 'reports:detail' report.reference_number %}" class="text-decoration-none">
+                                    <code>{{ report.reference_number }}</code>
+                                </a>
+                            </td>
+                            <td>
+                                <div class="fw-semibold text-dark">{{ report.target_subject.name|default:"Staff Member" }}</div>
+                                <div class="small text-muted text-truncate" style="max-width:260px;">{{ report.title }}</div>
+                            </td>
+                            <td class="text-muted">{{ report.incident_date|default:"Not specified" }}</td>
+                            <td>
+                                {% if report.state == 'submitted' %}
+                                    <span class="badge bg-warning-subtle text-warning border border-warning border-opacity-25 px-2 py-1">Under Review</span>
+                                {% elif report.state == 'under_review' %}
+                                    <span class="badge bg-info-subtle text-info border border-info border-opacity-25 px-2 py-1">7-Day Due Process</span>
+                                {% elif report.state == 'published' %}
+                                    <span class="badge bg-danger-subtle text-danger border border-danger border-opacity-25 px-2 py-1">Published</span>
+                                {% elif report.state == 'resolved' %}
+                                    <span class="badge bg-success-subtle text-success border border-success border-opacity-25 px-2 py-1">Resolved</span>
+                                {% elif report.state == 'rejected' %}
+                                    <span class="badge bg-secondary-subtle text-secondary border px-2 py-1">Dismissed</span>
+                                {% else %}
+                                    <span class="badge bg-light text-dark border px-2 py-1">{{ report.get_state_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-muted">{{ report.created_at|date:"d M Y" }}</td>
+                            <td class="text-end">
+                                <a href="{% url 'reports:detail' report.reference_number %}" class="btn btn-vng-outline btn-sm">
+                                    View Details
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {# 2. MOBILE VIEW: Touch-Friendly Responsive Cards (Visible only on mobile) #}
+        <div class="d-md-none d-flex flex-column gap-3">
+            {% for report in page_obj %}
+            <a href="{% url 'reports:detail' report.reference_number %}" class="text-decoration-none text-dark">
+                <div class="vng-card p-3 shadow-sm" style="border-radius:12px;">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="font-monospace fw-bold small text-primary">#{{ report.reference_number }}</span>
+                        {% if report.state == 'submitted' %}
+                            <span class="badge bg-warning-subtle text-warning border border-warning border-opacity-25" style="font-size:11px;">Under Review</span>
+                        {% elif report.state == 'under_review' %}
+                            <span class="badge bg-info-subtle text-info border border-info border-opacity-25" style="font-size:11px;">7-Day Notice</span>
+                        {% elif report.state == 'published' %}
+                            <span class="badge bg-danger-subtle text-danger border border-danger border-opacity-25" style="font-size:11px;">Published</span>
+                        {% elif report.state == 'resolved' %}
+                            <span class="badge bg-success-subtle text-success border border-success border-opacity-25" style="font-size:11px;">Resolved</span>
+                        {% else %}
+                            <span class="badge bg-light text-dark border" style="font-size:11px;">{{ report.get_state_display }}</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="fw-bold mb-1" style="font-size:14.5px;color:var(--vng-ink);">
+                        {{ report.target_subject.name|default:"Staff Member" }}
+                    </div>
+                    <div class="small text-muted mb-2 text-truncate">
+                        {{ report.title }}
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center pt-2 border-top border-light-subtle small text-muted">
+                        <span>Incident: {{ report.incident_date|default:"Not specified" }}</span>
+                        <span class="fw-semibold text-primary d-inline-flex align-items-center gap-1">
+                            Details
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                        </span>
+                    </div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+
+        {# Pagination #}
+        {% if page_obj.has_other_pages %}
+        <div class="d-flex justify-content-between align-items-center mt-4">
+            <div>
+                {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}"
+                       class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                        ← Previous
+                    </a>
+                {% endif %}
+            </div>
+            <span class="small text-muted">
+                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+            </span>
+            <div>
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}"
+                       class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                        Next →
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+    {% else %}
+        {# Empty State #}
+        <div class="vng-card p-5 text-center">
+            <div style="width:54px;height:54px;background:#FEF2F2;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </div>
+            <h5 class="fw-bold mb-1">No Misconduct Reports Found</h5>
+            <p class="small text-muted mb-3" style="max-width:380px;margin:0 auto;">
+                {% if search_query or status_filter %}
+                    No reports match your current search or filter criteria. Try resetting the filters.
+                {% else %}
+                    Your organization has not filed any workplace misconduct or integrity reports yet.
+                {% endif %}
+            </p>
+            <div>
+                {% if search_query or status_filter %}
+                    <a href="{% url 'employer:staff_misconduct_list' %}" class="btn btn-outline-secondary btn-sm">Clear Filter</a>
+                {% else %}
+                    <a href="{% url 'employer:staff_misconduct_report' %}" class="btn btn-danger btn-sm">+ File Misconduct Report</a>
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+
+</div>
+{% endblock %}

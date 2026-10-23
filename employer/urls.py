@@ -44,4 +44,5 @@ urlpatterns = [
     path('checks/person/', views.person_check_search, name='person_check_search'),
     # Staff Misconduct Reporting on Clearance Certificate
     path('misconduct/report/', views.staff_misconduct_report, name='staff_misconduct_report'),
+    path('misconduct/', views.staff_misconduct_list, name='staff_misconduct_list'),
 ]
