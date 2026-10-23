@@ -367,6 +367,26 @@
                         <li class="nav-item">
                             <a class="nav-link vng-nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}" href="{% url 'home' %}">Home</a>
                         </li>
+                        {% else %}
+                        <!-- Desktop Top Menu: Go back to Dashboard -->
+                        <li class="nav-item">
+                            {% if user.is_superuser or user.is_staff or user.role == 'moderator' or user.role == 'officer' %}
+                                <a class="nav-link vng-nav-link {% if request.resolver_match.app_name == 'admin_portal' %}active{% endif %}" href="{% url 'admin_portal:overview' %}">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1" style="vertical-align:-1px;"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                                    Dashboard
+                                </a>
+                            {% elif user.role in 'employer,agency,business' %}
+                                <a class="nav-link vng-nav-link {% if request.resolver_match.app_name == 'employer' and request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'employer:dashboard' %}">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1" style="vertical-align:-1px;"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                                    Dashboard
+                                </a>
+                            {% else %}
+                                <a class="nav-link vng-nav-link {% if request.resolver_match.app_name == 'dashboard' and request.resolver_match.url_name == 'index' %}active{% endif %}" href="{% url 'dashboard:index' %}">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1" style="vertical-align:-1px;"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                                    Dashboard
+                                </a>
+                            {% endif %}
+                        </li>
                         {% endif %}
                         <li class="nav-item">
                             <a class="nav-link vng-nav-link {% if request.resolver_match.url_name == 'check' %}active{% endif %}" href="{% url 'check' %}">Verify</a>
@@ -403,11 +423,18 @@
                                         <div class="vng-avatar-name">{{ user.get_full_name|default:user.username }}</div>
                                         <div class="vng-avatar-email">{{ user.email }}</div>
                                     </div>
-                                    <div class="vng-avatar-divider"></div>
+                                                                        <div class="vng-avatar-divider"></div>
+                                    {% if user.role in 'employer,agency,business' %}
+                                    <a href="{% url 'employer:profile' %}" class="vng-avatar-item">
+                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+                                        Company Profile
+                                    </a>
+                                    {% else %}
                                     <a href="{% url 'users:profile' %}" class="vng-avatar-item">
                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-                                        Profile
+                                        Profile Settings
                                     </a>
+                                    {% endif %}
                                     {% if user.is_superuser or user.is_staff or user.role == 'moderator' or user.role == 'officer' %}
                                     <a href="{% url 'admin_portal:overview' %}" class="vng-avatar-item">
                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
@@ -416,12 +443,32 @@
                                     {% elif user.role in 'employer,agency,business' %}
                                      <a href="{% url 'employer:dashboard' %}" class="vng-avatar-item">
                                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-                                         Dashboard
+                                         Employer Dashboard
+                                     </a>
+                                     <a href="{% url 'employer:staff_check_list' %}" class="vng-avatar-item">
+                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                                         Staff Checks
+                                     </a>
+                                     <a href="{% url 'verification:my_certificates' %}" class="vng-avatar-item">
+                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+                                         WCC Applications
+                                     </a>
+                                     <a href="{% url 'employer:person_check_search' %}" class="vng-avatar-item">
+                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                                         Person Quick Check
+                                     </a>
+                                     <a href="{% url 'employer:staff_misconduct_report' %}" class="vng-avatar-item text-danger">
+                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                                         Misconduct Report
                                      </a>
                                     {% else %}
                                     <a href="{% url 'dashboard:index' %}" class="vng-avatar-item">
                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
                                         My Dashboard
+                                    </a>
+                                    <a href="{% url 'verification:my_certificates' %}" class="vng-avatar-item">
+                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+                                        My Certificates
                                     </a>
                                     {% endif %}
                                     <a href="{% url 'notifications:list' %}" class="vng-avatar-item">
@@ -445,15 +492,25 @@
                     </div>
                 </div>
 
-                <!-- Mobile Header Right Quick Action Pill -->
+                                <!-- Mobile Header Right Quick Action Pill -->
                 <div class="d-flex d-md-none align-items-center gap-2">
                     {% if user.is_authenticated %}
-                        {% comment %} <a href="{% url 'users:account_hub' %}" class="btn btn-vng-outline btn-sm py-1 px-2"></a> {% endcomment %}
-                        <a href="{% url 'help' %}"
-                           class="vng-help-pill text-decoration-none">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="me-1" style="vertical-align:-1px;"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                            App help
-                        </a>
+                        {% if user.is_superuser or user.is_staff or user.role == 'moderator' or user.role == 'officer' %}
+                            <a href="{% url 'admin_portal:overview' %}" class="btn btn-vng-primary btn-sm py-1 px-2.5 d-inline-flex align-items-center gap-1" style="font-size:0.8rem;border-radius:20px;">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                                Dashboard
+                            </a>
+                        {% elif user.role in 'employer,agency,business' %}
+                            <a href="{% url 'employer:dashboard' %}" class="btn btn-vng-primary btn-sm py-1 px-2.5 d-inline-flex align-items-center gap-1" style="font-size:0.8rem;border-radius:20px;">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                                Dashboard
+                            </a>
+                        {% else %}
+                            <a href="{% url 'dashboard:index' %}" class="btn btn-vng-primary btn-sm py-1 px-2.5 d-inline-flex align-items-center gap-1" style="font-size:0.8rem;border-radius:20px;">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                                Dashboard
+                            </a>
+                        {% endif %}
                     {% else %}
                         <a href="{% url 'users:login' %}" class="btn btn-vng-primary btn-sm py-1 px-3">Login</a>
                     {% endif %}
@@ -467,12 +524,12 @@
         {% block content %}{% endblock %}
     </main>
 
-    <!-- Desktop & Tablet Footer (Matching Mockup 5.jpg Dark Navy) -->
         <!-- Desktop & Tablet Footer (Matching Mockup 5.jpg Dark Navy) -->
     <footer class="vng-footer {% if user.is_authenticated %}vng-footer-authenticated{% endif %}">
         <div class="container">
-            <!-- Full footer columns (hidden on mobile when logged in) -->
-            <div class="row g-4 mb-4 {% if user.is_authenticated %}d-none d-md-flex{% endif %}">
+            {% if not user.is_authenticated %}
+            <!-- Full footer columns (shown ONLY to logged-out public visitors) -->
+            <div class="row g-4 mb-4">
                 <div class="col-lg-4 col-md-6">
                     <div class="vng-footer-brand d-flex align-items-center gap-2 mb-3">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -496,13 +553,8 @@
                 <div class="col-lg-2 col-md-3 col-6">
                     <h6 class="text-white fw-bold mb-3">Account</h6>
                     <ul class="list-unstyled small mb-0 d-flex flex-column gap-2">
-                        {% if user.is_authenticated %}
-                            <li><a href="{% url 'dashboard:index' %}">My Dashboard</a></li>
-                            <li><a href="{% url 'users:profile' %}">Profile Settings</a></li>
-                        {% else %}
-                            <li><a href="{% url 'users:login' %}">Sign In</a></li>
-                            <li><a href="{% url 'users:register_landing' %}">Create Account</a></li>
-                        {% endif %}
+                        <li><a href="{% url 'users:login' %}">Sign In</a></li>
+                        <li><a href="{% url 'users:register_landing' %}">Create Account</a></li>
                     </ul>
                 </div>
                 <div class="col-lg-4 col-md-12">
@@ -512,7 +564,10 @@
                     </p>
                 </div>
             </div>
-            <div class="pt-3 border-top border-secondary d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2 small">
+            {% endif %}
+
+            <!-- Last section of the footer (always visible) -->
+            <div class="{% if not user.is_authenticated %}pt-3 border-top border-secondary{% endif %} d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2 small">
                 <div>&copy; 2026 {{ site_config.site_name|default:"VerifyNG" }}. All rights reserved.</div>
                 <div class="vng-footer-muted">{{ site_config.footer_text|default:"Built for a safer Nigerian digital ecosystem." }}</div>
             </div>
