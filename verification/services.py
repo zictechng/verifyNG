@@ -16,6 +16,8 @@ from identities.models import SubjectEntity, Identifier
 from identities.utils import normalize_identifier, hash_identifier_value, SUPPORTED_IDENTIFIER_TYPES
 from reports.models import AuditLog
 from core.tasks import send_email_notification_task
+from core.email_utils import render_email
+from core.models import SiteConfiguration
 from verification.models import VerificationCertificate
 from identities.models import SubjectEntity, Identifier
 from identities.utils import hash_identifier_value
@@ -117,18 +119,43 @@ def create_verification_request(
                     }
                 )
 
-                # Celery email notification strictly on transaction commit
+                # Branded HTML email notification strictly on transaction commit
                 requester_email = getattr(requester, 'email', None)
                 if requester_email:
-                    subject = f"VerifyNG Notice: Verification Request [{ref_num}] Received"
-                    body = (
-                        f"Hello,\n\n"
-                        f"Your verification request [{ref_num}] has been submitted and registered in our queue.\n"
-                        f"Our verification officers will review the submission. You can track progress in your portal.\n\n"
-                        f"VerifyNG Trust & Safety Team"
-                    )
+                    config = SiteConfiguration.get_solo()
+                    site_url = config.base_url.rstrip('/')
+                    scope_display = dict(VerificationRequest.VERIFICATION_TYPES).get(verification_type, verification_type)
+                    user_name = requester.get_full_name() or requester.username
+                    ref_id = ref_num
+
+                    try:
+                        html_body, text_body = render_email('verification_received', {
+                            'user_name': user_name,
+                            'reference_number': ref_id,
+                            'subject_name': subject_name,
+                            'scope_display': scope_display,
+                            'submitted_at': timezone.now().strftime('%d %B %Y, %I:%M %p'),
+                            'detail_url': f"{site_url}/verification/{ref_id}/",
+                        })
+                        subject = f"Verification Request Received [{ref_id}] — {config.site_name}"
+                    except Exception as e:
+                        logger.error("Failed to render verification_received email template: %s", e)
+                        html_body = None
+                        subject = f"Verification Request Received [{ref_id}]"
+                        text_body = (
+                            f"Hello {user_name},\n\n"
+                            f"Your verification request [{ref_id}] has been submitted and registered in our queue.\n"
+                            f"Our verification officers will review the submission. You can track progress in your portal.\n\n"
+                            f"VerifyNG Trust & Safety Team"
+                        )
+
                     transaction.on_commit(
-                        lambda: send_email_notification_task.delay(requester_email, subject, body)
+                        lambda: send_email_notification_task.delay(
+                            requester_email,
+                            subject,
+                            text_body,
+                            html_message=html_body
+                        )
                     )
 
                 return verif_request
@@ -238,19 +265,47 @@ def complete_verification_request(
             }
         )
 
-        # Notify requester via Celery on commit without disclosing sensitive findings
+        # Notify requester via Celery on commit using branded email template
         requester_email = getattr(req.requester, 'email', None)
         if requester_email:
             ref = req.reference_number
-            subject = f"VerifyNG Notice: Verification Request [{ref}] Completed"
-            body = (
-                f"Hello,\n\n"
-                f"The review for verification request [{ref}] has been completed by a verification officer.\n"
-                f"You may now view the official outcome and summary in your VerifyNG portal.\n\n"
-                f"VerifyNG Trust & Safety Team"
-            )
+            config = SiteConfiguration.get_solo()
+            site_url = config.base_url.rstrip('/')
+            user_name = req.requester.get_full_name() or req.requester.username
+            outcome_display = dict(VerificationResult.OUTCOME_CHOICES).get(outcome, outcome.title())
+
+            try:
+                html_body, text_body = render_email('verification_complete', {
+                    'user_name': user_name,
+                    'reference_number': ref,
+                    'subject_name': req.target_subject.name,
+                    'outcome': outcome,
+                    'outcome_display': outcome_display,
+                    'summary': summary,
+                    'completed_at': timezone.now().strftime('%d %B %Y, %I:%M %p'),
+                    'detail_url': f"{site_url}/verification/{ref}/",
+                })
+                subject = f"Verification Completed [{ref}] — {config.site_name}"
+            except Exception as e:
+                logger.error("Failed to render verification_complete email template: %s", e)
+                html_body = None
+                subject = f"Verification Completed [{ref}]"
+                text_body = (
+                    f"Hello {user_name},\n\n"
+                    f"The review for verification request [{ref}] has been completed by a verification officer.\n"
+                    f"Outcome: {outcome_display}\n\n"
+                    f"Summary: {summary}\n\n"
+                    f"View official findings and report at: {site_url}/verification/{ref}/\n\n"
+                    f"VerifyNG Trust & Safety Team"
+                )
+
             transaction.on_commit(
-                lambda: send_email_notification_task.delay(requester_email, subject, body)
+                lambda: send_email_notification_task.delay(
+                    requester_email,
+                    subject,
+                    text_body,
+                    html_message=html_body
+                )
             )
 
         return result
@@ -298,15 +353,38 @@ def reject_verification_request(
         requester_email = getattr(req.requester, 'email', None)
         if requester_email:
             ref = req.reference_number
-            subject = f"VerifyNG Notice: Verification Request [{ref}] Declined"
-            body = (
-                f"Hello,\n\n"
-                f"Your verification request [{ref}] could not be completed and has been closed.\n"
-                f"Please sign in to your VerifyNG member portal for further details or submit updated information.\n\n"
-                f"VerifyNG Trust & Safety Team"
-            )
+            config = SiteConfiguration.get_solo()
+            site_url = config.base_url.rstrip('/')
+            user_name = req.requester.get_full_name() or req.requester.username
+
+            try:
+                html_body, text_body = render_email('verification_declined', {
+                    'user_name': user_name,
+                    'reference_number': ref,
+                    'subject_name': req.target_subject.name,
+                    'reason': reason,
+                    'detail_url': f"{site_url}/verification/{ref}/",
+                })
+                subject = f"Verification Request Update [{ref}] — {config.site_name}"
+            except Exception as e:
+                logger.error("Failed to render verification_declined email template: %s", e)
+                html_body = None
+                subject = f"Verification Request Declined [{ref}]"
+                text_body = (
+                    f"Hello {user_name},\n\n"
+                    f"Your verification request [{ref}] could not be completed and has been closed.\n"
+                    f"Reason: {reason}\n\n"
+                    f"Sign in to your portal for details: {site_url}/verification/{ref}/\n\n"
+                    f"VerifyNG Trust & Safety Team"
+                )
+
             transaction.on_commit(
-                lambda: send_email_notification_task.delay(requester_email, subject, body)
+                lambda: send_email_notification_task.delay(
+                    requester_email,
+                    subject,
+                    text_body,
+                    html_message=html_body
+                )
             )
 
         return req
