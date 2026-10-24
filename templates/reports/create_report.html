@@ -14,8 +14,8 @@
         background: #F8FAFC;
         padding: 2.2rem 1.5rem;
         text-align: center;
-        cursor: pointer;
-        transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+        cursor: pointer !important;
+        transition: transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
         position: relative;
         outline: none;
         user-select: none;
@@ -24,18 +24,22 @@
         border-color: #2563EB !important;
         background: #EFF6FF !important;
         transform: translateY(-2px);
-        box-shadow: 0 6px 16px rgba(37, 99, 235, 0.10);
+        box-shadow: 0 6px 16px rgba(37, 99, 235, 0.12);
     }
     .vng-dropzone:active, .vng-dropzone.is-active {
-        transform: scale(0.985);
+        transform: scale(0.98) !important;
         background: #DBEAFE !important;
         border-color: #1D4ED8 !important;
-        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.20);
+        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.25) !important;
     }
     .vng-dropzone.is-dragover {
         border-color: #1D4ED8 !important;
         background: #EFF6FF !important;
         box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.25);
+    }
+    .vng-dropzone input[type="file"],
+    .cursor-pointer {
+        cursor: pointer !important;
     }
     .vng-dropzone-icon {
         transition: transform 0.2s ease;
@@ -68,7 +72,7 @@
                 isImage: false,
                 imagePreview: null,
                 subjectName: '{{ form.subject_name.value|default:''|escapejs }}',
-                subjectType: '{{ form.subject_type.value|default:'person'|escapejs }}',
+                subjectType: '{{ form.subject_type.value|default:''|escapejs }}',
                 phone: '{{ form.suspect_phone.value|default:''|escapejs }}',
                 bankAccount: '{{ form.suspect_bank_account.value|default:''|escapejs }}',
                 bankName: '{{ form.suspect_bank_name.value|default:''|escapejs }}',
@@ -82,6 +86,7 @@
                 declared: false,
                 errors: {
                     subjectName: '',
+                    subjectType: '',
                     phone: '',
                     bankAccount: '',
                     cac: '',
@@ -92,6 +97,7 @@
                 },
                 validateStep1() {
                     this.errors.subjectName = '';
+                    this.errors.subjectType = '';
                     this.errors.phone = '';
                     this.errors.bankAccount = '';
                     this.errors.cac = '';
@@ -99,6 +105,10 @@
                     let valid = true;
                     if (!this.subjectName.trim()) {
                         this.errors.subjectName = 'Please enter the suspect individual or business name.';
+                        valid = false;
+                    }
+                    if (!this.subjectType) {
+                        this.errors.subjectType = 'Please select an entity type.';
                         valid = false;
                     }
                     if (this.phone.trim()) {
@@ -290,12 +300,20 @@
                         <!-- Entity Type -->
                         <div class="mb-3">
                             <label for="{{ form.subject_type.id_for_label }}" class="form-label small fw-semibold">Entity Type <span class="text-danger">*</span></label>
-                            <select name="subject_type" id="{{ form.subject_type.id_for_label }}" class="form-select" x-model="subjectType" @change="if (subjectType !== 'business') cac = ''">
-                                <option value="">select</option>
+                            <select name="subject_type" 
+                                    id="{{ form.subject_type.id_for_label }}" 
+                                    class="form-select" 
+                                    :class="{'is-invalid': errors.subjectType}"
+                                    x-model="subjectType" 
+                                    @change="errors.subjectType = ''; if (subjectType !== 'business') cac = ''">
                                 {% for val, label in form.subject_type.field.choices %}
                                     <option value="{{ val }}" {% if form.subject_type.value == val %}selected{% endif %}>{{ label }}</option>
                                 {% endfor %}
                             </select>
+                            <div class="invalid-feedback d-block" x-show="errors.subjectType" x-text="errors.subjectType" x-cloak></div>
+                            {% if form.subject_type.errors %}
+                                <div class="text-danger small mt-1">{{ form.subject_type.errors.0 }}</div>
+                            {% endif %}
                         </div>
                         <div class="p-3 bg-light rounded border mb-4">
                             <div class="d-flex align-items-center gap-2 mb-2">
@@ -488,14 +506,20 @@
                                  role="button" 
                                  aria-label="Upload evidence file"
                                  :class="{'is-active': activeClick, 'border-danger bg-danger-subtle': errors.file}"
+                                 @pointerdown="activeClick = true"
+                                 @pointerup="setTimeout(() => activeClick = false, 200)"
                                  @mousedown="activeClick = true"
-                                 @mouseup="setTimeout(() => activeClick = false, 150)"
+                                 @mouseup="setTimeout(() => activeClick = false, 200)"
                                  @mouseleave="activeClick = false">
                                 <input type="file" 
                                        name="evidence_file" 
                                        id="{{ form.evidence_file.id_for_label }}" 
                                        class="position-absolute top-0 start-0 w-100 h-100 opacity-0 cursor-pointer" 
-                                       style="z-index: 2;"
+                                       style="z-index: 2; cursor: pointer;"
+                                       @pointerdown="activeClick = true"
+                                       @pointerup="setTimeout(() => activeClick = false, 200)"
+                                       @mousedown="activeClick = true"
+                                       @mouseup="setTimeout(() => activeClick = false, 200)"
                                        @change="handleFileSelect($event)" 
                                        accept=".png,.jpg,.jpeg,.pdf,.doc,.docx">
                                 
@@ -558,7 +582,7 @@
                             <h6 class="fw-bold text-dark small text-uppercase mb-3">Report Overview</h6>
                             <dl class="row small mb-0">
                                 <dt class="col-sm-4 text-muted">Suspect / Subject:</dt>
-                                <dd class="col-sm-8 fw-semibold" x-text="subjectName + ' (' + subjectType + ')'"></dd>
+                                <dd class="col-sm-8 fw-semibold" x-text="subjectName + (subjectType ? ' (' + subjectType + ')' : '')"></dd>
 
                                 <dt class="col-sm-4 text-muted">Suspect Identifiers:</dt>
                                 <dd class="col-sm-8">

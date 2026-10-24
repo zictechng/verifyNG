@@ -106,9 +106,13 @@ class FraudReportSubmissionForm(forms.Form):
         widget=forms.TextInput(attrs={'placeholder': 'Full name of person or business name', 'class': 'form-control'})
     )
     subject_type = forms.ChoiceField(
-        choices=SubjectEntity.ENTITY_TYPES,
-        initial='person',
-        widget=forms.Select(attrs={'class': 'form-select'})
+        choices=[('', '-- Select Entity Type --')] + list(SubjectEntity.ENTITY_TYPES),
+        required=True,
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        error_messages={
+            'required': 'Please select an entity type.',
+            'invalid_choice': 'Select a valid entity type from the list.',
+        }
     )
     suspect_phone = forms.CharField(
         max_length=50,
