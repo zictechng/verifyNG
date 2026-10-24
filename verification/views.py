@@ -915,13 +915,25 @@ class VerificationDocumentView(LoginRequiredMixin, View):
                 doc_field = verif_request.document
                 doc_name = verif_request.document.name.split('/')[-1] if verif_request.document.name else 'document'
 
-        if not doc_field:
-            raise Http404("No supporting document found for this verification request.")
+        if not doc_field or not getattr(doc_field, 'name', None):
+            msg = "No supporting document file has been uploaded for this verification request."
+            if request.user.is_superuser or is_verification_officer(request.user):
+                messages.warning(request, msg)
+                return redirect('admin_portal:verification_detail', pk=verif_request.pk)
+            else:
+                messages.warning(request, msg)
+                return redirect('verification:detail', reference_number=verif_request.reference_number)
 
         try:
             opened_file = doc_field.open('rb')
         except Exception:
-            raise Http404("Could not open the requested verification document.")
+            msg = f"The requested document ({doc_name}) was not found in storage or could not be opened."
+            if request.user.is_superuser or is_verification_officer(request.user):
+                messages.warning(request, msg)
+                return redirect('admin_portal:verification_detail', pk=verif_request.pk)
+            else:
+                messages.warning(request, msg)
+                return redirect('verification:detail', reference_number=verif_request.reference_number)
 
         ext = doc_name.split('.')[-1].lower() if '.' in doc_name else 'pdf'
         content_type, _ = mimetypes.guess_type(doc_name)

@@ -87,7 +87,15 @@ class VerificationRequest(models.Model):
 
     @property
     def has_documents(self):
-        return self.documents.exists() or bool(self.document)
+        try:
+            for doc in self.documents.all():
+                if doc.file_exists:
+                    return True
+            if self.document and self.document.name and self.document.storage.exists(self.document.name):
+                return True
+        except Exception:
+            pass
+        return False
 
     @property
     def primary_document(self):
@@ -421,6 +429,13 @@ class VerificationDocument(models.Model):
     @property
     def is_pdf(self):
         return self.file_extension == '.pdf'
+
+    @property
+    def file_exists(self):
+        try:
+            return bool(self.file and self.file.name and self.file.storage.exists(self.file.name))
+        except Exception:
+            return False
 
     @property
     def formatted_size(self):

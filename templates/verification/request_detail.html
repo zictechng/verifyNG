@@ -220,11 +220,12 @@
                         </dd>
                         {% endif %}
 
-                        {% if verification_request.documents.all or verification_request.document %}
+                        {% if verification_request.has_documents %}
                         <dt class="col-sm-4 text-muted mt-2">Supporting Document(s):</dt>
                         <dd class="col-sm-8 mt-2">
                             <div class="d-flex flex-column gap-2">
                                 {% for doc in verification_request.documents.all %}
+                                {% if doc.file_exists %}
                                 <div class="p-2.5 px-3 rounded-2 d-flex align-items-center justify-content-between flex-wrap gap-2" style="background:#F8FAFC;border:1px solid #E2E8F0;">
                                     <div class="d-flex align-items-center gap-2 min-w-0">
                                         <span class="badge {% if doc.is_pdf %}bg-danger-subtle text-danger border border-danger-subtle{% elif doc.is_image %}bg-primary-subtle text-primary border border-primary-subtle{% else %}bg-secondary-subtle text-secondary border border-secondary-subtle{% endif %} text-uppercase fw-semibold" style="font-size:0.75rem;">
@@ -246,8 +247,9 @@
                                         </a>
                                     </div>
                                 </div>
+                                {% endif %}
                                 {% empty %}
-                                {% if verification_request.document %}
+                                {% if verification_request.document and verification_request.has_documents %}
                                 <div class="p-2.5 px-3 rounded-2 d-flex align-items-center justify-content-between flex-wrap gap-2" style="background:#F8FAFC;border:1px solid #E2E8F0;">
                                     <div class="d-flex align-items-center gap-2 min-w-0">
                                         <span class="badge bg-primary-subtle text-primary border border-primary-subtle text-uppercase fw-semibold" style="font-size:0.75rem;">FILE</span>
