@@ -26,6 +26,30 @@ class MultipleFileInput(forms.FileInput):
     allow_multiple_selected = True
 
 
+class MultipleFileField(forms.FileField):
+    """
+    Custom form field supporting both single and multi-file uploads.
+    Cleans individual files without raising 'No file was submitted. Check the encoding type on the form.'
+    """
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault('widget', MultipleFileInput(attrs={
+            'class': 'form-control',
+            'id': 'id_supporting_document',
+            'accept': '.pdf,.png,.jpg,.jpeg,.doc,.docx',
+            'multiple': True,
+        }))
+        super().__init__(*args, **kwargs)
+
+    def clean(self, data, initial=None):
+        single_file_clean = super().clean
+        if isinstance(data, (list, tuple)):
+            result = [single_file_clean(d, initial) for d in data if d]
+        else:
+            cleaned = single_file_clean(data, initial)
+            result = [cleaned] if cleaned else []
+        return result
+
+
 class VerificationRequestCreateForm(forms.Form):
     verification_type = forms.ChoiceField(
         choices=[('', '-- Select Verification Scope --')] + list(VerificationRequest.VERIFICATION_TYPES),
@@ -66,14 +90,8 @@ class VerificationRequestCreateForm(forms.Form):
             'placeholder': 'Describe the specific details to investigate. For property: state, location, surveyor plan, seller name. For car: model, chassis, plate. For certificate: university, graduation year, course.'
         })
     )
-    document = forms.FileField(
+    document = MultipleFileField(
         required=False,
-        widget=MultipleFileInput(attrs={
-            'class': 'form-control',
-            'id': 'id_supporting_document',
-            'accept': '.pdf,.png,.jpg,.jpeg,.doc,.docx',
-            'multiple': True,
-        }),
         help_text="Attach relevant documents (e.g. C of O, survey plan, vehicle customs paper, academic certificate, CAC document). Max 10MB per file (PDF, PNG, JPG, DOC)."
     )
 
@@ -93,11 +111,7 @@ class VerificationRequestCreateForm(forms.Form):
                 self.add_error('identifier_value', str(e))
 
         # Validate uploaded document(s)
-        if hasattr(self.files, 'getlist'):
-            uploaded_files = self.files.getlist('document')
-        else:
-            file_val = self.files.get('document') if self.files else None
-            uploaded_files = [file_val] if file_val else []
+        uploaded_files = cleaned_data.get('document') or []
         valid_files = []
         for upload in uploaded_files:
             try:

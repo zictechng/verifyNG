@@ -606,7 +606,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 btnText.classList.add('d-none');
                 btnSpinner.classList.remove('d-none');
             }
-            submitBtn.setAttribute('disabled', 'disabled');
+            submitBtn.style.pointerEvents = 'none';
         });
     }
 });
