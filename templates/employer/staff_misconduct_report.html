@@ -22,6 +22,43 @@
         background-color: #FEF2F2;
         box-shadow: 0 0 0 1px #DC2626;
     }
+
+    /* ── Misconduct Dropzone Click & Hover Ripple Styling ── */
+    .vng-dropzone-misconduct {
+        border: 2px dashed #DC2626 !important;
+        border-radius: 12px;
+        background: #FDF2F2;
+        padding: 2.2rem 1.5rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        outline: none;
+        user-select: none;
+    }
+    .vng-dropzone-misconduct:hover, .vng-dropzone-misconduct:focus-visible {
+        border-color: #B91C1C !important;
+        background: #FEE2E2 !important;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 18px rgba(220, 38, 38, 0.12);
+    }
+    .vng-dropzone-misconduct:active, .vng-dropzone-misconduct.is-active {
+        transform: scale(0.985);
+        background: #FECDCD !important;
+        border-color: #991B1B !important;
+        box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.22);
+    }
+    .vng-dropzone-misconduct.is-dragover {
+        border-color: #991B1B !important;
+        background: #FEE2E2 !important;
+        box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.25);
+    }
+    .vng-dropzone-misconduct-icon {
+        transition: transform 0.2s ease;
+    }
+    .vng-dropzone-misconduct:hover .vng-dropzone-misconduct-icon {
+        transform: translateY(-2px);
+    }
 </style>
 {% endblock %}
 
@@ -53,6 +90,7 @@
             <div class="vng-card p-4 p-md-5" x-data="{
                 step: 1,
                 submitting: false,
+                activeClick: false,
                 certId: '{% if form_data.certificate_id %}{{ form_data.certificate_id|escapejs }}{% elif certificate_id_prefill %}{{ certificate_id_prefill|escapejs }}{% endif %}',
                 staffName: '{{ form_data.staff_name|default:''|escapejs }}',
                 jobRole: '{{ form_data.job_role|default:''|escapejs }}',
@@ -294,23 +332,41 @@
                             </select>
                         </div>
 
-                        <!-- File Upload Drop Zone -->
+                        <!-- File Upload Drop Zone with Click & Ripple Effect -->
                         <div class="mb-4">
                             <label class="form-label small fw-semibold">Upload Document Proof (PDF, PNG, JPG — Max 10 MB) <span class="text-danger">*</span></label>
-                            <div class="border rounded p-4 text-center bg-light position-relative" 
-                                 :class="{'border-danger bg-danger-subtle': errors.evidenceFile}"
-                                 style="border-style: dashed !important; border-color: #DC2626 !important;">
-                                <input type="file" name="evidence_file" id="evidence_file" class="position-absolute top-0 start-0 w-100 h-100 opacity-0 cursor-pointer" @change="handleFileSelect($event)" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx">
+                            <div class="vng-dropzone-misconduct" 
+                                 tabindex="0" 
+                                 role="button" 
+                                 aria-label="Upload documentary evidence"
+                                 :class="{'is-active': activeClick, 'border-danger bg-danger-subtle': errors.evidenceFile}"
+                                 @mousedown="activeClick = true"
+                                 @mouseup="setTimeout(() => activeClick = false, 150)"
+                                 @mouseleave="activeClick = false">
+                                <input type="file" 
+                                       name="evidence_file" 
+                                       id="evidence_file" 
+                                       class="position-absolute top-0 start-0 w-100 h-100 opacity-0 cursor-pointer" 
+                                       style="z-index: 2;"
+                                       @change="handleFileSelect($event)" 
+                                       accept=".pdf,.png,.jpg,.jpeg,.doc,.docx">
                                 
                                 <template x-if="!fileName">
                                     <div>
-                                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="1.5" class="mb-2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-                                        <div class="fw-semibold small">Drag & drop or click to upload documentary evidence</div>
-                                        <div class="text-muted small">PDF, PNG, JPG (Up to 10 MB)</div>
+                                        <div class="vng-dropzone-misconduct-icon mb-2">
+                                            <div class="rounded-circle d-inline-flex align-items-center justify-content-center" style="width:48px;height:48px;background:#FEE2E2;color:#DC2626;">
+                                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                                            </div>
+                                        </div>
+                                        <div class="fw-semibold small text-dark mb-1">Drag &amp; drop or click to upload documentary evidence</div>
+                                        <div class="text-muted small">PDF, PNG, JPG, DOC (Up to 10 MB)</div>
                                     </div>
                                 </template>
                                 <template x-if="fileName">
                                     <div class="d-flex align-items-center justify-content-center gap-3">
+                                        <div class="rounded-circle d-inline-flex align-items-center justify-content-center flex-shrink-0" style="width:40px;height:40px;background:#FEE2E2;color:#DC2626;">
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                        </div>
                                         <div class="text-start">
                                             <div class="fw-bold text-danger small" x-text="fileName"></div>
                                             <div class="text-muted small" x-text="fileSize"></div>

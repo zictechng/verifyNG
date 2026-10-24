@@ -1,162 +1,46 @@
 {% extends "public/base.html" %}
 {% load static %}
 
-{% block title %}Submit a Verification Request — VerifyNG
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    const dropzone = document.getElementById('publicVerificationDropzone');
-    const docInput = document.getElementById('id_public_supporting_document');
-    const dropzoneIdle = document.getElementById('publicDropzoneIdle');
-    const dropzonePreview = document.getElementById('publicDropzonePreview');
-    const dropzoneFileList = document.getElementById('publicDropzoneFileList');
-    const dropzoneError = document.getElementById('publicDropzoneError');
-    const btnClearFiles = document.getElementById('btnPublicClearFiles');
+{% block title %}Submit a Verification Request — VerifyNG{% endblock %}
 
-    function showError(msg) {
-        if (dropzoneError) {
-            dropzoneError.textContent = msg;
-            dropzoneError.classList.remove('d-none');
-        }
-        if (dropzone) {
-            dropzone.style.borderColor = '#DC2626';
-            dropzone.style.backgroundColor = '#FEF2F2';
-        }
+{% block extra_head %}
+<style>
+    .vng-dropzone {
+        border: 2px dashed #CBD5E1 !important;
+        border-radius: 12px;
+        background: #F8FAFC;
+        padding: 2.2rem 1.5rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        outline: none;
+        user-select: none;
     }
-
-    function clearError() {
-        if (dropzoneError) {
-            dropzoneError.textContent = '';
-            dropzoneError.classList.add('d-none');
-        }
-        if (dropzone) {
-            dropzone.style.borderColor = '#CBD5E1';
-            dropzone.style.backgroundColor = '#F8FAFC';
-        }
+    .vng-dropzone:hover, .vng-dropzone:focus-visible {
+        border-color: #2563EB !important;
+        background: #EFF6FF !important;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(37, 99, 235, 0.10);
     }
-
-    function renderFiles(files) {
-        clearError();
-        if (!files || files.length === 0) {
-            if (dropzoneIdle) dropzoneIdle.classList.remove('d-none');
-            if (dropzonePreview) dropzonePreview.classList.add('d-none');
-            if (dropzoneFileList) dropzoneFileList.innerHTML = '';
-            return;
-        }
-
-        const maxBytes = 10 * 1024 * 1024;
-        const allowedExts = ['pdf', 'png', 'jpg', 'jpeg', 'doc', 'docx'];
-        let hasError = false;
-
-        Array.from(files).forEach(file => {
-            const ext = file.name.split('.').pop().toLowerCase();
-            if (file.size > maxBytes) {
-                showError('File "' + file.name + '" exceeds the 10 MB limit.');
-                hasError = true;
-            } else if (!allowedExts.includes(ext)) {
-                showError('File "' + file.name + '" has unsupported format (.' + ext + '). Only PDF, PNG, JPG, and DOC files are accepted.');
-                hasError = true;
-            }
-        });
-
-        if (hasError) {
-            if (docInput) docInput.value = '';
-            if (dropzoneIdle) dropzoneIdle.classList.remove('d-none');
-            if (dropzonePreview) dropzonePreview.classList.add('d-none');
-            if (dropzoneFileList) dropzoneFileList.innerHTML = '';
-            return;
-        }
-
-        if (dropzoneFileList) {
-            dropzoneFileList.innerHTML = '';
-            Array.from(files).forEach(file => {
-                const ext = file.name.split('.').pop().toLowerCase();
-                const isPdf = ext === 'pdf';
-                const isImg = ['png', 'jpg', 'jpeg', 'webp'].includes(ext);
-                const sizeStr = file.size > 1024 * 1024 
-                    ? (file.size / (1024 * 1024)).toFixed(2) + ' MB' 
-                    : (file.size / 1024).toFixed(1) + ' KB';
-
-                const card = document.createElement('div');
-                card.className = 'p-2.5 px-3 rounded bg-white border d-flex align-items-center justify-content-between text-start gap-2 shadow-sm';
-                
-                const badgeClass = isPdf ? 'bg-danger text-white' : (isImg ? 'bg-primary text-white' : 'bg-secondary text-white');
-                const badgeText = isPdf ? 'PDF' : (isImg ? 'IMG' : 'DOC');
-
-                let thumbnailHtml = '';
-                if (isImg) {
-                    const imgUrl = URL.createObjectURL(file);
-                    thumbnailHtml = '<img src="' + imgUrl + '" alt="Preview" style="max-height: 42px; max-width: 55px; object-fit: cover;" class="rounded border me-1">';
-                }
-
-                card.innerHTML = `
-                    <div class="d-flex align-items-center gap-2 min-w-0">
-                        ${thumbnailHtml}
-                        <div>
-                            <div class="d-flex align-items-center gap-1.5 mb-0.5">
-                                <span class="badge ${badgeClass} text-uppercase" style="font-size:0.65rem;letter-spacing:0.5px;">${badgeText}</span>
-                                <span class="fw-semibold text-dark text-truncate small" style="max-width:300px;" title="${file.name}">${file.name}</span>
-                            </div>
-                            <div class="text-muted" style="font-size:0.75rem;">${sizeStr}</div>
-                        </div>
-                    </div>
-                    <div class="text-success small fw-semibold d-flex align-items-center gap-1 flex-shrink-0">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                        Ready
-                    </div>
-                `;
-                dropzoneFileList.appendChild(card);
-            });
-        }
-
-        if (dropzoneIdle) dropzoneIdle.classList.add('d-none');
-        if (dropzonePreview) dropzonePreview.classList.remove('d-none');
+    .vng-dropzone:active, .vng-dropzone.is-active {
+        transform: scale(0.985);
+        background: #DBEAFE !important;
+        border-color: #1D4ED8 !important;
+        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.20);
     }
-
-    if (docInput) {
-        docInput.addEventListener('change', function () {
-            renderFiles(this.files);
-        });
+    .vng-dropzone.is-dragover {
+        border-color: #1D4ED8 !important;
+        background: #EFF6FF !important;
+        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.25);
     }
-
-    if (dropzone) {
-        ['dragenter', 'dragover'].forEach(eventType => {
-            dropzone.addEventListener(eventType, function (e) {
-                e.preventDefault();
-                e.stopPropagation();
-                dropzone.style.borderColor = '#2563EB';
-                dropzone.style.backgroundColor = '#EFF6FF';
-            });
-        });
-
-        ['dragleave', 'drop'].forEach(eventType => {
-            dropzone.addEventListener(eventType, function (e) {
-                e.preventDefault();
-                e.stopPropagation();
-                dropzone.style.borderColor = '#CBD5E1';
-                dropzone.style.backgroundColor = '#F8FAFC';
-            });
-        });
-
-        dropzone.addEventListener('drop', function (e) {
-            if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-                if (docInput) {
-                    docInput.files = e.dataTransfer.files;
-                    renderFiles(docInput.files);
-                }
-            }
-        });
+    .vng-dropzone-icon {
+        transition: transform 0.2s ease;
     }
-
-    if (btnClearFiles && docInput) {
-        btnClearFiles.addEventListener('click', function (e) {
-            e.stopPropagation();
-            docInput.value = '';
-            renderFiles(null);
-        });
+    .vng-dropzone:hover .vng-dropzone-icon {
+        transform: translateY(-2px);
     }
-});
-</script>
-
+</style>
 {% endblock %}
 
 {% block content %}
@@ -330,7 +214,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     </div>
                     
                     <div id="publicVerificationDropzone" 
-                         class="border rounded p-4 text-center bg-light position-relative" 
+                         class="vng-dropzone" 
                          style="border-style: dashed !important; border-color: #CBD5E1 !important; transition: all 0.2s ease-in-out; cursor: pointer; min-height: 140px; display: flex; align-items: center; justify-content: center;">
                         
                         <input type="file" 

@@ -3,6 +3,46 @@
 
 {% block title %}Submit Verification Request | {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
 
+{% block extra_head %}
+<style>
+    .vng-dropzone {
+        border: 2px dashed #CBD5E1 !important;
+        border-radius: 12px;
+        background: #F8FAFC;
+        padding: 2.2rem 1.5rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        outline: none;
+        user-select: none;
+    }
+    .vng-dropzone:hover, .vng-dropzone:focus-visible {
+        border-color: #2563EB !important;
+        background: #EFF6FF !important;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(37, 99, 235, 0.10);
+    }
+    .vng-dropzone:active, .vng-dropzone.is-active {
+        transform: scale(0.985);
+        background: #DBEAFE !important;
+        border-color: #1D4ED8 !important;
+        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.20);
+    }
+    .vng-dropzone.is-dragover {
+        border-color: #1D4ED8 !important;
+        background: #EFF6FF !important;
+        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.25);
+    }
+    .vng-dropzone-icon {
+        transition: transform 0.2s ease;
+    }
+    .vng-dropzone:hover .vng-dropzone-icon {
+        transform: translateY(-2px);
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container py-4 py-md-5">
     <div class="row justify-content-center">
@@ -191,7 +231,7 @@
                             </label>
                             
                             <div id="verificationDropzone" 
-                                 class="border rounded p-4 text-center bg-light position-relative" 
+                                 class="vng-dropzone" 
                                  style="border-style: dashed !important; border-color: #CBD5E1 !important; transition: all 0.2s ease-in-out; cursor: pointer; min-height: 150px; display: flex; align-items: center; justify-content: center;">
                                 
                                 <input type="file" 
@@ -512,6 +552,16 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     if (dropzone) {
+        dropzone.addEventListener('mousedown', function () {
+            dropzone.classList.add('is-active');
+        });
+        dropzone.addEventListener('mouseup', function () {
+            setTimeout(() => dropzone.classList.remove('is-active'), 150);
+        });
+        dropzone.addEventListener('mouseleave', function () {
+            dropzone.classList.remove('is-active');
+        });
+
         ['dragenter', 'dragover'].forEach(eventType => {
             dropzone.addEventListener(eventType, function (e) {
                 e.preventDefault();

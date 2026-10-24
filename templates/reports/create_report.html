@@ -6,6 +6,43 @@
 {% block extra_head %}
 <style>
     [x-cloak] { display: none !important; }
+
+    /* ── Dropzone Click & Hover Ripple Styling ── */
+    .vng-dropzone {
+        border: 2px dashed #CBD5E1 !important;
+        border-radius: 12px;
+        background: #F8FAFC;
+        padding: 2.2rem 1.5rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        outline: none;
+        user-select: none;
+    }
+    .vng-dropzone:hover, .vng-dropzone:focus-visible {
+        border-color: #2563EB !important;
+        background: #EFF6FF !important;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(37, 99, 235, 0.10);
+    }
+    .vng-dropzone:active, .vng-dropzone.is-active {
+        transform: scale(0.985);
+        background: #DBEAFE !important;
+        border-color: #1D4ED8 !important;
+        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.20);
+    }
+    .vng-dropzone.is-dragover {
+        border-color: #1D4ED8 !important;
+        background: #EFF6FF !important;
+        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.25);
+    }
+    .vng-dropzone-icon {
+        transition: transform 0.2s ease;
+    }
+    .vng-dropzone:hover .vng-dropzone-icon {
+        transform: translateY(-2px);
+    }
 </style>
 {% endblock %}
 {% block content %}
@@ -25,6 +62,7 @@
                 step: {% if form.errors and form.title.errors or form.allegation.errors %}2{% elif form.errors and form.evidence_file.errors %}3{% else %}1{% endif %},
                 maxStep: 4,
                 submitting: false,
+                activeClick: false,
                 fileName: '',
                 fileSize: '',
                 isImage: false,
@@ -445,22 +483,37 @@
                         <!-- File Upload Drop Zone -->
                         <div class="mb-3">
                             <label class="form-label small fw-semibold">Upload File (Max 10 MB)</label>
-                            <div class="border rounded p-4 text-center bg-light position-relative" 
-                                 :class="{'border-danger bg-danger-subtle': errors.file}"
-                                 style="border-style: dashed !important; border-color: var(--vng-border) !important;">
-                                <input type="file" name="evidence_file" id="{{ form.evidence_file.id_for_label }}" class="position-absolute top-0 start-0 w-100 h-100 opacity-0 cursor-pointer" @change="handleFileSelect($event)" accept=".png,.jpg,.jpeg,.pdf,.doc,.docx">
+                            <div class="vng-dropzone" 
+                                 tabindex="0" 
+                                 role="button" 
+                                 aria-label="Upload evidence file"
+                                 :class="{'is-active': activeClick, 'border-danger bg-danger-subtle': errors.file}"
+                                 @mousedown="activeClick = true"
+                                 @mouseup="setTimeout(() => activeClick = false, 150)"
+                                 @mouseleave="activeClick = false">
+                                <input type="file" 
+                                       name="evidence_file" 
+                                       id="{{ form.evidence_file.id_for_label }}" 
+                                       class="position-absolute top-0 start-0 w-100 h-100 opacity-0 cursor-pointer" 
+                                       style="z-index: 2;"
+                                       @change="handleFileSelect($event)" 
+                                       accept=".png,.jpg,.jpeg,.pdf,.doc,.docx">
                                 
                                 <template x-if="!fileName">
                                     <div>
-                                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-muted mb-2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                                        <div class="fw-semibold small">Drag & drop or click to choose file</div>
+                                        <div class="vng-dropzone-icon mb-2">
+                                            <div class="rounded-circle d-inline-flex align-items-center justify-content-center" style="width:48px;height:48px;background:#EFF6FF;color:#2563EB;">
+                                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                            </div>
+                                        </div>
+                                        <div class="fw-semibold small text-dark mb-1">Drag &amp; drop or click to choose file</div>
                                         <div class="text-muted small">PDF, PNG, JPG, DOCX (up to 10 MB)</div>
                                     </div>
                                 </template>
                                 <template x-if="fileName">
                                     <div class="d-flex align-items-center justify-content-center gap-3">
                                         <template x-if="isImage && imagePreview">
-                                            <img :src="imagePreview" alt="Preview" style="max-height: 60px; max-width: 80px;" class="rounded border shadow-sm">
+                                            <img :src="imagePreview" alt="Preview" style="max-height: 55px; max-width: 75px; object-fit: cover;" class="rounded border shadow-sm">
                                         </template>
                                         <div class="text-start">
                                             <div class="fw-bold text-primary small" x-text="fileName"></div>
