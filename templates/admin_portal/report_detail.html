@@ -20,7 +20,45 @@
         <tr><th style="width:160px">Reference</th><td><code>{{ report.reference_number }}</code></td></tr>
         <tr><th>State</th><td><span class="adm-badge adm-badge-blue">{{ report.get_state_display }}</span></td></tr>
         <tr><th>Reporter</th><td>{{ report.reporter.username|default:"—" }} &lt;{{ report.reporter.email|default:"" }}&gt;</td></tr>
-        <tr><th>Subject</th><td>{{ report.target_subject }}</td></tr>
+        <tr>
+          <th>Target Subject</th>
+          <td>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <span class="fw-semibold text-dark">{{ report.target_subject.name }}</span>
+              <span class="adm-badge adm-badge-gray">{{ report.target_subject.get_type_display }}</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <th>Target Photo</th>
+          <td>
+            {% if report.target_subject.photo %}
+              <div class="d-flex align-items-center gap-3 py-1">
+                <a href="{{ report.target_subject.photo.url }}" target="_blank" rel="noopener noreferrer" 
+                   class="d-inline-block rounded overflow-hidden shadow-sm position-relative" 
+                   style="width: 76px; height: 76px; border: 1.5px solid #CBD5E1; flex-shrink: 0; background: #F8FAFC;"
+                   title="Click to view full photo in new tab">
+                  <img src="{{ report.target_subject.photo.url }}" 
+                       alt="Photo of {{ report.target_subject.name }}" 
+                       style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.15s ease;"
+                       onmouseover="this.style.transform='scale(1.05)'" 
+                       onmouseout="this.style.transform='scale(1)'">
+                </a>
+                <div>
+                  <div class="small fw-semibold text-dark mb-1">Target Subject Photo Attached</div>
+                  <div class="small text-muted mb-2" style="font-size:0.78rem;">Uploaded by complainer</div>
+                  <a href="{{ report.target_subject.photo.url }}" target="_blank" rel="noopener noreferrer" 
+                     class="btn btn-adm-sm btn-adm-outline d-inline-flex align-items-center gap-1">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    View Full Photo &rarr;
+                  </a>
+                </div>
+              </div>
+            {% else %}
+              <span class="text-muted small">No photo attached by complainer</span>
+            {% endif %}
+          </td>
+        </tr>
         <tr><th>Incident Date</th><td>{{ report.incident_date|default:"Not specified" }}</td></tr>
         <tr><th>Submitted</th><td>{{ report.created_at|date:"d M Y H:i" }}</td></tr>
         <tr><th>Last Updated</th><td>{{ report.updated_at|date:"d M Y H:i" }}</td></tr>
