@@ -118,7 +118,7 @@
                             </td>
                             <td class="small text-muted">{{ report.created_at|date:"M j, Y" }}</td>
                             <td class="pe-4 text-end">
-                                <a href="{% url 'reports:detail' report.reference_number %}" class="btn btn-vng-outline btn-vng-sm text-nowrap">
+                                <a href="{% url 'reports:detail' report.reference_number %}?src=my_reports" class="btn btn-vng-outline btn-vng-sm text-nowrap">
                                     View &amp; Evidence &rarr;
                                 </a>
                             </td>
@@ -191,7 +191,7 @@
                 </div>
 
                 <!-- Action Button: Full width touch target -->
-                <a href="{% url 'reports:detail' report.reference_number %}" class="btn btn-vng-outline btn-sm w-100 py-2 d-flex align-items-center justify-content-center gap-1 fw-semibold" style="font-size:0.88rem;min-height:42px;">
+                <a href="{% url 'reports:detail' report.reference_number %}?src=my_reports" class="btn btn-vng-outline btn-sm w-100 py-2 d-flex align-items-center justify-content-center gap-1 fw-semibold" style="font-size:0.88rem;min-height:42px;">
                     View Details &amp; Add Evidence &rarr;
                 </a>
             </div>

@@ -70,6 +70,15 @@ class FraudReport(models.Model):
     def __str__(self):
         return f"[{self.reference_number}] {self.title} - {self.get_state_display()}"
 
+    @property
+    def is_misconduct(self):
+        title_str = self.title or ''
+        allegation_str = self.allegation or ''
+        return (
+            title_str.startswith('Staff Misconduct') or
+            allegation_str.startswith('WORKPLACE MISCONDUCT REPORT')
+        )
+
 
 class ReportEvidence(models.Model):
     EVIDENCE_TYPES = (

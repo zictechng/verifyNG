@@ -111,7 +111,7 @@
                             </td>
                             <td class="text-muted">{{ report.created_at|date:"d M Y" }}</td>
                             <td class="text-end">
-                                <a href="{% url 'reports:detail' report.reference_number %}" class="btn btn-vng-outline btn-sm">
+                                <a href="{% url 'reports:detail' report.reference_number %}?src=misconduct" class="btn btn-vng-outline btn-sm">
                                     View Details
                                 </a>
                             </td>
@@ -125,7 +125,7 @@
         {# 2. MOBILE VIEW: Touch-Friendly Responsive Cards (Visible only on mobile) #}
         <div class="d-md-none d-flex flex-column gap-3">
             {% for report in page_obj %}
-            <a href="{% url 'reports:detail' report.reference_number %}" class="text-decoration-none text-dark">
+            <a href="{% url 'reports:detail' report.reference_number %}?src=misconduct" class="text-decoration-none text-dark">
                 <div class="vng-card p-3 shadow-sm" style="border-radius:12px;">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <span class="font-monospace fw-bold small text-primary">#{{ report.reference_number }}</span>

@@ -33,14 +33,10 @@
     {# ── Breadcrumb + state badge ── #}
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-3 mb-4">
         <div>
-            {% if user.is_authenticated %}
-                {% if user.is_superuser or user.is_staff or user.role == 'moderator' or user.role == 'officer' %}
-                    <a href="{% url 'admin_portal:overview' %}" class="text-decoration-none small text-muted">&larr; Admin Portal</a>
-                {% elif user.role in 'employer,agency,business' %}
-                    <a href="{% url 'employer:staff_misconduct_list' %}" class="text-decoration-none small text-muted">&larr; Misconduct Reports</a>
-                {% else %}
-                    <a href="{% url 'dashboard:index' %}" class="text-decoration-none small text-muted">&larr; Member Portal</a>
-                {% endif %}
+            {% if back_url %}
+                <a href="{{ back_url }}" class="text-decoration-none small text-muted">&larr; {{ back_label }}</a>
+            {% elif user.is_authenticated %}
+                <a href="{% url 'reports:my_reports' %}" class="text-decoration-none small text-muted">&larr; My Submitted Reports</a>
             {% else %}
                 <a href="{% url 'home' %}" class="text-decoration-none small text-muted">&larr; Home</a>
             {% endif %}

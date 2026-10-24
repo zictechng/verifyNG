@@ -5,6 +5,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.http import FileResponse, Http404, HttpResponseRedirect
+from django.urls import reverse
 
 from reports.forms import (
     FraudReportSubmissionForm,
@@ -126,6 +127,45 @@ class ReportDetailView(DetailView):
             ctx['suspect_context'] = init_log.details.get('suspect_context', {})
         else:
             ctx['suspect_context'] = {}
+
+        # Determine context-aware back navigation
+        src = self.request.GET.get('src', '').strip()
+        referer = self.request.META.get('HTTP_REFERER', '')
+        user = self.request.user
+
+        if src == 'misconduct' or '/employer/misconduct' in referer:
+            back_url = reverse('employer:staff_misconduct_list')
+            back_label = "Misconduct Reports"
+        elif src == 'my_reports' or '/reports/my-reports' in referer:
+            back_url = reverse('reports:my_reports')
+            back_label = "My Submitted Reports"
+        elif src == 'admin' or '/admin-portal' in referer:
+            back_url = reverse('admin_portal:overview')
+            back_label = "Admin Portal"
+        elif self.object.is_misconduct:
+            if user.is_authenticated and (getattr(user, 'role', '') in ('employer', 'agency', 'business') or user.is_staff):
+                back_url = reverse('employer:staff_misconduct_list')
+                back_label = "Misconduct Reports"
+            elif user.is_authenticated:
+                back_url = reverse('dashboard:index')
+                back_label = "Dashboard"
+            else:
+                back_url = reverse('home')
+                back_label = "Home"
+        else:
+            if user.is_authenticated:
+                if user.is_superuser or user.is_staff or getattr(user, 'role', '') in ('moderator', 'officer'):
+                    back_url = reverse('admin_portal:overview')
+                    back_label = "Admin Portal"
+                else:
+                    back_url = reverse('reports:my_reports')
+                    back_label = "My Submitted Reports"
+            else:
+                back_url = reverse('home')
+                back_label = "Home"
+
+        ctx['back_url'] = back_url
+        ctx['back_label'] = back_label
         return ctx
 
 class EvidenceDownloadView(View):
