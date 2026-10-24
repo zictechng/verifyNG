@@ -1,0 +1,43 @@
+{% extends 'emails/base_email.html' %}
+
+{% block subject %}Fraud Report Received [{{ reference_number }}] — {{ site_name }}{% endblock %}
+
+{% block body %}
+<h1 style="font-size:24px;font-weight:700;color:#1d1d1f;margin:0 0 16px;letter-spacing:-0.5px;">Fraud Report Received</h1>
+
+<p>Hi {{ user_name }},</p>
+
+<p>
+    Thank you for submitting a fraud incident report to <strong>{{ site_name }}</strong>. 
+    Your report has been securely registered in our database and queued for compliance review by our moderation team.
+</p>
+
+<div class="notice">
+    <p style="margin:0 0 8px;"><strong>Reference Number:</strong> <code style="font-family:monospace;font-size:14px;color:#1E40AF;background:#EFF6FF;padding:2px 6px;border-radius:4px;">{{ reference_number }}</code></p>
+    {% if target_name %}
+    <p style="margin:0 0 8px;"><strong>Reported Subject / Entity:</strong> {{ target_name }}</p>
+    {% endif %}
+    {% if report_title %}
+    <p style="margin:0 0 8px;"><strong>Incident Summary:</strong> {{ report_title }}</p>
+    {% endif %}
+    <p style="margin:0 0 8px;"><strong>Submitted On:</strong> {{ submitted_at|default:"Just now" }}</p>
+    <p style="margin:0;"><strong>Current Status:</strong> <span style="display:inline-block;padding:2px 8px;border-radius:12px;background:#EFF6FF;color:#1E40AF;font-size:12px;font-weight:600;">Submitted (Under Queue)</span></p>
+</div>
+
+<p><strong>What Happens Next:</strong></p>
+<ol style="font-size:16px;line-height:1.65;color:#1d1d1f;padding-left:20px;margin-bottom:24px;">
+    <li>Our compliance moderators verify the factual timeline, transaction proof, and suspect identifiers against official registries and existing alert databases.</li>
+    <li>If additional documentation is needed, you can upload more evidence files or photos at any time directly through your portal.</li>
+    <li>Once our desk concludes its review, you will receive an immediate email update notifying you of the outcome.</li>
+</ol>
+
+<div class="btn-wrap">
+    <a href="{{ report_url|default:detail_url }}" class="btn">View &amp; Track Report &rarr;</a>
+</div>
+
+<hr class="divider">
+
+<p style="font-size:13px;color:#6e6e73;line-height:1.5;">
+    Your submission helps protect consumers, financial institutions, and employers from fraudulent activity. If you have immediate questions or wish to provide supplementary records, contact our desk at <a href="mailto:{{ support_email }}" style="color:#0071e3;">{{ support_email }}</a>.
+</p>
+{% endblock %}

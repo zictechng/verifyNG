@@ -49,6 +49,8 @@ EMAIL_TEMPLATES: dict[str, str] = {
     'password_changed':      'emails/password_changed.html',
     'report_submitted':      'emails/report_submitted.html',
     'report_status_update':  'emails/report_status_update.html',
+    'dispute_opened':        'emails/dispute_opened.html',
+    'dispute_resolved':      'emails/dispute_resolved.html',
     'verification_received': 'emails/verification_received.html',
     'verification_complete': 'emails/verification_complete.html',
     'verification_declined': 'emails/verification_declined.html',
@@ -85,13 +87,17 @@ def render_email(email_type: str, context: dict) -> tuple[str, str]:
             f"Unknown email type '{email_type}'. Valid types: {valid}"
         )
 
-    config = SiteConfiguration.get_solo()
+    try:
+        config = SiteConfiguration.get_solo()
+    except Exception as exc:
+        logger.warning("SiteConfiguration lookup failed in render_email: %s", exc)
+        config = None
 
-    site_url = config.base_url.rstrip('/')
+    site_url = (getattr(config, 'base_url', '') or 'https://verifyng.com').rstrip('/')
 
     # Build absolute logo URL for email clients (emails must use absolute URLs)
     logo_url = ''
-    if config.logo:
+    if config and config.logo:
         logo_name = config.logo.name
         if logo_name.startswith('http'):
             logo_url = logo_name
@@ -99,19 +105,19 @@ def render_email(email_type: str, context: dict) -> tuple[str, str]:
             logo_url = f"{site_url}/media/{logo_name}"
 
     site_context: dict = {
-        'site_name':       config.site_name,
-        'site_tagline':    config.site_tagline,
+        'site_name':       getattr(config, 'site_name', '') or 'VerifyNG',
+        'site_tagline':    getattr(config, 'site_tagline', '') or 'Public Trust & Verification Platform',
         'site_url':        site_url,
         'logo_url':        logo_url,
-        'support_email':   config.support_email,
-        'company_address': config.company_address,
-        'company_reg':     config.company_reg_number,
-        'twitter_url':     config.twitter_url,
-        'facebook_url':    config.facebook_url,
-        'instagram_url':   config.instagram_url,
-        'linkedin_url':    config.linkedin_url,
-        'youtube_url':     config.youtube_url,
-        'whatsapp_number': config.whatsapp_number,
+        'support_email':   getattr(config, 'support_email', '') or 'support@verifyng.com',
+        'company_address': getattr(config, 'company_address', '') or '',
+        'company_reg':     getattr(config, 'company_reg_number', '') or '',
+        'twitter_url':     getattr(config, 'twitter_url', '') or '',
+        'facebook_url':    getattr(config, 'facebook_url', '') or '',
+        'instagram_url':   getattr(config, 'instagram_url', '') or '',
+        'linkedin_url':    getattr(config, 'linkedin_url', '') or '',
+        'youtube_url':     getattr(config, 'youtube_url', '') or '',
+        'whatsapp_number': getattr(config, 'whatsapp_number', '') or '',
     }
 
     full_context = {**site_context, **context}

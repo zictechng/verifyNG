@@ -1,0 +1,35 @@
+{% extends 'emails/base_email.html' %}
+
+{% block subject %}Important Notice Regarding Your Account — {{ site_name }}{% endblock %}
+
+{% block body %}
+<h1 style="font-size:24px;font-weight:700;color:#1d1d1f;margin:0 0 16px;letter-spacing:-0.5px;">Account Suspension Notice</h1>
+
+<p>Hi {{ user_name }},</p>
+
+<p>
+    We are writing to inform you that your <strong>{{ site_name }}</strong> account has been temporarily suspended following an administrative compliance review.
+</p>
+
+<div class="notice notice-warning">
+    <p style="margin:0 0 8px;"><strong>Account Username:</strong> {{ user_name }}</p>
+    <p style="margin:0 0 8px;"><strong>Reason for Action:</strong> {{ reason|default:"Violation of Terms of Service or safety policy" }}</p>
+    <p style="margin:0;"><strong>Action Date:</strong> {{ suspended_at|default:"Immediate" }}</p>
+</div>
+
+<p>
+    While suspended, access to verification submissions, employer tooling, and report filings is restricted.
+</p>
+
+{% if appeal_url %}
+<div class="btn-wrap">
+    <a href="{{ appeal_url }}" class="btn">Submit Compliance Appeal &rarr;</a>
+</div>
+{% endif %}
+
+<hr class="divider">
+
+<p style="font-size:13px;color:#6e6e73;line-height:1.5;">
+    If you believe this suspension was made in error or wish to provide verification documents to restore your account, contact our compliance trust team at <a href="mailto:{{ support_email }}" style="color:#0071e3;">{{ support_email }}</a>.
+</p>
+{% endblock %}

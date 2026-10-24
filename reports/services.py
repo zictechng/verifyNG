@@ -230,6 +230,7 @@ def transition_report_state(report, new_state, actor=None, ip_address=None, mode
         report.moderation_notes = moderation_notes
 
     report._audit_logged = True
+    report._notification_dispatched = True
     report.save(update_fields=['state', 'moderation_notes', 'updated_at'])
 
     AuditLog.objects.create(
@@ -253,13 +254,10 @@ def transition_report_state(report, new_state, actor=None, ip_address=None, mode
             getattr(report.reporter, 'get_full_name', lambda: '')() or
             report.reporter.username
         )
-        if new_state == 'published':
-            subject, html_body, text_body = email_templates.build_report_published(ref, username)
-            transaction.on_commit(
-                lambda: send_email_notification_task.delay(reporter_email, subject, text_body, html_body)
+        if new_state in ('published', 'rejected', 'archived', 'under_review', 'resolved', 'restricted'):
+            subject, html_body, text_body = email_templates.build_report_status_update(
+                ref, username, new_state, report=report, moderation_notes=moderation_notes
             )
-        elif new_state == 'rejected':
-            subject, html_body, text_body = email_templates.build_report_rejected(ref, username)
             transaction.on_commit(
                 lambda: send_email_notification_task.delay(reporter_email, subject, text_body, html_body)
             )
@@ -299,7 +297,7 @@ def file_dispute_for_report(report, disputant, reason, counter_evidence=None, ip
             getattr(report.reporter, 'get_full_name', lambda: '')() or
             report.reporter.username
         )
-        subject, html_body, text_body = email_templates.build_dispute_opened(ref, username)
+        subject, html_body, text_body = email_templates.build_dispute_opened(ref, username, report=report)
         transaction.on_commit(
             lambda: send_email_notification_task.delay(reporter_email, subject, text_body, html_body)
         )
@@ -342,7 +340,7 @@ def resolve_dispute(dispute, outcome, actor, resolution_notes, ip_address=None):
             getattr(dispute.disputant, 'get_full_name', lambda: '')() or
             dispute.disputant.username
         )
-        subject, html_body, text_body = email_templates.build_dispute_resolved(ref, username, outcome)
+        subject, html_body, text_body = email_templates.build_dispute_resolved(ref, username, outcome, report=report, notes=resolution_notes)
         transaction.on_commit(
             lambda: send_email_notification_task.delay(disputant_email, subject, text_body, html_body)
         )

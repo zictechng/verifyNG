@@ -44,7 +44,7 @@ def notify_on_report_lifecycle(sender, instance, created, **kwargs):
 
         if created:
             subject, html_body, text_body = email_templates.build_report_submitted(
-                ref, reporter.username
+                ref, reporter.username, report=instance
             )
             dispatch_notification(
                 recipient=reporter,
@@ -65,35 +65,47 @@ def notify_on_report_lifecycle(sender, instance, created, **kwargs):
         if not prev_state or prev_state == new_state:
             return
 
-        if new_state == 'published':
-            subject, html_body, text_body = email_templates.build_report_published(
-                ref, reporter.username
-            )
-            dispatch_notification(
-                recipient=reporter,
-                event_type='REPORT_PUBLISHED',
-                title='Your report has been published',
-                body=f'Report {ref} has been verified and is now live on the platform.',
-                object_reference=ref,
-                subject=subject,
-                html_body=html_body,
-                text_body=text_body,
-            )
+        if getattr(instance, '_notification_dispatched', False):
+            return
 
-        elif new_state == 'rejected':
-            subject, html_body, text_body = email_templates.build_report_rejected(
-                ref, reporter.username
-            )
-            dispatch_notification(
-                recipient=reporter,
-                event_type='REPORT_REJECTED',
-                title='Update on your fraud report',
-                body=f'Report {ref} could not be published after review.',
-                object_reference=ref,
-                subject=subject,
-                html_body=html_body,
-                text_body=text_body,
-            )
+        notes = getattr(instance, 'moderation_notes', None)
+        subject, html_body, text_body = email_templates.build_report_status_update(
+            reference_number=ref,
+            username=reporter.username,
+            new_state=new_state,
+            report=instance,
+            moderation_notes=notes,
+        )
+
+        event_type_map = {
+            'published': 'REPORT_PUBLISHED',
+            'rejected': 'REPORT_REJECTED',
+            'under_review': 'REPORT_UNDER_REVIEW',
+            'resolved': 'REPORT_RESOLVED',
+            'archived': 'REPORT_ARCHIVED',
+            'restricted': 'REPORT_RESTRICTED',
+        }
+        event_type = event_type_map.get(new_state, 'REPORT_STATUS_UPDATE')
+        title_map = {
+            'published': 'Your report has been published',
+            'rejected': 'Update on your fraud report',
+            'under_review': 'Your report is under review',
+            'resolved': 'Your report has been resolved',
+            'archived': 'Your report has been closed & archived',
+            'restricted': 'Report access has been restricted',
+        }
+        title = title_map.get(new_state, f'Report status updated to {new_state}')
+
+        dispatch_notification(
+            recipient=reporter,
+            event_type=event_type,
+            title=title,
+            body=f'Report {ref} status changed to {new_state.replace("_", " ")}.',
+            object_reference=ref,
+            subject=subject,
+            html_body=html_body,
+            text_body=text_body,
+        )
 
     except Exception as exc:
         logger.error("notify_on_report_lifecycle error (pk=%s): %s", instance.pk, exc)
@@ -117,7 +129,7 @@ def notify_on_dispute_lifecycle(sender, instance, created, **kwargs):
         if created:
             if reporter:
                 subject, html_body, text_body = email_templates.build_dispute_opened(
-                    ref, reporter.username
+                    ref, reporter.username, report=report
                 )
                 dispatch_notification(
                     recipient=reporter,
@@ -143,7 +155,7 @@ def notify_on_dispute_lifecycle(sender, instance, created, **kwargs):
             disputant = instance.disputant
             if disputant:
                 subject, html_body, text_body = email_templates.build_dispute_resolved(
-                    ref, disputant.username, new_status
+                    ref, disputant.username, new_status, report=report, notes=getattr(instance, 'resolution_notes', None)
                 )
                 dispatch_notification(
                     recipient=disputant,
@@ -250,6 +262,20 @@ def notify_on_verification_lifecycle(sender, instance, created, **kwargs):
 
 
 # Add to the BOTTOM of notifications/signals.py
+
+
+@receiver(pre_save, sender='reports.FraudReport')
+def track_report_status_change(sender, instance, **kwargs):
+    """Cache previous report state before save for transition detection."""
+    if instance.pk:
+        try:
+            from reports.models import FraudReport
+            prev = FraudReport.objects.filter(pk=instance.pk).values('state').first()
+            instance._previous_state = prev['state'] if prev else None
+        except Exception:
+            instance._previous_state = None
+    else:
+        instance._previous_state = None
 
 
 @receiver(pre_save, sender='reports.Dispute')

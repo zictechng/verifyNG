@@ -1,0 +1,58 @@
+{% extends 'emails/base_email.html' %}
+
+{% block subject %}{{ status_heading|default:"Fraud Report Status Update" }} [{{ reference_number }}] — {{ site_name }}{% endblock %}
+
+{% block body %}
+<h1 style="font-size:24px;font-weight:700;color:#1d1d1f;margin:0 0 16px;letter-spacing:-0.5px;">{{ status_heading|default:"Fraud Report Status Update" }}</h1>
+
+<p>Hi {{ user_name }},</p>
+
+<p>{{ status_message }}</p>
+
+<div class="notice {% if status_key == 'published' or status_key == 'resolved' %}notice-success{% elif status_key == 'rejected' or status_key == 'restricted' %}notice-warning{% endif %}">
+    <p style="margin:0 0 8px;"><strong>Reference Number:</strong> <code style="font-family:monospace;font-size:14px;color:#1E40AF;background:#EFF6FF;padding:2px 6px;border-radius:4px;">{{ reference_number }}</code></p>
+    {% if target_name %}
+    <p style="margin:0 0 8px;"><strong>Subject:</strong> {{ target_name }}</p>
+    {% endif %}
+    {% if report_title %}
+    <p style="margin:0 0 8px;"><strong>Report Title:</strong> {{ report_title }}</p>
+    {% endif %}
+    <p style="margin:0 0 8px;"><strong>Status:</strong> <strong>{{ status_display }}</strong></p>
+    <p style="margin:0;"><strong>Updated At:</strong> {{ updated_at }}</p>
+</div>
+
+{% if moderation_notes %}
+<p><strong>Moderator Remarks:</strong></p>
+<div style="background:#F8FAFC;border:1px solid #E2E8F0;border-left:3px solid {% if status_key == 'published' %}#16A34A{% elif status_key == 'rejected' %}#DC2626{% else %}#2563EB{% endif %};border-radius:6px;padding:14px 18px;margin-bottom:24px;font-size:15px;line-height:1.6;color:#1E293B;">
+    {{ moderation_notes|linebreaks }}
+</div>
+{% endif %}
+
+{% if status_key == 'published' %}
+<p>
+    Your fraud report is now visible on {{ site_name }} trust checks, warning prospective employers, partners, and the public against this threat. Thank you for taking civic action.
+</p>
+{% elif status_key == 'rejected' %}
+<p>
+    If you have additional documentary proof (e.g. signed contracts, police extract, stamped bank receipts, or message exports), you may submit a new report with the additional documentation or reach out to our desk for assistance.
+</p>
+{% elif status_key == 'archived' %}
+<p>
+    This report record has been closed and archived according to platform guidelines. If you believe this action was taken in error, please reach out to our support team.
+</p>
+{% elif status_key == 'under_review' %}
+<p>
+    Our compliance verification desk has initiated active investigation on your report. We will notify you as soon as this stage concludes.
+</p>
+{% endif %}
+
+<div class="btn-wrap">
+    <a href="{{ report_url|default:detail_url }}" class="btn">View Report in Portal &rarr;</a>
+</div>
+
+<hr class="divider">
+
+<p style="font-size:13px;color:#6e6e73;line-height:1.5;">
+    If you have questions about this review or need to speak with our compliance team, please reply to this notice or email <a href="mailto:{{ support_email }}" style="color:#0071e3;">{{ support_email }}</a>.
+</p>
+{% endblock %}
