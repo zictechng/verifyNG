@@ -142,6 +142,7 @@ class EvidenceDownloadView(View):
             raise PermissionDenied("You do not have permission to access this evidence file.")
 
         provider = evidence.storage_provider or 'local'
+        as_attachment = request.GET.get('download') == '1'
 
         if provider == 'local':
             if not evidence.file:
@@ -149,7 +150,9 @@ class EvidenceDownloadView(View):
             try:
                 if not evidence.file.storage.exists(evidence.file.name):
                     raise Http404("Evidence file not found in local storage.")
-                return FileResponse(evidence.file.open('rb'), as_attachment=True)
+                response = FileResponse(evidence.file.open('rb'), as_attachment=as_attachment)
+                response['X-Frame-Options'] = 'SAMEORIGIN'
+                return response
             except Http404:
                 raise
             except Exception as e:
@@ -166,7 +169,8 @@ class EvidenceDownloadView(View):
                 public_id=evidence.storage_public_id,
                 format=evidence.storage_format,
                 resource_type=evidence.storage_resource_type,
-                expires_in_seconds=300
+                expires_in_seconds=300,
+                attachment=as_attachment
             )
             return HttpResponseRedirect(signed_url)
         except StorageError as e:

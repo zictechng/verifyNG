@@ -92,7 +92,14 @@
             <td>{{ ev.get_file_type_display }}</td>
             <td>{{ ev.description|default:"—" }}</td>
             <td>{% if ev.is_confidential %}<span class="adm-badge adm-badge-red">Yes</span>{% else %}<span class="adm-badge adm-badge-gray">No</span>{% endif %}</td>
-            <td><a href="{{ ev.file.url }}" target="_blank" class="btn btn-adm-sm btn-adm-outline">View</a></td>
+            <td>
+              <div class="d-inline-flex align-items-center gap-2">
+                <a href="{% url 'reports:evidence_download' ev.id %}" target="_blank" rel="noopener noreferrer" class="btn btn-adm-sm btn-adm-outline">View</a>
+                <a href="{% url 'reports:evidence_download' ev.id %}?download=1" target="_blank" rel="noopener noreferrer" class="btn btn-adm-sm btn-adm-outline text-muted" title="Download">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                </a>
+              </div>
+            </td>
           </tr>
           {% endfor %}
         </tbody>

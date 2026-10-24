@@ -250,9 +250,14 @@
                                         {% endif %}
                                     </td>
                                     <td>
-                                        <a href="{% url 'reports:evidence_download' item.id %}" class="btn btn-sm btn-outline-primary">
-                                            Download
-                                        </a>
+                                        <div class="d-inline-flex align-items-center gap-2">
+                                            <a href="{% url 'reports:evidence_download' item.id %}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary">
+                                                View Evidence &rarr;
+                                            </a>
+                                            <a href="{% url 'reports:evidence_download' item.id %}?download=1" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-secondary" title="Download directly">
+                                                Download
+                                            </a>
+                                        </div>
                                     </td>
                                 </tr>
                                 {% endfor %}
