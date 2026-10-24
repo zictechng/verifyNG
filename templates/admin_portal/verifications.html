@@ -77,6 +77,10 @@
             <div class="d-flex gap-1">
             <a href="{% url 'admin_portal:verification_detail' v.pk %}"
                class="btn btn-adm-sm btn-adm-outline">View</a>
+            {% if v.status == 'completed' %}
+            <a href="{% url 'verification:report' v.reference_number %}" target="_blank" rel="noopener noreferrer"
+               class="btn btn-adm-sm btn-adm-outline text-success" title="Print Official Verification Report">Report</a>
+            {% endif %}
             {% if v.status == 'pending' %}
             <button type="button" class="btn btn-adm-sm btn-adm-outline"
                     data-bs-toggle="modal" data-bs-target="#verifyActionModal"

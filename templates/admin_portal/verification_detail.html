@@ -90,37 +90,84 @@
       </div>
     </div>
 
-    <!-- Officer notes -->
+    <!-- Applicant Context & Verification Requirements -->
     <div class="adm-card mb-3">
-      <h2 class="adm-card-title mb-3">Officer Notes</h2>
-      {% if verification.notes %}
-      <div class="bg-light rounded p-3" style="font-size:.9rem;white-space:pre-wrap;">{{ verification.notes }}</div>
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h2 class="adm-card-title mb-0">Applicant Submission: Context &amp; Requirements</h2>
+        <span class="adm-badge adm-badge-blue" style="font-size:0.75rem;">Applicant Input</span>
+      </div>
+      {% if verification.user_requirements %}
+      <div class="bg-light rounded p-3" style="font-size:.9rem;line-height:1.6;white-space:pre-wrap;color:#1e293b;border:1px solid #e2e8f0;">{{ verification.user_requirements }}</div>
+      {% elif verification.notes and not has_result %}
+      <div class="bg-light rounded p-3" style="font-size:.9rem;line-height:1.6;white-space:pre-wrap;color:#1e293b;border:1px solid #e2e8f0;">{{ verification.notes }}</div>
       {% else %}
-      <p class="text-muted small mb-0">No notes recorded yet.</p>
+      <p class="text-muted small mb-0">No specific context or requirements submitted by applicant.</p>
       {% endif %}
     </div>
+
+    <!-- Officer Internal Notes (If recorded) -->
+    {% if verification.notes and verification.notes != verification.user_requirements and not has_result %}
+    <div class="adm-card mb-3">
+      <h2 class="adm-card-title mb-3">Officer Internal Notes</h2>
+      <div class="bg-light rounded p-3" style="font-size:.9rem;line-height:1.6;white-space:pre-wrap;color:#334155;">{{ verification.notes }}</div>
+    </div>
+    {% endif %}
 
     <!-- Result (if completed) -->
     {% if has_result %}
     <div class="adm-card mb-3" style="border-left:4px solid var(--adm-success,#198754);">
-      <h2 class="adm-card-title mb-3">Verification Result</h2>
-      <div class="row g-0" style="font-size:.9rem;">
-        <div class="col-sm-4 text-muted fw-semibold py-2 border-bottom">Outcome</div>
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="adm-card-title mb-0">Official Verification Findings</h2>
+        <a href="{% url 'verification:report' verification.reference_number %}" target="_blank" rel="noopener noreferrer" class="btn btn-adm-sm btn-adm-outline text-success d-inline-flex align-items-center gap-1">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          Print Report &rarr;
+        </a>
+      </div>
+
+      <div class="row g-0 mb-3" style="font-size:.9rem;">
+        <div class="col-sm-4 text-muted fw-semibold py-2 border-bottom">Official Outcome</div>
         <div class="col-sm-8 py-2 border-bottom">
-          {% if verification.result.outcome == 'verified' %}<span class="adm-badge adm-badge-green">Verified</span>
-          {% elif verification.result.outcome == 'unverified' %}<span class="adm-badge adm-badge-red">Unverified</span>
-          {% elif verification.result.outcome == 'flagged' %}<span class="adm-badge adm-badge-amber">Flagged</span>
+          {% if verification.result.outcome == 'verified' %}<span class="adm-badge adm-badge-green">Verified Genuine</span>
+          {% elif verification.result.outcome == 'unverified' %}<span class="adm-badge adm-badge-red">Unverified / Counterfeit</span>
+          {% elif verification.result.outcome == 'flagged' %}<span class="adm-badge adm-badge-amber">Flagged / Discrepancies</span>
           {% else %}<span class="adm-badge adm-badge-gray">{{ verification.result.get_outcome_display }}</span>{% endif %}
         </div>
 
-        <div class="col-sm-4 text-muted fw-semibold py-2 border-bottom">Verified By</div>
-        <div class="col-sm-8 py-2 border-bottom">{{ verification.result.verified_by.username|default:"System" }}</div>
+        <div class="col-sm-4 text-muted fw-semibold py-2 border-bottom">Assessed By</div>
+        <div class="col-sm-8 py-2 border-bottom">{{ verification.result.verified_by.get_full_name|default:verification.result.verified_by.username|default:"System Administrator" }}</div>
 
-        <div class="col-sm-4 text-muted fw-semibold py-2 border-bottom">Verified At</div>
+        <div class="col-sm-4 text-muted fw-semibold py-2 border-bottom">Date Completed</div>
         <div class="col-sm-8 py-2 border-bottom">{{ verification.result.verified_at|date:"d M Y, H:i" }}</div>
 
-        <div class="col-sm-4 text-muted fw-semibold py-2">Summary</div>
-        <div class="col-sm-8 py-2">{{ verification.result.summary|default:"—" }}</div>
+        {% if verification.result.details.registry_checked %}
+        <div class="col-sm-4 text-muted fw-semibold py-2 border-bottom">Registry Source Checked</div>
+        <div class="col-sm-8 py-2 border-bottom fw-semibold">{{ verification.result.details.registry_checked }}</div>
+        {% endif %}
+
+        {% if verification.result.details.registration_ref %}
+        <div class="col-sm-4 text-muted fw-semibold py-2 border-bottom">Title / Record Reference</div>
+        <div class="col-sm-8 py-2 border-bottom font-monospace fw-semibold">{{ verification.result.details.registration_ref }}</div>
+        {% endif %}
+
+        {% if verification.result.details.confirmed_owner %}
+        <div class="col-sm-4 text-muted fw-semibold py-2 border-bottom">Confirmed Titleholder / Owner</div>
+        <div class="col-sm-8 py-2 border-bottom">{{ verification.result.details.confirmed_owner }}</div>
+        {% endif %}
+
+        {% if verification.result.details.record_status %}
+        <div class="col-sm-4 text-muted fw-semibold py-2 border-bottom">Registry Status</div>
+        <div class="col-sm-8 py-2 border-bottom">{{ verification.result.details.record_status }}</div>
+        {% endif %}
+
+        {% if verification.result.details.officer_advisory %}
+        <div class="col-sm-4 text-muted fw-semibold py-2 border-bottom">Officer Advisory</div>
+        <div class="col-sm-8 py-2 border-bottom text-primary fw-medium">{{ verification.result.details.officer_advisory }}</div>
+        {% endif %}
+      </div>
+
+      <div class="mt-3 pt-3 border-top">
+        <div class="fw-semibold small text-muted text-uppercase mb-2">Findings &amp; Executive Summary:</div>
+        <div class="p-3 rounded" style="background:#F8FAFC;border:1px solid #E2E8F0;font-size:0.92rem;line-height:1.65;color:#1E293B;white-space:pre-wrap;">{{ verification.result.summary|default:"No executive summary recorded." }}</div>
       </div>
     </div>
     {% endif %}
@@ -136,6 +183,12 @@
       <div class="alert alert-secondary small mb-0">
         This verification is <strong>{{ verification.get_status_display }}</strong> — no further actions available.
       </div>
+      {% if verification.status == 'completed' %}
+      <a href="{% url 'verification:report' verification.reference_number %}" target="_blank" rel="noopener noreferrer" class="btn btn-adm-sm btn-adm-success w-100 mt-2 d-inline-flex align-items-center justify-content-center gap-1">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        Print Official Report &rarr;
+      </a>
+      {% endif %}
 
       {% else %}
       <form method="post" id="verifyDetailForm">
@@ -143,9 +196,9 @@
         <input type="hidden" name="action" id="verifyDetailAction" value="">
 
         <div class="mb-3">
-          <label class="form-label small fw-semibold" style="color:var(--adm-muted);">Officer Notes (optional)</label>
+          <label class="form-label small fw-semibold" style="color:var(--adm-muted);">Officer Findings &amp; Resolution Notes</label>
           <textarea name="notes" rows="4" class="form-control form-control-sm"
-                    placeholder="Add internal notes about this verification…">{{ verification.notes }}</textarea>
+                    placeholder="Enter officer findings, resolution summary, or review notes…">{% if verification.notes and verification.notes != verification.user_requirements and not has_result %}{{ verification.notes }}{% endif %}</textarea>
         </div>
 
         <div class="d-grid gap-2">

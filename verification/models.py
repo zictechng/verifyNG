@@ -57,6 +57,11 @@ class VerificationRequest(models.Model):
         default='pending',
         db_index=True
     )
+    user_requirements = models.TextField(
+        blank=True,
+        default='',
+        help_text="Context and verification requirements submitted by the applicant"
+    )
     notes = models.TextField(
         blank=True,
         help_text="Internal notes for verification officer"

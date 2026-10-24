@@ -99,7 +99,7 @@
                             <td class="text-end">
                                 <a href="{% url 'verification:detail' r.reference_number %}" class="btn btn-vng-outline btn-vng-sm">
                                     View &rarr;
-                                </a>
+                                </a>{% if r.status == 'completed' %} <a href="{% url 'verification:report' r.reference_number %}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-success" style="font-size:0.75rem;padding:0.25rem 0.6rem;">Report</a>{% endif %}
                             </td>
                         </tr>
                     {% empty %}

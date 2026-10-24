@@ -103,7 +103,8 @@ def create_verification_request(
                     target_subject=target_subject,
                     verification_type=verification_type,
                     status='pending',
-                    notes=notes.strip() if notes else ""
+                    user_requirements=notes.strip() if notes else "",
+                    notes=""
                 )
 
                 AuditLog.objects.create(

@@ -438,7 +438,7 @@
                                 <div class="d-flex gap-1">
                                     <a href="{% url 'verification:detail' v.reference_number %}" class="btn btn-sm btn-outline-secondary">View</a>
                                     {% if v.status == 'completed' %}
-                                    <a href="{% url 'verification:report' v.reference_number %}" class="btn btn-sm btn-outline-success">Report</a>
+                                    <a href="{% url 'verification:report' v.reference_number %}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-success">Report</a>
                                     {% endif %}
                                 </div>
                             </td>

@@ -47,7 +47,7 @@
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
                     Completed
                 </span>
-                <a href="{% url 'verification:report' verification_request.reference_number %}" class="btn btn-vng-primary btn-sm d-inline-flex align-items-center gap-1 shadow-sm">
+                <a href="{% url 'verification:report' verification_request.reference_number %}" target="_blank" rel="noopener noreferrer" class="btn btn-vng-primary btn-sm d-inline-flex align-items-center gap-1 shadow-sm">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
                     Print Verification Report
                 </a>
@@ -113,7 +113,7 @@
                         {% endif %}
                     </div>
 
-                    <a href="{% url 'verification:report' verification_request.reference_number %}" class="btn btn-sm btn-outline-dark d-inline-flex align-items-center gap-1">
+                    <a href="{% url 'verification:report' verification_request.reference_number %}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-dark d-inline-flex align-items-center gap-1">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
                         Official Report PDF &rarr;
                     </a>
@@ -181,7 +181,7 @@
 
                     <div class="d-flex justify-content-between align-items-center pt-3 border-top text-muted">
                         <span>Assessed by {{ site_config.site_name|default:"VerifyNG" }} Compliance Officer ID #VNG-OFF-{{ verification_request.result.verified_by.id|default:"001" }}</span>
-                        <a href="{% url 'verification:report' verification_request.reference_number %}" class="fw-semibold text-decoration-none">
+                        <a href="{% url 'verification:report' verification_request.reference_number %}" target="_blank" rel="noopener noreferrer" class="fw-semibold text-decoration-none">
                             Open Printable View &rarr;
                         </a>
                     </div>
@@ -211,9 +211,14 @@
                         <dt class="col-sm-4 text-muted">Date Submitted:</dt>
                         <dd class="col-sm-8">{{ verification_request.created_at|date:"M j, Y, H:i" }}</dd>
 
-                        {% if verification_request.notes %}
+                        {% if verification_request.user_requirements %}
                         <dt class="col-sm-4 text-muted">Context &amp; Requirements:</dt>
-                        <dd class="col-sm-8 p-3 rounded-2" style="background:#F8FAFC;border:1px solid #E2E8F0;">
+                        <dd class="col-sm-8 p-3 rounded-2" style="background:#F8FAFC;border:1px solid #E2E8F0;font-size:0.92rem;line-height:1.6;color:#1E293B;">
+                            {{ verification_request.user_requirements|linebreaks }}
+                        </dd>
+                        {% elif verification_request.notes and not verification_request.result %}
+                        <dt class="col-sm-4 text-muted">Context &amp; Requirements:</dt>
+                        <dd class="col-sm-8 p-3 rounded-2" style="background:#F8FAFC;border:1px solid #E2E8F0;font-size:0.92rem;line-height:1.6;color:#1E293B;">
                             {{ verification_request.notes|linebreaks }}
                         </dd>
                         {% endif %}
@@ -352,7 +357,7 @@
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2" class="mb-2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
                 <div class="fw-bold mb-1" style="color:#166534;">Official Verification Report Ready</div>
                 <p class="small text-muted mb-3">A certified, printable verification report has been issued for this request.</p>
-                <a href="{% url 'verification:report' verification_request.reference_number %}" class="btn btn-success btn-sm w-100 py-2 fw-semibold">
+                <a href="{% url 'verification:report' verification_request.reference_number %}" target="_blank" rel="noopener noreferrer" class="btn btn-success btn-sm w-100 py-2 fw-semibold">
                     View &amp; Print Official Report &rarr;
                 </a>
             </div>
