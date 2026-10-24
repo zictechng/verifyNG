@@ -55,7 +55,8 @@ def can_view_report(user, report):
     Report visibility policy:
     1. Superuser, Staff, or Moderator: can view reports in ANY state.
     2. Reporter (report.reporter == user): can view their own report UNLESS state is 'archived'.
-    3. Anonymous / Public / Other users: can view report ONLY if state is 'published'.
+    3. Disputant or Accused party: can view report in submitted, under_review, published, or disputed states.
+    4. Anonymous / Public / Other users: can view report ONLY if state is 'published'.
     """
     if not report:
         return False
@@ -63,8 +64,24 @@ def can_view_report(user, report):
     if is_moderator(user):
         return True
 
-    if user and user.is_authenticated and report.reporter_id == user.id:
-        return report.state != 'archived'
+    if user and user.is_authenticated:
+        if report.reporter_id == user.id:
+            return report.state != 'archived'
+
+        # Allow user who filed a right-of-response dispute to view the report
+        if hasattr(report, 'disputes') and report.disputes.filter(disputant=user).exists():
+            return report.state != 'archived'
+
+        # Allow accused user matching suspect email to view report to respond
+        suspect_email = getattr(report, 'suspect_email', None)
+        if suspect_email and user.email and suspect_email.strip().lower() == user.email.strip().lower():
+            return report.state != 'archived'
+
+        # Allow workplace certificate holder to view report
+        if report.is_misconduct and hasattr(report, 'misconduct_profile'):
+            cert = getattr(report.misconduct_profile, 'certificate', None)
+            if cert and getattr(cert, 'user_id', None) == user.id:
+                return report.state != 'archived'
 
     return report.state == 'published'
 
@@ -73,7 +90,8 @@ def can_view_evidence(user, evidence):
     """
     Confidential evidence policy:
     1. Must be able to view the underlying report first.
-    2. If is_confidential is True: accessible ONLY to Moderators/Staff/Superusers OR original Reporter.
+    2. If is_confidential is True: accessible to Moderators/Staff/Superusers, original Reporter,
+       or the accused respondent/certificate holder inspecting allegations under due process.
     3. If is_confidential is False: accessible if user has access to view report.
     """
     if not evidence or not getattr(evidence, 'report', None):
@@ -85,8 +103,19 @@ def can_view_evidence(user, evidence):
     if evidence.is_confidential:
         if is_moderator(user):
             return True
-        if user and user.is_authenticated and evidence.report.reporter_id == user.id:
-            return True
+        if user and user.is_authenticated:
+            if evidence.report.reporter_id == user.id:
+                return True
+            # Accused party or disputant under fair-hearing review
+            if hasattr(evidence.report, 'disputes') and evidence.report.disputes.filter(disputant=user).exists():
+                return True
+            suspect_email = getattr(evidence.report, 'suspect_email', None)
+            if suspect_email and user.email and suspect_email.strip().lower() == user.email.strip().lower():
+                return True
+            if evidence.report.is_misconduct and hasattr(evidence.report, 'misconduct_profile'):
+                cert = getattr(evidence.report.misconduct_profile, 'certificate', None)
+                if cert and getattr(cert, 'user_id', None) == user.id:
+                    return True
         return False
 
     return True

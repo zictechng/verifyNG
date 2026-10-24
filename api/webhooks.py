@@ -225,7 +225,8 @@ def _route_command(text: str, sender_phone: str) -> Optional[str]:
       HELP           — Lists commands
     """
     upper = text.upper().strip()
-    site_url = getattr(settings, 'SITE_BASE_URL', 'https://verifyng.com')
+    from core.email_utils import get_dynamic_base_url
+    site_url = get_dynamic_base_url()
 
     if upper.startswith("CHECK"):
         query = text[5:].strip()

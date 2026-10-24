@@ -1,5 +1,6 @@
 import uuid
 import os
+from datetime import timedelta
 from django.utils import timezone
 from django.db import transaction, IntegrityError
 from reports.models import FraudReport, ReportEvidence, AuditLog, Dispute
@@ -167,10 +168,17 @@ def create_fraud_report(reporter, subject_name, subject_type, title, allegation,
                         "target_subject_id": subject.id,
                         "identifiers_attached": [t for t, _ in provided_identifiers],
                         "suspect_context": {
+                            "name": subject_name,
+                            "email": suspect_email or "",
+                            "phone": suspect_phone or "",
                             "bank_name": suspect_bank_name or "",
+                            "bank_account": suspect_bank_account or "",
+                            "cac_number": suspect_cac_number or "",
                             "location": suspect_location or "",
                             "state": suspect_state or "",
                             "city": suspect_city or "",
+                            "dispute_deadline": (timezone.now() + timedelta(days=7)).strftime('%d %B %Y'),
+                            "notice_dispatched": bool(suspect_email or (getattr(subject, 'business_profile', None) and subject.business_profile.contact_email)),
                         }
                     }
                 )
@@ -188,6 +196,18 @@ def create_fraud_report(reporter, subject_name, subject_type, title, allegation,
                         storage_resource_type=uploaded_cloud_meta['resource_type'],
                         storage_format=uploaded_cloud_meta['format']
                     )
+
+                # Dispatch statutory 7-Day Due-Process Notice and In-App Notice to accused party
+                target_notice_email = (
+                    suspect_email if suspect_email
+                    else (getattr(subject, 'business_profile', None) and subject.business_profile.contact_email)
+                )
+                if target_notice_email:
+                    deadline_str = (timezone.now() + timedelta(days=7)).strftime('%d %B %Y')
+                    transaction.on_commit(
+                        lambda: dispatch_suspect_allegation_notice(report, target_notice_email, deadline_str)
+                    )
+
                 return report
 
         except IntegrityError as e:
@@ -270,8 +290,9 @@ def file_dispute_for_report(report, disputant, reason, counter_evidence=None, ip
     """
     Files a right-of-response dispute against a fraud or misconduct report.
     Transitions report state to 'disputed' and dispatches transactional alert.
+    Supports subsequent addendums and additional counter-evidence.
     """
-    if report.state not in ('published', 'submitted', 'under_review'):
+    if report.state not in ('published', 'submitted', 'under_review', 'disputed'):
         raise ValueError(f"Disputes cannot be filed on a report in '{report.state}' state.")
 
     dispute = Dispute.objects.create(
@@ -282,13 +303,26 @@ def file_dispute_for_report(report, disputant, reason, counter_evidence=None, ip
         status='opened'
     )
 
-    transition_report_state(
-        report=report,
-        new_state='disputed',
-        actor=disputant,
-        ip_address=ip_address,
-        moderation_notes=f"Dispute #{dispute.id} opened by {disputant.username}"
-    )
+    if report.state != 'disputed':
+        transition_report_state(
+            report=report,
+            new_state='disputed',
+            actor=disputant,
+            ip_address=ip_address,
+            moderation_notes=f"Dispute #{dispute.id} opened by {disputant.username}"
+        )
+    else:
+        AuditLog.objects.create(
+            report=report,
+            action="ADDITIONAL_DEFENSE_SUBMITTED",
+            performed_by=disputant,
+            ip_address=ip_address,
+            details={
+                "dispute_id": dispute.id,
+                "has_counter_evidence": bool(counter_evidence),
+                "reason_preview": reason[:120],
+            }
+        )
 
     reporter_email = getattr(report.reporter, 'email', None)
     if reporter_email:
@@ -302,7 +336,208 @@ def file_dispute_for_report(report, disputant, reason, counter_evidence=None, ip
             lambda: send_email_notification_task.delay(reporter_email, subject, text_body, html_body)
         )
 
+    # In-app notification for complainant with Rebuttal Window alert
+    if report.reporter:
+        try:
+            from notifications.services import dispatch_notification
+            dispatch_notification(
+                recipient=report.reporter,
+                event_type='REPORT_SUBMITTED',
+                title=f"Defense Filed & Rebuttal Window Open [{report.reference_number}]",
+                body=(
+                    f"A formal defense has been registered against your report [{report.reference_number}]. "
+                    f"Your 3-day right of rebuttal is now open to review the response and submit your final rebuttal."
+                ),
+                object_reference=report.reference_number,
+            )
+        except Exception as e:
+            logger.warning("Failed to dispatch rebuttal notice to reporter: %s", e)
+
     return dispute
+
+
+@transaction.atomic
+def submit_complainant_rebuttal(report, reporter, rebuttal_statement, evidence_file=None, ip_address=None):
+    """
+    Submits a final 1-time rebuttal statement and optional counter-proof
+    from the complainant in response to the respondent's defense.
+    Enforces equality of arms and closes the pleadings cycle for final adjudication.
+    """
+    from django.core.exceptions import PermissionDenied
+    if report.reporter != reporter:
+        raise PermissionDenied("Only the original complainant can submit a rebuttal on this report.")
+
+    if not report.can_submit_rebuttal:
+        raise ValueError("A formal rebuttal has already been submitted or this report is not currently disputed.")
+
+    uploaded_ev = None
+    if evidence_file:
+        uploaded_ev = ReportEvidence.objects.create(
+            report=report,
+            file=evidence_file,
+            file_type='other',
+            description="Complainant Final Rebuttal Evidence",
+            is_confidential=True,
+            storage_provider='local',
+        )
+
+    log = AuditLog.objects.create(
+        report=report,
+        action="COMPLAINANT_REBUTTAL_SUBMITTED",
+        performed_by=reporter,
+        ip_address=ip_address,
+        details={
+            "rebuttal_statement": rebuttal_statement,
+            "evidence_id": uploaded_ev.id if uploaded_ev else None,
+            "evidence_name": uploaded_ev.file.name if uploaded_ev else "",
+            "pleadings_closed": True,
+        }
+    )
+
+    # In-app notification to the accused respondent if registered
+    target_user = None
+    first_disp = report.disputes.first()
+    if first_disp and first_disp.disputant:
+        target_user = first_disp.disputant
+
+    if target_user:
+        try:
+            from notifications.services import dispatch_notification
+            dispatch_notification(
+                recipient=target_user,
+                event_type='REPORT_SUBMITTED',
+                title=f"Rebuttal Submitted by Complainant [{report.reference_number}]",
+                body=(
+                    f"The complainant has submitted their formal rebuttal on report [{report.reference_number}]. "
+                    f"All evidentiary submissions are now complete and pending final compliance adjudication."
+                ),
+                object_reference=report.reference_number,
+            )
+        except Exception as e:
+            logger.warning("Failed to dispatch rebuttal in-app notification: %s", e)
+
+    return log
+
+
+@transaction.atomic
+def issue_moderator_info_request(report, moderator, target_role, message, request_title=None, ip_address=None):
+    """
+    Issues an interlocutory information request to either the complainant or respondent.
+    Records audit log and sends transactional alert.
+    """
+    if target_role not in ('complainant', 'respondent'):
+        raise ValueError("target_role must be 'complainant' or 'respondent'.")
+
+    title = request_title or f"Compliance Information Request regarding {report.reference_number}"
+
+    log = AuditLog.objects.create(
+        report=report,
+        action="MODERATOR_INFO_REQUEST",
+        performed_by=moderator,
+        ip_address=ip_address,
+        details={
+            "target_role": target_role,
+            "title": title,
+            "message": message,
+            "status": "pending",
+            "requested_at": timezone.now().isoformat(),
+        }
+    )
+
+    # Resolve target recipient
+    target_user = None
+    target_email = None
+
+    if target_role == 'complainant':
+        target_user = report.reporter
+        target_email = getattr(report.reporter, 'email', None)
+    else:
+        first_disp = report.disputes.first()
+        if first_disp and first_disp.disputant:
+            target_user = first_disp.disputant
+            target_email = getattr(first_disp.disputant, 'email', None)
+        else:
+            target_email = report.suspect_email
+
+    if target_user:
+        try:
+            from notifications.services import dispatch_notification
+            dispatch_notification(
+                recipient=target_user,
+                event_type='REPORT_SUBMITTED',
+                title=f"Action Required: Compliance Request for Information [{report.reference_number}]",
+                body=f"A compliance moderator has requested clarification or documentation: {message[:120]}...",
+                object_reference=report.reference_number,
+            )
+        except Exception as e:
+            logger.warning("Failed to send in-app info request notification: %s", e)
+
+    if target_email:
+        from core.site_utils import get_dynamic_base_url
+        site_url = get_dynamic_base_url()
+        action_url = f"{site_url}/reports/{report.reference_number}/"
+        try:
+            subject = f"Action Required: Compliance Information Request [{report.reference_number}]"
+            body = (
+                f"Hello,\n\n"
+                f"Our Compliance Moderation Desk is currently reviewing report [{report.reference_number}].\n"
+                f"The reviewing officer has requested the following information or documentation:\n\n"
+                f"\"{message}\"\n\n"
+                f"Please log in to your account and submit the requested response at:\n"
+                f"{action_url}\n\n"
+                f"Thank you,\n"
+                f"VerifyNG Compliance Team"
+            )
+            transaction.on_commit(
+                lambda: send_email_notification_task.delay(target_email, subject, body)
+            )
+        except Exception as e:
+            logger.warning("Failed to queue info request email: %s", e)
+
+    return log
+
+
+@transaction.atomic
+def fulfill_moderator_info_request(report, user, request_id, response_statement, evidence_file=None, ip_address=None):
+    """
+    Records a user's response to an official moderator information request.
+    Marks the request as fulfilled and stores any attached document.
+    """
+    req_log = report.audit_logs.filter(id=request_id, action="MODERATOR_INFO_REQUEST").first()
+    if not req_log:
+        raise ValueError("Invalid information request ID.")
+
+    details = req_log.details or {}
+    details['status'] = 'fulfilled'
+    details['fulfilled_at'] = timezone.now().isoformat()
+    details['fulfilled_by_id'] = getattr(user, 'id', None)
+    req_log.details = details
+    req_log.save(update_fields=['details'])
+
+    uploaded_ev = None
+    if evidence_file:
+        uploaded_ev = ReportEvidence.objects.create(
+            report=report,
+            file=evidence_file,
+            file_type='other',
+            description=f"Response to Compliance Request #{request_id}",
+            is_confidential=True,
+            storage_provider='local',
+        )
+
+    log = AuditLog.objects.create(
+        report=report,
+        action="INFO_REQUEST_FULFILLED",
+        performed_by=user,
+        ip_address=ip_address,
+        details={
+            "request_id": request_id,
+            "response_statement": response_statement,
+            "evidence_id": uploaded_ev.id if uploaded_ev else None,
+            "evidence_name": uploaded_ev.file.name if uploaded_ev else "",
+        }
+    )
+    return log
 
 
 @transaction.atomic
@@ -346,4 +581,162 @@ def resolve_dispute(dispute, outcome, actor, resolution_notes, ip_address=None):
         )
 
     return dispute
+
+
+def dispatch_suspect_allegation_notice(report, target_email: str, dispute_deadline: str):
+    """
+    Dispatches the statutory 7-Day Fair Hearing / Right-of-Response Notice
+    to the alleged suspect/entity via email and creates an in-app notification if registered.
+    """
+    try:
+        from core.email_utils import get_dynamic_base_url
+        from core.models import SiteConfiguration
+        config = SiteConfiguration.get_solo()
+        site_name = config.site_name or "VerifyNG"
+        site_url = get_dynamic_base_url()
+        dispute_url = f"{site_url}/reports/{report.reference_number}/dispute/"
+
+        subject = f"Notice of Incident Filing & Right of Response [{report.reference_number}] — {site_name}"
+        html_body, text_body = render_email('fraud_allegation_notice', {
+            'suspect_name': report.target_subject.name,
+            'reference_number': report.reference_number,
+            'report_title': report.title,
+            'submitted_at': report.created_at.strftime('%d %B %Y, %I:%M %p'),
+            'dispute_deadline': dispute_deadline,
+            'dispute_url': dispute_url,
+        })
+
+        send_email_notification_task.delay(
+            recipient_email=target_email,
+            subject=subject,
+            message_body=text_body,
+            html_message=html_body,
+        )
+        logger.info(
+            "Suspect 7-day fair hearing notice dispatched for report=%s to email=%s",
+            report.reference_number, target_email[:3] + '***'
+        )
+
+        # In-app notification if the suspect/accused is a registered user
+        try:
+            from users.models import User
+            from notifications.services import dispatch_notification
+
+            matched_user = None
+            if target_email:
+                matched_user = User.objects.filter(email__iexact=target_email.strip()).first()
+
+            if not matched_user and hasattr(report, 'suspect_phone') and report.suspect_phone:
+                matched_user = User.objects.filter(phone_number=report.suspect_phone.strip()).first()
+
+            if not matched_user and hasattr(report, 'target_subject') and report.target_subject:
+                from verification.models import VerificationCertificate
+                cert = VerificationCertificate.objects.filter(subject=report.target_subject, holder__isnull=False).first()
+                if cert and cert.holder:
+                    matched_user = cert.holder
+
+            if matched_user:
+                dispatch_notification(
+                    recipient=matched_user,
+                    event_type='REPORT_SUBMITTED',
+                    title=f"Incident Notice: Allegation Filed [{report.reference_number}]",
+                    body=(
+                        f"An incident report [{report.reference_number}] has been submitted naming you or your entity. "
+                        f"Your statutory 7-day fair-hearing window is open until {dispute_deadline} to review and submit your defense."
+                    ),
+                    object_reference=report.reference_number,
+                )
+                logger.info("In-app allegation notice created for user_id=%s, report=%s", matched_user.id, report.reference_number)
+        except Exception as notif_err:
+            logger.warning("Failed to dispatch in-app notification to accused user: %s", notif_err)
+
+    except Exception as exc:
+        logger.warning(
+            "Failed to dispatch suspect 7-day fair hearing notice for report=%s: %s",
+            report.reference_number, exc
+        )
+
+
+def get_reports_against_user_queryset(user):
+    """
+    Returns a queryset of all FraudReport instances where the user or their registered entity
+    is the alleged subject / accused party.
+    """
+    if not user or not user.is_authenticated:
+        return FraudReport.objects.none()
+
+    from django.db.models import Q
+    from reports.models import AuditLog, Dispute
+
+    report_ids = set()
+
+    # 1. Reports where user previously submitted a dispute
+    report_ids.update(
+        Dispute.objects.filter(disputant=user).values_list('report_id', flat=True)
+    )
+
+    # 2. Reports where suspect_context email matches user's email
+    if user.email:
+        clean_email = user.email.strip().lower()
+        sub_logs = AuditLog.objects.filter(
+            action="REPORT_SUBMITTED"
+        ).filter(
+            Q(details__suspect_context__email__iexact=clean_email) |
+            Q(details__suspect_context__email__iexact=user.email)
+        ).values_list('report_id', flat=True)
+        report_ids.update(r_id for r_id in sub_logs if r_id)
+
+    # 3. Reports where suspect_context phone matches user's phone number
+    user_phone = getattr(user, 'phone_number', None)
+    if user_phone:
+        clean_phone = user_phone.strip()
+        sub_logs_phone = AuditLog.objects.filter(
+            action="REPORT_SUBMITTED",
+            details__suspect_context__phone=clean_phone
+        ).values_list('report_id', flat=True)
+        report_ids.update(r_id for r_id in sub_logs_phone if r_id)
+
+    # 4. Misconduct reports linked to certificates held by user
+    try:
+        from verification.models import VerificationCertificate
+        held_subject_ids = VerificationCertificate.objects.filter(
+            holder=user, subject__isnull=False
+        ).values_list('subject_id', flat=True)
+        if held_subject_ids:
+            misconduct_report_ids = FraudReport.objects.filter(
+                target_subject_id__in=held_subject_ids
+            ).values_list('id', flat=True)
+            report_ids.update(misconduct_report_ids)
+    except Exception:
+        pass
+
+    # Exclude reports where user was the reporter
+    qs = FraudReport.objects.filter(
+        id__in=report_ids
+    ).exclude(
+        reporter=user
+    ).select_related('target_subject').prefetch_related('disputes')
+
+    return qs.order_by('-created_at')
+
+
+def get_pending_allegations_count_for_user(user) -> int:
+    """
+    Returns the count of active allegations/reports filed against the user where
+    action is required (i.e. user has not yet submitted a right-of-response defense
+    and the report is in submitted, under_review, published, or disputed states).
+    """
+    if not user or not user.is_authenticated:
+        return 0
+
+    qs = get_reports_against_user_queryset(user)
+    pending_count = 0
+    for report in qs.filter(state__in=['submitted', 'under_review', 'published', 'disputed']):
+        user_disputes = [d for d in report.disputes.all() if d.disputant_id == user.id]
+        if not user_disputes:
+            pending_count += 1
+        elif any(d.status in ('opened', 'under_review') for d in user_disputes):
+            pending_count += 1
+    return pending_count
+
 

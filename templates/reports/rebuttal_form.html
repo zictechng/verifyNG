@@ -1,0 +1,401 @@
+{% extends 'public/base.html' %}
+{% load static %}
+
+{% block title %}
+    Submit Formal Rebuttal | {{ report.reference_number }}
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 px-md-4 px-xl-5 py-4 py-md-5" style="max-width: 1400px;">
+
+    <!-- Top Navigation Standard Breadcrumb Link -->
+    <div class="mb-3">
+        <a href="{% url 'reports:detail' report.reference_number %}" class="text-decoration-none small text-muted d-inline-flex align-items-center gap-1">
+            <span>&larr;</span>
+            <span>Back to Report Details</span>
+        </a>
+    </div>
+
+    <!-- Page Heading Header -->
+    <div class="mb-4">
+        <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+            <span class="vng-badge-trust" style="background:#FEF3C7;color:#92400E;border-color:#FDE68A;">Round 2 Pleadings</span>
+            {% if report.is_misconduct %}
+                <span class="badge bg-warning text-dark">Workplace Misconduct</span>
+            {% else %}
+                <span class="badge bg-secondary">Fraud Allegation</span>
+            {% endif %}
+            <span class="badge bg-primary">Complainant Right of Rebuttal</span>
+        </div>
+        <h1 class="h3 fw-bold mb-1">
+            Submit Final Rebuttal Statement
+        </h1>
+        <p class="text-muted small mb-0">
+            Review the respondent's defense statement on the right, then submit your final factual rebuttal and any conclusive proof to close pleadings for adjudication.
+        </p>
+    </div>
+
+    <!-- Side-by-Side Responsive Grid -->
+    <div class="row g-4 align-items-start">
+
+        <!-- ======================================================== -->
+        <!-- LEFT COLUMN: The Rebuttal Form (Desktop Left)            -->
+        <!-- On Mobile (< lg): order-2 (appears below defense)        -->
+        <!-- ======================================================== -->
+        <div class="col-lg-6 col-xl-6 order-2 order-lg-1">
+            <div class="vng-card p-4 p-md-5 shadow-sm"
+                 x-data="rebuttalUploadComponent()"
+                 x-cloak>
+
+                <div class="border-bottom pb-3 mb-4">
+                    <h5 class="fw-bold mb-1 text-dark">
+                        Your Formal Rebuttal to Respondent's Defense
+                    </h5>
+                    <p class="small text-muted mb-0">
+                        Address the respondent's specific claims objectively. Clarify dates, transaction discrepancies, or unmet agreements.
+                    </p>
+                </div>
+
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger mb-4" role="alert">
+                        {% for error in form.non_field_errors %}
+                            <p class="small mb-0">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <form method="post" enctype="multipart/form-data" novalidate @submit="handleSubmit($event)">
+                    {% csrf_token %}
+
+                    <!-- Rebuttal Statement Field -->
+                    <div class="mb-4">
+                        <label for="{{ form.rebuttal_statement.id_for_label }}" class="form-label small fw-semibold">
+                            Factual Rebuttal Statement <span class="text-danger">*</span>
+                        </label>
+                        <textarea name="rebuttal_statement"
+                                  id="{{ form.rebuttal_statement.id_for_label }}"
+                                  rows="7"
+                                  class="form-control"
+                                  :class="{'is-invalid': errors.statement}"
+                                  placeholder="Address the claims in the respondent's defense statement factually and chronologically. Provide specific counter-details..."
+                                  x-model="statementText"
+                                  @input="if (statementText.trim().length >= 20) errors.statement = ''">{{ form.rebuttal_statement.value|default:'' }}</textarea>
+
+                        <div class="d-flex justify-content-between align-items-center mt-1">
+                            <div class="form-text small" x-show="!errors.statement">
+                                Minimum 20 characters. Be concise and reference specific facts.
+                            </div>
+                            <div class="invalid-feedback d-block small" x-show="errors.statement" x-text="errors.statement" x-cloak></div>
+                            <div class="text-muted small" style="font-size:0.75rem;" x-text="statementText.length + ' chars'"></div>
+                        </div>
+                        {% if form.rebuttal_statement.errors %}
+                            <div class="text-danger small mt-1">{{ form.rebuttal_statement.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Supporting Rebuttal Evidence Dropzone -->
+                    <div class="mb-4">
+                        <label class="form-label small fw-semibold mb-1">
+                            Supporting Rebuttal Evidence (Optional)
+                        </label>
+                        <p class="small text-muted mb-2" style="font-size:0.83rem;line-height:1.45;">
+                            Attach conclusive counter-proof: bank statement reversal, courier tracking proof, unedited chat export, police report, or court affidavit.
+                        </p>
+
+                        <div class="vng-dropzone position-relative p-4 text-center rounded border border-2 border-dashed"
+                             tabindex="0"
+                             role="button"
+                             aria-label="Upload rebuttal evidence file"
+                             style="cursor: pointer; background: #FAFBFD; transition: all 0.2s ease;"
+                             :class="{
+                                 'border-primary bg-light shadow-sm': isDragging,
+                                 'border-danger bg-danger-subtle': errors.file
+                             }"
+                             @dragover.prevent="isDragging = true"
+                             @dragleave.prevent="isDragging = false"
+                             @drop.prevent="handleDrop($event)">
+
+                            <input type="file"
+                                   name="rebuttal_evidence"
+                                   id="{{ form.rebuttal_evidence.id_for_label }}"
+                                   class="position-absolute top-0 start-0 w-100 h-100 opacity-0 cursor-pointer"
+                                   style="z-index: 2; cursor: pointer;"
+                                   @change="handleFileSelect($event)"
+                                   accept=".png,.jpg,.jpeg,.pdf,.doc,.docx,.webp">
+
+                            <!-- Prompt state -->
+                            <template x-if="!fileName">
+                                <div>
+                                    <div class="vng-dropzone-icon mb-2">
+                                        <div class="rounded-circle d-inline-flex align-items-center justify-content-center" style="width:48px;height:48px;background:#EFF6FF;color:#2563EB;">
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                        </div>
+                                    </div>
+                                    <div class="fw-semibold small text-dark mb-1">Drag &amp; drop or click to attach rebuttal proof</div>
+                                    <div class="text-muted small" style="font-size:0.75rem;">
+                                        PDF, PNG, JPG, WEBP, DOCX &bull; Bank Slips, Tracking, Sworn Affidavit (Max 10 MB)
+                                    </div>
+                                </div>
+                            </template>
+
+                            <!-- File selected state -->
+                            <template x-if="fileName">
+                                <div class="d-flex align-items-center justify-content-center gap-3">
+                                    <template x-if="isImage && imagePreview">
+                                        <img :src="imagePreview" alt="Rebuttal Evidence Preview" style="max-height: 55px; max-width: 75px; object-fit: cover;" class="rounded border shadow-sm">
+                                    </template>
+                                    <template x-if="!isImage">
+                                        <div class="rounded d-inline-flex align-items-center justify-content-center" style="width:44px;height:44px;background:#F1F5F9;color:#475569;">
+                                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                                        </div>
+                                    </template>
+                                    <div class="text-start">
+                                        <div class="fw-bold text-primary small" x-text="fileName"></div>
+                                        <div class="text-muted small" x-text="fileSize"></div>
+                                        <button type="button" @click.stop.prevent="clearFile()" class="btn btn-link text-danger p-0 small text-decoration-none mt-1" style="font-size:0.75rem;">
+                                            &times; Remove selected file
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+
+                        <div class="text-danger small mt-2 fw-semibold" x-show="errors.file" x-text="errors.file" x-cloak></div>
+                        {% if form.rebuttal_evidence.errors %}
+                            <div class="text-danger small mt-1">{{ form.rebuttal_evidence.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Due Process Finality Declaration Checkbox -->
+                    <div class="form-check p-3 rounded mb-4" style="background:#F8FAFC;border:1px solid #E2E8F0;">
+                        <input class="form-check-input" type="checkbox" id="rebuttalDeclarationCheck" x-model="confirmedDeclaration" required>
+                        <label class="form-check-label small text-dark" for="rebuttalDeclarationCheck">
+                            <strong>Final Pleadings Declaration:</strong> I understand that this is my final formal opportunity to submit counter-claims. Once submitted, evidentiary pleadings will be closed and submitted to compliance moderators for final adjudication.
+                        </label>
+                    </div>
+
+                    <!-- Actions Row with Back/Cancel Button -->
+                    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-stretch align-items-sm-center gap-2 pt-2 border-top">
+                        <a href="{% url 'reports:detail' report.reference_number %}" class="btn btn-outline-secondary py-2 px-3 text-center" :disabled="submitting">
+                            Cancel
+                        </a>
+                        <button type="submit"
+                                class="btn btn-vng-primary py-2 px-4 d-inline-flex align-items-center justify-content-center"
+                                :disabled="!confirmedDeclaration || submitting">
+                            <span x-show="!submitting">
+                                Submit Final Rebuttal &rarr;
+                            </span>
+                            <span x-show="submitting" x-cloak class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                            <span x-show="submitting" x-cloak>Recording Rebuttal...</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- ======================================================== -->
+        <!-- RIGHT COLUMN: Respondent's Defense Statement Dossier      -->
+        <!-- On Mobile (< lg): order-1 (appears first at top)         -->
+        <!-- Sticky on desktop so complainant references while writing-->
+        <!-- ======================================================== -->
+        <div class="col-lg-6 col-xl-6 order-1 order-lg-2">
+            <div class="sticky-lg-top" style="top: 24px; z-index: 10;">
+
+                <!-- Defense Dossier Card -->
+                <div class="card border-0 shadow-sm mb-4" style="background:#FFFFFF;border:1px solid #E2E8F0 !important;">
+                    <div class="card-header bg-light border-bottom py-3 d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center gap-2">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                            <span class="fw-bold small text-uppercase text-secondary">Respondent Defense Dossier</span>
+                        </div>
+                        <span class="font-monospace fw-bold small text-dark bg-white px-2 py-1 rounded border">
+                            {{ report.reference_number }}
+                        </span>
+                    </div>
+
+                    <div class="card-body p-3 p-md-4">
+                        {% if disputes %}
+                            {% for disp in disputes %}
+                                <div class="mb-4 pb-3 {% if not forloop.last %}border-bottom{% endif %}">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="badge bg-warning text-dark">Defense Submission #{{ forloop.counter }}</span>
+                                            <span class="text-muted small" style="font-size:0.8rem;">
+                                                {{ disp.created_at|date:"d M Y, H:i" }}
+                                            </span>
+                                        </div>
+                                        <span class="badge bg-light text-secondary border">Status: {{ disp.get_status_display }}</span>
+                                    </div>
+
+                                    <!-- Defense Statement Narrative -->
+                                    <div class="p-3 rounded mb-3" style="background:#F0FDF4;border:1px solid #BBF7D0;border-left:4px solid #16A34A;font-size:0.92rem;line-height:1.6;color:#1E293B;white-space:pre-wrap;max-height:280px;overflow-y:auto;">{{ disp.reason }}</div>
+
+                                    <!-- Attached Counter-Evidence -->
+                                    {% if disp.counter_evidence %}
+                                        <div class="d-flex align-items-center justify-content-between p-2 rounded bg-light border">
+                                            <div class="d-flex align-items-center gap-2 overflow-hidden">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                                <span class="small fw-semibold text-truncate text-dark">Respondent Counter-Evidence Attached</span>
+                                            </div>
+                                            <a href="{% url 'reports:dispute_counter_evidence' disp.id %}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary py-0 px-2 small text-nowrap">
+                                                View Document &rarr;
+                                            </a>
+                                        </div>
+                                    {% else %}
+                                        <div class="small text-muted fst-italic">No counter-document was attached to this defense statement.</div>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="alert alert-info small mb-0">No defense statement found on this report record.</div>
+                        {% endif %}
+
+                        <!-- Accordion for Original Allegation Reference -->
+                        <div class="accordion mt-3" id="allegationAccordion">
+                            <div class="accordion-item border rounded" style="background:#FAFBFD;">
+                                <h2 class="accordion-header" id="headingAllegation">
+                                    <button class="accordion-button collapsed py-2 px-3 small fw-semibold text-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAllegation" aria-expanded="false" aria-controls="collapseAllegation" style="font-size:0.83rem;">
+                                        View Your Original Allegation Reference
+                                    </button>
+                                </h2>
+                                <div id="collapseAllegation" class="accordion-collapse collapse" aria-labelledby="headingAllegation" data-bs-parent="#allegationAccordion">
+                                    <div class="accordion-body p-3 small text-muted" style="line-height:1.55;font-size:0.83rem;white-space:pre-wrap;background:#FFFFFF;">
+                                        <strong>Title:</strong> {{ report.title }}<br><br>
+                                        {{ report.allegation }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Adjudication Guidance Card -->
+                <div class="p-3 rounded border" style="background:#F8FAFC;border-color:#E2E8F0 !important;">
+                    <div class="d-flex align-items-start gap-2">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2" class="flex-shrink-0 mt-0.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                        <div class="small text-muted" style="font-size:0.82rem;line-height:1.5;">
+                            <strong>Adjudication Notice:</strong> VerifyNG adheres to fair hearing protocols. Submitting this rebuttal closes the formal exchange of evidence. Compliance officers will synthesize both parties' statements, evidence, and verified credentials to render an impartial determination.
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+<!-- Alpine.js Component for Drag-and-Drop and Validation -->
+<script>
+function rebuttalUploadComponent() {
+    return {
+        statementText: '',
+        fileName: '',
+        fileSize: '',
+        isImage: false,
+        imagePreview: null,
+        isDragging: false,
+        submitting: false,
+        confirmedDeclaration: false,
+        errors: {
+            statement: '',
+            file: ''
+        },
+
+        init() {
+            const initialText = document.getElementById('{{ form.rebuttal_statement.id_for_label }}')?.value || '';
+            this.statementText = initialText;
+        },
+
+        handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                this.processFile(file);
+            }
+        },
+
+        handleDrop(event) {
+            this.isDragging = false;
+            const file = event.dataTransfer.files[0];
+            if (file) {
+                const input = document.getElementById('{{ form.rebuttal_evidence.id_for_label }}');
+                if (input) {
+                    const dataTransfer = new DataTransfer();
+                    dataTransfer.items.add(file);
+                    input.files = dataTransfer.files;
+                }
+                this.processFile(file);
+            }
+        },
+
+        processFile(file) {
+            this.errors.file = '';
+            const maxBytes = 10 * 1024 * 1024; // 10MB
+            if (file.size > maxBytes) {
+                this.errors.file = 'File size exceeds maximum 10 MB limit.';
+                this.clearFile();
+                return;
+            }
+
+            const allowedExtensions = ['.png', '.jpg', '.jpeg', '.pdf', '.doc', '.docx', '.webp'];
+            const fileExt = '.' + file.name.split('.').pop().toLowerCase();
+            if (!allowedExtensions.includes(fileExt)) {
+                this.errors.file = 'Unsupported format. Allowed: PDF, PNG, JPG, WEBP, DOCX.';
+                this.clearFile();
+                return;
+            }
+
+            this.fileName = file.name;
+            this.fileSize = this.formatBytes(file.size);
+            this.isImage = file.type.startsWith('image/');
+
+            if (this.isImage) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    this.imagePreview = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            } else {
+                this.imagePreview = null;
+            }
+        },
+
+        clearFile() {
+            this.fileName = '';
+            this.fileSize = '';
+            this.isImage = false;
+            this.imagePreview = null;
+            const input = document.getElementById('{{ form.rebuttal_evidence.id_for_label }}');
+            if (input) {
+                input.value = '';
+            }
+        },
+
+        formatBytes(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        },
+
+        handleSubmit(event) {
+            this.errors.statement = '';
+            const trimmed = this.statementText.trim();
+            if (!trimmed || trimmed.length < 20) {
+                this.errors.statement = 'Please provide a factual rebuttal statement of at least 20 characters.';
+                event.preventDefault();
+                return;
+            }
+            if (!this.confirmedDeclaration) {
+                event.preventDefault();
+                return;
+            }
+            this.submitting = true;
+        }
+    }
+}
+</script>
+{% endblock %}

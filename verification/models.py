@@ -1,6 +1,7 @@
 import os
 import secrets
 import string
+import uuid
 from datetime import timedelta
 from dateutil.relativedelta import relativedelta
 from django.db import models
@@ -10,6 +11,13 @@ from identities.models import SubjectEntity
 
 
 class VerificationRequest(models.Model):
+    public_id = models.UUIDField(
+        default=uuid.uuid4,
+        editable=False,
+        unique=True,
+        db_index=True,
+        help_text="Public-facing verification request identifier — never expose the integer PK"
+    )
     VERIFICATION_TYPES = (
         ('property', 'Property, Land & Real Estate Due Diligence'),
         ('vehicle', 'Vehicle & Automobile Ownership Verification'),
@@ -163,6 +171,13 @@ def generate_certificate_id():
 
 
 class VerificationCertificate(models.Model):
+    public_id = models.UUIDField(
+        default=uuid.uuid4,
+        editable=False,
+        unique=True,
+        db_index=True,
+        help_text="Public-facing certificate identifier — never expose the integer PK"
+    )
     """
     Issued certificate for Employment Check (L2) or Enhanced Check (L3).
     Certificate ID is permanent and immutable once assigned.

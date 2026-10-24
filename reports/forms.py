@@ -257,7 +257,7 @@ class DisputeSubmissionForm(forms.Form):
     )
     counter_evidence = forms.FileField(
         required=False,
-        help_text="Optional proof of fulfillment, payment receipt, or communication log (PNG, JPG, PDF, DOCX — max 10 MB)."
+        help_text="Optional proof of fulfillment, court judgment, police report/extract, payment receipt, or communication log (PNG, JPG, PDF, DOCX — max 10 MB)."
     )
 
     def clean_counter_evidence(self):
@@ -303,4 +303,73 @@ class DisputeResolutionForm(forms.Form):
         widget=forms.Textarea(attrs={'rows': 3, 'class': 'form-control', 'placeholder': 'Explain findings of this dispute resolution...'}),
         required=True
     )
+
+
+class ComplainantRebuttalForm(forms.Form):
+    """
+    Form for complainant (Party A) to submit a formal 1-time rebuttal
+    and rebuttal counter-proof to the respondent's defense statement.
+    """
+    rebuttal_statement = forms.CharField(
+        widget=forms.Textarea(attrs={
+            'placeholder': 'State your final rebuttal to the respondent\'s defense statement. Address their claims objectively with dates and references...',
+            'rows': 6,
+            'class': 'form-control'
+        }),
+        required=True,
+        help_text="Provide specific factual details refuting the respondent's claims (minimum 20 characters)."
+    )
+    rebuttal_evidence = forms.FileField(
+        required=False,
+        help_text="Optional rebuttal proof (bank reversal slip, delivery proof, chat export, police report — PNG, JPG, PDF, DOCX up to 10 MB)."
+    )
+
+    def clean_rebuttal_evidence(self):
+        file = self.cleaned_data.get('rebuttal_evidence')
+        return validate_file_upload(file)
+
+
+class ModeratorInfoRequestForm(forms.Form):
+    """
+    Form for compliance moderators to issue an interlocutory information request
+    to either the complainant or respondent during review/adjudication.
+    """
+    ROLE_CHOICES = (
+        ('complainant', 'Complainant (Reporter)'),
+        ('respondent', 'Respondent (Accused / Disputant)'),
+    )
+    target_role = forms.ChoiceField(
+        choices=ROLE_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        help_text="Select which party must provide clarification or documentation."
+    )
+    title = forms.CharField(
+        max_length=200,
+        required=False,
+        widget=forms.TextInput(attrs={'placeholder': 'e.g. Request for Stamped Bank Statement', 'class': 'form-control'}),
+        help_text="Brief subject of this compliance request."
+    )
+    message = forms.CharField(
+        widget=forms.Textarea(attrs={'rows': 4, 'class': 'form-control', 'placeholder': 'Specify clearly what document, explanation, or context is required...'}),
+        required=True,
+        help_text="Explain precisely what the party must provide to assist adjudication."
+    )
+
+
+class InfoRequestFulfillForm(forms.Form):
+    """
+    Form for a requested party to submit the requested information or document.
+    """
+    response_statement = forms.CharField(
+        widget=forms.Textarea(attrs={'rows': 4, 'class': 'form-control', 'placeholder': 'Provide the requested explanation or clarification...'}),
+        required=True
+    )
+    response_file = forms.FileField(
+        required=False,
+        help_text="Attach requested document if requested (PNG, JPG, PDF, DOCX up to 10 MB)."
+    )
+
+    def clean_response_file(self):
+        file = self.cleaned_data.get('response_file')
+        return validate_file_upload(file)
 

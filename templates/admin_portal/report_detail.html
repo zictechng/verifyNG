@@ -18,7 +18,7 @@
       <div class="adm-card-header">Report Details</div>
       <table class="table table-sm mb-0">
         <tr><th style="width:160px">Reference</th><td><code>{{ report.reference_number }}</code></td></tr>
-        <tr><th>State</th><td><span class="adm-badge adm-badge-blue">{{ report.get_state_display }}</span></td></tr>
+        <tr><th>State</th><td><span class="badge text-bg-primary">{{ report.get_state_display }}</span></td></tr>
         <tr><th>Reporter</th><td>{{ report.reporter.username|default:"—" }} &lt;{{ report.reporter.email|default:"" }}&gt;</td></tr>
         <tr>
           <th>Target Subject</th>
@@ -56,6 +56,34 @@
               </div>
             {% else %}
               <span class="text-muted small">No photo attached by complainer</span>
+            {% endif %}
+          </td>
+        </tr>
+        <tr>
+          <th>Suspect Contact</th>
+          <td>
+            {% if report.suspect_email or report.suspect_phone %}
+              <div class="small">
+                {% if report.suspect_email %}
+                  <div><strong>Email:</strong> <a href="mailto:{{ report.suspect_email }}">{{ report.suspect_email }}</a></div>
+                {% endif %}
+                {% if report.suspect_phone %}
+                  <div><strong>Phone:</strong> <span>{{ report.suspect_phone }}</span></div>
+                {% endif %}
+              </div>
+            {% else %}
+              <span class="text-muted small">No direct contact provided by complainer</span>
+            {% endif %}
+          </td>
+        </tr>
+        <tr>
+          <th>Fair Hearing Notice</th>
+          <td>
+            {% if report.suspect_email %}
+              <span class="adm-badge adm-badge-green">Notice Dispatched to Suspect</span>
+              <div class="small text-muted mt-1">7-Day Right of Response Window Closes: <strong>{{ report.dispute_deadline }}</strong></div>
+            {% else %}
+              <span class="adm-badge adm-badge-gray">No email available to notify suspect</span>
             {% endif %}
           </td>
         </tr>
@@ -144,6 +172,205 @@
       </table>
     </div>
     {% endif %}
+
+    <!-- Dual-Sided Due Process: Accused Party Defense & Counter-Evidence -->
+    <div class="adm-card mb-4" id="due-process-defense-card">
+      <div class="adm-card-header d-flex justify-content-between align-items-center">
+        <span>Accused Party Defense &amp; Counter-Evidence (Due Process / Fair Hearing)</span>
+        {% if disputes %}
+          <span class="adm-badge adm-badge-blue">{{ disputes.count }} Dispute{{ disputes.count|pluralize }} on Record</span>
+        {% elif report.suspect_email %}
+          <span class="adm-badge adm-badge-yellow">7-Day Response Window Active</span>
+        {% else %}
+          <span class="adm-badge adm-badge-gray">No Suspect Contact</span>
+        {% endif %}
+      </div>
+
+      {% if disputes %}
+        {% for d in disputes %}
+        <div class="p-3 {% if not forloop.last %}border-bottom{% endif %}">
+          <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+            <div>
+              <div class="fw-bold" style="font-size:1rem;color:#1E293B;">
+                {{ d.disputant.get_full_name|default:d.disputant.username }}
+                {% if d.disputant.email %}
+                  <span class="text-muted fw-normal small">({{ d.disputant.email }})</span>
+                {% endif %}
+              </div>
+              <div class="small text-muted mt-1">
+                Filed on <strong>{{ d.created_at|date:"d M Y, H:i" }}</strong>
+                {% if d.resolved_at %} &bull; Resolved: {{ d.resolved_at|date:"d M Y, H:i" }}{% endif %}
+              </div>
+            </div>
+            <div>
+              {% if d.status == 'opened' %}
+                <span class="adm-badge adm-badge-yellow" style="font-size:0.8rem;">Status: Opened (Pending Adjudication)</span>
+              {% elif d.status == 'under_review' %}
+                <span class="adm-badge adm-badge-blue" style="font-size:0.8rem;">Status: Under Review</span>
+              {% elif d.status == 'accepted' %}
+                <span class="adm-badge adm-badge-green" style="font-size:0.8rem;">Status: Accepted (Report Restricted)</span>
+              {% elif d.status == 'rejected' %}
+                <span class="adm-badge adm-badge-red" style="font-size:0.8rem;">Status: Rejected (Report Maintained)</span>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-muted text-uppercase mb-1">Defense / Right-of-Response Statement:</label>
+            <div class="p-3 rounded bg-light border" style="white-space:pre-wrap;font-size:0.92rem;line-height:1.6;color:#1E293B;">{{ d.reason }}</div>
+          </div>
+
+          <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 p-2 rounded bg-light border">
+            <div>
+              <span class="small fw-semibold text-muted">Counter-Evidence Attachment:</span>
+              {% if d.counter_evidence %}
+                <span class="small ms-1 text-dark fw-medium">{{ d.counter_evidence.name|cut:"disputes/" }}</span>
+              {% else %}
+                <span class="small text-muted ms-1">No counter-evidence file attached</span>
+              {% endif %}
+            </div>
+            {% if d.counter_evidence %}
+            <div class="d-inline-flex align-items-center gap-2">
+              <a href="{% url 'reports:dispute_counter_evidence' d.id %}" target="_blank" rel="noopener noreferrer" class="btn btn-adm-sm btn-adm-outline">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                View Counter-Evidence
+              </a>
+              <a href="{% url 'reports:dispute_counter_evidence' d.id %}?download=1" target="_blank" rel="noopener noreferrer" class="btn btn-adm-sm btn-adm-outline text-muted" title="Download Counter-Evidence">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              </a>
+            </div>
+            {% endif %}
+          </div>
+
+          {% if d.resolution_notes %}
+          <div class="mt-3 p-3 rounded" style="background:#F1F5F9;border-left:3px solid #64748B;">
+            <div class="small fw-semibold text-muted text-uppercase mb-1">Adjudication / Resolution Notes</div>
+            <div class="small" style="white-space:pre-wrap;">{{ d.resolution_notes }}</div>
+          </div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="p-4 text-center">
+          {% if report.suspect_email %}
+            <div class="mb-2">
+              <span class="adm-badge adm-badge-yellow py-1 px-3" style="font-size:0.85rem;">Statutory 7-Day Due-Process Notice Active</span>
+            </div>
+            <p class="text-muted small mb-1">
+              Formal Fair-Hearing notice was dispatched to <strong>{{ report.suspect_email }}</strong> upon filing.
+            </p>
+            <p class="small text-muted mb-0">
+              Response window remains open until <strong>{{ report.dispute_deadline }}</strong>. The accused party has not yet submitted a formal statement of defense.
+            </p>
+          {% else %}
+            <p class="text-muted small mb-0">
+              No accused party email address was provided by the complainant. If contact details become available, a fair-hearing notice can be issued.
+            </p>
+          {% endif %}
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Due Process Stage 3: Complainant Final Rebuttal Statement & Evidence -->
+    <div class="adm-card mb-4" id="complainant-rebuttal-card">
+      <div class="adm-card-header d-flex justify-content-between align-items-center">
+        <span>Complainant Final Rebuttal (Round 2 — Pleadings Closed)</span>
+        {% if complainant_rebuttal %}
+          <span class="adm-badge adm-badge-green">Rebuttal on Record</span>
+        {% elif disputes and report.can_submit_rebuttal %}
+          <span class="adm-badge adm-badge-yellow">Rebuttal Window Open</span>
+        {% else %}
+          <span class="adm-badge adm-badge-gray">Not Submitted</span>
+        {% endif %}
+      </div>
+
+      {% if complainant_rebuttal %}
+        <div class="p-3">
+          <div class="d-flex flex-wrap justify-content-between align-items-center mb-2">
+            <span class="fw-bold" style="color:#1E293B;">
+              Submitted by Complainant &bull; {{ complainant_rebuttal.submitted_at|date:"d M Y, H:i" }}
+            </span>
+            <span class="adm-badge adm-badge-blue">Pleadings Closed</span>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-muted text-uppercase mb-1">Formal Rebuttal Statement:</label>
+            <div class="p-3 rounded bg-light border" style="white-space:pre-wrap;font-size:0.92rem;line-height:1.6;color:#1E293B;">{{ complainant_rebuttal.statement }}</div>
+          </div>
+
+          <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 p-2 rounded bg-light border">
+            <div>
+              <span class="small fw-semibold text-muted">Rebuttal Counter-Proof:</span>
+              {% if complainant_rebuttal.evidence_id %}
+                <span class="small ms-1 text-dark fw-medium">{{ complainant_rebuttal.evidence_name|default:"Document Attached" }}</span>
+              {% else %}
+                <span class="small text-muted ms-1">No rebuttal evidence attached</span>
+              {% endif %}
+            </div>
+            {% if complainant_rebuttal.evidence_id %}
+            <div class="d-inline-flex align-items-center gap-2">
+              <a href="{% url 'reports:evidence_download' complainant_rebuttal.evidence_id %}" target="_blank" rel="noopener noreferrer" class="btn btn-adm-sm btn-adm-outline">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                View Rebuttal Proof
+              </a>
+              <a href="{% url 'reports:evidence_download' complainant_rebuttal.evidence_id %}?download=1" target="_blank" rel="noopener noreferrer" class="btn btn-adm-sm btn-adm-outline text-muted" title="Download">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              </a>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      {% else %}
+        <div class="p-4 text-center">
+          {% if disputes and report.can_submit_rebuttal %}
+            <p class="small text-muted mb-0">The accused party submitted a defense statement. The complainant has been notified and may submit a 1-time rebuttal before pleadings are closed.</p>
+          {% elif disputes %}
+            <p class="small text-muted mb-0">No rebuttal statement was submitted by the complainant.</p>
+          {% else %}
+            <p class="small text-muted mb-0">Rebuttal phase is not applicable until an accused party defense statement is registered.</p>
+          {% endif %}
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Interlocutory Compliance Requests Card -->
+    <div class="adm-card mb-4" id="compliance-info-requests-card">
+      <div class="adm-card-header d-flex justify-content-between align-items-center">
+        <span>Moderator Clarification &amp; Information Requests ({{ moderator_info_requests|length }})</span>
+        <button type="button" class="btn btn-adm-sm btn-adm-primary" data-bs-toggle="modal" data-bs-target="#issueInfoRequestModal">
+          + Issue Information Request
+        </button>
+      </div>
+      {% if moderator_info_requests %}
+        {% for req in moderator_info_requests %}
+        <div class="p-3 {% if not forloop.last %}border-bottom{% endif %}">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <div>
+              <span class="adm-badge {% if req.details.target_role == 'complainant' %}adm-badge-blue{% else %}adm-badge-yellow{% endif %} text-uppercase">
+                Target: {{ req.details.target_role|default:"Party" }}
+              </span>
+              <span class="fw-semibold ms-2" style="color:#1E293B;">{{ req.details.title|default:"Information Request" }}</span>
+            </div>
+            <div>
+              {% if req.details.status == 'fulfilled' %}
+                <span class="adm-badge adm-badge-green">Fulfilled &bull; {{ req.details.fulfilled_at|slice:":10" }}</span>
+              {% else %}
+                <span class="adm-badge adm-badge-yellow">Awaiting Response</span>
+              {% endif %}
+            </div>
+          </div>
+          <div class="p-2 rounded bg-light border small text-muted mb-2" style="white-space:pre-wrap;">{{ req.details.message }}</div>
+          <div class="small text-muted" style="font-size:0.78rem;">
+            Dispatched by <strong>{{ req.performed_by.username|default:"Moderator" }}</strong> on {{ req.created_at|date:"d M Y, H:i" }}
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="p-3 text-center text-muted small">
+          No interlocutory information requests issued on this docket.
+        </div>
+      {% endif %}
+    </div>
   </div>
 
   <!-- Actions sidebar -->
@@ -151,7 +378,7 @@
     <div class="adm-card mb-4">
       <div class="adm-card-header">Transition State</div>
       <div class="p-3">
-        <form method="post" action="{% url 'admin_portal:report_transition' report.pk %}">
+        <form method="post" action="{% url 'admin_portal:report_transition' report.public_id %}">
           {% csrf_token %}
           <div class="mb-3">
             <label class="form-label fw-semibold">New State</label>
@@ -173,6 +400,18 @@
             Apply Transition
           </button>
         </form>
+      </div>
+    </div>
+
+    <!-- Interlocutory Directives Card -->
+    <div class="adm-card mb-4">
+      <div class="adm-card-header">Compliance Inquiries</div>
+      <div class="p-3">
+        <p class="small text-muted mb-3">Directly query either party for specific documents (e.g. proof of refund, contract, courier receipt, WhatsApp export) without changing state.</p>
+        <button type="button" class="btn btn-adm-outline w-100 py-2 d-flex align-items-center justify-content-center gap-2" data-bs-toggle="modal" data-bs-target="#issueInfoRequestModal">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Request Clarification / Documents
+        </button>
       </div>
     </div>
 
@@ -284,5 +523,44 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 });
 </script>
+
+<!-- Modal: Issue Moderator Information Request -->
+<div class="modal fade" id="issueInfoRequestModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:12px;border:none;box-shadow:0 8px 32px rgba(0,0,0,.15);">
+      <div class="modal-header border-bottom py-3">
+        <h5 class="modal-title fw-semibold text-dark">Issue Compliance Information Request</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" action="{% url 'reports:issue_info_request' report.reference_number %}">
+        {% csrf_token %}
+        <div class="modal-body p-4">
+          <p class="small text-muted mb-3">
+            Send an official directive to either party to provide clarification, bank statements, affidavits, or delivery proof to assist in fair adjudication.
+          </p>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-dark">Target Party <span class="text-danger">*</span></label>
+            <select name="target_role" class="form-select form-select-sm" required>
+              <option value="complainant">Complainant (Reporter: {{ report.reporter.username|default:"Reporter" }})</option>
+              <option value="respondent">Respondent (Accused: {{ report.target_subject.name }})</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-dark">Request Subject / Title</label>
+            <input type="text" name="title" class="form-control form-control-sm" placeholder="e.g. Request for Stamped Bank Statement" maxlength="200">
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-dark">Required Explanation / Document Specification <span class="text-danger">*</span></label>
+            <textarea name="message" rows="4" class="form-control form-control-sm" placeholder="Specify precisely what document or factual clarification is required..." required></textarea>
+          </div>
+        </div>
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn btn-adm-sm btn-adm-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-adm-sm btn-adm-primary px-3">Dispatch Request &rarr;</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 
 {% endblock %}

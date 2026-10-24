@@ -9,10 +9,9 @@ extending templates/emails/base_email.html for professional, mobile-friendly des
 from typing import Tuple, Optional
 from django.utils import timezone
 from core.models import SiteConfiguration
-from core.email_utils import render_email
+from core.email_utils import render_email, get_dynamic_base_url
 
 _BASE_SITE_NAME = "VerifyNG"
-_BASE_SITE_URL = "https://verifyng.com"
 _DISCLAIMER = (
     "This is an automated notification from the VerifyNG platform. "
     "Do not reply directly to this email."
@@ -22,11 +21,12 @@ _DISCLAIMER = (
 def _get_site_meta() -> Tuple[str, str]:
     try:
         config = SiteConfiguration.get_solo()
-        name = config.site_name or _BASE_SITE_NAME
-        url = (config.base_url or _BASE_SITE_URL).rstrip('/')
+        name = getattr(config, 'site_name', '') or _BASE_SITE_NAME
+        url = get_dynamic_base_url()
         return name, url
     except Exception:
-        return _BASE_SITE_NAME, _BASE_SITE_URL
+        from django.conf import settings
+        return _BASE_SITE_NAME, getattr(settings, 'SITE_BASE_URL', 'http://localhost:8000').rstrip('/')
 
 
 def _html_fallback(title: str, body_html: str) -> str:

@@ -1,0 +1,48 @@
+{% extends 'emails/base_email.html' %}
+
+{% block subject %}Official Notice: Right-of-Response for Incident Report [{{ reference_number }}] — {{ site_name }}{% endblock %}
+
+{% block body %}
+<h1 style="font-size:24px;font-weight:700;color:#1d1d1f;margin:0 0 16px;letter-spacing:-0.5px;">Notice of Incident Filing &amp; Right of Response</h1>
+
+<p>Dear {{ suspect_name|default:"Sir/Madam" }},</p>
+
+<p>
+    This is an official compliance notification from <strong>{{ site_name }}</strong>. 
+    A formal incident report has been registered on our public trust repository naming you or your organization as the subject of an allegation.
+</p>
+
+<div class="notice" style="background:#FFFBEB;border:1px solid #FDE68A;border-left:4px solid #D97706;">
+    <p style="margin:0 0 8px;color:#92400E;"><strong>Report Reference:</strong> <code style="font-family:monospace;font-size:14px;background:#FEF3C7;padding:2px 6px;border-radius:4px;">{{ reference_number }}</code></p>
+    {% if report_title %}
+    <p style="margin:0 0 8px;color:#92400E;"><strong>Allegation Summary:</strong> {{ report_title }}</p>
+    {% endif %}
+    <p style="margin:0 0 8px;color:#92400E;"><strong>Date Registered:</strong> {{ submitted_at|default:"Today" }}</p>
+    <p style="margin:0;color:#92400E;"><strong>7-Day Right-of-Response Closes:</strong> <strong>{{ dispute_deadline }}</strong></p>
+</div>
+
+<p>
+    In accordance with Nigerian constitutional fair-hearing principles (<em>audi alteram partem</em>) and {{ site_name }} due-process standards, <strong>no adverse public flag or search penalty has been published against you on the platform at this time</strong>.
+</p>
+
+<p>
+    We recognize that every story has two sides. You have been granted a statutory <strong>7-day fair-hearing window</strong> (until <strong>{{ dispute_deadline }}</strong>) to review the factual summary of this allegation and submit your formal defense, explanation, or documentary proof (such as payment receipts, delivery confirmations, signed contracts, or communication logs).
+</p>
+
+<div class="btn-wrap">
+    <a href="{{ dispute_url }}" class="btn">Review Allegation &amp; Submit Defense &rarr;</a>
+</div>
+
+<p style="font-size:15px;color:#6e6e73;line-height:1.6;">
+    <strong>What happens after {{ dispute_deadline }}?</strong><br>
+    If you submit a formal defense, our compliance moderation desk will review both sides' evidence side-by-side before reaching an adjudication verdict. 
+    If no response is received before the deadline, our moderation desk will evaluate the matter based upon the documentary proof submitted by the complainant.
+</p>
+
+<hr class="divider">
+
+<p style="font-size:13px;color:#6e6e73;line-height:1.5;">
+    {{ site_name }} Dispute Resolution &bull; Reference: {{ reference_number }}<br>
+    For legal or compliance inquiries regarding this process, please reach our desk at <a href="mailto:{{ support_email }}" style="color:#0071e3;">{{ support_email }}</a>.
+</p>
+{% endblock %}

@@ -1249,6 +1249,23 @@ def staff_misconduct_report(request):
                 staff_msg.send(fail_silently=True)
             except Exception as exc:
                 logger.warning("Failed to dispatch employee 7-day misconduct notice email: %s", exc)
+
+            # In-app notification for the certificate holder
+            try:
+                from notifications.services import dispatch_notification
+                dispatch_notification(
+                    recipient=certificate.holder,
+                    event_type='REPORT_SUBMITTED',
+                    title=f"Workplace Misconduct Filing [{report_ref}]",
+                    body=(
+                        f"A workplace misconduct report [{report_ref}] has been filed by {profile.company_name} "
+                        f"regarding certificate [{cert_id}]. "
+                        f"You have 7 days to review and submit your formal right-of-response."
+                    ),
+                    object_reference=report_ref,
+                )
+            except Exception as notif_err:
+                logger.warning("Failed to dispatch in-app misconduct notice: %s", notif_err)
         
         messages.success(
             request,

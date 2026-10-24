@@ -12,6 +12,9 @@ from reports.forms import (
     DisputeSubmissionForm,
     ReportModerationActionForm,
     DisputeResolutionForm,
+    ComplainantRebuttalForm,
+    ModeratorInfoRequestForm,
+    InfoRequestFulfillForm,
 )
 from reports.models import FraudReport, ReportEvidence, Dispute
 from reports.services import (
@@ -19,6 +22,9 @@ from reports.services import (
     transition_report_state,
     file_dispute_for_report,
     resolve_dispute,
+    submit_complainant_rebuttal,
+    issue_moderator_info_request,
+    fulfill_moderator_info_request,
 )
 from reports.storage_services import get_storage_service_for_provider, StorageError
 from core.permissions import can_view_report, can_view_evidence, is_moderator
@@ -101,6 +107,59 @@ class MyReportsListView(LoginRequiredMixin, ListView):
         return ctx
 
 
+
+class MyDisputesListView(LoginRequiredMixin, ListView):
+    """
+    Lists all reports and allegations filed against the authenticated user or their entity.
+    Provides clear visibility into 7-day fair-hearing notices, dispute statuses, and response actions.
+    """
+    model = FraudReport
+    template_name = 'reports/my_disputes.html'
+    context_object_name = 'reports'
+    paginate_by = 15
+
+    def get_queryset(self):
+        from reports.services import get_reports_against_user_queryset
+        from django.db.models import Q
+        qs = get_reports_against_user_queryset(self.request.user)
+
+        status_filter = self.request.GET.get('status', '').strip()
+        search_query = self.request.GET.get('q', '').strip()
+
+        if status_filter == 'action_required':
+            user_disputed_report_ids = Dispute.objects.filter(disputant=self.request.user).values_list('report_id', flat=True)
+            qs = qs.filter(state__in=['submitted', 'under_review', 'published']).exclude(id__in=user_disputed_report_ids)
+        elif status_filter == 'disputed':
+            user_disputed_report_ids = Dispute.objects.filter(disputant=self.request.user).values_list('report_id', flat=True)
+            qs = qs.filter(id__in=user_disputed_report_ids)
+        elif status_filter in ('resolved', 'rejected', 'restricted'):
+            qs = qs.filter(state__in=['resolved', 'restricted'])
+
+        if search_query:
+            qs = qs.filter(
+                Q(reference_number__icontains=search_query) |
+                Q(title__icontains=search_query) |
+                Q(allegation__icontains=search_query)
+            )
+
+        return qs
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        from reports.services import get_reports_against_user_queryset
+        base_qs = get_reports_against_user_queryset(self.request.user)
+        user_disputes = Dispute.objects.filter(disputant=self.request.user)
+        disputed_ids = set(user_disputes.values_list('report_id', flat=True))
+
+        ctx['total_count'] = base_qs.count()
+        ctx['action_required_count'] = base_qs.filter(state__in=['submitted', 'under_review', 'published']).exclude(id__in=disputed_ids).count()
+        ctx['disputed_count'] = base_qs.filter(id__in=disputed_ids).count()
+        ctx['resolved_count'] = base_qs.filter(state__in=['resolved', 'restricted']).count()
+        ctx['status_filter'] = self.request.GET.get('status', '').strip()
+        ctx['search_query'] = self.request.GET.get('q', '').strip()
+        return ctx
+
+
 class ReportDetailView(DetailView):
     """Public/reporter/moderator view for a single fraud report."""
     model = FraudReport
@@ -119,8 +178,12 @@ class ReportDetailView(DetailView):
         ctx['is_moderator'] = is_moderator(self.request.user)
         ctx['can_dispute'] = (
             self.request.user.is_authenticated
-            and self.object.state == 'published'
+            and self.request.user != self.object.reporter
+            and (
+                self.object.state in ('published', 'submitted', 'under_review', 'disputed')
+            )
         )
+        ctx['disputes'] = self.object.disputes.all().select_related('disputant').order_by('created_at')
         # Extract suspect context from initial audit log if present
         init_log = self.object.audit_logs.filter(action="REPORT_SUBMITTED").first()
         if init_log and isinstance(init_log.details, dict):
@@ -166,6 +229,16 @@ class ReportDetailView(DetailView):
 
         ctx['back_url'] = back_url
         ctx['back_label'] = back_label
+
+        # Due Process: Rebuttal & Interlocutory Info Requests context
+        ctx['complainant_rebuttal'] = self.object.complainant_rebuttal
+        ctx['can_submit_rebuttal'] = self.object.can_submit_rebuttal and (self.request.user == self.object.reporter)
+        ctx['pending_info_request'] = self.object.pending_info_request_for_user(self.request.user)
+        ctx['moderator_info_requests'] = self.object.moderator_info_requests if is_moderator(self.request.user) else []
+        ctx['fulfill_form'] = InfoRequestFulfillForm()
+        if is_moderator(self.request.user):
+            ctx['info_request_form'] = ModeratorInfoRequestForm()
+
         return ctx
 
 class EvidenceDownloadView(View):
@@ -218,13 +291,47 @@ class EvidenceDownloadView(View):
             raise Http404("Evidence file could not be retrieved at this time.")
 
 
+class DisputeCounterEvidenceView(LoginRequiredMixin, View):
+    """
+    Safely serves counter-evidence uploaded by the accused party in a dispute.
+    Accessible to administrators, moderators, the disputant, and the original reporter.
+    """
+    def get(self, request, dispute_id):
+        dispute = get_object_or_404(
+            Dispute.objects.select_related('report', 'disputant', 'report__reporter'),
+            id=dispute_id
+        )
+
+        is_staff_or_mod = is_moderator(request.user)
+        is_party = (request.user == dispute.disputant or request.user == dispute.report.reporter)
+        if not (is_staff_or_mod or is_party):
+            raise PermissionDenied("You do not have permission to view this counter-evidence.")
+
+        if not dispute.counter_evidence:
+            raise Http404("No counter-evidence file was attached to this dispute.")
+
+        as_attachment = request.GET.get('download') == '1'
+        try:
+            if hasattr(dispute.counter_evidence, 'storage') and not dispute.counter_evidence.storage.exists(dispute.counter_evidence.name):
+                raise Http404("Counter-evidence file not found on storage.")
+            response = FileResponse(dispute.counter_evidence.open('rb'), as_attachment=as_attachment)
+            response['X-Frame-Options'] = 'SAMEORIGIN'
+            return response
+        except Http404:
+            raise
+        except Exception as e:
+            logger.error("Failed to serve counter-evidence for dispute id=%s: %s", dispute_id, e)
+            raise Http404("Could not read counter-evidence file.")
+
+
+
 class EvidenceUploadView(LoginRequiredMixin, View):
     """
     Allows the original reporter to upload additional evidence files
     to their own report, provided it is still in an open state.
     Allowed states: submitted, under_review.
     """
-    ALLOWED_STATES = {'submitted', 'under_review'}
+    ALLOWED_STATES = {'submitted', 'under_review', 'disputed'}
     ALLOWED_MIME_TYPES = {
         'image/jpeg', 'image/png', 'image/webp',
         'application/pdf',
@@ -240,7 +347,7 @@ class EvidenceUploadView(LoginRequiredMixin, View):
 
         # State check
         if report.state not in self.ALLOWED_STATES:
-            messages.error(request, "Evidence can only be added while the report is under review.")
+            messages.error(request, "Evidence can only be added while the report is under review or disputed.")
             return HttpResponseRedirect(report.get_absolute_url() if hasattr(report, 'get_absolute_url') else f'/reports/{reference_number}/')
 
         uploaded_file = request.FILES.get('evidence_file')
@@ -331,8 +438,12 @@ class DisputeCreateView(LoginRequiredMixin, FormView):
 
     def dispatch(self, request, *args, **kwargs):
         self.report = get_object_or_404(FraudReport, reference_number=kwargs['reference_number'])
-        # Allow employee response/dispute during 7-day fair-hearing notice or when published
-        if self.report.state not in ('published', 'submitted', 'under_review'):
+        # Disallow reporter from disputing their own report
+        if request.user.is_authenticated and self.report.reporter == request.user:
+            messages.warning(request, "You cannot file a right-of-response dispute against a report you submitted.")
+            return redirect('reports:detail', reference_number=self.report.reference_number)
+        # Allow employee response/dispute during 7-day fair-hearing notice, when published, or subsequent addenda while disputed
+        if self.report.state not in ('published', 'submitted', 'under_review', 'disputed'):
             messages.error(request, f"This report is currently {self.report.get_state_display().lower()} and cannot be disputed.")
             return redirect('reports:detail', reference_number=self.report.reference_number)
         return super().dispatch(request, *args, **kwargs)
@@ -340,6 +451,12 @@ class DisputeCreateView(LoginRequiredMixin, FormView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx['report'] = self.report
+        ctx['existing_disputes'] = self.report.disputes.all().select_related('disputant').order_by('created_at')
+        init_log = self.report.audit_logs.filter(action="REPORT_SUBMITTED").first()
+        if init_log and isinstance(init_log.details, dict):
+            ctx['suspect_context'] = init_log.details.get('suspect_context', {})
+        else:
+            ctx['suspect_context'] = {}
         return ctx
 
     def form_valid(self, form):
@@ -440,3 +557,130 @@ class DisputeResolveView(LoginRequiredMixin, UserPassesTestMixin, View):
                     messages.error(request, error)
 
         return redirect('reports:moderation_queue')
+
+
+class RebuttalCreateView(LoginRequiredMixin, FormView):
+    """
+    Form view allowing the original complainant (Party A) to submit a formal 1-time
+    rebuttal and counter-evidence in response to the respondent's defense statement.
+    Enforces equality of arms and closes pleadings for final adjudication.
+    """
+    form_class = ComplainantRebuttalForm
+    template_name = 'reports/rebuttal_form.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        self.report = get_object_or_404(FraudReport, reference_number=kwargs['reference_number'])
+        if self.report.reporter != request.user:
+            messages.warning(request, "Only the original complainant can submit a rebuttal on this report.")
+            return redirect('reports:detail', reference_number=self.report.reference_number)
+        if not self.report.can_submit_rebuttal:
+            messages.warning(request, "A rebuttal cannot be submitted for this report at this time.")
+            return redirect('reports:detail', reference_number=self.report.reference_number)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['report'] = self.report
+        ctx['disputes'] = self.report.disputes.all().select_related('disputant').order_by('created_at')
+        init_log = self.report.audit_logs.filter(action="REPORT_SUBMITTED").first()
+        if init_log and isinstance(init_log.details, dict):
+            ctx['suspect_context'] = init_log.details.get('suspect_context', {})
+        else:
+            ctx['suspect_context'] = {}
+        return ctx
+
+    def form_valid(self, form):
+        ip_addr = get_client_ip(self.request)
+        try:
+            submit_complainant_rebuttal(
+                report=self.report,
+                reporter=self.request.user,
+                rebuttal_statement=form.cleaned_data['rebuttal_statement'],
+                evidence_file=form.cleaned_data.get('rebuttal_evidence'),
+                ip_address=ip_addr
+            )
+            messages.success(
+                self.request,
+                f"Your formal rebuttal for report {self.report.reference_number} has been recorded. "
+                "Pleadings are now closed and the case is pending compliance adjudication."
+            )
+        except Exception as e:
+            logger.error("Failed to submit rebuttal for %s: %s", self.report.reference_number, e)
+            messages.error(self.request, f"Could not submit rebuttal: {e}")
+        return redirect('reports:detail', reference_number=self.report.reference_number)
+
+
+class ModeratorInfoRequestView(LoginRequiredMixin, UserPassesTestMixin, View):
+    """
+    Allows a compliance moderator to issue an interlocutory information request
+    to either the complainant or respondent during report adjudication.
+    """
+    def test_func(self):
+        return is_moderator(self.request.user)
+
+    def post(self, request, reference_number):
+        report = get_object_or_404(FraudReport, reference_number=reference_number)
+        form = ModeratorInfoRequestForm(request.POST)
+        if form.is_valid():
+            target_role = form.cleaned_data['target_role']
+            title = form.cleaned_data.get('title')
+            message = form.cleaned_data['message']
+            ip_addr = get_client_ip(request)
+
+            try:
+                issue_moderator_info_request(
+                    report=report,
+                    moderator=request.user,
+                    target_role=target_role,
+                    message=message,
+                    request_title=title,
+                    ip_address=ip_addr,
+                )
+                messages.success(request, f"Information request dispatched to {target_role.capitalize()}.")
+            except Exception as e:
+                logger.error("Failed to issue info request on %s: %s", report.reference_number, e)
+                messages.error(request, f"Could not dispatch request: {e}")
+        else:
+            for error_list in form.errors.values():
+                for error in error_list:
+                    messages.error(request, error)
+
+        referer = request.META.get('HTTP_REFERER')
+        if referer:
+            return HttpResponseRedirect(referer)
+        return redirect('reports:detail', reference_number=reference_number)
+
+
+class InfoRequestFulfillView(LoginRequiredMixin, View):
+    """
+    Allows a requested party (complainant or respondent) to fulfill
+    an active compliance moderator information request.
+    """
+    def post(self, request, reference_number, request_id):
+        report = get_object_or_404(FraudReport, reference_number=reference_number)
+        form = InfoRequestFulfillForm(request.POST, request.FILES)
+        if form.is_valid():
+            statement = form.cleaned_data['response_statement']
+            file = form.cleaned_data.get('response_file')
+            ip_addr = get_client_ip(request)
+
+            try:
+                fulfill_moderator_info_request(
+                    report=report,
+                    user=request.user,
+                    request_id=request_id,
+                    response_statement=statement,
+                    evidence_file=file,
+                    ip_address=ip_addr,
+                )
+                messages.success(request, "Your clarification and documents have been submitted to compliance moderators.")
+            except Exception as e:
+                logger.error("Failed to fulfill info request %s on %s: %s", request_id, reference_number, e)
+                messages.error(request, f"Could not submit response: {e}")
+        else:
+            for error_list in form.errors.values():
+                for error in error_list:
+                    messages.error(request, error)
+
+        return redirect('reports:detail', reference_number=reference_number)
+

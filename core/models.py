@@ -48,7 +48,8 @@ class SiteConfiguration(models.Model):
 
     # ── Contact & Identity ────────────────────────────────────────────────────
     base_url = models.URLField(
-        default='https://verifyng.com',
+        blank=True,
+        default='',
         help_text=(
             "Canonical site URL used in emails and generated links. "
             "No trailing slash. Example: https://verifyng.com"
@@ -159,6 +160,11 @@ class SiteConfiguration(models.Model):
 
     def delete(self, *args, **kwargs):
         raise ValidationError("SiteConfiguration cannot be deleted.")
+
+    @property
+    def dynamic_base_url(self) -> str:
+        from core.site_utils import get_dynamic_base_url
+        return get_dynamic_base_url()
 
     @classmethod
     def get_solo(cls):

@@ -63,7 +63,14 @@
                         </div>
                         <p class="mb-1 small text-muted" style="line-height:1.5;">{{ n.body }}</p>
                         {% if n.object_reference %}
-                            <code style="font-size:11px;color:var(--vng-primary);background:#EAF1FF;padding:2px 7px;border-radius:4px;">{{ n.object_reference }}</code>
+                            <div class="mt-1 d-flex align-items-center gap-2 flex-wrap">
+                                <code style="font-size:11px;color:var(--vng-primary);background:#EAF1FF;padding:2px 7px;border-radius:4px;">{{ n.object_reference }}</code>
+                                {% if 'VNG-' in n.object_reference %}
+                                    <a href="{% url 'reports:detail' n.object_reference %}" class="small text-decoration-none fw-semibold" style="font-size:12px;">
+                                        View Details &amp; Respond &rarr;
+                                    </a>
+                                {% endif %}
+                            </div>
                         {% endif %}
                         <p class="mb-0 mt-1" style="font-size:11px;color:#94A3B8;">{{ n.created_at|date:"j M Y · H:i" }}</p>
                     </div>

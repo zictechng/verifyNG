@@ -37,7 +37,7 @@
     </thead>
     <tbody>
       {% for d in page_obj %}
-      <tr style="cursor:pointer;" onclick="location.href='{% url 'admin_portal:dispute_detail' d.pk %}'">
+      <tr style="cursor:pointer;" onclick="location.href='{% url 'admin_portal:dispute_detail' d.public_id %}'">
         <td>{{ d.report.title|truncatechars:40 }}</td>
         <td>{{ d.disputant.username }}</td>
         <td onclick="event.stopPropagation()">
@@ -50,7 +50,7 @@
         <td>{{ d.created_at|date:"d M Y" }}</td>
         <td onclick="event.stopPropagation()">
           <div class="d-flex gap-1">
-            <a href="{% url 'admin_portal:dispute_detail' d.pk %}"
+            <a href="{% url 'admin_portal:dispute_detail' d.public_id %}"
                class="btn btn-adm-sm btn-adm-outline">
               Review
             </a>
@@ -58,7 +58,7 @@
             <button type="button" class="btn btn-adm-sm btn-adm-success"
                     data-bs-toggle="modal" data-bs-target="#disputeActionModal"
                     data-action="accept"
-                    data-pk="{{ d.pk }}"
+                    data-pk="{{ d.public_id }}"
                     data-report="{{ d.report.title|truncatechars:50 }}"
                     data-disputant="{{ d.disputant.username }}">
               Accept
@@ -66,7 +66,7 @@
             <button type="button" class="btn btn-adm-sm btn-adm-danger"
                     data-bs-toggle="modal" data-bs-target="#disputeActionModal"
                     data-action="reject"
-                    data-pk="{{ d.pk }}"
+                    data-pk="{{ d.public_id }}"
                     data-report="{{ d.report.title|truncatechars:50 }}"
                     data-disputant="{{ d.disputant.username }}">
               Reject
@@ -164,8 +164,8 @@ document.addEventListener('DOMContentLoaded', function () {
       titleEl.textContent    = 'Reject Dispute';
     }
 
-    const baseUrl = "{% url 'admin_portal:dispute_action' 0 %}";
-    document.getElementById('disputeActionForm').action = baseUrl.replace('/0/', '/' + pk + '/');
+    const baseUrl = "{% url 'admin_portal:dispute_action' '00000000-0000-0000-0000-000000000000' %}";
+    document.getElementById('disputeActionForm').action = baseUrl.replace('00000000-0000-0000-0000-000000000000', pk);
     document.getElementById('disputeActionInput').value = action;
   });
 });

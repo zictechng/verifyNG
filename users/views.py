@@ -278,8 +278,34 @@ class AccountHubView(LoginRequiredMixin, TemplateView):
     """
     Mobile-first Account & Settings Hub inspired by modern digital identity apps.
     Serves Individual, Employer, Agency, and Business accounts with single-touch navigation.
+    Desktop access is redirected to the role-specific dashboard.
     """
     template_name = 'users/account_hub.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return super().dispatch(request, *args, **kwargs)
+
+        # Account Hub is exclusively designed for mobile & tablet interfaces.
+        # Detect User-Agent and redirect desktop users to their role-specific dashboard.
+        user_agent = request.META.get('HTTP_USER_AGENT', '').lower()
+        mobile_keywords = (
+            'mobile', 'android', 'iphone', 'ipad', 'ipod', 'tablet',
+            'silk/', 'kindle', 'opera mini', 'blackberry', 'touch', 'iemobile'
+        )
+        is_mobile = any(k in user_agent for k in mobile_keywords)
+
+        if not is_mobile and request.GET.get('view') != 'mobile':
+            user = request.user
+            if getattr(user, 'role', '') in ('employer', 'agency', 'business'):
+                return redirect('employer:dashboard')
+            elif user.is_staff or getattr(user, 'role', '') in ('moderator', 'officer'):
+                return redirect('admin_portal:overview')
+            else:
+                return redirect('dashboard:index')
+
+        return super().dispatch(request, *args, **kwargs)
+
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         user = self.request.user

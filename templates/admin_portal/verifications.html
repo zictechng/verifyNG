@@ -75,7 +75,7 @@
         <td>{{ v.created_at|date:"d M Y" }}</td>
         <td class="text-nowrap">
             <div class="d-inline-flex align-items-center gap-2 flex-wrap">
-            <a href="{% url 'admin_portal:verification_detail' v.pk %}"
+            <a href="{% url 'admin_portal:verification_detail' v.public_id %}"
                class="btn btn-adm-sm btn-adm-outline">View</a>
             {% if v.status == 'completed' %}
             <a href="{% url 'verification:report' v.reference_number %}" target="_blank" rel="noopener noreferrer"
@@ -85,7 +85,7 @@
             <button type="button" class="btn btn-adm-sm btn-adm-outline"
                     data-bs-toggle="modal" data-bs-target="#verifyActionModal"
                     data-action="in_progress"
-                    data-pk="{{ v.pk }}"
+                    data-pk="{{ v.public_id }}"
                     data-ref="{{ v.reference_number }}"
                     data-type="{{ v.get_verification_type_display }}"
                     data-requester="{{ v.requester.username|default:'—' }}">
@@ -96,7 +96,7 @@
             <button type="button" class="btn btn-adm-sm btn-adm-success"
                     data-bs-toggle="modal" data-bs-target="#verifyActionModal"
                     data-action="complete"
-                    data-pk="{{ v.pk }}"
+                    data-pk="{{ v.public_id }}"
                     data-ref="{{ v.reference_number }}"
                     data-type="{{ v.get_verification_type_display }}"
                     data-requester="{{ v.requester.username|default:'—' }}">
@@ -105,7 +105,7 @@
             <button type="button" class="btn btn-adm-sm btn-adm-danger"
                     data-bs-toggle="modal" data-bs-target="#verifyActionModal"
                     data-action="reject"
-                    data-pk="{{ v.pk }}"
+                    data-pk="{{ v.public_id }}"
                     data-ref="{{ v.reference_number }}"
                     data-type="{{ v.get_verification_type_display }}"
                     data-requester="{{ v.requester.username|default:'—' }}">
@@ -219,8 +219,8 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Build URL: replace placeholder pk
-    const baseUrl = "{% url 'admin_portal:verification_action' 0 %}";
-    document.getElementById('verifyActionForm').action = baseUrl.replace('/0/', '/' + pk + '/');
+    const baseUrl = "{% url 'admin_portal:verification_action' '00000000-0000-0000-0000-000000000000' %}";
+    document.getElementById('verifyActionForm').action = baseUrl.replace('00000000-0000-0000-0000-000000000000', pk);
     document.getElementById('verifyActionInput').value = action;
   });
 });

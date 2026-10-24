@@ -41,7 +41,7 @@
               <td class="fw-semibold" style="font-size:0.85rem;">{{ r.title|truncatechars:45 }}</td>
               <td><span class="adm-badge adm-badge-amber" style="font-size:0.72rem;">{{ r.state }}</span></td>
               <td class="td-muted" style="font-size:0.8rem;">{{ r.created_at|date:"d M, H:i" }}</td>
-              <td><a href="{% url 'admin_portal:report_detail' r.pk %}" class="btn btn-sm btn-outline-secondary" style="font-size:0.75rem;">Review</a></td>
+              <td><a href="{% url 'admin_portal:report_detail' r.public_id %}" class="btn btn-sm btn-outline-secondary" style="font-size:0.75rem;">Review</a></td>
             </tr>
             {% endfor %}
           </tbody>
@@ -75,7 +75,7 @@
               <td style="font-size:0.85rem;">{{ d.disputant.username|default:"—" }}</td>
               <td><span class="adm-badge adm-badge-amber" style="font-size:0.72rem;">{{ d.get_status_display }}</span></td>
               <td class="td-muted" style="font-size:0.8rem;">{{ d.created_at|date:"d M, H:i" }}</td>
-              <td><a href="{% url 'admin_portal:dispute_detail' d.pk %}" class="btn btn-sm btn-outline-secondary" style="font-size:0.75rem;">Review</a></td>
+              <td><a href="{% url 'admin_portal:dispute_detail' d.public_id %}" class="btn btn-sm btn-outline-secondary" style="font-size:0.75rem;">Review</a></td>
             </tr>
             {% endfor %}
           </tbody>

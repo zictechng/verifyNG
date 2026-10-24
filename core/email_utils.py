@@ -34,6 +34,7 @@ Done — the new type is immediately available everywhere.
 
 import logging
 
+from django.conf import settings
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 
@@ -59,10 +60,14 @@ EMAIL_TEMPLATES: dict[str, str] = {
     'support_inquiry':       'emails/support_inquiry.html',
     'misconduct_receipt':    'emails/misconduct_report_receipt.html',
     'misconduct_notice':     'emails/staff_misconduct_notice.html',
+    'fraud_allegation_notice': 'emails/fraud_allegation_notice.html',
 }
 
 
-def render_email(email_type: str, context: dict) -> tuple[str, str]:
+from core.site_utils import get_dynamic_base_url
+
+
+def render_email(email_type: str, context: dict, request=None) -> tuple[str, str]:
     """
     Render an email template and return (html_body, text_body).
 
@@ -93,7 +98,7 @@ def render_email(email_type: str, context: dict) -> tuple[str, str]:
         logger.warning("SiteConfiguration lookup failed in render_email: %s", exc)
         config = None
 
-    site_url = (getattr(config, 'base_url', '') or 'https://verifyng.com').rstrip('/')
+    site_url = get_dynamic_base_url()
 
     # Build absolute logo URL for email clients (emails must use absolute URLs)
     logo_url = ''
@@ -109,7 +114,7 @@ def render_email(email_type: str, context: dict) -> tuple[str, str]:
         'site_tagline':    getattr(config, 'site_tagline', '') or 'Public Trust & Verification Platform',
         'site_url':        site_url,
         'logo_url':        logo_url,
-        'support_email':   getattr(config, 'support_email', '') or 'support@verifyng.com',
+        'support_email':   getattr(config, 'support_email', '') or getattr(settings, 'SUPPORT_EMAIL', getattr(settings, 'DEFAULT_FROM_EMAIL', 'support@localhost')),
         'company_address': getattr(config, 'company_address', '') or '',
         'company_reg':     getattr(config, 'company_reg_number', '') or '',
         'twitter_url':     getattr(config, 'twitter_url', '') or '',

@@ -132,15 +132,15 @@
       </div>
       {% else %}
       <div class="mb-3 mt-2 text-center p-2 rounded bg-light border">
-        <img src="{% url 'admin_portal:certificate_document' cert.pk %}" alt="Verification Proof Preview" class="img-fluid rounded" style="max-height:220px;object-fit:contain;"
+        <img src="{% url 'admin_portal:certificate_document' cert.public_id %}" alt="Verification Proof Preview" class="img-fluid rounded" style="max-height:220px;object-fit:contain;"
              onerror="this.parentElement.style.display='none';">
       </div>
       {% endif %}
       <div class="d-flex flex-wrap gap-2 pt-2 border-top">
-        <a href="{% url 'admin_portal:certificate_document' cert.pk %}" target="_blank" rel="noopener noreferrer" class="btn btn-adm-primary btn-sm px-3 d-inline-flex align-items-center">
+        <a href="{% url 'admin_portal:certificate_document' cert.public_id %}" target="_blank" rel="noopener noreferrer" class="btn btn-adm-primary btn-sm px-3 d-inline-flex align-items-center">
           <i class="bi bi-box-arrow-up-right me-1"></i>Open Document in New Tab
         </a>
-        <a href="{% url 'admin_portal:certificate_document' cert.pk %}?download=1" class="btn btn-adm-outline btn-sm px-3 d-inline-flex align-items-center">
+        <a href="{% url 'admin_portal:certificate_document' cert.public_id %}?download=1" class="btn btn-adm-outline btn-sm px-3 d-inline-flex align-items-center">
           <i class="bi bi-download me-1"></i>Download Proof
         </a>
       </div>

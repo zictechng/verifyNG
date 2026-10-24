@@ -5,6 +5,18 @@
 {% block title %}Account & Profile | {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
 
 {% block content %}
+<script>
+    // Desktop redirect guard: Account Hub is reserved for mobile & tablet screens (< 992px)
+    if (window.innerWidth >= 992 && !window.location.search.includes('view=mobile')) {
+        {% if request.user.role in 'employer,agency,business' %}
+            window.location.replace("{% url 'employer:dashboard' %}");
+        {% elif request.user.is_staff or request.user.role in 'moderator,officer' %}
+            window.location.replace("{% url 'admin_portal:overview' %}");
+        {% else %}
+            window.location.replace("{% url 'dashboard:index' %}");
+        {% endif %}
+    }
+</script>
 <div class="container py-3 py-md-4" style="max-width: 520px;">
 
     <!-- Title -->
@@ -288,6 +300,24 @@
                 </div>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="vng-chevron text-danger"><polyline points="9 18 15 12 9 6"/></svg>
             </a>
+            <!-- Dispute (Available to all users/members) -->
+            <a href="{% url 'reports:my_disputes' %}" class="vng-menu-item">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="vng-menu-icon" style="color: #DC2626;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                    </div>
+                    <div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="vng-item-title">Dispute &amp; Right-of-Response</span>
+                            {% if pending_allegations_count > 0 %}
+                            <span class="badge rounded-pill bg-danger" style="font-size:10px;">{{ pending_allegations_count }} action required</span>
+                            {% endif %}
+                        </div>
+                        <div class="vng-item-desc">View and respond to any report filed against you or your entity</div>
+                    </div>
+                </div>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="vng-chevron"><polyline points="9 18 15 12 9 6"/></svg>
+            </a>
             
             {% elif request.user.is_superuser or request.user.is_staff or request.user.role in 'moderator,officer' %}
             <!-- ── OFFICER / ADMIN ACTIONS ──────────────────────────────── -->
@@ -350,7 +380,7 @@
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
                     </div>
                     <div>
-                        <div class="vng-item-title">My Certificates</div>
+                        <div class="vng-item-title">My Certificates (TrustPass)</div>
                         <div class="vng-item-desc">View and download your TrustPass certificates</div>
                     </div>
                 </div>
@@ -377,7 +407,7 @@
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                     </div>
                     <div>
-                        <div class="vng-item-title">Who Checked Me</div>
+                        <div class="vng-item-title">Who Checked Me (TrustPass)</div>
                         <div class="vng-item-desc">See which employers and organizations verified you</div>
                     </div>
                 </div>
@@ -390,7 +420,7 @@
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>
                     </div>
                     <div>
-                        <div class="vng-item-title">Apply for TrustPass</div>
+                        <div class="vng-item-title">Apply for Certificate</div>
                         <div class="vng-item-desc">Issue a verifiable background credential</div>
                     </div>
                 </div>
@@ -403,8 +433,27 @@
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
                     </div>
                     <div>
-                        <div class="vng-item-title">My Submitted Reports</div>
+                        <div class="vng-item-title">Fraud Reports</div>
                         <div class="vng-item-desc">Track filed fraud reports and provide additional evidence</div>
+                    </div>
+                </div>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="vng-chevron"><polyline points="9 18 15 12 9 6"/></svg>
+            </a>
+
+            <!-- Dispute (Available to all users/members) -->
+            <a href="{% url 'reports:my_disputes' %}" class="vng-menu-item">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="vng-menu-icon" style="color: #DC2626;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                    </div>
+                    <div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="vng-item-title">Dispute &amp; Right-of-Response</span>
+                            {% if pending_allegations_count > 0 %}
+                            <span class="badge rounded-pill bg-danger" style="font-size:10px;">{{ pending_allegations_count }} action required</span>
+                            {% endif %}
+                        </div>
+                        <div class="vng-item-desc">View and respond to any report filed against you or your entity</div>
                     </div>
                 </div>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="vng-chevron"><polyline points="9 18 15 12 9 6"/></svg>

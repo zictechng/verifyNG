@@ -89,7 +89,7 @@
         {% for cert in certificates %}
         <tr>
           <td>
-            <a href="/admin-portal/certificates/{{ cert.pk }}/"
+            <a href="/admin-portal/certificates/{{ cert.public_id }}/"
                class="font-monospace fw-semibold small text-decoration-none"
                style="color:var(--adm-accent);">{{ cert.certificate_id }}</a>
           </td>
@@ -139,7 +139,7 @@
             <div class="d-flex gap-1 justify-content-end">
               {% if cert.status != 'active' %}
               <button class="btn btn-success btn-sm cert-action-btn"
-                      data-pk="{{ cert.pk }}"
+                      data-pk="{{ cert.public_id }}"
                       data-action="activate"
                       data-cert-id="{{ cert.certificate_id }}"
                       title="Activate">
@@ -148,7 +148,7 @@
               {% endif %}
               {% if cert.status == 'active' or cert.status == 'pending' %}
               <button class="btn btn-warning btn-sm cert-action-btn"
-                      data-pk="{{ cert.pk }}"
+                      data-pk="{{ cert.public_id }}"
                       data-action="suspend"
                       data-cert-id="{{ cert.certificate_id }}"
                       title="Suspend">
@@ -157,7 +157,7 @@
               {% endif %}
               {% if cert.status != 'revoked' %}
               <button class="btn btn-danger btn-sm cert-action-btn"
-                      data-pk="{{ cert.pk }}"
+                      data-pk="{{ cert.public_id }}"
                       data-action="revoke"
                       data-cert-id="{{ cert.certificate_id }}"
                       title="Revoke">

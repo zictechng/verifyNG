@@ -1,40 +1,73 @@
-
 {% extends 'public/base.html' %}
 {% load static %}
 
-{% block title %}File Dispute | Report {{ report.reference_number }}{% endblock %}
+{% block title %}
+    {% if existing_disputes %}Submit Additional Defense{% elif report.state == 'published' %}Dispute Report{% else %}Fair-Hearing Defense{% endif %} | {{ report.reference_number }}
+{% endblock %}
 
 {% block content %}
-<div class="container py-4 py-md-5">
-    <div class="row justify-content-center">
-        <div class="col-lg-7 col-md-9">
-            <div class="text-center mb-4">
-                <span class="vng-badge-trust mb-2">Right-of-Response</span>
-                <h1 class="h3 fw-bold">
-                    {% if report.state == 'published' %}Dispute Published Report{% else %}Submit Fair-Hearing Defense{% endif %}
-                </h1>
-                <p class="small text-muted mb-0">
-                    {% if report.state == 'published' %}
-                        Contest an allegation, submit proof of transaction fulfillment, or explain context.
-                    {% else %}
-                        Submit your statement and counter-evidence within your 7-day fair-hearing notice period.
-                    {% endif %}
-                </p>
-            </div>
+<div class="container-fluid px-3 px-md-4 px-xl-5 py-4 py-md-5" style="max-width: 1400px;">
 
-            <!-- Target Report Reference Card -->
-            <div class="card mb-4 border-0 shadow-sm">
-                <div class="card-body p-3 bg-light rounded-3 border">
-                    <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-2">
-                        <span class="small text-muted">Disputing Report:</span>
-                        <span class="badge bg-secondary font-monospace">{{ report.reference_number }}</span>
-                    </div>
-                    <h6 class="fw-bold mb-1">{{ report.title }}</h6>
-                    <p class="small text-muted mb-0">Subject: {{ report.target_subject.name }} ({{ report.target_subject.get_type_display }})</p>
+    <!-- Top Navigation Standard Breadcrumb Link -->
+    <div class="mb-3">
+        <a href="{% url 'reports:my_disputes' %}" class="text-decoration-none small text-muted d-inline-flex align-items-center gap-1">
+            <span>&larr;</span>
+            <span>Back to Disputes &amp; Allegations</span>
+        </a>
+    </div>
+
+    <!-- Page Heading Header -->
+    <div class="mb-4">
+        <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+            <span class="vng-badge-trust">Right of Response</span>
+            {% if report.is_misconduct %}
+                <span class="badge bg-warning text-dark">Workplace Misconduct</span>
+            {% else %}
+                <span class="badge bg-secondary">Fraud Allegation</span>
+            {% endif %}
+            {% if existing_disputes %}
+                <span class="badge bg-info text-dark">Addendum / Follow-up</span>
+            {% endif %}
+        </div>
+        <h1 class="h3 fw-bold mb-1">
+            {% if existing_disputes %}
+                Submit Additional Defense or Counter-Evidence
+            {% elif report.state == 'published' %}
+                Dispute Published Allegation
+            {% else %}
+                Submit Fair-Hearing Defense Statement
+            {% endif %}
+        </h1>
+        <p class="text-muted small mb-0">
+            Review the complaint details on the right, then submit your formal factual rebuttal and counter-evidentiary documents under constitutional due process.
+        </p>
+    </div>
+
+    <!-- Side-by-Side Responsive Grid -->
+    <div class="row g-4 align-items-start">
+
+        <!-- ======================================================== -->
+        <!-- LEFT COLUMN: The Response Form (Desktop Left)            -->
+        <!-- On Mobile (< lg): order-2 (appears below the complaint)  -->
+        <!-- ======================================================== -->
+        <div class="col-lg-6 col-xl-6 order-2 order-lg-1">
+            <div class="vng-card p-4 p-md-5 shadow-sm"
+                 x-data="disputeUploadComponent()"
+                 x-cloak>
+
+                <div class="border-bottom pb-3 mb-4">
+                    <h5 class="fw-bold mb-1">
+                        {% if existing_disputes %}
+                            Addendum Statement &amp; Additional Counter-Evidence
+                        {% else %}
+                            Your Formal Statement of Defense
+                        {% endif %}
+                    </h5>
+                    <p class="small text-muted mb-0">
+                        Explain your factual account of the situation with transaction references, dates, or context. Attach proof of delivery, settlement receipts, or legal records.
+                    </p>
                 </div>
-            </div>
 
-            <div class="vng-card p-4 p-md-5">
                 {% if form.non_field_errors %}
                     <div class="alert alert-danger mb-4" role="alert">
                         {% for error in form.non_field_errors %}
@@ -43,37 +76,406 @@
                     </div>
                 {% endif %}
 
-                <form method="post" enctype="multipart/form-data" novalidate x-data="{ submitting: false }" @submit="submitting = true">
+                <form method="post" enctype="multipart/form-data" novalidate @submit="handleSubmit($event)">
                     {% csrf_token %}
-                    <div class="mb-3">
-                        <label for="{{ form.reason.id_for_label }}" class="form-label small fw-semibold">Statement of Defense / Dispute <span class="text-danger">*</span></label>
-                        {{ form.reason }}
-                        <div class="form-text small">Explain your factual account of the situation with dates and references.</div>
+
+                    <!-- Statement of Defense / Reason -->
+                    <div class="mb-4">
+                        <label for="{{ form.reason.id_for_label }}" class="form-label small fw-semibold">
+                            Statement of Defense / Rebuttal <span class="text-danger">*</span>
+                        </label>
+                        <textarea name="reason"
+                                  id="{{ form.reason.id_for_label }}"
+                                  rows="7"
+                                  class="form-control"
+                                  :class="{'is-invalid': errors.reason}"
+                                  placeholder="State your side of the encounter factually and objectively with specific dates, payment details, agreements, or context..."
+                                  x-model="reasonText"
+                                  @input="if (reasonText.trim().length >= 20) errors.reason = ''">{{ form.reason.value|default:'' }}</textarea>
+                        
+                        <div class="d-flex justify-content-between align-items-center mt-1">
+                            <div class="form-text small" x-show="!errors.reason">
+                                Be factual and clear (minimum 20 characters).
+                            </div>
+                            <div class="invalid-feedback d-block small" x-show="errors.reason" x-text="errors.reason" x-cloak></div>
+                            <div class="text-muted small" style="font-size:0.75rem;" x-text="reasonText.length + ' chars'"></div>
+                        </div>
                         {% if form.reason.errors %}
                             <div class="text-danger small mt-1">{{ form.reason.errors.0 }}</div>
                         {% endif %}
                     </div>
+
+                    <!-- Supporting Counter-Evidence Document Dropzone -->
                     <div class="mb-4">
-                        <label for="{{ form.counter_evidence.id_for_label }}" class="form-label small fw-semibold">Supporting Counter-Evidence Document</label>
-                        {{ form.counter_evidence }}
-                        <div class="form-text small">Attach resignation letters, payment receipts, delivery slips, or chat records (PDF, PNG, JPG).</div>
+                        <label class="form-label small fw-semibold mb-1">
+                            Supporting Counter-Evidence Document (Optional)
+                        </label>
+                        <p class="small text-muted mb-2" style="font-size:0.83rem;line-height:1.45;">
+                            Attach payment receipts, signed agreement, delivery receipts, WhatsApp chat export, bank statement proving resolution, court judgment, police report / extract, or sworn affidavit.
+                        </p>
+
+                        <div class="vng-dropzone position-relative p-4 text-center rounded border border-2 border-dashed"
+                             tabindex="0"
+                             role="button"
+                             aria-label="Upload counter-evidence file"
+                             style="cursor: pointer; background: #FAFBFD; transition: all 0.2s ease;"
+                             :class="{
+                                 'border-primary bg-light shadow-sm': isDragging,
+                                 'border-danger bg-danger-subtle': errors.file
+                             }"
+                             @dragover.prevent="isDragging = true"
+                             @dragleave.prevent="isDragging = false"
+                             @drop.prevent="handleDrop($event)">
+
+                            <input type="file"
+                                   name="counter_evidence"
+                                   id="{{ form.counter_evidence.id_for_label }}"
+                                   class="position-absolute top-0 start-0 w-100 h-100 opacity-0 cursor-pointer"
+                                   style="z-index: 2; cursor: pointer;"
+                                   @change="handleFileSelect($event)"
+                                   accept=".png,.jpg,.jpeg,.pdf,.doc,.docx,.webp">
+
+                            <!-- Prompt state -->
+                            <template x-if="!fileName">
+                                <div>
+                                    <div class="vng-dropzone-icon mb-2">
+                                        <div class="rounded-circle d-inline-flex align-items-center justify-content-center" style="width:48px;height:48px;background:#EFF6FF;color:#2563EB;">
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                        </div>
+                                    </div>
+                                    <div class="fw-semibold small text-dark mb-1">Drag &amp; drop or click to choose counter-evidence</div>
+                                    <div class="text-muted small" style="font-size:0.75rem;">
+                                        PDF, PNG, JPG, WEBP, DOCX &bull; Court Judgment, Police Report, Receipts (Max 10 MB)
+                                    </div>
+                                </div>
+                            </template>
+
+                            <!-- File selected state -->
+                            <template x-if="fileName">
+                                <div class="d-flex align-items-center justify-content-center gap-3">
+                                    <template x-if="isImage && imagePreview">
+                                        <img :src="imagePreview" alt="Evidence Preview" style="max-height: 55px; max-width: 75px; object-fit: cover;" class="rounded border shadow-sm">
+                                    </template>
+                                    <template x-if="!isImage">
+                                        <div class="rounded d-inline-flex align-items-center justify-content-center" style="width:44px;height:44px;background:#F1F5F9;color:#475569;">
+                                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                                        </div>
+                                    </template>
+                                    <div class="text-start">
+                                        <div class="fw-bold text-primary small" x-text="fileName"></div>
+                                        <div class="text-muted small" x-text="fileSize"></div>
+                                        <button type="button" @click.stop.prevent="clearFile()" class="btn btn-link text-danger p-0 small text-decoration-none mt-1" style="font-size:0.75rem;">
+                                            &times; Remove selected file
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+
+                        <div class="text-danger small mt-2 fw-semibold" x-show="errors.file" x-text="errors.file" x-cloak></div>
                         {% if form.counter_evidence.errors %}
                             <div class="text-danger small mt-1">{{ form.counter_evidence.errors.0 }}</div>
                         {% endif %}
                     </div>
-                    <div class="d-flex gap-2 align-items-center">
-                        <a href="{% url 'reports:detail' report.reference_number %}" class="btn btn-vng-outline py-2 px-3" :disabled="submitting">
+
+                    <!-- Good Faith Confirmation Checkbox -->
+                    <div class="form-check p-3 rounded mb-4" style="background:#F8FAFC;border:1px solid #E2E8F0;">
+                        <input class="form-check-input" type="checkbox" id="goodFaithCheck" x-model="confirmedGoodFaith" required>
+                        <label class="form-check-label small text-dark" for="goodFaithCheck">
+                            <strong>Fair-Hearing Declaration:</strong> I confirm that this statement and any attached documents represent a truthful account of the matter and are submitted in good faith for moderation review.
+                        </label>
+                    </div>
+
+                    <!-- Actions Row with Back/Cancel Button -->
+                    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-stretch align-items-sm-center gap-2 pt-2 border-top">
+                        <a href="{% url 'reports:my_disputes' %}" class="btn btn-outline-secondary py-2 px-3 text-center" :disabled="submitting">
                             Cancel
                         </a>
-                        <button type="submit" class="btn btn-vng-primary flex-grow-1 py-2 d-inline-flex align-items-center justify-content-center" :disabled="submitting">
-                            <span x-show="!submitting">Submit Formal Response &rarr;</span>
+                        <button type="submit"
+                                class="btn btn-vng-primary py-2 px-4 d-inline-flex align-items-center justify-content-center"
+                                :disabled="!confirmedGoodFaith || submitting">
+                            <span x-show="!submitting">
+                                {% if existing_disputes %}Submit Additional Defense &rarr;{% else %}Submit &rarr;{% endif %}
+                            </span>
                             <span x-show="submitting" x-cloak class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                            <span x-show="submitting" x-cloak>Submitting Response...</span>
+                            <span x-show="submitting" x-cloak>Submitting...</span>
                         </button>
                     </div>
                 </form>
             </div>
         </div>
+
+        <!-- ======================================================== -->
+        <!-- RIGHT COLUMN: Complainant's Claim Dossier (Desktop Right) -->
+        <!-- On Mobile (< lg): order-1 (appears first at top)         -->
+        <!-- Sticky on desktop so respondent can reference while typing-->
+        <!-- ======================================================== -->
+        <div class="col-lg-6 col-xl-6 order-1 order-lg-2">
+            <div class="sticky-lg-top" style="top: 24px; z-index: 10;">
+
+                <!-- Dossier Card -->
+                <div class="card border-0 shadow-sm mb-4" style="background:#FFFFFF;border:1px solid #E2E8F0 !important;">
+                    <div class="card-header bg-light border-bottom py-3 d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center gap-2">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                            <span class="fw-bold small text-uppercase text-secondary">Complainant Allegation Dossier</span>
+                        </div>
+                        <span class="font-monospace fw-bold small text-primary bg-white px-2 py-1 rounded border">
+                            {{ report.reference_number }}
+                        </span>
+                    </div>
+
+                    <div class="card-body p-3 p-md-4">
+                        <!-- Title & Dates -->
+                        <div class="mb-3">
+                            <h5 class="fw-bold text-dark mb-1">{{ report.title }}</h5>
+                            <div class="d-flex flex-wrap align-items-center gap-2 text-muted small" style="font-size:0.8rem;">
+                                <span><strong>Filed:</strong> {{ report.created_at|date:"d M Y, H:i" }}</span>
+                                {% if report.incident_date %}
+                                    <span>&bull;</span>
+                                    <span><strong>Incident Date:</strong> {{ report.incident_date|date:"d M Y" }}</span>
+                                {% endif %}
+                                <span>&bull;</span>
+                                <span><strong>Status:</strong> {{ report.get_state_display }}</span>
+                            </div>
+                        </div>
+
+                        <!-- Target Subject Details Filed on Record -->
+                        <div class="p-3 rounded mb-3" style="background:#F8FAFC;border:1px solid #E2E8F0;">
+                            <div class="small fw-semibold text-muted text-uppercase mb-2" style="font-size:0.75rem;">Subject Information on Record</div>
+                            <div class="row g-2 small" style="font-size:0.83rem;">
+                                <div class="col-sm-6">
+                                    <span class="text-muted">Target Name / Entity:</span>
+                                    <span class="fw-semibold ms-1 text-dark">{{ report.target_subject.name }} ({{ report.target_subject.get_type_display }})</span>
+                                </div>
+                                {% if report.suspect_phone %}
+                                <div class="col-sm-6">
+                                    <span class="text-muted">Reported Phone:</span>
+                                    <span class="fw-semibold ms-1 text-dark">{{ report.suspect_phone }}</span>
+                                </div>
+                                {% endif %}
+                                {% if report.suspect_email %}
+                                <div class="col-sm-6">
+                                    <span class="text-muted">Reported Email:</span>
+                                    <span class="fw-semibold ms-1 text-dark">{{ report.suspect_email }}</span>
+                                </div>
+                                {% endif %}
+                                {% if report.suspect_bank_account or report.suspect_bank_name %}
+                                <div class="col-sm-6">
+                                    <span class="text-muted">Reported Bank:</span>
+                                    <span class="fw-semibold ms-1 text-dark">{{ report.suspect_bank_account }} {% if report.suspect_bank_name %}({{ report.suspect_bank_name }}){% endif %}</span>
+                                </div>
+                                {% endif %}
+                                {% if report.suspect_cac_number %}
+                                <div class="col-sm-6">
+                                    <span class="text-muted">CAC Registration:</span>
+                                    <span class="fw-semibold ms-1 text-dark">{{ report.suspect_cac_number }}</span>
+                                </div>
+                                {% endif %}
+                                {% if report.suspect_location or report.suspect_city or report.suspect_state %}
+                                <div class="col-sm-12">
+                                    <span class="text-muted">Reported Location:</span>
+                                    <span class="fw-semibold ms-1 text-dark">
+                                        {{ report.suspect_location }}{% if report.suspect_location and report.suspect_city %}, {% endif %}{{ report.suspect_city }}{% if report.suspect_city and report.suspect_state %}, {% endif %}{{ report.suspect_state }}
+                                    </span>
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Workplace Misconduct Profile details (if workplace report) -->
+                            {% if report.is_misconduct and report.misconduct_profile %}
+                            <hr class="my-2" style="border-color:#CBD5E1;">
+                            <div class="small fw-semibold text-muted text-uppercase mb-2" style="font-size:0.75rem;">Workplace Credential Context</div>
+                            <div class="row g-2 small" style="font-size:0.83rem;">
+                                <div class="col-sm-6">
+                                    <span class="text-muted">Reporting Employer:</span>
+                                    <span class="fw-semibold ms-1 text-dark">{{ report.misconduct_profile.employer.company_name }}</span>
+                                </div>
+                                {% if report.misconduct_profile.certificate_number %}
+                                <div class="col-sm-6">
+                                    <span class="text-muted">Certificate ID:</span>
+                                    <span class="font-monospace fw-semibold ms-1 text-dark">{{ report.misconduct_profile.certificate_number }}</span>
+                                </div>
+                                {% endif %}
+                                <div class="col-sm-6">
+                                    <span class="text-muted">Misconduct Category:</span>
+                                    <span class="badge bg-warning text-dark ms-1">{{ report.misconduct_profile.get_misconduct_type_display }}</span>
+                                </div>
+                                {% if report.misconduct_profile.employment_start_date %}
+                                <div class="col-sm-6">
+                                    <span class="text-muted">Employment Term:</span>
+                                    <span class="fw-semibold ms-1 text-dark">
+                                        {{ report.misconduct_profile.employment_start_date|date:"M Y" }} &ndash; {{ report.misconduct_profile.employment_end_date|date:"M Y"|default:"Present" }}
+                                    </span>
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Full Complainant Allegation Narrative -->
+                        <div class="mb-3">
+                            <label class="small fw-bold text-uppercase text-muted mb-2" style="font-size:0.75rem;">Complainant Allegation Statement:</label>
+                            <div class="p-3 rounded" style="background:#FFFBEB;border:1px solid #FDE68A;border-left:4px solid #D97706;font-size:0.92rem;line-height:1.6;color:#1E293B;white-space:pre-wrap;max-height:280px;overflow-y:auto;">{{ report.allegation }}</div>
+                        </div>
+
+                        <!-- Complainant's Attached Evidence Files -->
+                        <div>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="small fw-bold text-uppercase text-muted" style="font-size:0.75rem;">Attached Complainant Evidence ({{ report.evidence_files.count }})</span>
+                            </div>
+                            {% if report.evidence_files.all %}
+                                <div class="list-group list-group-flush border rounded overflow-hidden">
+                                    {% for ev in report.evidence_files.all %}
+                                    <div class="list-group-item d-flex flex-wrap justify-content-between align-items-center gap-2 p-2.5 bg-white">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="badge bg-secondary" style="font-size:0.7rem;">{{ ev.get_file_type_display }}</span>
+                                            <span class="small text-dark text-truncate" style="max-width:200px;">{{ ev.description|default:"Evidence Document" }}</span>
+                                        </div>
+                                        <div class="d-inline-flex align-items-center gap-1">
+                                            <a href="{% url 'reports:evidence_download' ev.id %}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary py-1 px-2" style="font-size:0.75rem;">
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                                View
+                                            </a>
+                                            <a href="{% url 'reports:evidence_download' ev.id %}?download=1" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-secondary py-1 px-2" style="font-size:0.75rem;" title="Download evidence file">
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                            </a>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="p-2.5 rounded bg-light border text-muted small" style="font-size:0.8rem;">
+                                    No physical evidence documents were attached by the complainant to this initial report.
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Prior Defense History Card (If User Already Responded) -->
+                {% if existing_disputes %}
+                <div class="card border-0 shadow-sm mb-3" style="background:#F0FDF4;border:1px solid #BBF7D0 !important;">
+                    <div class="card-header bg-transparent border-bottom py-2.5 d-flex justify-content-between align-items-center">
+                        <span class="small fw-bold text-success text-uppercase" style="font-size:0.75rem;">
+                            Your Prior Submission{{ existing_disputes.count|pluralize }} ({{ existing_disputes.count }})
+                        </span>
+                        <span class="badge bg-success bg-opacity-25 text-success" style="font-size:0.7rem;">Active on File</span>
+                    </div>
+                    <div class="card-body p-3">
+                        {% for disp in existing_disputes %}
+                            <div class="p-2.5 mb-2 rounded bg-white border">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="small fw-semibold text-dark" style="font-size:0.8rem;">Submission #{{ forloop.counter }} &bull; {{ disp.created_at|date:"d M Y, H:i" }}</span>
+                                    <span class="badge bg-warning text-dark" style="font-size:0.7rem;">{{ disp.get_status_display }}</span>
+                                </div>
+                                <p class="small text-muted mb-2" style="white-space:pre-wrap;font-size:0.82rem;">{{ disp.reason }}</p>
+                                {% if disp.counter_evidence %}
+                                    <div class="d-flex align-items-center justify-content-between p-1.5 rounded bg-light border small" style="font-size:0.78rem;">
+                                        <span class="text-truncate" style="max-width:240px;">
+                                            <strong>Document:</strong> {{ disp.counter_evidence.name|cut:"disputes/" }}
+                                        </span>
+                                        <a href="{% url 'reports:dispute_counter_evidence' disp.id %}" target="_blank" rel="noopener noreferrer" class="btn btn-xs btn-outline-success py-0.5 px-2" style="font-size:0.72rem;">
+                                            View &rarr;
+                                        </a>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+            </div>
+        </div>
+
     </div>
 </div>
+
+<script>
+function disputeUploadComponent() {
+    return {
+        submitting: false,
+        isDragging: false,
+        fileName: '',
+        fileSize: '',
+        isImage: false,
+        imagePreview: null,
+        reasonText: '{{ form.reason.value|default:""|escapejs }}',
+        confirmedGoodFaith: false,
+        errors: {
+            reason: '',
+            file: ''
+        },
+        handleDrop(e) {
+            this.isDragging = false;
+            const files = e.dataTransfer.files;
+            if (files && files.length > 0) {
+                const input = document.getElementById('{{ form.counter_evidence.id_for_label }}');
+                if (input) {
+                    input.files = files;
+                }
+                this.processFile(files[0]);
+            }
+        },
+        handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (file) {
+                this.processFile(file);
+            }
+        },
+        processFile(file) {
+            this.errors.file = '';
+            // 10 MB limit
+            if (file.size > 10 * 1024 * 1024) {
+                this.errors.file = 'File size exceeds 10 MB limit.';
+                this.clearFile();
+                return;
+            }
+            const allowed = ['.png', '.jpg', '.jpeg', '.pdf', '.doc', '.docx', '.webp'];
+            const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+            if (!allowed.includes(ext)) {
+                this.errors.file = 'Unsupported format. Allowed: PDF, PNG, JPG, WEBP, DOCX.';
+                this.clearFile();
+                return;
+            }
+            this.fileName = file.name;
+            this.fileSize = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+            if (file.type.startsWith('image/')) {
+                this.isImage = true;
+                const reader = new FileReader();
+                reader.onload = (ev) => { this.imagePreview = ev.target.result; };
+                reader.readAsDataURL(file);
+            } else {
+                this.isImage = false;
+                this.imagePreview = null;
+            }
+        },
+        clearFile() {
+            this.fileName = '';
+            this.fileSize = '';
+            this.isImage = false;
+            this.imagePreview = null;
+            const input = document.getElementById('{{ form.counter_evidence.id_for_label }}');
+            if (input) {
+                input.value = '';
+            }
+        },
+        handleSubmit(e) {
+            this.errors.reason = '';
+            this.errors.file = '';
+            if (!this.reasonText || this.reasonText.trim().length < 20) {
+                this.errors.reason = 'Please provide a detailed defense statement (at least 20 characters).';
+                e.preventDefault();
+                return;
+            }
+            if (!this.confirmedGoodFaith) {
+                e.preventDefault();
+                return;
+            }
+            this.submitting = true;
+        }
+    };
+}
+</script>
 {% endblock %}

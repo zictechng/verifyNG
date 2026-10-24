@@ -737,7 +737,7 @@
         <a href="{% url 'admin_portal:reports' %}"
            class="adm-nav-link {% if request.resolver_match.url_name == 'report_queue' %}active{% endif %}">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-            Reports Queue
+            Fraud Reports
         </a>
         <a href="{% url 'admin_portal:disputes' %}"
            class="adm-nav-link {% if request.resolver_match.url_name == 'disputes' %}active{% endif %}">
@@ -747,12 +747,12 @@
         <a href="{% url 'admin_portal:verifications' %}"
            class="adm-nav-link {% if request.resolver_match.url_name == 'verifications' %}active{% endif %}">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-            Verifications
+            Verifications Request
         </a>
         <a href="{% url 'admin_portal:certificates' %}"
            class="adm-nav-link {% if request.resolver_match.url_name == 'certificates' %}active{% endif %}">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>
-            Certificates
+            TrustPass Certificates
         </a>
     </nav>
 

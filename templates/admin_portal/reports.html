@@ -57,7 +57,7 @@
         </td>
         <td>{{ r.created_at|date:"d M Y" }}</td>
         <td>
-          <a href="{% url 'admin_portal:report_detail' r.pk %}" class="btn btn-adm-sm btn-adm-outline">Review</a>
+          <a href="{% url 'admin_portal:report_detail' r.public_id %}" class="btn btn-adm-sm btn-adm-outline">Review</a>
         </td>
       </tr>
       {% endfor %}

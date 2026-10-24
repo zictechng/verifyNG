@@ -95,7 +95,7 @@
       </div>
       <div class="p-0">
         {% for r in pending_reports_qs %}
-        <a href="{% url 'admin_portal:report_detail' r.pk %}"
+        <a href="{% url 'admin_portal:report_detail' r.public_id %}"
            class="d-flex align-items-center justify-content-between px-3 py-2 text-decoration-none"
            style="border-bottom:1px solid var(--adm-border);color:inherit;">
           <span class="small text-truncate me-2">{{ r.title|truncatechars:32 }}</span>
@@ -124,7 +124,7 @@
       </div>
       <div class="p-0">
         {% for d in open_disputes_qs %}
-        <a href="{% url 'admin_portal:dispute_detail' d.pk %}"
+        <a href="{% url 'admin_portal:dispute_detail' d.public_id %}"
            class="d-flex align-items-center justify-content-between px-3 py-2 text-decoration-none"
            style="border-bottom:1px solid var(--adm-border);color:inherit;">
           <span class="small text-truncate me-2">{{ d.disputant.username|default:"Unknown" }}</span>

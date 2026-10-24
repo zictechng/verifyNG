@@ -329,7 +329,8 @@ def _send_monitor_alert_email(monitor, previous_flags: int, current_flags: int) 
         return
 
     site_name = getattr(settings, 'SITE_NAME', 'VerifyNG')
-    site_url  = getattr(settings, 'SITE_BASE_URL', 'https://verifyng.com')
+    from core.email_utils import get_dynamic_base_url
+    site_url = get_dynamic_base_url()
 
     ctx = {
         # Email base context

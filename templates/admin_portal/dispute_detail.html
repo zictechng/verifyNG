@@ -1,27 +1,34 @@
-
 {% extends "admin_portal/base_admin.html" %}
-{% block title %}Dispute #{{ dispute.pk }} — VerifyNG Admin{% endblock %}
+{% block title %}Dispute for {{ dispute.report.reference_number }} — VerifyNG Admin{% endblock %}
 
 {% block admin_body %}
-<div class="adm-page-header d-flex align-items-center gap-3">
-  <a href="{% url 'admin_portal:disputes' %}" class="btn btn-outline-secondary btn-sm">
-    <i class="bi bi-arrow-left"></i> Back to Disputes
-  </a>
+<div class="adm-page-header d-flex align-items-center justify-content-between flex-wrap gap-3">
+  <div class="d-flex align-items-center gap-3">
+    <a href="{% url 'admin_portal:disputes' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-arrow-left"></i> Back to Disputes
+    </a>
+    <div>
+      <h1 class="adm-page-title mb-0">Dispute Review</h1>
+      <p class="adm-page-sub mb-0 text-muted">
+        Allegation Ref: <code class="fw-bold">{{ dispute.report.reference_number }}</code>
+        &nbsp;·&nbsp;
+        {% if dispute.status == 'opened' or dispute.status == 'under_review' %}
+          <span class="badge bg-warning text-dark">{{ dispute.get_status_display }}</span>
+        {% elif dispute.status == 'accepted' or dispute.status == 'upheld' %}
+          <span class="badge bg-success">Upheld / Accepted</span>
+        {% elif dispute.status == 'rejected' %}
+          <span class="badge bg-danger">Rejected</span>
+        {% else %}
+          <span class="badge bg-secondary">{{ dispute.get_status_display }}</span>
+        {% endif %}
+      </p>
+    </div>
+  </div>
   <div>
-    <h1 class="adm-page-title mb-0">Dispute #{{ dispute.pk }}</h1>
-    <p class="adm-page-sub mb-0">
-      Filed against report <code>{{ dispute.report.reference_number }}</code>
-      &nbsp;·&nbsp;
-      {% if dispute.status == 'opened' or dispute.status == 'under_review' %}
-        <span class="badge bg-warning text-dark">{{ dispute.get_status_display }}</span>
-      {% elif dispute.status == 'upheld' %}
-        <span class="badge bg-success">Upheld</span>
-      {% elif dispute.status == 'rejected' %}
-        <span class="badge bg-danger">Rejected</span>
-      {% else %}
-        <span class="badge bg-secondary">{{ dispute.get_status_display }}</span>
-      {% endif %}
-    </p>
+    <a href="{% url 'admin_portal:report_detail' dispute.report.public_id %}"
+       class="btn btn-adm-sm btn-adm-outline" target="_blank">
+      <i class="bi bi-box-arrow-up-right me-1"></i> Open Full Allegation Report
+    </a>
   </div>
 </div>
 
@@ -29,37 +36,37 @@
 
 <div class="row g-4">
 
-  <!-- Left: Report + Dispute content -->
+  <!-- Left: Original Report, Due Process Defense, and Rebuttal Dossier -->
   <div class="col-lg-7">
 
-    <!-- Original Report -->
+    <!-- Original Allegation Card -->
     <div class="adm-card mb-4">
-      <div class="adm-card-header">Original Fraud Report</div>
+      <div class="adm-card-header d-flex justify-content-between align-items-center">
+        <span>Stage 1: Original Complainant Allegation</span>
+        <span class="adm-badge adm-badge-blue">State: {{ dispute.report.get_state_display }}</span>
+      </div>
       <div class="p-4">
         <div class="row g-3 mb-3">
           <div class="col-md-6">
-            <div class="fw-semibold small" style="color:var(--adm-muted);">Reference</div>
-            <code class="fs-6">{{ dispute.report.reference_number }}</code>
-          </div>
-          <div class="col-md-6">
-            <div class="fw-semibold small" style="color:var(--adm-muted);">Current State</div>
-            <span class="badge bg-secondary fs-6">{{ dispute.report.state }}</span>
-          </div>
-          <div class="col-md-6">
-            <div class="fw-semibold small" style="color:var(--adm-muted);">Reporter</div>
-            <div>{{ dispute.report.reporter.username|default:"Anonymous" }}</div>
-          </div>
-          <div class="col-md-6">
-            <div class="fw-semibold small" style="color:var(--adm-muted);">Subject</div>
-            <div>{{ dispute.report.target_subject.name|default:"—" }}</div>
-          </div>
-          <div class="col-12">
-            <div class="fw-semibold small mb-1" style="color:var(--adm-muted);">Title</div>
+            <div class="fw-semibold small" style="color:var(--adm-muted);">Allegation Title</div>
             <div class="fw-semibold">{{ dispute.report.title }}</div>
           </div>
-          <div class="col-12">
-            <div class="fw-semibold small mb-1" style="color:var(--adm-muted);">Allegation</div>
-            <div class="p-3 rounded small" style="background:var(--adm-surface-alt,#f8fafc);border:1px solid var(--adm-border);white-space:pre-wrap;">{{ dispute.report.allegation }}</div>
+          <div class="col-md-6">
+            <div class="fw-semibold small" style="color:var(--adm-muted);">Target Subject</div>
+            <div class="fw-semibold">{{ dispute.report.target_subject.name|default:"—" }}</div>
+          </div>
+          <div class="col-md-6">
+            <div class="fw-semibold small" style="color:var(--adm-muted);">Complainant / Reporter</div>
+            <div>
+              {{ dispute.report.reporter.get_full_name|default:dispute.report.reporter.username|default:"Anonymous" }}
+              {% if dispute.report.reporter.email %}
+                <span class="text-muted small">({{ dispute.report.reporter.email }})</span>
+              {% endif %}
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="fw-semibold small" style="color:var(--adm-muted);">Filing Date</div>
+            <div>{{ dispute.report.created_at|date:"d M Y, H:i" }}</div>
           </div>
           {% if dispute.report.incident_date %}
           <div class="col-md-6">
@@ -67,54 +74,183 @@
             <div>{{ dispute.report.incident_date|date:"d M Y" }}</div>
           </div>
           {% endif %}
-          <div class="col-md-6">
-            <div class="fw-semibold small" style="color:var(--adm-muted);">Report Filed</div>
-            <div>{{ dispute.report.created_at|date:"d M Y H:i" }}</div>
+          <div class="col-12">
+            <div class="fw-semibold small mb-1" style="color:var(--adm-muted);">Complainant Statement</div>
+            <div class="p-3 rounded small" style="background:var(--adm-surface-alt,#f8fafc);border:1px solid var(--adm-border);white-space:pre-wrap;line-height:1.6;">{{ dispute.report.allegation }}</div>
           </div>
         </div>
-        <a href="{% url 'admin_portal:report_detail' dispute.report.pk %}"
-           class="btn btn-outline-secondary btn-sm" target="_blank">
-          <i class="bi bi-box-arrow-up-right"></i> Open Full Report
-        </a>
+
+        <!-- Original Allegation Evidence Files -->
+        <div class="mt-3 pt-3 border-top">
+          <div class="fw-semibold small mb-2" style="color:var(--adm-muted);">
+            Complainant Evidence Files ({{ evidence_list.count }})
+          </div>
+          {% if evidence_list %}
+          <div class="table-responsive">
+            <table class="adm-table">
+              <thead>
+                <tr>
+                  <th>Type</th>
+                  <th>Description</th>
+                  <th>Privacy</th>
+                  <th>Attachment</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for ev in evidence_list %}
+                <tr>
+                  <td>{{ ev.get_file_type_display }}</td>
+                  <td>{{ ev.description|default:"—" }}</td>
+                  <td>
+                    {% if ev.is_confidential %}
+                      <span class="adm-badge adm-badge-red">Confidential</span>
+                    {% else %}
+                      <span class="adm-badge adm-badge-gray">Public</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <div class="d-inline-flex align-items-center gap-2">
+                      <a href="{% url 'reports:evidence_download' ev.id %}" target="_blank" rel="noopener noreferrer" class="btn btn-adm-sm btn-adm-outline">
+                        <i class="bi bi-eye me-1"></i> View
+                      </a>
+                      <a href="{% url 'reports:evidence_download' ev.id %}?download=1" target="_blank" rel="noopener noreferrer" class="btn btn-adm-sm btn-adm-outline text-muted" title="Download">
+                        <i class="bi bi-download"></i>
+                      </a>
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="p-2 rounded bg-light border small text-muted">No evidence files were attached to the original complaint.</div>
+          {% endif %}
+        </div>
       </div>
     </div>
 
-    <!-- Dispute Reason -->
+    <!-- Stage 2: Accused Party Defense & Counter-Evidence -->
     <div class="adm-card mb-4">
-      <div class="adm-card-header">Dispute Reason</div>
+      <div class="adm-card-header d-flex justify-content-between align-items-center">
+        <span>Stage 2: Accused Party Fair-Hearing Defense</span>
+        {% if dispute.status == 'accepted' or dispute.status == 'upheld' %}
+          <span class="adm-badge adm-badge-green">Defense Upheld</span>
+        {% elif dispute.status == 'rejected' %}
+          <span class="adm-badge adm-badge-red">Defense Rejected</span>
+        {% else %}
+          <span class="adm-badge adm-badge-amber">Under Compliance Adjudication</span>
+        {% endif %}
+      </div>
       <div class="p-4">
         <div class="row g-3">
           <div class="col-md-6">
-            <div class="fw-semibold small" style="color:var(--adm-muted);">Disputed By</div>
+            <div class="fw-semibold small" style="color:var(--adm-muted);">Disputant / Respondent</div>
             <div class="fw-semibold">{{ dispute.disputant.get_full_name|default:dispute.disputant.username }}</div>
             <div class="small text-muted">{{ dispute.disputant.email }}</div>
           </div>
           <div class="col-md-6">
-            <div class="fw-semibold small" style="color:var(--adm-muted);">Filed</div>
-            <div>{{ dispute.created_at|date:"d M Y H:i" }}</div>
+            <div class="fw-semibold small" style="color:var(--adm-muted);">Dispute Filed</div>
+            <div>{{ dispute.created_at|date:"d M Y, H:i" }}</div>
           </div>
           <div class="col-12">
-            <div class="fw-semibold small mb-1" style="color:var(--adm-muted);">Reason Stated</div>
-            <div class="p-3 rounded small" style="background:var(--adm-surface-alt,#f8fafc);border:1px solid var(--adm-border);white-space:pre-wrap;">{{ dispute.reason|default:"No reason provided." }}</div>
+            <div class="fw-semibold small mb-1" style="color:var(--adm-muted);">Defense Statement (Right of Response)</div>
+            <div class="p-3 rounded small" style="background:var(--adm-surface-alt,#f8fafc);border:1px solid var(--adm-border);white-space:pre-wrap;line-height:1.6;">{{ dispute.reason|default:"No defense statement provided." }}</div>
           </div>
           {% if dispute.counter_evidence %}
           <div class="col-12">
-            <div class="fw-semibold small mb-1" style="color:var(--adm-muted);">Counter Evidence</div>
-            <div class="p-3 rounded small" style="background:var(--adm-surface-alt,#f8fafc);border:1px solid var(--adm-border);white-space:pre-wrap;">{{ dispute.counter_evidence }}</div>
+            <div class="fw-semibold small mb-2" style="color:var(--adm-muted);">Accused Party Counter-Evidence</div>
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 p-3 rounded" style="background:var(--adm-surface-alt,#f8fafc);border:1px solid var(--adm-border);">
+              <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-file-earmark-check fs-4 text-primary"></i>
+                <div>
+                  <div class="fw-semibold small text-dark">{{ dispute.counter_evidence.name|cut:"disputes/" }}</div>
+                  <div class="text-muted" style="font-size:0.75rem;">Formal counter-proof document uploaded by the accused respondent</div>
+                </div>
+              </div>
+              <div class="d-inline-flex align-items-center gap-2">
+                <a href="{% url 'reports:dispute_counter_evidence' dispute.id %}" target="_blank" rel="noopener noreferrer" class="btn btn-adm-sm btn-adm-outline">
+                  <i class="bi bi-eye me-1"></i> View Counter-Evidence
+                </a>
+                <a href="{% url 'reports:dispute_counter_evidence' dispute.id %}?download=1" target="_blank" rel="noopener noreferrer" class="btn btn-adm-sm btn-adm-outline text-muted" title="Download Counter-Evidence">
+                  <i class="bi bi-download"></i>
+                </a>
+              </div>
+            </div>
+          </div>
+          {% else %}
+          <div class="col-12">
+            <div class="p-2 rounded bg-light border small text-muted">No counter-evidence attachment was uploaded with this defense statement.</div>
           </div>
           {% endif %}
         </div>
       </div>
     </div>
 
-    {% if dispute.resolution_notes %}
-    <!-- Existing resolution notes -->
+    <!-- Stage 3: Complainant Final Rebuttal Dossier -->
     <div class="adm-card mb-4">
-      <div class="adm-card-header">Resolution Notes</div>
+      <div class="adm-card-header d-flex justify-content-between align-items-center">
+        <span>Stage 3: Complainant Final Rebuttal (Round 2)</span>
+        {% if complainant_rebuttal %}
+          <span class="adm-badge adm-badge-green">Rebuttal on Record &bull; Pleadings Closed</span>
+        {% else %}
+          <span class="adm-badge adm-badge-amber">No Rebuttal Filed</span>
+        {% endif %}
+      </div>
+      <div class="p-4">
+        {% if complainant_rebuttal %}
+          <div class="row g-3">
+            <div class="col-md-6">
+              <div class="fw-semibold small" style="color:var(--adm-muted);">Rebutted By</div>
+              <div class="fw-semibold">{{ dispute.report.reporter.get_full_name|default:dispute.report.reporter.username }}</div>
+            </div>
+            <div class="col-md-6">
+              <div class="fw-semibold small" style="color:var(--adm-muted);">Submission Date</div>
+              <div>{{ complainant_rebuttal.submitted_at|default:complainant_rebuttal.timestamp|date:"d M Y, H:i" }}</div>
+            </div>
+            <div class="col-12">
+              <div class="fw-semibold small mb-1" style="color:var(--adm-muted);">Final Rebuttal Statement</div>
+              <div class="p-3 rounded small" style="background:var(--adm-surface-alt,#f8fafc);border:1px solid var(--adm-border);white-space:pre-wrap;line-height:1.6;">{{ complainant_rebuttal.statement|default:complainant_rebuttal.rebuttal_statement|default:complainant_rebuttal.details.rebuttal_statement }}</div>
+            </div>
+            {% if complainant_rebuttal.evidence_id or complainant_rebuttal.details.evidence_id %}
+            <div class="col-12">
+              <div class="fw-semibold small mb-2" style="color:var(--adm-muted);">Rebuttal Counter-Proof Attachment</div>
+              <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 p-3 rounded bg-light border">
+                <div class="d-flex align-items-center gap-2">
+                  <i class="bi bi-file-earmark-diff fs-4 text-primary"></i>
+                  <div>
+                    <div class="small fw-semibold text-dark">{{ complainant_rebuttal.evidence_name|default:complainant_rebuttal.details.evidence_name|default:"Document Attached" }}</div>
+                    <div class="text-muted" style="font-size:0.75rem;">Supporting proof uploaded by complainant during rebuttal round</div>
+                  </div>
+                </div>
+                <div class="d-inline-flex align-items-center gap-2">
+                  <a href="{% url 'reports:evidence_download' complainant_rebuttal.evidence_id %}" target="_blank" rel="noopener noreferrer" class="btn btn-adm-sm btn-adm-outline">
+                    <i class="bi bi-eye me-1"></i> View Rebuttal Proof
+                  </a>
+                  <a href="{% url 'reports:evidence_download' complainant_rebuttal.evidence_id %}?download=1" target="_blank" rel="noopener noreferrer" class="btn btn-adm-sm btn-adm-outline text-muted" title="Download">
+                    <i class="bi bi-download"></i>
+                  </a>
+                </div>
+              </div>
+            </div>
+            {% endif %}
+          </div>
+        {% else %}
+          <div class="text-muted small">
+            The complainant has not submitted a formal rebuttal statement to this defense. Both parties have had statutory fair hearing access.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if dispute.resolution_notes %}
+    <!-- Past Resolution Notes -->
+    <div class="adm-card mb-4">
+      <div class="adm-card-header">Official Compliance Adjudication Notes</div>
       <div class="p-4">
         <div class="p-3 rounded small" style="background:var(--adm-surface-alt,#f8fafc);border:1px solid var(--adm-border);white-space:pre-wrap;">{{ dispute.resolution_notes }}</div>
         {% if dispute.resolved_at %}
-        <div class="text-muted small mt-2">Resolved {{ dispute.resolved_at|date:"d M Y H:i" }}</div>
+        <div class="text-muted small mt-2">Adjudicated &amp; finalized on {{ dispute.resolved_at|date:"d M Y, H:i" }}</div>
         {% endif %}
       </div>
     </div>
@@ -122,52 +258,62 @@
 
   </div>
 
-  <!-- Right: Action panel -->
+  <!-- Right: Official Adjudication Action Panel -->
   <div class="col-lg-5">
     <div class="adm-card" style="position:sticky;top:80px;">
-      <div class="adm-card-header">Admin Decision</div>
+      <div class="adm-card-header">Compliance Adjudication Decision</div>
       <div class="p-4">
 
         {% if dispute.status in 'opened,under_review' %}
-        <p class="small text-muted mb-4">
-          Review the dispute reason and report content, then uphold or reject the dispute.
-          <br><br>
-          <strong>Uphold</strong> — reporter's claim is invalid; report moves to <em>Resolved</em>.<br>
-          <strong>Reject</strong> — dispute has no merit; report stays <em>Published</em>.
-        </p>
+        <div class="small text-muted mb-4">
+          <p class="mb-2">Carefully assess both the Complainant's allegation, the Accused Party's defense, and any rebuttal evidence on record:</p>
+          <div class="p-2 mb-2 rounded border" style="background:#F0FDF4;border-color:#BBF7D0 !important;">
+            <strong class="text-success"><i class="bi bi-check-circle me-1"></i> Uphold / Accept Dispute:</strong><br>
+            The accused party's defense is valid (e.g. proof of payment, contract resolution, or false claim). The report is moved to <strong>Restricted (Quarantined)</strong>, immediately hidden from public verification checks, and the dispute is closed in favour of the respondent.
+          </div>
+          <div class="p-2 rounded border" style="background:#FEF2F2;border-color:#FECACA !important;">
+            <strong class="text-danger"><i class="bi bi-x-circle me-1"></i> Reject Dispute:</strong><br>
+            The defense lacks merit or failed to refute the evidence. The report remains <strong>Published</strong> in the public register, and the dispute is marked as rejected.
+          </div>
+        </div>
 
         <form method="post">
           {% csrf_token %}
           <div class="mb-3">
-            <label class="form-label fw-semibold small">Resolution Notes <span class="text-muted">(visible to admin only)</span></label>
-            <textarea name="resolution_notes" class="form-control" rows="4"
-                      placeholder="Record your reasoning here…">{{ dispute.resolution_notes }}</textarea>
+            <label class="form-label fw-semibold small">Adjudication Notes <span class="text-muted">(recorded permanently in audit trail)</span></label>
+            <textarea name="resolution_notes" class="form-control" rows="4" required
+                      placeholder="Explain the legal or policy basis for upholding or rejecting this dispute…">{{ dispute.resolution_notes }}</textarea>
           </div>
           <div class="d-grid gap-2">
             <button type="button"
                     class="btn btn-success py-2 fw-semibold"
                     data-bs-toggle="modal" data-bs-target="#disputeResModal"
                     data-action="accept" data-label="Uphold Dispute" data-banner="accept">
-              <i class="bi bi-check-circle me-1"></i> Uphold Dispute
+              <i class="bi bi-check-circle me-1"></i> Uphold Dispute (Accept Defense)
             </button>
             <button type="button"
                     class="btn btn-danger py-2 fw-semibold"
                     data-bs-toggle="modal" data-bs-target="#disputeResModal"
                     data-action="reject" data-label="Reject Dispute" data-banner="reject">
-              <i class="bi bi-x-circle me-1"></i> Reject Dispute
+              <i class="bi bi-x-circle me-1"></i> Reject Dispute (Retain Allegation)
             </button>
           </div>
         </form>
 
         {% else %}
         <div class="text-center py-4">
-          <i class="bi bi-check2-circle fs-1 {% if dispute.status == 'upheld' %}text-success{% else %}text-danger{% endif %}"></i>
+          <i class="bi bi-check2-circle fs-1 {% if dispute.status in 'upheld,accepted' %}text-success{% else %}text-danger{% endif %}"></i>
           <div class="fw-semibold mt-2">
-            This dispute was <strong>{{ dispute.status }}</strong>.
+            This dispute has been <strong>{{ dispute.get_status_display }}</strong>.
           </div>
           {% if dispute.resolved_at %}
-          <div class="text-muted small mt-1">{{ dispute.resolved_at|date:"d M Y H:i" }}</div>
+          <div class="text-muted small mt-1">Resolved on {{ dispute.resolved_at|date:"d M Y, H:i" }}</div>
           {% endif %}
+          <div class="mt-3">
+            <span class="badge {% if dispute.report.state == 'restricted' or dispute.report.state == 'resolved' %}bg-success{% else %}bg-secondary{% endif %}">
+              Current Report State: {{ dispute.report.get_state_display }}
+            </span>
+          </div>
         </div>
         {% endif %}
 
@@ -188,17 +334,17 @@
       <div class="modal-body pt-2">
         <div id="disputeResBannerAccept" class="alert alert-success d-flex align-items-center gap-2 mb-3 d-none">
           <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/></svg>
-          <span>Upholding this dispute will mark the report <strong>Resolved</strong> and restrict it from public view.</span>
+          <span>Upholding this dispute will transition the report to <strong>Restricted</strong> (removed from public search) and notify both parties.</span>
         </div>
         <div id="disputeResBannerReject" class="alert alert-danger d-flex align-items-center gap-2 mb-3 d-none">
           <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/></svg>
-          <span>Rejecting this dispute means it has no merit. The original report will <strong>remain published</strong>.</span>
+          <span>Rejecting this dispute means the defense was insufficient. The original allegation report will <strong>remain published</strong>.</span>
         </div>
-        <p class="text-muted small mb-0">Your resolution notes will be saved alongside this decision.</p>
+        <p class="text-muted small mb-0">Your resolution notes will be recorded permanently in the tamper-evident audit log.</p>
       </div>
       <div class="modal-footer border-0 pt-2">
         <button type="button" class="btn btn-adm-sm btn-adm-secondary" data-bs-dismiss="modal">Go Back</button>
-        <button type="button" id="disputeResConfirmBtn" class="btn btn-adm-sm">Confirm</button>
+        <button type="button" id="disputeResConfirmBtn" class="btn btn-adm-sm">Confirm Decision</button>
       </div>
     </div>
   </div>
@@ -228,9 +374,6 @@ document.addEventListener('DOMContentLoaded', function () {
     confirmBtn.textContent = label;
 
     confirmBtn.onclick = function () {
-      // Set hidden input and submit the form above
-      const form = document.querySelector('#disputeResModal').closest('.adm-card') ? null : null;
-      // Find the form by looking for the textarea
       const notesForm = document.querySelector('textarea[name="resolution_notes"]').closest('form');
       const hiddenAction = document.createElement('input');
       hiddenAction.type  = 'hidden';

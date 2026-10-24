@@ -28,7 +28,7 @@
             {% for r in recent_reports %}
             <tr>
               <td>
-                <a href="{% url 'admin_portal:report_detail' r.pk %}"
+                <a href="{% url 'admin_portal:report_detail' r.public_id %}"
                    class="small font-monospace text-decoration-none">{{ r.reference_number }}</a>
               </td>
               <td><span class="adm-badge adm-badge-blue small">{{ r.get_state_display }}</span></td>

@@ -1,0 +1,329 @@
+{% extends 'public/base.html' %}
+{% load static %}
+
+{% block title %}Disputes & Allegations on Record | {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-md-5">
+
+    <!-- Page Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            {% if request.user.role in 'employer,agency,business' %}
+                <a href="{% url 'employer:dashboard' %}" class="text-decoration-none small text-muted">&larr; Back to Dashboard</a>
+            {% elif request.user.is_staff or request.user.role in 'moderator,officer' %}
+                <a href="{% url 'admin_portal:overview' %}" class="text-decoration-none small text-muted">&larr; Back to Admin Portal</a>
+            {% else %}
+                <a href="{% url 'dashboard:index' %}" class="text-decoration-none small text-muted d-none d-md-inline">&larr; Back to Dashboard</a>
+                <a href="{% url 'users:account_hub' %}" class="text-decoration-none small text-muted d-md-none">&larr; Back to Account Hub</a>
+            {% endif %}
+            <div class="d-flex align-items-center gap-2 mt-1">
+                <h1 class="h3 fw-bold mb-0">Disputes &amp; Allegations on Record</h1>
+                {% if pending_allegations_count > 0 %}
+                    <span class="badge bg-danger rounded-pill px-2.5 py-1" style="font-size:0.75rem;">
+                        {{ pending_allegations_count }} Action Required
+                    </span>
+                {% endif %}
+            </div>
+            <p class="small text-muted mb-0 mt-1">
+                Review fraud or workplace misconduct reports filed where you or your registered entity is named, track fair-hearing response deadlines, and submit your formal statement of defense.
+            </p>
+        </div>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show mb-3" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Stat Strip -->
+    <div class="row g-2 g-md-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="vng-card p-3 text-center h-100">
+                <div class="h4 fw-bold mb-0 text-dark">{{ total_count|default:0 }}</div>
+                <div class="small text-muted" style="font-size:0.8rem;">Total Allegations on Record</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="vng-card p-3 text-center h-100 {% if action_required_count > 0 %}border-danger border-2{% endif %}">
+                <div class="h4 fw-bold mb-0 {% if action_required_count > 0 %}text-danger{% else %}text-muted{% endif %}">
+                    {{ action_required_count|default:0 }}
+                </div>
+                <div class="small fw-semibold {% if action_required_count > 0 %}text-danger{% else %}text-muted{% endif %}" style="font-size:0.8rem;">
+                    Action Required (7-Day Window)
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="vng-card p-3 text-center h-100">
+                <div class="h4 fw-bold mb-0 text-primary">{{ disputed_count|default:0 }}</div>
+                <div class="small text-muted" style="font-size:0.8rem;">Disputes Under Review</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="vng-card p-3 text-center h-100">
+                <div class="h4 fw-bold mb-0 text-success">{{ resolved_count|default:0 }}</div>
+                <div class="small text-muted" style="font-size:0.8rem;">Resolved / Restricted</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter and Search Bar -->
+    <div class="vng-card p-3 mb-4">
+        <form method="get" class="row g-2 align-items-center">
+            <div class="col-12 col-md-5">
+                <div class="d-flex gap-1 overflow-x-auto" style="scrollbar-width:none;">
+                    <a href="{% url 'reports:my_disputes' %}"
+                       class="btn btn-sm {% if not status_filter %}btn-primary{% else %}btn-outline-secondary{% endif %} rounded-pill text-nowrap">
+                        All
+                    </a>
+                    <a href="{% url 'reports:my_disputes' %}?status=action_required"
+                       class="btn btn-sm {% if status_filter == 'action_required' %}btn-danger{% else %}btn-outline-secondary{% endif %} rounded-pill text-nowrap">
+                        Action Required {% if action_required_count > 0 %}({{ action_required_count }}){% endif %}
+                    </a>
+                    <a href="{% url 'reports:my_disputes' %}?status=disputed"
+                       class="btn btn-sm {% if status_filter == 'disputed' %}btn-primary{% else %}btn-outline-secondary{% endif %} rounded-pill text-nowrap">
+                        Dispute Lodged
+                    </a>
+                    <a href="{% url 'reports:my_disputes' %}?status=resolved"
+                       class="btn btn-sm {% if status_filter == 'resolved' %}btn-primary{% else %}btn-outline-secondary{% endif %} rounded-pill text-nowrap">
+                        Resolved
+                    </a>
+                </div>
+            </div>
+            <div class="col-12 col-md-7">
+                <div class="input-group input-group-sm">
+                    <input type="text" name="q" value="{{ search_query }}" class="form-control" placeholder="Search by reference, title, or keyword…">
+                    {% if status_filter %}
+                        <input type="hidden" name="status" value="{{ status_filter }}">
+                    {% endif %}
+                    <button class="btn btn-outline-secondary" type="submit">Search</button>
+                    {% if search_query or status_filter %}
+                        <a href="{% url 'reports:my_disputes' %}" class="btn btn-outline-secondary">Reset</a>
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+    </div>
+
+    {% if reports %}
+        <!-- Desktop Table (md and up) -->
+        <div class="vng-card p-0 d-none d-md-block shadow-sm mb-4">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4">Reference</th>
+                            <th>Category</th>
+                            <th>Allegation Title &amp; Date</th>
+                            <th>Fair Hearing Status</th>
+                            <th>Dispute Status</th>
+                            <th class="pe-4 text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for report in reports %}
+                        <tr>
+                            <td class="ps-4 font-monospace fw-semibold small text-primary">
+                                {{ report.reference_number }}
+                            </td>
+                            <td>
+                                {% if report.is_misconduct %}
+                                    <span class="badge bg-warning text-dark" style="font-size:0.75rem;">Workplace Misconduct</span>
+                                {% else %}
+                                    <span class="badge bg-secondary" style="font-size:0.75rem;">Fraud Allegation</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="small fw-semibold text-truncate" style="max-width:260px;" title="{{ report.title }}">
+                                    {{ report.title }}
+                                </div>
+                                <div class="text-muted" style="font-size:0.75rem;">
+                                    Filed: {{ report.created_at|date:"d M Y, H:i" }}
+                                    {% if report.incident_date %} &bull; Incident: {{ report.incident_date|date:"d M Y" }}{% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                {% if report.disputes.all %}
+                                    <span class="badge bg-info text-dark">Defense On File</span>
+                                {% elif report.is_within_dispute_window %}
+                                    <span class="badge bg-warning text-dark d-inline-flex align-items-center gap-1">
+                                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                        Window Closes: {{ report.dispute_deadline }}
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-light text-muted">Notice Expired</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% with user_disp=report.disputes.first %}
+                                    {% if user_disp %}
+                                        {% if user_disp.status == 'opened' %}
+                                            <span class="badge bg-warning text-dark">Under Review</span>
+                                        {% elif user_disp.status == 'accepted' %}
+                                            <span class="badge bg-success">Dispute Accepted</span>
+                                        {% elif user_disp.status == 'rejected' %}
+                                            <span class="badge bg-danger">Dispute Rejected</span>
+                                        {% else %}
+                                            <span class="badge bg-primary">{{ user_disp.get_status_display }}</span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="badge bg-danger">No Defense Filed</span>
+                                    {% endif %}
+                                {% endwith %}
+                            </td>
+                            <td class="pe-4 text-end">
+                                <div class="d-inline-flex gap-2">
+                                    {% if not report.disputes.all %}
+                                        <a href="{% url 'reports:create_dispute' report.reference_number %}" class="btn btn-sm btn-danger text-nowrap">
+                                            Respond &amp; Submit Defense &rarr;
+                                        </a>
+                                    {% else %}
+                                        <a href="{% url 'reports:detail' report.reference_number %}" class="btn btn-sm btn-outline-primary text-nowrap">
+                                            View Details
+                                        </a>
+                                        {% if report.state in 'submitted,under_review,disputed,published' %}
+                                            <a href="{% url 'reports:create_dispute' report.reference_number %}" class="btn btn-sm btn-outline-secondary text-nowrap" title="Submit additional counter-evidence or statement">
+                                                Add Evidence / Addendum
+                                            </a>
+                                        {% endif %}
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Mobile Cards (d-md-none) -->
+        <div class="d-md-none d-flex flex-column gap-3 mb-4">
+            {% for report in reports %}
+            <div class="vng-card p-3 shadow-sm border-start {% if not report.disputes.all %}border-danger border-3{% else %}border-primary border-3{% endif %}">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <span class="font-monospace fw-bold small text-primary">{{ report.reference_number }}</span>
+                        <div class="mt-1">
+                            {% if report.is_misconduct %}
+                                <span class="badge bg-warning text-dark" style="font-size:0.7rem;">Workplace Misconduct</span>
+                            {% else %}
+                                <span class="badge bg-secondary" style="font-size:0.7rem;">Fraud Allegation</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div>
+                        {% if not report.disputes.all %}
+                            <span class="badge bg-danger" style="font-size:0.75rem;">Action Required</span>
+                        {% else %}
+                            <span class="badge bg-info text-dark" style="font-size:0.75rem;">Defense Submitted</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <h6 class="fw-bold mb-1 text-dark" style="font-size:0.95rem;">{{ report.title }}</h6>
+                <p class="text-muted small mb-2" style="font-size:0.8rem;">
+                    Filed: {{ report.created_at|date:"d M Y, H:i" }}
+                    {% if report.incident_date %}&bull; Incident: {{ report.incident_date|date:"d M Y" }}{% endif %}
+                </p>
+
+                <div class="p-2 rounded bg-light small mb-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-muted" style="font-size:0.75rem;">7-Day Due Process:</span>
+                        {% if report.is_within_dispute_window and not report.disputes.all %}
+                            <span class="fw-semibold text-danger" style="font-size:0.75rem;">Closes {{ report.dispute_deadline }}</span>
+                        {% elif report.disputes.all %}
+                            <span class="fw-semibold text-success" style="font-size:0.75rem;">Defense Registered</span>
+                        {% else %}
+                            <span class="text-muted" style="font-size:0.75rem;">Window Expired</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="d-flex flex-column gap-2">
+                    {% if not report.disputes.all %}
+                        <a href="{% url 'reports:create_dispute' report.reference_number %}" class="btn btn-danger btn-sm w-100 py-2 d-inline-flex align-items-center justify-content-center gap-1 fw-semibold">
+                            Submit Statement of Defense &rarr;
+                        </a>
+                    {% else %}
+                        <a href="{% url 'reports:detail' report.reference_number %}" class="btn btn-outline-primary btn-sm w-100 py-2 text-center">
+                            View Report &amp; Dispute Status
+                        </a>
+                        {% if report.state in 'submitted,under_review,disputed,published' %}
+                            <a href="{% url 'reports:create_dispute' report.reference_number %}" class="btn btn-outline-secondary btn-sm w-100 py-2 text-center">
+                                + Add Evidence / Addendum
+                            </a>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        {% if is_paginated %}
+        <nav class="d-flex justify-content-center mb-4">
+            <ul class="pagination pagination-sm">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}">&laquo;</a>
+                    </li>
+                {% endif %}
+                {% for num in paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}">{{ num }}</a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}">&raquo;</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+
+    {% else %}
+        <!-- Empty State -->
+        <div class="vng-card text-center py-5 px-3">
+            <div class="mb-3">
+                <span style="display:inline-flex;align-items:center;justify-content:center;width:64px;height:64px;background:#DCFCE7;border-radius:50%;">
+                    <svg width="32" height="32" fill="none" stroke="#16A34A" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        <polyline points="9 12 11 14 15 10"/>
+                    </svg>
+                </span>
+            </div>
+            <h5 class="fw-bold mb-2">No Active Allegations or Disputes on Record</h5>
+            <p class="text-muted small mx-auto mb-4" style="max-width:440px;">
+                {% if search_query or status_filter %}
+                    No reports matched your search criteria. Try resetting your filter.
+                {% else %}
+                    Your profile and credentials are clear. No pending fraud or workplace misconduct filings have named you or your registered entities.
+                {% endif %}
+            </p>
+            <div>
+                {% if search_query or status_filter %}
+                    <a href="{% url 'reports:my_disputes' %}" class="btn btn-vng-outline btn-sm">Clear Filter</a>
+                {% elif request.user.role in 'employer,agency,business' %}
+                    <a href="{% url 'employer:dashboard' %}" class="btn btn-vng-outline btn-sm">Back to Dashboard</a>
+                {% elif request.user.is_staff or request.user.role in 'moderator,officer' %}
+                    <a href="{% url 'admin_portal:overview' %}" class="btn btn-vng-outline btn-sm">Back to Admin Portal</a>
+                {% else %}
+                    <a href="{% url 'dashboard:index' %}" class="btn btn-vng-outline btn-sm d-none d-md-inline-block">Back to Dashboard</a>
+                    <a href="{% url 'users:account_hub' %}" class="btn btn-vng-outline btn-sm d-md-none">Back to Account Hub</a>
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+
+</div>
+{% endblock %}

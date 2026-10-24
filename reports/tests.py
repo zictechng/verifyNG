@@ -454,12 +454,14 @@ class Phase7Batch72WorkflowTestCase(TestCase):
         self.assertIn(self.reporter.email, mail.outbox[0].to)
 
     def test_file_dispute_fails_on_non_published_report(self):
-        # Report is in 'submitted' state
+        # Report is in 'archived' state where disputes are blocked
+        self.report.state = 'archived'
+        self.report.save(update_fields=['state'])
         with self.assertRaises(ValueError):
             file_dispute_for_report(
                 report=self.report,
                 disputant=self.disputant,
-                reason="Premature dispute"
+                reason="Dispute on archived report"
             )
 
     def test_moderator_accepts_dispute_restricting_report(self):
@@ -679,4 +681,124 @@ class FraudReportIdentifiersIntegrationTestCase(TestCase):
         })
         self.assertFalse(form_invalid_acct.is_valid())
         self.assertIn('suspect_bank_account', form_invalid_acct.errors)
+
+
+@patch('core.tasks.send_email_notification_task.delay')
+@patch('notifications.services.dispatch_notification')
+class DueProcessRebuttalCycleTestCase(TestCase):
+    def setUp(self):
+        self.reporter = User.objects.create_user(
+            username='complainant_user', email='complainant@test.com',
+            password='Password123!', role='individual'
+        )
+        self.respondent = User.objects.create_user(
+            username='respondent_user', email='respondent@test.com',
+            password='Password123!', role='individual'
+        )
+        self.moderator = User.objects.create_user(
+            username='mod_user', email='moderator@test.com',
+            password='Password123!', role='moderator'
+        )
+        self.subject = SubjectEntity.objects.create(
+            name='Test Subject Person',
+            type='person'
+        )
+        self.report = FraudReport.objects.create(
+            reporter=self.reporter,
+            target_subject=self.subject,
+            title='Alleged Dispute Incident',
+            allegation='Complainant full chronological narrative for testing.',
+            state='disputed',
+            reference_number='VNG-20261024-TEST'
+        )
+
+    def test_urls_reverse_cleanly(self, *mocks):
+        ref = self.report.reference_number
+        self.assertEqual(reverse('reports:create_rebuttal', kwargs={'reference_number': ref}), f'/reports/{ref}/rebuttal/')
+        self.assertEqual(reverse('reports:issue_info_request', kwargs={'reference_number': ref}), f'/reports/{ref}/info-request/')
+        self.assertEqual(reverse('reports:fulfill_info_request', kwargs={'reference_number': ref, 'request_id': 1}), f'/reports/{ref}/info-request/1/fulfill/')
+
+    def test_due_process_forms(self, *mocks):
+        from reports.forms import ComplainantRebuttalForm, ModeratorInfoRequestForm, InfoRequestFulfillForm
+
+        # Rebuttal form
+        reb_form = ComplainantRebuttalForm(data={'rebuttal_statement': 'This is a valid factual rebuttal that exceeds 20 characters.'})
+        self.assertTrue(reb_form.is_valid(), reb_form.errors)
+
+        # Moderator info request form
+        info_form = ModeratorInfoRequestForm(data={
+            'target_role': 'complainant',
+            'title': 'Request for Bank Statement',
+            'message': 'Please upload your stamped account statement.'
+        })
+        self.assertTrue(info_form.is_valid(), info_form.errors)
+
+        # Fulfillment form
+        ful_form = InfoRequestFulfillForm(data={
+            'response_statement': 'Here is the requested explanation of the transaction.'
+        })
+        self.assertTrue(ful_form.is_valid(), ful_form.errors)
+
+    def test_rebuttal_and_info_request_lifecycle(self, *mocks):
+        from reports.models import Dispute
+        from reports.services import (
+            submit_complainant_rebuttal,
+            issue_moderator_info_request,
+            fulfill_moderator_info_request
+        )
+
+        # Before dispute: can_submit_rebuttal is False
+        self.assertFalse(self.report.can_submit_rebuttal)
+
+        # Accused party files dispute
+        dispute = Dispute.objects.create(
+            report=self.report,
+            disputant=self.respondent,
+            reason='Defense statement refuting the claim completely.',
+            status='opened'
+        )
+
+        # Now can_submit_rebuttal is True
+        self.assertTrue(self.report.can_submit_rebuttal)
+        self.assertIsNone(self.report.complainant_rebuttal)
+
+        # Complainant files 1-time formal rebuttal
+        log = submit_complainant_rebuttal(
+            report=self.report,
+            reporter=self.reporter,
+            rebuttal_statement='Final rebuttal explaining bank transaction details.',
+            evidence_file=None,
+            ip_address='127.0.0.1'
+        )
+        self.assertIsNotNone(self.report.complainant_rebuttal)
+        self.assertEqual(self.report.complainant_rebuttal['statement'], 'Final rebuttal explaining bank transaction details.')
+        # Pleadings closed: can_submit_rebuttal becomes False
+        self.assertFalse(self.report.can_submit_rebuttal)
+
+        # Moderator issues information request to respondent
+        req_log = issue_moderator_info_request(
+            report=self.report,
+            moderator=self.moderator,
+            target_role='respondent',
+            message='Provide signed delivery voucher.',
+            request_title='Delivery Voucher Clarification',
+            ip_address='127.0.0.1'
+        )
+        pending = self.report.pending_info_request_for_user(self.respondent)
+        self.assertIsNotNone(pending)
+        self.assertEqual(pending.id, req_log.id)
+
+        # Respondent fulfills information request
+        fulfill_moderator_info_request(
+            report=self.report,
+            user=self.respondent,
+            request_id=req_log.id,
+            response_statement='Attached delivery voucher signed by customer.',
+            evidence_file=None,
+            ip_address='127.0.0.1'
+        )
+
+        # Verify request is marked fulfilled
+        self.assertIsNone(self.report.pending_info_request_for_user(self.respondent))
+
 

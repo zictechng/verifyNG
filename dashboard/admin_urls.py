@@ -20,12 +20,15 @@ from dashboard.admin_views import (
     AdminReportsView,
     AdminReportDetailView,
     AdminReportTransitionView,
+    AdminReportLegacyRedirectView,
     # Disputes
     AdminDisputesView,
     AdminDisputeActionView,
+    AdminDisputeLegacyRedirectView,
     # Verifications
     AdminVerificationsView,
     AdminVerificationActionView,
+    AdminVerificationLegacyRedirectView,
     # Employer Profiles
     AdminEmployerProfilesView,
     AdminEmployerActionView,
@@ -53,6 +56,7 @@ from dashboard.admin_views import (
     AdminCertificatesView,
     AdminCertificateActionView,
     AdminCertificateDocumentView,
+    AdminCertificateLegacyRedirectView,
     AdminDisputeDetailView,
     AdminNotificationsView,
     AdminVerificationDetailView,
@@ -87,18 +91,24 @@ urlpatterns = [
 
     # ── Reports Moderation ─────────────────────────────────────────────────
     path('reports/', AdminReportsView.as_view(), name='reports'),
-    path('reports/<int:pk>/', AdminReportDetailView.as_view(), name='report_detail'),
-    path('reports/<int:pk>/transition/', AdminReportTransitionView.as_view(), name='report_transition'),
+    path('reports/<uuid:public_id>/', AdminReportDetailView.as_view(), name='report_detail'),
+    path('reports/<uuid:public_id>/transition/', AdminReportTransitionView.as_view(), name='report_transition'),
+    path('reports/<int:pk>/transition/', AdminReportTransitionView.as_view(), name='report_transition_legacy'),
+    path('reports/<int:pk>/', AdminReportLegacyRedirectView.as_view(), name='report_legacy_redirect'),
 
     # ── Disputes ────────────────────────────────────────────────────────────
     path('disputes/', AdminDisputesView.as_view(), name='disputes'),
-    path('disputes/<int:pk>/action/', AdminDisputeActionView.as_view(), name='dispute_action'),
-    path('disputes/<int:pk>/', AdminDisputeDetailView.as_view(), name='dispute_detail'),
+    path('disputes/<uuid:public_id>/action/', AdminDisputeActionView.as_view(), name='dispute_action'),
+    path('disputes/<int:pk>/action/', AdminDisputeActionView.as_view(), name='dispute_action_legacy'),
+    path('disputes/<uuid:public_id>/', AdminDisputeDetailView.as_view(), name='dispute_detail'),
+    path('disputes/<int:pk>/', AdminDisputeLegacyRedirectView.as_view(), name='dispute_legacy_redirect'),
 
     # ── Verifications ───────────────────────────────────────────────────────
     path('verifications/', AdminVerificationsView.as_view(), name='verifications'),
-    path('verifications/<int:pk>/action/', AdminVerificationActionView.as_view(), name='verification_action'),
-    path('verifications/<int:pk>/', AdminVerificationDetailView.as_view(), name='verification_detail'),
+    path('verifications/<uuid:public_id>/action/', AdminVerificationActionView.as_view(), name='verification_action'),
+    path('verifications/<int:pk>/action/', AdminVerificationActionView.as_view(), name='verification_action_legacy'),
+    path('verifications/<uuid:public_id>/', AdminVerificationDetailView.as_view(), name='verification_detail'),
+    path('verifications/<int:pk>/', AdminVerificationLegacyRedirectView.as_view(), name='verification_legacy_redirect'),
 
     # ── Employer Profiles ───────────────────────────────────────────────────
     path('employers/', AdminEmployerProfilesView.as_view(), name='employer_profiles'),
@@ -136,9 +146,12 @@ urlpatterns = [
 
     # ── Certificates ─────────────────────────────────────────────────────────
     path('certificates/', AdminCertificatesView.as_view(), name='certificates'),
-    path('certificates/<int:pk>/action/', AdminCertificateActionView.as_view(), name='certificate_action'),
-    path('certificates/<int:pk>/document/', AdminCertificateDocumentView.as_view(), name='certificate_document'),
-    path('certificates/<int:pk>/', AdminCertificateDetailView.as_view(), name='certificate_detail'),
+    path('certificates/<uuid:public_id>/action/', AdminCertificateActionView.as_view(), name='certificate_action'),
+    path('certificates/<int:pk>/action/', AdminCertificateActionView.as_view(), name='certificate_action_legacy'),
+    path('certificates/<uuid:public_id>/document/', AdminCertificateDocumentView.as_view(), name='certificate_document'),
+    path('certificates/<int:pk>/document/', AdminCertificateDocumentView.as_view(), name='certificate_document_legacy'),
+    path('certificates/<uuid:public_id>/', AdminCertificateDetailView.as_view(), name='certificate_detail'),
+    path('certificates/<int:pk>/', AdminCertificateLegacyRedirectView.as_view(), name='certificate_legacy_redirect'),
 
     # ── Financial Reports ──────────────────────────────────────────────────────
     path('financial/', AdminFinancialReportView.as_view(), name='financial_report'),

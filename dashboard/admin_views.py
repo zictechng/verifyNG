@@ -860,18 +860,28 @@ class AdminReportDetailView(SuperAdminRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
+        lookup = {'public_id': self.kwargs['public_id']} if 'public_id' in self.kwargs else {'pk': self.kwargs['pk']}
         report = get_object_or_404(
             FraudReport.objects.select_related('reporter', 'target_subject'),
-            pk=self.kwargs['pk']
+            **lookup
         )
         ctx['report'] = report
         ctx['evidence_list'] = report.evidence_files.all()
-        ctx['disputes'] = report.disputes.order_by('-created_at') if hasattr(report, 'disputes') else []
-        ctx['audit_trail'] = AuditLog.objects.filter(
-            details__contains=str(report.id)
-        ).order_by('-timestamp')[:20]
+        ctx['disputes'] = report.disputes.select_related('disputant').order_by('-created_at') if hasattr(report, 'disputes') else []
+        ctx['complainant_rebuttal'] = report.complainant_rebuttal
+        ctx['moderator_info_requests'] = report.moderator_info_requests
+        from reports.forms import ModeratorInfoRequestForm
+        ctx['info_request_form'] = ModeratorInfoRequestForm()
+        ctx['audit_trail'] = report.audit_logs.all().order_by('-timestamp')[:30]
         ctx['state_choices'] = FraudReport.STATES
         return ctx
+
+
+class AdminReportLegacyRedirectView(SuperAdminRequiredMixin, View):
+    """Backward-compatible redirect from integer PK to UUID-based report detail."""
+    def get(self, request, pk):
+        report = get_object_or_404(FraudReport, pk=pk)
+        return redirect('admin_portal:report_detail', public_id=report.public_id)
 
 
 class AdminReportTransitionView(SuperAdminRequiredMixin, View):
@@ -887,15 +897,16 @@ class AdminReportTransitionView(SuperAdminRequiredMixin, View):
         'archived': [],
     }
 
-    def post(self, request, pk):
-        report = get_object_or_404(FraudReport, pk=pk)
+    def post(self, request, public_id=None, pk=None):
+        lookup = {'public_id': public_id} if public_id else {'pk': pk}
+        report = get_object_or_404(FraudReport, **lookup)
         new_state = request.POST.get('new_state', '').strip()
         moderation_notes = request.POST.get('moderation_notes', '').strip()
 
         allowed = self.VALID_TRANSITIONS.get(report.state, [])
         if new_state not in allowed:
             messages.error(request, f"Cannot transition from '{report.state}' to '{new_state}'.")
-            return redirect('admin_portal:report_detail', pk=pk)
+            return redirect('admin_portal:report_detail', public_id=report.public_id)
 
         old_state = report.state
         report.state = new_state
@@ -914,7 +925,7 @@ class AdminReportTransitionView(SuperAdminRequiredMixin, View):
             }
         )
         messages.success(request, f"Report {report.reference_number} transitioned from '{old_state}' → '{new_state}'.")
-        return redirect('admin_portal:report_detail', pk=pk)
+        return redirect('admin_portal:report_detail', public_id=report.public_id)
 
 
 # ── Disputes ───────────────────────────────────────────────────────────────
@@ -947,169 +958,84 @@ class AdminDisputesView(SuperAdminRequiredMixin, TemplateView):
         ctx['q'] = q
         return ctx
 
-class AdminDisputeActionView(SuperAdminRequiredMixin, View):
-    """POST: Accept (uphold) or Reject a dispute."""
-    def post(self, request, pk):
+class AdminDisputeLegacyRedirectView(SuperAdminRequiredMixin, View):
+    """Backward-compatible redirect from integer PK to UUID-based dispute detail."""
+    def get(self, request, pk):
         dispute = get_object_or_404(Dispute, pk=pk)
+        return redirect('admin_portal:dispute_detail', public_id=dispute.public_id)
+
+
+class AdminDisputeActionView(SuperAdminRequiredMixin, View):
+    """POST: Accept (uphold) or Reject a dispute via the official service layer."""
+    def post(self, request, public_id=None, pk=None):
+        lookup = {'public_id': public_id} if public_id else {'pk': pk}
+        dispute = get_object_or_404(Dispute.objects.select_related('report', 'disputant', 'report__reporter'), **lookup)
         action = request.POST.get('action', '')
         resolution_notes = request.POST.get('resolution_notes', '').strip()
 
-        if action == 'accept':
-            dispute.status = 'upheld'
-            dispute.report.state = 'resolved'
-            dispute.report.save(update_fields=['state', 'updated_at'])
-        elif action == 'reject':
-            dispute.status = 'rejected'
-            dispute.report.state = 'published'
-            dispute.report.save(update_fields=['state', 'updated_at'])
-        else:
+        if action not in ('accept', 'reject'):
             messages.error(request, "Invalid dispute action.")
             return redirect('admin_portal:disputes')
 
-        dispute.resolution_notes = resolution_notes
-        dispute.save()
+        outcome = 'accepted' if action == 'accept' else 'rejected'
+        from reports.services import resolve_dispute
+        from core.rate_limiting import get_client_ip
 
-        AuditLog.objects.create(
-            action=f"ADMIN_DISPUTE_{action.upper()}",
-            performed_by=request.user,
-            details={"dispute_id": dispute.id, "report_ref": dispute.report.reference_number}
+        resolve_dispute(
+            dispute=dispute,
+            outcome=outcome,
+            actor=request.user,
+            resolution_notes=resolution_notes,
+            ip_address=get_client_ip(request)
         )
 
-        # Email notifications
-        outcome_label = "upheld" if action == "accept" else "rejected"
-        report_ref = dispute.report.reference_number
-
-        # Notify reporter
-        if hasattr(dispute.report, 'reporter') and dispute.report.reporter:
-            reporter = dispute.report.reporter
-            if reporter.email:
-                subject = f"VerifyNG: Dispute on your report {report_ref} has been {outcome_label}"
-                if action == 'accept':
-                    body = (
-                        f"Dear {reporter.get_full_name() or reporter.username},\n\n"
-                        f"The dispute raised against your report (Ref: {report_ref}) has been reviewed and upheld. "
-                        f"The report has been marked as resolved.\n\n"
-                        f"If you have questions, please contact support@verifyng.com.\n\nVerifyNG Team"
-                    )
-                else:
-                    body = (
-                        f"Dear {reporter.get_full_name() or reporter.username},\n\n"
-                        f"The dispute raised against your report (Ref: {report_ref}) has been reviewed and rejected. "
-                        f"Your report remains published.\n\n"
-                        f"If you have questions, please contact support@verifyng.com.\n\nVerifyNG Team"
-                    )
-                send_email_notification_task.delay(reporter.email, subject, body)
-
-        # Notify disputant
-        if hasattr(dispute, 'disputant') and dispute.disputant:
-            disputant = dispute.disputant
-            if disputant.email:
-                subject = f"VerifyNG: Your dispute on report {report_ref} has been {outcome_label}"
-                if action == 'accept':
-                    body = (
-                        f"Dear {disputant.get_full_name() or disputant.username},\n\n"
-                        f"Your dispute on report (Ref: {report_ref}) has been reviewed and upheld. "
-                        f"The report has been resolved in your favour.\n\n"
-                        f"If you have questions, please contact support@verifyng.com.\n\nVerifyNG Team"
-                    )
-                else:
-                    body = (
-                        f"Dear {disputant.get_full_name() or disputant.username},\n\n"
-                        f"Your dispute on report (Ref: {report_ref}) has been reviewed and rejected. "
-                        f"The original report remains published.\n\n"
-                        f"If you have questions, please contact support@verifyng.com.\n\nVerifyNG Team"
-                    )
-                send_email_notification_task.delay(disputant.email, subject, body)
-
-        messages.success(request, f"Dispute {action}ed successfully.")
+        outcome_text = "accepted & upheld (report quarantined/restricted)" if outcome == 'accepted' else "rejected (report published)"
+        messages.success(request, f"Dispute on {dispute.report.reference_number} has been {outcome_text}.")
         return redirect('admin_portal:disputes')
 
 
 class AdminDisputeDetailView(SuperAdminRequiredMixin, TemplateView):
-    """Full dispute detail — shows report content, disputant reason, and resolution form."""
+    """Full dispute detail — shows report content, disputant reason, evidence, rebuttal, and resolution form."""
     template_name = "admin_portal/dispute_detail.html"
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx['dispute'] = get_object_or_404(
+        lookup = {'public_id': self.kwargs['public_id']} if 'public_id' in self.kwargs else {'pk': self.kwargs['pk']}
+        dispute = get_object_or_404(
             Dispute.objects.select_related('report', 'disputant', 'report__reporter', 'report__target_subject'),
-            pk=self.kwargs['pk']
+            **lookup
         )
+        ctx['dispute'] = dispute
+        ctx['evidence_list'] = dispute.report.evidence_files.all()
+        ctx['complainant_rebuttal'] = dispute.report.complainant_rebuttal
+        ctx['moderator_info_requests'] = dispute.report.moderator_info_requests
         return ctx
 
-    def post(self, request, pk):
-        dispute = get_object_or_404(Dispute, pk=pk)
+    def post(self, request, public_id=None, pk=None):
+        lookup = {'public_id': public_id} if public_id else {'pk': pk}
+        dispute = get_object_or_404(Dispute.objects.select_related('report', 'disputant', 'report__reporter'), **lookup)
         action = request.POST.get('action', '')
         resolution_notes = request.POST.get('resolution_notes', '').strip()
 
-        if action == 'accept':
-            dispute.status = 'upheld'
-            dispute.report.state = 'resolved'
-            dispute.report.save(update_fields=['state', 'updated_at'])
-        elif action == 'reject':
-            dispute.status = 'rejected'
-            dispute.report.state = 'published'
-            dispute.report.save(update_fields=['state', 'updated_at'])
-        else:
+        if action not in ('accept', 'reject'):
             messages.error(request, "Invalid action.")
-            return redirect('admin_portal:dispute_detail', pk=pk)
+            return redirect('admin_portal:dispute_detail', public_id=dispute.public_id)
 
-        dispute.resolution_notes = resolution_notes
-        dispute.resolved_at = timezone.now()
-        dispute.save()
+        outcome = 'accepted' if action == 'accept' else 'rejected'
+        from reports.services import resolve_dispute
+        from core.rate_limiting import get_client_ip
 
-        AuditLog.objects.create(
-            action=f"ADMIN_DISPUTE_{action.upper()}",
-            performed_by=request.user,
-            details={"dispute_id": dispute.id, "report_ref": dispute.report.reference_number}
+        resolve_dispute(
+            dispute=dispute,
+            outcome=outcome,
+            actor=request.user,
+            resolution_notes=resolution_notes,
+            ip_address=get_client_ip(request)
         )
 
-        # Email notifications
-        outcome_label = "upheld" if action == "accept" else "rejected"
-        report_ref = dispute.report.reference_number
-
-        if hasattr(dispute.report, 'reporter') and dispute.report.reporter:
-            reporter = dispute.report.reporter
-            if reporter.email:
-                subject = f"VerifyNG: Dispute on your report {report_ref} has been {outcome_label}"
-                if action == 'accept':
-                    body = (
-                        f"Dear {reporter.get_full_name() or reporter.username},\n\n"
-                        f"The dispute raised against your report (Ref: {report_ref}) has been reviewed and upheld. "
-                        f"The report has been marked as resolved.\n\n"
-                        f"Contact support@verifyng.com with any questions.\n\nVerifyNG Team"
-                    )
-                else:
-                    body = (
-                        f"Dear {reporter.get_full_name() or reporter.username},\n\n"
-                        f"The dispute raised against your report (Ref: {report_ref}) was reviewed and rejected. "
-                        f"Your report remains published.\n\n"
-                        f"Contact support@verifyng.com with any questions.\n\nVerifyNG Team"
-                    )
-                send_email_notification_task.delay(reporter.email, subject, body)
-
-        if hasattr(dispute, 'disputant') and dispute.disputant:
-            disputant = dispute.disputant
-            if disputant.email:
-                subject = f"VerifyNG: Your dispute on report {report_ref} has been {outcome_label}"
-                if action == 'accept':
-                    body = (
-                        f"Dear {disputant.get_full_name() or disputant.username},\n\n"
-                        f"Your dispute on report (Ref: {report_ref}) has been reviewed and upheld in your favour. "
-                        f"The report has been resolved.\n\n"
-                        f"Contact support@verifyng.com with any questions.\n\nVerifyNG Team"
-                    )
-                else:
-                    body = (
-                        f"Dear {disputant.get_full_name() or disputant.username},\n\n"
-                        f"Your dispute on report (Ref: {report_ref}) was reviewed and rejected. "
-                        f"The original report remains published.\n\n"
-                        f"Contact support@verifyng.com with any questions.\n\nVerifyNG Team"
-                    )
-                send_email_notification_task.delay(disputant.email, subject, body)
-
-        messages.success(request, f"Dispute {action}ed. Report is now '{dispute.report.state}'.")
-        return redirect('admin_portal:disputes')
+        outcome_text = "upheld & accepted (report restricted from public view)" if outcome == 'accepted' else "rejected (allegation retained & published)"
+        messages.success(request, f"Dispute resolution recorded: {outcome_text}.")
+        return redirect('admin_portal:dispute_detail', public_id=dispute.public_id)
 
     
 # ── Verifications ──────────────────────────────────────────────────────────
@@ -1216,10 +1142,18 @@ def _dispatch_admin_verification_email(req, action, notes=None):
         send_email_notification_task.delay(requester_email, email_subject, text_body, html_message=html_body)
 
 
+class AdminVerificationLegacyRedirectView(SuperAdminRequiredMixin, View):
+    """Backward-compatible redirect from integer PK to UUID-based verification detail."""
+    def get(self, request, pk):
+        req = get_object_or_404(VerificationRequest, pk=pk)
+        return redirect('admin_portal:verification_detail', public_id=req.public_id)
+
+
 class AdminVerificationActionView(SuperAdminRequiredMixin, View):
     """POST: complete or reject a verification request."""
-    def post(self, request, pk):
-        req = get_object_or_404(VerificationRequest, pk=pk)
+    def post(self, request, public_id=None, pk=None):
+        lookup = {'public_id': public_id} if public_id else {'pk': pk}
+        req = get_object_or_404(VerificationRequest, **lookup)
         action = request.POST.get('action', '')
         notes = request.POST.get('notes', '').strip()
 
@@ -1270,24 +1204,26 @@ class AdminVerificationDetailView(SuperAdminRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
+        lookup = {'public_id': self.kwargs['public_id']} if 'public_id' in self.kwargs else {'pk': self.kwargs['pk']}
         verification = get_object_or_404(
             VerificationRequest.objects.select_related(
                 'requester', 'target_subject', 'result', 'result__verified_by'
             ),
-            pk=kwargs['pk']
+            **lookup
         )
         ctx['verification'] = verification
         ctx['has_result'] = hasattr(verification, 'result') and verification.result is not None
         return ctx
 
-    def post(self, request, pk):
-        verification = get_object_or_404(VerificationRequest, pk=pk)
+    def post(self, request, public_id=None, pk=None):
+        lookup = {'public_id': public_id} if public_id else {'pk': pk}
+        verification = get_object_or_404(VerificationRequest, **lookup)
         action = request.POST.get('action', '')
         notes  = request.POST.get('notes', '').strip()
 
         if action not in ('in_progress', 'complete', 'reject'):
             messages.error(request, "Invalid action.")
-            return redirect('admin_portal:verification_detail', pk=pk)
+            return redirect('admin_portal:verification_detail', public_id=verification.public_id)
 
         if action == 'complete':
             verification.status = 'completed'
@@ -1324,7 +1260,7 @@ class AdminVerificationDetailView(SuperAdminRequiredMixin, TemplateView):
             details={"verification_id": verification.id, "reference": verification.reference_number}
         )
         messages.success(request, f"Verification {verification.reference_number} updated to '{action}'.")
-        return redirect('admin_portal:verification_detail', pk=pk)
+        return redirect('admin_portal:verification_detail', public_id=verification.public_id)
 
 # ── Employer Profiles ──────────────────────────────────────────────────────
 
@@ -2418,14 +2354,24 @@ class AdminCertificatesView(SuperAdminRequiredMixin, TemplateView):
         return ctx
 
 
+class AdminCertificateLegacyRedirectView(SuperAdminRequiredMixin, View):
+    """Backward-compatible redirect from integer PK to UUID-based certificate detail."""
+    def get(self, request, pk):
+        if not VerificationCertificate:
+            raise Http404("Certificate model not available.")
+        cert = get_object_or_404(VerificationCertificate, pk=pk)
+        return redirect('admin_portal:certificate_detail', public_id=cert.public_id)
+
+
 class AdminCertificateActionView(SuperAdminRequiredMixin, View):
     """Activate, suspend, or revoke a certificate."""
 
-    def post(self, request, pk):
+    def post(self, request, public_id=None, pk=None):
         if not VerificationCertificate:
             return JsonResponse({'ok': False, 'error': 'Certificate model not available.'}, status=400)
 
-        cert = get_object_or_404(VerificationCertificate, pk=pk)
+        lookup = {'public_id': public_id} if public_id else {'pk': pk}
+        cert = get_object_or_404(VerificationCertificate, **lookup)
         action = request.POST.get('action', '').strip()
         reason = request.POST.get('reason', '').strip()
 
@@ -2477,13 +2423,14 @@ class AdminCertificateDetailView(SuperAdminRequiredMixin, TemplateView):
         if not VerificationCertificate:
             ctx['no_model'] = True
             return ctx
+        lookup = {'public_id': self.kwargs['public_id']} if 'public_id' in self.kwargs else {'pk': self.kwargs['pk']}
         cert = get_object_or_404(
             VerificationCertificate.objects.select_related('holder', 'subject'),
-            pk=self.kwargs['pk'],
+            **lookup
         )
         ctx['cert'] = cert
         ctx['now'] = timezone.now()
-        ctx['action_url'] = f'/admin-portal/certificates/{cert.pk}/action/'
+        ctx['action_url'] = f'/admin-portal/certificates/{cert.public_id}/action/'
         # Robust multi-strategy lookup for application audit log (SQLite & Postgres compatible)
                 # Robust lookup for application audit log strictly matching THIS certificate_id
         app_log = None
@@ -2543,11 +2490,12 @@ class AdminCertificateDocumentView(SuperAdminRequiredMixin, View):
     Serves the candidate's uploaded identity proof inline in the browser tab
     (or as file download if ?download=1) without exposing raw Cloudinary CDN or 404ing.
     """
-    def get(self, request, pk):
+    def get(self, request, public_id=None, pk=None):
         
         if not VerificationCertificate:
             raise Http404("Certificate model not available.")
-        cert = get_object_or_404(VerificationCertificate, pk=pk)
+        lookup = {'public_id': public_id} if public_id else {'pk': pk}
+        cert = get_object_or_404(VerificationCertificate, **lookup)
         # Locate the application audit log strictly for THIS certificate
         app_log = None
         for l in AuditLog.objects.filter(action="TRUSTPASS_APPLICATION_SUBMITTED").order_by('-timestamp')[:200]:

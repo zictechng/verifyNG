@@ -1,3 +1,5 @@
+import uuid
+from datetime import timedelta
 from django.db import models
 from django.utils import timezone
 from users.models import User
@@ -5,6 +7,13 @@ from identities.models import SubjectEntity
 
 
 class FraudReport(models.Model):
+    public_id = models.UUIDField(
+        default=uuid.uuid4,
+        editable=False,
+        unique=True,
+        db_index=True,
+        help_text="Public-facing report identifier — never expose the integer PK"
+    )
     STATES = (
         ('submitted', 'Submitted'),
         ('under_review', 'Under Review'),
@@ -79,6 +88,105 @@ class FraudReport(models.Model):
             allegation_str.startswith('WORKPLACE MISCONDUCT REPORT')
         )
 
+    @property
+    def suspect_context(self):
+        """Extracts submitted suspect context from the initial audit log."""
+        if not self.pk:
+            return {}
+        init_log = self.audit_logs.filter(action="REPORT_SUBMITTED").first()
+        if init_log and isinstance(init_log.details, dict):
+            return init_log.details.get('suspect_context', {})
+        return {}
+
+    @property
+    def suspect_email(self):
+        """Returns the email address of the accused person or entity."""
+        ctx = self.suspect_context
+        if ctx.get('email'):
+            return ctx['email']
+        if hasattr(self.target_subject, 'business_profile') and self.target_subject.business_profile.contact_email:
+            return self.target_subject.business_profile.contact_email
+        return None
+
+    @property
+    def suspect_phone(self):
+        """Returns the phone number of the accused person or entity."""
+        ctx = self.suspect_context
+        if ctx.get('phone'):
+            return ctx['phone']
+        if hasattr(self.target_subject, 'business_profile') and self.target_subject.business_profile.contact_phone:
+            return self.target_subject.business_profile.contact_phone
+        return None
+
+    @property
+    def dispute_deadline(self):
+        """The 7-day fair-hearing / right-of-response expiration date."""
+        ctx = self.suspect_context
+        if ctx.get('dispute_deadline'):
+            return ctx['dispute_deadline']
+        base_time = self.created_at or timezone.now()
+        return (base_time + timedelta(days=7)).strftime('%d %B %Y')
+
+    @property
+    def is_within_dispute_window(self):
+        """Returns True if within the 7-day fair-hearing window."""
+        base_time = self.created_at or timezone.now()
+        return timezone.now() <= (base_time + timedelta(days=7))
+
+    @property
+    def complainant_rebuttal(self):
+        """Returns the formal rebuttal statement and evidence submitted by the complainant, if any."""
+        if not self.pk:
+            return None
+        log = self.audit_logs.filter(action="COMPLAINANT_REBUTTAL_SUBMITTED").first()
+        if log and isinstance(log.details, dict):
+            details_dict = dict(log.details)
+            return {
+                'statement': log.details.get('rebuttal_statement', ''),
+                'rebuttal_statement': log.details.get('rebuttal_statement', ''),
+                'submitted_at': log.timestamp,
+                'timestamp': log.timestamp,
+                'evidence_id': log.details.get('evidence_id'),
+                'evidence_name': log.details.get('evidence_name', ''),
+                'actor': log.performed_by,
+                'details': details_dict,
+                'log': log,
+            }
+        return None
+
+    @property
+    def can_submit_rebuttal(self):
+        """Returns True if complainant can submit their 1-time rebuttal."""
+        return (
+            self.state == 'disputed'
+            and self.disputes.exists()
+            and self.complainant_rebuttal is None
+        )
+
+    @property
+    def moderator_info_requests(self):
+        """Returns all interlocutory information requests issued by compliance moderators."""
+        if not self.pk:
+            return []
+        return self.audit_logs.filter(action="MODERATOR_INFO_REQUEST").order_by('-timestamp')
+
+    def pending_info_request_for_user(self, user):
+        """Checks if a specific user has an active, unfulfilled info request."""
+        if not user or not user.is_authenticated or not self.pk:
+            return None
+        is_reporter = (self.reporter_id == user.id)
+        is_respondent = self.disputes.filter(disputant=user).exists()
+        if not is_respondent and self.suspect_email and user.email:
+            is_respondent = (self.suspect_email.strip().lower() == user.email.strip().lower())
+
+        for req in self.moderator_info_requests:
+            details = req.details or {}
+            if details.get('status') == 'pending':
+                target_role = details.get('target_role')
+                if (target_role == 'complainant' and is_reporter) or (target_role == 'respondent' and is_respondent):
+                    return req
+        return None
+
 
 class ReportEvidence(models.Model):
     EVIDENCE_TYPES = (
@@ -145,6 +253,13 @@ class ReportEvidence(models.Model):
 
 
 class Dispute(models.Model):
+    public_id = models.UUIDField(
+        default=uuid.uuid4,
+        editable=False,
+        unique=True,
+        db_index=True,
+        help_text="Public-facing dispute identifier — never expose the integer PK"
+    )
     DISPUTE_STATES = (
         ('opened', 'Opened'),
         ('under_review', 'Under Review'),
@@ -196,6 +311,11 @@ class Dispute(models.Model):
 
     def __str__(self):
         return f"Dispute for {self.report.reference_number} ({self.get_status_display()})"
+
+    @property
+    def complainant_rebuttal(self):
+        """Returns the complainant's final rebuttal statement & counter-proof from the parent report, if submitted."""
+        return self.report.complainant_rebuttal if self.report else None
 
 
 class AuditLog(models.Model):
@@ -274,6 +394,11 @@ class AuditLog(models.Model):
     details = models.JSONField(default=dict, blank=True)
 
     timestamp = models.DateTimeField(default=timezone.now, db_index=True)
+
+    @property
+    def created_at(self):
+        """Backward-compatible alias for timestamp."""
+        return self.timestamp
 
     class Meta:
         verbose_name = 'Audit Log'
