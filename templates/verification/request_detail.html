@@ -179,8 +179,8 @@
                         </div>
                     </div>
 
-                    <div class="d-flex justify-content-between align-items-center pt-3 border-top small text-muted">
-                        <span>Assessed by VerifyNG Compliance Officer ID #VNG-OFF-{{ verification_request.result.verified_by.id|default:"001" }}</span>
+                    <div class="d-flex justify-content-between align-items-center pt-3 border-top text-muted">
+                        <span>Assessed by {{ site_config.site_name|default:"VerifyNG" }} Compliance Officer ID #VNG-OFF-{{ verification_request.result.verified_by.id|default:"001" }}</span>
                         <a href="{% url 'verification:report' verification_request.reference_number %}" class="fw-semibold text-decoration-none">
                             Open Printable View &rarr;
                         </a>
@@ -361,7 +361,7 @@
             <div class="vng-card p-4">
                 <h6 class="small fw-bold text-muted text-uppercase mb-2">Notice &amp; Disclaimer</h6>
                 <p class="small text-muted mb-0" style="line-height:1.5;">
-                    This is an independent VerifyNG due-diligence report based on authoritative registries. It establishes factual verification findings for transactions, employment, and investment due diligence.
+                    This is an independent {{ site_config.site_name|default:"VerifyNG" }} due-diligence report based on authoritative registries. It establishes factual verification findings for transactions, employment, and investment due diligence.
                 </p>
             </div>
         </div>

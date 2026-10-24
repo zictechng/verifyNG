@@ -7,6 +7,9 @@ No sensitive data (evidence files, moderation notes, NIN/BVN) is included.
 """
 
 from typing import Tuple
+from django.utils import timezone
+from core.models import SiteConfiguration
+from core.email_utils import render_email
 
 
 _BASE_SITE_NAME = "VerifyNG"
@@ -218,50 +221,86 @@ def build_dispute_resolved(
 
 
 def build_verification_completed(reference_number: str, username: str) -> Tuple[str, str, str]:
-    subject = f"Verification Complete — {reference_number} | VerifyNG"
-    body_html = (
-        _heading("Your Verification Request Is Complete")
-        + _para(f"Hi {username},")
-        + _para(
-            "Great news — your verification request has been processed and completed. "
-            "You can now view the full result and download your VerifyNG Verification Report."
+    try:
+        config = SiteConfiguration.get_solo()
+        site_name = config.site_name
+        site_url = config.base_url.rstrip('/')
+        subject = f"Verification Completed [{reference_number}] — {site_name}"
+        html_body, text_body = render_email('verification_complete', {
+            'user_name': username,
+            'reference_number': reference_number,
+            'subject_name': 'Target Subject',
+            'scope_display': 'Verification',
+            'outcome_display': 'Verified Genuine',
+            'outcome': 'verified',
+            'summary': 'Verification request processed and completed.',
+            'completed_at': timezone.now().strftime('%d %B %Y, %I:%M %p'),
+            'report_url': f"{site_url}/verification/{reference_number}/report/",
+            'detail_url': f"{site_url}/verification/{reference_number}/",
+        })
+        return subject, html_body, text_body
+    except Exception:
+        config = SiteConfiguration.get_solo()
+        site_name = config.site_name if config else _BASE_SITE_NAME
+        site_url = config.base_url.rstrip('/') if config else _BASE_SITE_URL
+        subject = f"Verification Complete — {reference_number} | {site_name}"
+        body_html = (
+            _heading("Your Verification Request Is Complete")
+            + _para(f"Hi {username},")
+            + _para(
+                f"Great news — your verification request has been processed and completed. "
+                f"You can now view the full result and download your {site_name} Verification Report."
+            )
+            + _ref_pill(reference_number)
+            + _cta_button(f"{site_url}/verification/{reference_number}/", "View Verification Result")
         )
-        + _ref_pill(reference_number)
-        + _cta_button(f"{_BASE_SITE_URL}/dashboard/", "View Verification Result")
-    )
-    text_body = (
-        f"Hi {username},\n\n"
-        f"Your verification request ({reference_number}) is complete.\n\n"
-        f"View your results at: {_BASE_SITE_URL}/dashboard/\n\n"
-        f"{_DISCLAIMER}"
-    )
-    return subject, _html_wrapper(subject, body_html), text_body
+        text_body = (
+            f"Hi {username},\n\n"
+            f"Your verification request ({reference_number}) is complete.\n\n"
+            f"View your results at: {site_url}/verification/{reference_number}/\n\n"
+            f"{_DISCLAIMER}"
+        )
+        return subject, _html_wrapper(subject, body_html), text_body
 
 
 def build_verification_rejected(reference_number: str, username: str) -> Tuple[str, str, str]:
-    subject = f"Verification Update — {reference_number} | VerifyNG"
-    body_html = (
-        _heading("Update on Your Verification Request")
-        + _para(f"Hi {username},")
-        + _para(
-            "Our verification team has reviewed your request and was unable to complete "
-            "the verification at this time. This may be due to insufficient information "
-            "or a mismatch in the submitted data."
+    try:
+        config = SiteConfiguration.get_solo()
+        site_name = config.site_name
+        site_url = config.base_url.rstrip('/')
+        subject = f"Update on Verification Request [{reference_number}] — {site_name}"
+        html_body, text_body = render_email('verification_declined', {
+            'user_name': username,
+            'reference_number': reference_number,
+            'subject_name': 'Target Subject',
+            'scope_display': 'Verification',
+            'reason': 'Supporting documentation could not be substantiated against primary records.',
+            'declined_at': timezone.now().strftime('%d %B %Y, %I:%M %p'),
+            'detail_url': f"{site_url}/verification/{reference_number}/",
+        })
+        return subject, html_body, text_body
+    except Exception:
+        config = SiteConfiguration.get_solo()
+        site_name = config.site_name if config else _BASE_SITE_NAME
+        site_url = config.base_url.rstrip('/') if config else _BASE_SITE_URL
+        subject = f"Verification Update — {reference_number} | {site_name}"
+        body_html = (
+            _heading("Update on Your Verification Request")
+            + _para(f"Hi {username},")
+            + _para(
+                f"Our verification team has reviewed your request and was unable to complete "
+                f"the verification at this time."
+            )
+            + _ref_pill(reference_number)
+            + _cta_button(f"{site_url}/verification/{reference_number}/", "View My Request")
         )
-        + _ref_pill(reference_number)
-        + _para(
-            "Please review your submitted information on your dashboard. "
-            "You may submit a new request with corrected or additional details."
+        text_body = (
+            f"Hi {username},\n\n"
+            f"Your verification request ({reference_number}) could not be completed.\n\n"
+            f"View your request at: {site_url}/verification/{reference_number}/\n\n"
+            f"{_DISCLAIMER}"
         )
-        + _cta_button(f"{_BASE_SITE_URL}/dashboard/", "View My Requests")
-    )
-    text_body = (
-        f"Hi {username},\n\n"
-        f"Your verification request ({reference_number}) could not be completed.\n\n"
-        f"View your dashboard at: {_BASE_SITE_URL}/dashboard/\n\n"
-        f"{_DISCLAIMER}"
-    )
-    return subject, _html_wrapper(subject, body_html), text_body
+        return subject, _html_wrapper(subject, body_html), text_body
 
 
 def build_broadcast(subject_line: str, message_body: str, username: str) -> Tuple[str, str, str]:

@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VerifyNG Verification Report — {{ verification_request.reference_number }}</title>
+    <title>{{ site_config.site_name|default:"VerifyNG" }} Verification Report — {{ verification_request.reference_number }}</title>
     <style>
         *, *::before, *::after {
             box-sizing: border-box;
@@ -272,9 +272,9 @@
             border: 1px solid #BFDBFE;
             border-left: 3px solid #1E40AF;
             border-radius: 4px;
-            padding: 10px 14px;
-            font-size: 11.5px;
-            line-height: 1.5;
+            padding: 12px 16px;
+            font-size: 13.5px;
+            line-height: 1.6;
             margin-bottom: 16px;
             color: #1E3A8A;
         }
@@ -283,12 +283,12 @@
         .disclaimer-box {
             background-color: #F8FAFC;
             border: 1px solid #E2E8F0;
-            padding: 10px 14px;
+            padding: 12px 16px;
             margin-top: 18px;
-            margin-bottom: 16px;
-            font-size: 11px;
-            line-height: 1.45;
-            color: #64748B;
+            margin-bottom: 18px;
+            font-size: 13px;
+            line-height: 1.6;
+            color: #334155;
             border-radius: 4px;
         }
 
@@ -439,15 +439,15 @@
             <tbody>
                 <tr>
                     <th>Subject Legal / Registered Name</th>
-                    <td><strong>{{ verification_request.target_subject.name }}</strong></td>
+                    <td><strong>{{ verification_request.target_subject.name |capfirst }}</strong></td>
                 </tr>
                 <tr>
                     <th>Target Entity Type</th>
-                    <td>{{ verification_request.target_subject.get_type_display }}</td>
+                    <td>{{ verification_request.target_subject.get_type_display |capfirst }}</td>
                 </tr>
                 <tr>
                     <th>Verification Scope Category</th>
-                    <td>{{ verification_request.get_verification_type_display }}</td>
+                    <td>{{ verification_request.get_verification_type_display |capfirst }}</td>
                 </tr>
                 <tr>
                     <th>Verification Reference ID</th>
@@ -495,7 +495,7 @@
                 {% if verification_request.result.details.record_status %}
                 <tr>
                     <th>Registry Record &amp; Encumbrance Status</th>
-                    <td>{{ verification_request.result.details.record_status }}</td>
+                    <td>{{ verification_request.result.details.record_status |capfirst }}</td>
                 </tr>
                 {% endif %}
                 <tr>
@@ -509,7 +509,8 @@
         {% if verification_request.result.details.officer_advisory %}
         <div class="section-heading">4. Officer Recommendation &amp; Transaction Advisory</div>
         <div class="advisory-box">
-            <strong>Advisory Note:</strong> {{ verification_request.result.details.officer_advisory }}
+            <strong style="color:#1E3A8A;font-size:13.5px;">Advisory Note:</strong>
+            <span style="font-size:13.5px;color:#1E3A8A;">{{ verification_request.result.details.officer_advisory }}</span>
         </div>
         {% endif %}
 
@@ -522,7 +523,7 @@
                     {% if indicator_label != 'Registry Checked' and indicator_label != 'Registration Ref' and indicator_label != 'Confirmed Owner' and indicator_label != 'Record Status' and indicator_label != 'Officer Advisory' and indicator_label != 'Inspection Date' %}
                     <tr>
                         <th>{{ indicator_label }}</th>
-                        <td>{{ indicator_value }}</td>
+                        <td>{{ indicator_value|capfirst}}</td>
                     </tr>
                     {% endif %}
                 {% endfor %}
@@ -532,8 +533,10 @@
 
         <!-- Statutory Compliance & Confidentiality Notice -->
         <div class="disclaimer-box">
-            <strong>Statutory Compliance &amp; Legal Notice:</strong>
-            This document is an independent factual verification report conducted by VerifyNG in accordance with the Nigeria Data Protection Act (NDPA) and applicable registry vetting protocols. It is issued solely for due-diligence purposes to authenticate transactional, identity, property, vehicle, or academic claims. It does not replace a statutory Police Clearance Certificate or UK DBS check.
+            <strong style="color:#0F172A;font-size:13px;">Statutory Compliance &amp; Legal Notice:</strong>
+            <span style="font-size:13px;color:#334155;">
+                This document is an independent factual verification report conducted by {{ site_config.site_name|default:"VerifyNG" }} in accordance with the Nigeria Data Protection Act (NDPA) and applicable registry vetting protocols. It is issued solely for due-diligence purposes to authenticate transactional, identity, property, vehicle, or academic claims. It does not replace a statutory Police Clearance Certificate or UK DBS check.
+            </span>
         </div>
 
         <!-- Document Sign-off & Seal -->
@@ -541,15 +544,15 @@
             <div>
                 <div class="seal-stamp">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
-                    VerifyNG Digital Trust Seal
+                    {{ site_config.site_name|default:"VerifyNG" }} Digital Trust Seal
                 </div>
-                <div style="margin-top:6px; font-size:10px; color:#64748B;">
-                    Assessed By: <strong>VerifyNG Authorized Officer (ID #VNG-OFF-{{ verification_request.result.verified_by.id|default:"001" }})</strong><br>
+                <div style="margin-top:6px; font-size:13px; color:#64748B;">
+                    Assessed By: <strong>{{ site_config.site_name|default:"VerifyNG" }} Authorized Officer (ID #VNG-OFF-{{ verification_request.result.verified_by.id|default:"001" }})</strong><br>
                     Verification Digest: <span style="font-family:monospace;">SHA256:{{ verification_request.reference_number|slice:":12" }}...VALIDATED</span>
                 </div>
             </div>
             <div style="text-align: right; font-size:10px; color:#64748B;">
-                VerifyNG Registry Intelligence &copy; 2026<br>
+                {{ site_config.site_name|default:"VerifyNG" }} Registry Intelligence &copy; {% now "Y" %}<br>
                 Official Independent Verification Archive
             </div>
         </div>

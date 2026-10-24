@@ -11,8 +11,13 @@ Rules:
 """
 
 import logging
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
+from django.utils import timezone
+from core.models import SiteConfiguration
+from core.email_utils import render_email
+from verification.models import VerificationResult
+from notifications.services import dispatch_notification
 
 logger = logging.getLogger(__name__)
 
@@ -161,10 +166,7 @@ def notify_on_dispute_lifecycle(sender, instance, created, **kwargs):
 
 @receiver(post_save, sender='verification.VerificationRequest')
 def notify_on_verification_lifecycle(sender, instance, created, **kwargs):
-    """Dispatch notifications on verification request completion and rejection."""
-    from notifications import email_templates
-    from notifications.services import dispatch_notification
-
+    """Dispatch notifications on verification request completion and rejection using branded dynamic templates."""
     if created:
         # No notification on creation — status is 'pending', nothing actionable yet
         return
@@ -181,15 +183,38 @@ def notify_on_verification_lifecycle(sender, instance, created, **kwargs):
         if not prev_status or prev_status == new_status:
             return
 
+        config = SiteConfiguration.get_solo()
+        site_name = config.site_name
+        site_url = config.base_url.rstrip('/')
+        user_name = requester.get_full_name() or requester.username
+        subject_name = instance.target_subject.name if instance.target_subject else 'Target Subject'
+        scope_display = dict(sender.VERIFICATION_TYPES).get(instance.verification_type, instance.verification_type)
+
         if new_status == 'completed':
-            subject, html_body, text_body = email_templates.build_verification_completed(
-                ref, requester.username
-            )
+            result = getattr(instance, 'result', None)
+            outcome = result.outcome if result else 'verified'
+            outcome_display = dict(VerificationResult.OUTCOME_CHOICES).get(outcome, 'Verified Genuine')
+            summary = result.summary if result else (instance.notes or 'Official verification confirmed and approved.')
+            completed_at = (result.verified_at if result else timezone.now()).strftime('%d %B %Y, %I:%M %p')
+
+            subject = f"Verification Completed [{ref}]: {outcome_display} — {site_name}"
+            html_body, text_body = render_email('verification_complete', {
+                'user_name': user_name,
+                'reference_number': ref,
+                'subject_name': subject_name,
+                'scope_display': scope_display,
+                'outcome_display': outcome_display,
+                'outcome': outcome,
+                'summary': summary,
+                'completed_at': completed_at,
+                'report_url': f"{site_url}/verification/{ref}/report/",
+                'detail_url': f"{site_url}/verification/{ref}/",
+            })
             dispatch_notification(
                 recipient=requester,
                 event_type='VERIFICATION_COMPLETED',
-                title='Your verification is complete',
-                body=f'Verification request {ref} has been completed.',
+                title=f'Verification Complete: {outcome_display}',
+                body=f'Verification request {ref} for {subject_name} has been completed.',
                 object_reference=ref,
                 subject=subject,
                 html_body=html_body,
@@ -197,14 +222,23 @@ def notify_on_verification_lifecycle(sender, instance, created, **kwargs):
             )
 
         elif new_status == 'rejected':
-            subject, html_body, text_body = email_templates.build_verification_rejected(
-                ref, requester.username
-            )
+            reason_text = instance.notes or "Supporting documentation could not be substantiated against primary records."
+            declined_at = timezone.now().strftime('%d %B %Y, %I:%M %p')
+            subject = f"Update on Verification Request [{ref}] — {site_name}"
+            html_body, text_body = render_email('verification_declined', {
+                'user_name': user_name,
+                'reference_number': ref,
+                'subject_name': subject_name,
+                'scope_display': scope_display,
+                'reason': reason_text,
+                'declined_at': declined_at,
+                'detail_url': f"{site_url}/verification/{ref}/",
+            })
             dispatch_notification(
                 recipient=requester,
                 event_type='VERIFICATION_REJECTED',
                 title='Update on your verification request',
-                body=f'Verification request {ref} could not be completed.',
+                body=f'Verification request {ref} for {subject_name} could not be completed.',
                 object_reference=ref,
                 subject=subject,
                 html_body=html_body,
@@ -217,7 +251,6 @@ def notify_on_verification_lifecycle(sender, instance, created, **kwargs):
 
 # Add to the BOTTOM of notifications/signals.py
 
-from django.db.models.signals import pre_save
 
 @receiver(pre_save, sender='reports.Dispute')
 def track_dispute_status_change(sender, instance, **kwargs):

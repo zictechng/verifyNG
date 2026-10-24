@@ -1187,7 +1187,7 @@ def _dispatch_admin_verification_email(req, action, notes=None):
                 f"Your verification request [{ref_id}] for '{subject_name}' has been completed.\n"
                 f"Official Verdict: Verified Genuine\n\n"
                 f"View report: {site_url}/verification/{ref_id}/report/\n\n"
-                f"VerifyNG Trust & Safety Team"
+                f"{site_name} Trust & Safety Team"
             )
         send_email_notification_task.delay(requester_email, email_subject, text_body, html_message=html_body)
 
@@ -1211,7 +1211,7 @@ def _dispatch_admin_verification_email(req, action, notes=None):
                 f"Hello {user_name},\n\n"
                 f"Your verification request [{ref_id}] for '{subject_name}' could not be completed.\n"
                 f"Reason: {reason_text}\n\n"
-                f"VerifyNG Trust & Safety Team"
+                f"{site_name} Trust & Safety Team"
             )
         send_email_notification_task.delay(requester_email, email_subject, text_body, html_message=html_body)
 

@@ -146,7 +146,7 @@ def create_verification_request(
                             f"Hello {user_name},\n\n"
                             f"Your verification request [{ref_id}] has been submitted and registered in our queue.\n"
                             f"Our verification officers will review the submission. You can track progress in your portal.\n\n"
-                            f"VerifyNG Trust & Safety Team"
+                            f"{config.site_name} Trust & Safety Team"
                         )
 
                     transaction.on_commit(
@@ -296,7 +296,7 @@ def complete_verification_request(
                     f"Outcome: {outcome_display}\n\n"
                     f"Summary: {summary}\n\n"
                     f"View official findings and report at: {site_url}/verification/{ref}/\n\n"
-                    f"VerifyNG Trust & Safety Team"
+                    f"{config.site_name} Trust & Safety Team"
                 )
 
             transaction.on_commit(
@@ -375,7 +375,7 @@ def reject_verification_request(
                     f"Your verification request [{ref}] could not be completed and has been closed.\n"
                     f"Reason: {reason}\n\n"
                     f"Sign in to your portal for details: {site_url}/verification/{ref}/\n\n"
-                    f"VerifyNG Trust & Safety Team"
+                    f"{config.site_name} Trust & Safety Team"
                 )
 
             transaction.on_commit(
