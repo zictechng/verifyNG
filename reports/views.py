@@ -1,6 +1,6 @@
 import logging
 from django.shortcuts import render, redirect, get_object_or_404
-from django.views.generic import FormView, DetailView, View, TemplateView
+from django.views.generic import FormView, DetailView, View, TemplateView, ListView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
@@ -71,6 +71,34 @@ class ReportCreateView(LoginRequiredMixin, FormView):
                 "Evidence file upload failed. Please verify storage settings or try uploading again."
             )
             return self.form_invalid(form)
+
+class MyReportsListView(LoginRequiredMixin, ListView):
+    """
+    Dedicated view for authenticated citizens/reporters to list,
+    track, and add further documentary evidence to their submitted fraud reports.
+    """
+    model = FraudReport
+    template_name = 'reports/my_reports.html'
+    context_object_name = 'reports'
+    paginate_by = 15
+
+    def get_queryset(self):
+        return (
+            FraudReport.objects.filter(reporter=self.request.user)
+            .select_related('target_subject')
+            .prefetch_related('evidence_files')
+            .order_by('-created_at')
+        )
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        base_qs = FraudReport.objects.filter(reporter=self.request.user)
+        ctx['total_count'] = base_qs.count()
+        ctx['review_count'] = base_qs.filter(state__in=['submitted', 'under_review']).count()
+        ctx['published_count'] = base_qs.filter(state='published').count()
+        ctx['resolved_count'] = base_qs.filter(state__in=['resolved', 'disputed']).count()
+        return ctx
+
 
 class ReportDetailView(DetailView):
     """Public/reporter/moderator view for a single fraud report."""

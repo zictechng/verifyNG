@@ -434,8 +434,8 @@
                                 {% endif %}
                             </td>
                             <td class="d-none d-md-table-cell small text-muted">{{ v.created_at|date:"M j, Y" }}</td>
-                            <td>
-                                <div class="d-flex gap-1">
+                            <td class="text-nowrap">
+                                <div class="d-inline-flex align-items-center gap-2 flex-wrap">
                                     <a href="{% url 'verification:detail' v.reference_number %}" class="btn btn-sm btn-outline-secondary">View</a>
                                     {% if v.status == 'completed' %}
                                     <a href="{% url 'verification:report' v.reference_number %}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-success">Report</a>

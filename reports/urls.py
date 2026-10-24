@@ -1,6 +1,7 @@
 from django.urls import path
 from reports.views import (
     ReportCreateView,
+    MyReportsListView,
     ReportDetailView,
     EvidenceDownloadView,
     EvidenceUploadView,
@@ -16,6 +17,7 @@ app_name = 'reports'
 urlpatterns = [
     # Specific actions registered first to avoid route shadowing
     path('submit/', ReportCreateView.as_view(), name='create'),
+    path('my-reports/', MyReportsListView.as_view(), name='my_reports'),
     path('moderation/', ModerationQueueView.as_view(), name='moderation_queue'),
     path('moderation/<str:reference_number>/transition/', ReportModerationTransitionView.as_view(), name='moderation_transition'),
     path('disputes/<int:dispute_id>/resolve/', DisputeResolveView.as_view(), name='resolve_dispute'),

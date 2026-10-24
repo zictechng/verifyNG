@@ -1,0 +1,251 @@
+{% extends 'public/base.html' %}
+{% load static %}
+
+{% block title %}My Submitted Reports | {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-md-5">
+
+    <!-- Page Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            {% if request.user.role in 'employer,agency,business' %}
+                <a href="{% url 'employer:dashboard' %}" class="text-decoration-none small text-muted">&larr; Back to Dashboard</a>
+            {% else %}
+                <a href="{% url 'dashboard:index' %}" class="text-decoration-none small text-muted">&larr; Back to Member Portal</a>
+            {% endif %}
+            <h1 class="h3 fw-bold mt-1 mb-1">My Submitted Fraud Reports</h1>
+            <p class="small text-muted mb-0">Track the review status of reports you have filed, or add further supporting documentary evidence.</p>
+        </div>
+        <a href="{% url 'reports:create' %}" class="btn btn-vng-primary btn-vng-sm align-self-start align-self-md-center text-nowrap">
+            + File New Report
+        </a>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show mb-3" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Stat Strip -->
+    <div class="row g-2 g-md-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="vng-card p-3 text-center h-100">
+                <div class="h4 fw-bold mb-0 text-primary">{{ total_count|default:paginator.count|default:0 }}</div>
+                <div class="small text-muted" style="font-size:0.8rem;">Total Submitted</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="vng-card p-3 text-center h-100">
+                <div class="h4 fw-bold mb-0 text-warning">{{ review_count|default:0 }}</div>
+                <div class="small text-muted" style="font-size:0.8rem;">Under Review</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="vng-card p-3 text-center h-100">
+                <div class="h4 fw-bold mb-0 text-success">{{ published_count|default:0 }}</div>
+                <div class="small text-muted" style="font-size:0.8rem;">Published</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="vng-card p-3 text-center h-100">
+                <div class="h4 fw-bold mb-0 text-info">{{ resolved_count|default:0 }}</div>
+                <div class="small text-muted" style="font-size:0.8rem;">Resolved / Closed</div>
+            </div>
+        </div>
+    </div>
+
+    {% if reports %}
+        <!-- Desktop Table (Visible on md and larger) -->
+        <div class="vng-card p-0 d-none d-md-block shadow-sm mb-4">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4">Reference</th>
+                            <th>Suspect / Subject</th>
+                            <th>Report Title</th>
+                            <th>Status</th>
+                            <th>Evidence</th>
+                            <th>Submitted</th>
+                            <th class="pe-4 text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for report in reports %}
+                        <tr>
+                            <td class="ps-4 font-monospace fw-semibold small text-primary">
+                                {{ report.reference_number }}
+                            </td>
+                            <td>
+                                <div class="fw-semibold small text-dark">{{ report.target_subject.name }}</div>
+                                <div class="text-muted" style="font-size:0.75rem;">{{ report.target_subject.get_type_display }}</div>
+                            </td>
+                            <td>
+                                <div class="small fw-semibold text-truncate" style="max-width:240px;" title="{{ report.title }}">
+                                    {{ report.title }}
+                                </div>
+                                {% if report.incident_date %}
+                                    <div class="text-muted" style="font-size:0.75rem;">Incident: {{ report.incident_date|date:"M j, Y" }}</div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if report.state == 'submitted' %}
+                                    <span class="badge bg-secondary">Submitted</span>
+                                {% elif report.state == 'under_review' %}
+                                    <span class="badge bg-primary">Under Review</span>
+                                {% elif report.state == 'published' %}
+                                    <span class="badge bg-success">Published</span>
+                                {% elif report.state == 'disputed' %}
+                                    <span class="badge bg-warning text-dark">Disputed</span>
+                                {% elif report.state == 'resolved' %}
+                                    <span class="badge bg-info text-dark">Resolved</span>
+                                {% elif report.state == 'rejected' %}
+                                    <span class="badge bg-danger">Declined</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ report.get_state_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-secondary border">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                                    {{ report.evidence_files.count }} file{{ report.evidence_files.count|pluralize }}
+                                </span>
+                            </td>
+                            <td class="small text-muted">{{ report.created_at|date:"M j, Y" }}</td>
+                            <td class="pe-4 text-end">
+                                <a href="{% url 'reports:detail' report.reference_number %}" class="btn btn-vng-outline btn-vng-sm text-nowrap">
+                                    View &amp; Evidence &rarr;
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Mobile Responsive Cards (Visible on screens smaller than md) -->
+        <div class="d-md-none mb-4">
+            {% for report in reports %}
+            <div class="vng-card p-3 mb-3 shadow-sm border">
+                <!-- Card Header: Reference & Status -->
+                <div class="d-flex align-items-center justify-content-between gap-2 pb-2 mb-2 border-bottom">
+                    <span class="font-monospace fw-bold text-primary small">
+                        {{ report.reference_number }}
+                    </span>
+                    <div>
+                        {% if report.state == 'submitted' %}
+                            <span class="badge bg-secondary">Submitted</span>
+                        {% elif report.state == 'under_review' %}
+                            <span class="badge bg-primary">Under Review</span>
+                        {% elif report.state == 'published' %}
+                            <span class="badge bg-success">Published</span>
+                        {% elif report.state == 'disputed' %}
+                            <span class="badge bg-warning text-dark">Disputed</span>
+                        {% elif report.state == 'resolved' %}
+                            <span class="badge bg-info text-dark">Resolved</span>
+                        {% elif report.state == 'rejected' %}
+                            <span class="badge bg-danger">Declined</span>
+                        {% else %}
+                            <span class="badge bg-secondary">{{ report.get_state_display }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Subject & Type -->
+                <div class="mb-2">
+                    <div class="d-flex align-items-center justify-content-between gap-2">
+                        <div class="fw-bold text-dark" style="font-size:0.95rem;">
+                            {{ report.target_subject.name }}
+                        </div>
+                        <span class="badge bg-light text-muted border" style="font-size:0.75rem;">
+                            {{ report.target_subject.get_type_display }}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Report Title -->
+                <div class="mb-3">
+                    <div class="small fw-semibold text-secondary mb-1">
+                        {{ report.title }}
+                    </div>
+                    {% if report.incident_date %}
+                        <div class="text-muted" style="font-size:0.78rem;">
+                            Date of Incident: {{ report.incident_date|date:"M j, Y" }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Metadata Row: Evidence Count & Submission Date -->
+                <div class="d-flex align-items-center justify-content-between gap-2 small text-muted pb-3 mb-3 border-bottom">
+                    <span class="d-inline-flex align-items-center gap-1" style="font-size:0.8rem;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                        {{ report.evidence_files.count }} evidence file{{ report.evidence_files.count|pluralize }}
+                    </span>
+                    <span style="font-size:0.8rem;">{{ report.created_at|date:"M j, Y" }}</span>
+                </div>
+
+                <!-- Action Button: Full width touch target -->
+                <a href="{% url 'reports:detail' report.reference_number %}" class="btn btn-vng-outline btn-sm w-100 py-2 d-flex align-items-center justify-content-center gap-1 fw-semibold" style="font-size:0.88rem;min-height:42px;">
+                    View Details &amp; Add Evidence &rarr;
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        {% if is_paginated %}
+        <div class="d-flex justify-content-center py-3">
+            <nav aria-label="Reports pagination">
+                <ul class="pagination pagination-sm mb-0">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}">&laquo;</a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+                    {% endif %}
+
+                    {% for num in paginator.page_range %}
+                        <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+                            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                        </li>
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}">&raquo;</a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+
+    {% else %}
+        <!-- Empty State -->
+        <div class="vng-card p-5 text-center shadow-sm">
+            <div class="mb-3">
+                <div class="rounded-circle d-inline-flex align-items-center justify-content-center" style="width:64px;height:64px;background:#F1F5F9;color:#64748B;">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><circle cx="12" cy="12" r="3"/></svg>
+                </div>
+            </div>
+            <h5 class="fw-bold mb-1">No Fraud Reports Submitted Yet</h5>
+            <p class="text-muted small mb-4 mx-auto" style="max-width:440px;">
+                You have not filed any suspicious activity or fraud reports under your account. If you encountered an unfulfilled transaction or scam, document it to protect the public.
+            </p>
+            <a href="{% url 'reports:create' %}" class="btn btn-vng-primary btn-vng-sm px-4">
+                + Report Fraudulent Activity
+            </a>
+        </div>
+    {% endif %}
+
+</div>
+{% endblock %}

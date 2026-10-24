@@ -73,8 +73,8 @@
           {% else %}<span class="adm-badge adm-badge-blue">{{ v.get_status_display }}</span>{% endif %}
         </td>
         <td>{{ v.created_at|date:"d M Y" }}</td>
-        <td>
-            <div class="d-flex gap-1">
+        <td class="text-nowrap">
+            <div class="d-inline-flex align-items-center gap-2 flex-wrap">
             <a href="{% url 'admin_portal:verification_detail' v.pk %}"
                class="btn btn-adm-sm btn-adm-outline">View</a>
             {% if v.status == 'completed' %}

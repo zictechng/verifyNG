@@ -96,10 +96,17 @@
                                 {% endwith %}
                             </td>
                             <td class="d-none d-md-table-cell small text-muted">{{ r.created_at|date:"M j, Y" }}</td>
-                            <td class="text-end">
-                                <a href="{% url 'verification:detail' r.reference_number %}" class="btn btn-vng-outline btn-vng-sm">
-                                    View &rarr;
-                                </a>{% if r.status == 'completed' %} <a href="{% url 'verification:report' r.reference_number %}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-success" style="font-size:0.75rem;padding:0.25rem 0.6rem;">Report</a>{% endif %}
+                            <td class="text-end text-nowrap">
+                                <div class="d-inline-flex align-items-center justify-content-end gap-2 flex-wrap">
+                                    <a href="{% url 'verification:detail' r.reference_number %}" class="btn btn-vng-outline btn-vng-sm">
+                                        View &rarr;
+                                    </a>
+                                    {% if r.status == 'completed' %}
+                                    <a href="{% url 'verification:report' r.reference_number %}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-success" style="font-size:0.75rem;padding:0.25rem 0.6rem;min-height:29px;display:inline-flex;align-items:center;">
+                                        Report
+                                    </a>
+                                    {% endif %}
+                                </div>
                             </td>
                         </tr>
                     {% empty %}
