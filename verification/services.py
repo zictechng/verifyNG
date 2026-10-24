@@ -11,7 +11,7 @@ import requests
 from django.conf import settings
 from payments.models import Transaction
 from payments.services import generate_reference
-from verification.models import VerificationRequest, VerificationResult
+from verification.models import VerificationRequest, VerificationResult, VerificationDocument
 from identities.models import SubjectEntity, Identifier
 from identities.utils import normalize_identifier, hash_identifier_value, SUPPORTED_IDENTIFIER_TYPES
 from reports.models import AuditLog
@@ -50,7 +50,8 @@ def create_verification_request(
     notes: str = "",
     identifier_type: str = None,
     identifier_value: str = None,
-    ip_address: str = None
+    ip_address: str = None,
+    documents=None
 ) -> VerificationRequest:
     """
     Submits a new VerificationRequest atomically.
@@ -106,6 +107,25 @@ def create_verification_request(
                     user_requirements=notes.strip() if notes else "",
                     notes=""
                 )
+
+                # Process supporting documents if attached
+                doc_count = 0
+                if documents:
+                    doc_list = documents if isinstance(documents, (list, tuple)) else [documents]
+                    primary_set = False
+                    for doc_file in doc_list:
+                        if doc_file:
+                            vdoc = VerificationDocument.objects.create(
+                                verification=verif_request,
+                                file=doc_file,
+                                document_name=getattr(doc_file, 'name', '') or 'Supporting Document',
+                                file_size=getattr(doc_file, 'size', 0) or 0
+                            )
+                            doc_count += 1
+                            if not primary_set:
+                                verif_request.document = vdoc.file
+                                verif_request.save(update_fields=['document'])
+                                primary_set = True
 
                 AuditLog.objects.create(
                     report=None,

@@ -1,7 +1,163 @@
 {% extends "public/base.html" %}
 {% load static %}
 
-{% block title %}Submit a Verification Request — VerifyNG{% endblock %}
+{% block title %}Submit a Verification Request — VerifyNG
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const dropzone = document.getElementById('publicVerificationDropzone');
+    const docInput = document.getElementById('id_public_supporting_document');
+    const dropzoneIdle = document.getElementById('publicDropzoneIdle');
+    const dropzonePreview = document.getElementById('publicDropzonePreview');
+    const dropzoneFileList = document.getElementById('publicDropzoneFileList');
+    const dropzoneError = document.getElementById('publicDropzoneError');
+    const btnClearFiles = document.getElementById('btnPublicClearFiles');
+
+    function showError(msg) {
+        if (dropzoneError) {
+            dropzoneError.textContent = msg;
+            dropzoneError.classList.remove('d-none');
+        }
+        if (dropzone) {
+            dropzone.style.borderColor = '#DC2626';
+            dropzone.style.backgroundColor = '#FEF2F2';
+        }
+    }
+
+    function clearError() {
+        if (dropzoneError) {
+            dropzoneError.textContent = '';
+            dropzoneError.classList.add('d-none');
+        }
+        if (dropzone) {
+            dropzone.style.borderColor = '#CBD5E1';
+            dropzone.style.backgroundColor = '#F8FAFC';
+        }
+    }
+
+    function renderFiles(files) {
+        clearError();
+        if (!files || files.length === 0) {
+            if (dropzoneIdle) dropzoneIdle.classList.remove('d-none');
+            if (dropzonePreview) dropzonePreview.classList.add('d-none');
+            if (dropzoneFileList) dropzoneFileList.innerHTML = '';
+            return;
+        }
+
+        const maxBytes = 10 * 1024 * 1024;
+        const allowedExts = ['pdf', 'png', 'jpg', 'jpeg', 'doc', 'docx'];
+        let hasError = false;
+
+        Array.from(files).forEach(file => {
+            const ext = file.name.split('.').pop().toLowerCase();
+            if (file.size > maxBytes) {
+                showError('File "' + file.name + '" exceeds the 10 MB limit.');
+                hasError = true;
+            } else if (!allowedExts.includes(ext)) {
+                showError('File "' + file.name + '" has unsupported format (.' + ext + '). Only PDF, PNG, JPG, and DOC files are accepted.');
+                hasError = true;
+            }
+        });
+
+        if (hasError) {
+            if (docInput) docInput.value = '';
+            if (dropzoneIdle) dropzoneIdle.classList.remove('d-none');
+            if (dropzonePreview) dropzonePreview.classList.add('d-none');
+            if (dropzoneFileList) dropzoneFileList.innerHTML = '';
+            return;
+        }
+
+        if (dropzoneFileList) {
+            dropzoneFileList.innerHTML = '';
+            Array.from(files).forEach(file => {
+                const ext = file.name.split('.').pop().toLowerCase();
+                const isPdf = ext === 'pdf';
+                const isImg = ['png', 'jpg', 'jpeg', 'webp'].includes(ext);
+                const sizeStr = file.size > 1024 * 1024 
+                    ? (file.size / (1024 * 1024)).toFixed(2) + ' MB' 
+                    : (file.size / 1024).toFixed(1) + ' KB';
+
+                const card = document.createElement('div');
+                card.className = 'p-2.5 px-3 rounded bg-white border d-flex align-items-center justify-content-between text-start gap-2 shadow-sm';
+                
+                const badgeClass = isPdf ? 'bg-danger text-white' : (isImg ? 'bg-primary text-white' : 'bg-secondary text-white');
+                const badgeText = isPdf ? 'PDF' : (isImg ? 'IMG' : 'DOC');
+
+                let thumbnailHtml = '';
+                if (isImg) {
+                    const imgUrl = URL.createObjectURL(file);
+                    thumbnailHtml = '<img src="' + imgUrl + '" alt="Preview" style="max-height: 42px; max-width: 55px; object-fit: cover;" class="rounded border me-1">';
+                }
+
+                card.innerHTML = `
+                    <div class="d-flex align-items-center gap-2 min-w-0">
+                        ${thumbnailHtml}
+                        <div>
+                            <div class="d-flex align-items-center gap-1.5 mb-0.5">
+                                <span class="badge ${badgeClass} text-uppercase" style="font-size:0.65rem;letter-spacing:0.5px;">${badgeText}</span>
+                                <span class="fw-semibold text-dark text-truncate small" style="max-width:300px;" title="${file.name}">${file.name}</span>
+                            </div>
+                            <div class="text-muted" style="font-size:0.75rem;">${sizeStr}</div>
+                        </div>
+                    </div>
+                    <div class="text-success small fw-semibold d-flex align-items-center gap-1 flex-shrink-0">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        Ready
+                    </div>
+                `;
+                dropzoneFileList.appendChild(card);
+            });
+        }
+
+        if (dropzoneIdle) dropzoneIdle.classList.add('d-none');
+        if (dropzonePreview) dropzonePreview.classList.remove('d-none');
+    }
+
+    if (docInput) {
+        docInput.addEventListener('change', function () {
+            renderFiles(this.files);
+        });
+    }
+
+    if (dropzone) {
+        ['dragenter', 'dragover'].forEach(eventType => {
+            dropzone.addEventListener(eventType, function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                dropzone.style.borderColor = '#2563EB';
+                dropzone.style.backgroundColor = '#EFF6FF';
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(eventType => {
+            dropzone.addEventListener(eventType, function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                dropzone.style.borderColor = '#CBD5E1';
+                dropzone.style.backgroundColor = '#F8FAFC';
+            });
+        });
+
+        dropzone.addEventListener('drop', function (e) {
+            if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                if (docInput) {
+                    docInput.files = e.dataTransfer.files;
+                    renderFiles(docInput.files);
+                }
+            }
+        });
+    }
+
+    if (btnClearFiles && docInput) {
+        btnClearFiles.addEventListener('click', function (e) {
+            e.stopPropagation();
+            docInput.value = '';
+            renderFiles(null);
+        });
+    }
+});
+</script>
+
+{% endblock %}
 
 {% block content %}
 <div class="container py-4 py-md-5">
@@ -50,7 +206,7 @@
                 All requests are tracked in your <a href="{% url 'dashboard:index' %}" class="text-decoration-none fw-semibold">member dashboard</a>.
             </div>
 
-            <form method="post" id="publicVerifyForm" novalidate
+            <form method="post" id="publicVerifyForm" enctype="multipart/form-data" novalidate
                   x-data="{
                       idType: '{{ form.identifier_type.value|default:'' }}',
                       showIdentifier() { return this.idType !== '' && this.idType !== null; }
@@ -164,6 +320,56 @@
                     {% endif %}
                 </div>
 
+                <!-- ── Section 4: Supporting Documents ── -->
+                <div class="vng-card p-4 mb-4">
+                    <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
+                        <h6 class="fw-bold text-uppercase small text-muted mb-0">
+                            Supporting Documents <span class="fw-normal text-muted">(Optional but Recommended)</span>
+                        </h6>
+                        <span class="badge bg-light text-muted border fw-normal" style="font-size:0.75rem;">Max 10MB per file &bull; PDF, PNG, JPG, DOC</span>
+                    </div>
+                    
+                    <div id="publicVerificationDropzone" 
+                         class="border rounded p-4 text-center bg-light position-relative" 
+                         style="border-style: dashed !important; border-color: #CBD5E1 !important; transition: all 0.2s ease-in-out; cursor: pointer; min-height: 140px; display: flex; align-items: center; justify-content: center;">
+                        
+                        <input type="file" 
+                               name="document" 
+                               id="id_public_supporting_document" 
+                               class="position-absolute top-0 start-0 w-100 h-100 opacity-0 cursor-pointer" 
+                               style="cursor: pointer; z-index: 2;"
+                               accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
+                               multiple>
+                        
+                        <!-- Idle State -->
+                        <div id="publicDropzoneIdle" class="py-2" style="pointer-events: none;">
+                            <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-2" style="width:44px;height:44px;background:#EFF6FF;color:#2563EB;">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                                </svg>
+                            </div>
+                            <div class="fw-semibold small text-dark mb-1">Drag &amp; drop or click to upload supporting documents</div>
+                            <div class="text-muted small">C of O, survey plan, vehicle license, certificate, or CAC status (PDF, PNG, JPG up to 10 MB)</div>
+                        </div>
+
+                        <!-- Preview State -->
+                        <div id="publicDropzonePreview" class="d-none w-100 py-1" style="position: relative; z-index: 3;">
+                            <div id="publicDropzoneFileList" class="d-flex flex-column gap-2 mb-3"></div>
+                            <div class="d-flex justify-content-center">
+                                <button type="button" id="btnPublicClearFiles" class="btn btn-sm btn-outline-danger py-1 px-3 d-inline-flex align-items-center gap-1" style="font-size:0.8rem;">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                    Remove / Select Different Files
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="publicDropzoneError" class="text-danger small mt-2 fw-semibold d-none"></div>
+                    {% if form.document.errors %}
+                    <div class="invalid-feedback d-block">{{ form.document.errors|join:", " }}</div>
+                    {% endif %}
+                </div>
+
                 <!-- Submit -->
                 <div class="d-flex gap-3 justify-content-between align-items-center">
                     <a href="{% url 'home' %}" class="btn btn-outline-secondary px-4">
@@ -200,4 +406,160 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 </script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const dropzone = document.getElementById('publicVerificationDropzone');
+    const docInput = document.getElementById('id_public_supporting_document');
+    const dropzoneIdle = document.getElementById('publicDropzoneIdle');
+    const dropzonePreview = document.getElementById('publicDropzonePreview');
+    const dropzoneFileList = document.getElementById('publicDropzoneFileList');
+    const dropzoneError = document.getElementById('publicDropzoneError');
+    const btnClearFiles = document.getElementById('btnPublicClearFiles');
+
+    function showError(msg) {
+        if (dropzoneError) {
+            dropzoneError.textContent = msg;
+            dropzoneError.classList.remove('d-none');
+        }
+        if (dropzone) {
+            dropzone.style.borderColor = '#DC2626';
+            dropzone.style.backgroundColor = '#FEF2F2';
+        }
+    }
+
+    function clearError() {
+        if (dropzoneError) {
+            dropzoneError.textContent = '';
+            dropzoneError.classList.add('d-none');
+        }
+        if (dropzone) {
+            dropzone.style.borderColor = '#CBD5E1';
+            dropzone.style.backgroundColor = '#F8FAFC';
+        }
+    }
+
+    function renderFiles(files) {
+        clearError();
+        if (!files || files.length === 0) {
+            if (dropzoneIdle) dropzoneIdle.classList.remove('d-none');
+            if (dropzonePreview) dropzonePreview.classList.add('d-none');
+            if (dropzoneFileList) dropzoneFileList.innerHTML = '';
+            return;
+        }
+
+        const maxBytes = 10 * 1024 * 1024;
+        const allowedExts = ['pdf', 'png', 'jpg', 'jpeg', 'doc', 'docx'];
+        let hasError = false;
+
+        Array.from(files).forEach(file => {
+            const ext = file.name.split('.').pop().toLowerCase();
+            if (file.size > maxBytes) {
+                showError('File "' + file.name + '" exceeds the 10 MB limit.');
+                hasError = true;
+            } else if (!allowedExts.includes(ext)) {
+                showError('File "' + file.name + '" has unsupported format (.' + ext + '). Only PDF, PNG, JPG, and DOC files are accepted.');
+                hasError = true;
+            }
+        });
+
+        if (hasError) {
+            if (docInput) docInput.value = '';
+            if (dropzoneIdle) dropzoneIdle.classList.remove('d-none');
+            if (dropzonePreview) dropzonePreview.classList.add('d-none');
+            if (dropzoneFileList) dropzoneFileList.innerHTML = '';
+            return;
+        }
+
+        if (dropzoneFileList) {
+            dropzoneFileList.innerHTML = '';
+            Array.from(files).forEach(file => {
+                const ext = file.name.split('.').pop().toLowerCase();
+                const isPdf = ext === 'pdf';
+                const isImg = ['png', 'jpg', 'jpeg', 'webp'].includes(ext);
+                const sizeStr = file.size > 1024 * 1024 
+                    ? (file.size / (1024 * 1024)).toFixed(2) + ' MB' 
+                    : (file.size / 1024).toFixed(1) + ' KB';
+
+                const card = document.createElement('div');
+                card.className = 'p-2.5 px-3 rounded bg-white border d-flex align-items-center justify-content-between text-start gap-2 shadow-sm';
+                
+                const badgeClass = isPdf ? 'bg-danger text-white' : (isImg ? 'bg-primary text-white' : 'bg-secondary text-white');
+                const badgeText = isPdf ? 'PDF' : (isImg ? 'IMG' : 'DOC');
+
+                let thumbnailHtml = '';
+                if (isImg) {
+                    const imgUrl = URL.createObjectURL(file);
+                    thumbnailHtml = '<img src="' + imgUrl + '" alt="Preview" style="max-height: 42px; max-width: 55px; object-fit: cover;" class="rounded border me-1">';
+                }
+
+                card.innerHTML = `
+                    <div class="d-flex align-items-center gap-2 min-w-0">
+                        ${thumbnailHtml}
+                        <div>
+                            <div class="d-flex align-items-center gap-1.5 mb-0.5">
+                                <span class="badge ${badgeClass} text-uppercase" style="font-size:0.65rem;letter-spacing:0.5px;">${badgeText}</span>
+                                <span class="fw-semibold text-dark text-truncate small" style="max-width:300px;" title="${file.name}">${file.name}</span>
+                            </div>
+                            <div class="text-muted" style="font-size:0.75rem;">${sizeStr}</div>
+                        </div>
+                    </div>
+                    <div class="text-success small fw-semibold d-flex align-items-center gap-1 flex-shrink-0">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        Ready
+                    </div>
+                `;
+                dropzoneFileList.appendChild(card);
+            });
+        }
+
+        if (dropzoneIdle) dropzoneIdle.classList.add('d-none');
+        if (dropzonePreview) dropzonePreview.classList.remove('d-none');
+    }
+
+    if (docInput) {
+        docInput.addEventListener('change', function () {
+            renderFiles(this.files);
+        });
+    }
+
+    if (dropzone) {
+        ['dragenter', 'dragover'].forEach(eventType => {
+            dropzone.addEventListener(eventType, function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                dropzone.style.borderColor = '#2563EB';
+                dropzone.style.backgroundColor = '#EFF6FF';
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(eventType => {
+            dropzone.addEventListener(eventType, function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                dropzone.style.borderColor = '#CBD5E1';
+                dropzone.style.backgroundColor = '#F8FAFC';
+            });
+        });
+
+        dropzone.addEventListener('drop', function (e) {
+            if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                if (docInput) {
+                    docInput.files = e.dataTransfer.files;
+                    renderFiles(docInput.files);
+                }
+            }
+        });
+    }
+
+    if (btnClearFiles && docInput) {
+        btnClearFiles.addEventListener('click', function (e) {
+            e.stopPropagation();
+            docInput.value = '';
+            renderFiles(null);
+        });
+    }
+});
+</script>
+
 {% endblock %}

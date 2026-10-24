@@ -1,3 +1,5 @@
+import mimetypes
+from django.utils.text import slugify
 
 import logging
 import socket
@@ -10,7 +12,7 @@ from django.http import HttpResponseRedirect, Http404, HttpResponse
 from django.urls import reverse
 from verification.tasks import generate_certificate_pdf
 from payments.services import check_user_entitlement, consume_user_entitlement
-from verification.models import VerificationRequest, VerificationResult
+from verification.models import VerificationRequest, VerificationResult, VerificationDocument
 from reports.models import AuditLog
 from verification.forms import (
     VerificationRequestCreateForm,
@@ -100,6 +102,7 @@ class VerificationCreateView(LoginRequiredMixin, FormView):
             return redirect('payments:plans')
         ip_addr = get_client_ip(self.request)
         try:
+            docs = form.cleaned_data.get('documents') or self.request.FILES.getlist('document')
             verif_request = create_verification_request(
                 requester=self.request.user,
                 subject_name=form.cleaned_data['subject_name'],
@@ -108,7 +111,8 @@ class VerificationCreateView(LoginRequiredMixin, FormView):
                 notes=form.cleaned_data.get('notes', ''),
                 identifier_type=form.cleaned_data.get('identifier_type') or None,
                 identifier_value=form.cleaned_data.get('identifier_value') or None,
-                ip_address=ip_addr
+                ip_address=ip_addr,
+                documents=docs
             )
             consume_user_entitlement(self.request.user, service='verification')
             messages.success(
@@ -133,7 +137,7 @@ class VerificationDetailView(LoginRequiredMixin, DetailView):
     def get_object(self, queryset=None):
         ref = self.kwargs.get('reference_number')
         obj = get_object_or_404(
-            VerificationRequest.objects.select_related('target_subject', 'requester').prefetch_related('result'),
+            VerificationRequest.objects.select_related('target_subject', 'requester').prefetch_related('result', 'documents'),
             reference_number=ref
         )
         if not can_view_verification(self.request.user, obj):
@@ -879,3 +883,57 @@ class CertificateRevokeView(LoginRequiredMixin, View):
         return redirect('verification:my_certificate', certificate_id=certificate_id)
 
 
+
+
+class VerificationDocumentView(LoginRequiredMixin, View):
+    """
+    Secure document stream proxy for viewing supporting documents uploaded with a verification request.
+    Only authorized parties (applicant requester, assigned officer, superuser) can view the file.
+    Streams inline by default (for in-browser PDF / image preview) or downloads if ?download=1.
+    """
+    def get(self, request, reference_number, doc_id=None):
+        verif_request = get_object_or_404(
+            VerificationRequest.objects.select_related('requester').prefetch_related('documents'),
+            reference_number=reference_number
+        )
+        if not can_view_verification(request.user, verif_request):
+            raise PermissionDenied("You do not have authorization to view this document.")
+
+        doc_field = None
+        doc_name = ''
+
+        if doc_id:
+            doc = get_object_or_404(verif_request.documents, pk=doc_id)
+            doc_field = doc.file
+            doc_name = doc.document_name or (doc.file.name.split('/')[-1] if doc.file else 'document')
+        else:
+            first_doc = verif_request.documents.first()
+            if first_doc and first_doc.file:
+                doc_field = first_doc.file
+                doc_name = first_doc.document_name or (first_doc.file.name.split('/')[-1] if first_doc.file else 'document')
+            elif verif_request.document:
+                doc_field = verif_request.document
+                doc_name = verif_request.document.name.split('/')[-1] if verif_request.document.name else 'document'
+
+        if not doc_field:
+            raise Http404("No supporting document found for this verification request.")
+
+        try:
+            opened_file = doc_field.open('rb')
+        except Exception:
+            raise Http404("Could not open the requested verification document.")
+
+        ext = doc_name.split('.')[-1].lower() if '.' in doc_name else 'pdf'
+        content_type, _ = mimetypes.guess_type(doc_name)
+        if not content_type:
+            content_type = 'application/pdf' if ext == 'pdf' else 'image/jpeg'
+
+        as_download = request.GET.get('download') == '1'
+        disposition = 'attachment' if as_download else 'inline'
+        safe_name = f"{verif_request.reference_number}_{slugify(doc_name.rsplit('.', 1)[0]) or 'document'}.{ext}"
+
+        response = HttpResponse(opened_file.read(), content_type=content_type)
+        response['Content-Disposition'] = f'{disposition}; filename="{safe_name}"'
+        response['X-Frame-Options'] = 'SAMEORIGIN'
+        opened_file.close()
+        return response

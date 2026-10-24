@@ -55,7 +55,7 @@
                     </div>
                 {% endif %}
 
-                <form method="post" id="verificationRequestForm" novalidate>
+                <form method="post" id="verificationRequestForm" enctype="multipart/form-data" novalidate>
                     {% csrf_token %}
 
                     <!-- Step 1: Verification Scope & Target Subject -->
@@ -165,6 +165,73 @@
                         {% endif %}
                     </div>
 
+                    <!-- Step 4: Supporting Documents -->
+                    <div class="mb-4 pb-4 border-bottom">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <span class="badge rounded-circle bg-secondary text-white d-inline-flex align-items-center justify-content-center" style="width:24px;height:24px;font-size:12px;">4</span>
+                            <h6 class="fw-bold mb-0 text-uppercase small text-muted letter-spacing-1">Supporting Documents <span class="fw-normal text-muted">(Optional but Recommended)</span></h6>
+                        </div>
+                        <p class="small text-muted mb-2">
+                            Attach scans, photos, or digital copies of relevant paperwork to expedite investigation and assist our verification officers.
+                        </p>
+
+                        <!-- Dynamic Document Recommendation Tip -->
+                        <div id="docTipBox" class="p-3 rounded-2 mb-3 d-flex align-items-start gap-2" style="background:#EFF6FF;border:1px solid #BFDBFE;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2" class="flex-shrink-0 mt-0.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                            <div class="small text-muted" id="docTipText">
+                                <strong class="text-dark">Recommended Files:</strong> Upload C of O, Deed of Assignment, Survey Plan, Vehicle License, Degree Certificate, or CAC Status Report.
+                            </div>
+                        </div>
+
+                        <!-- Dropzone Container (Matching Misconduct Report Uniform Style) -->
+                        <div>
+                            <label class="form-label small fw-semibold d-flex align-items-center justify-content-between mb-2">
+                                <span>Upload Supporting Proof</span>
+                                <span class="badge bg-light text-muted border fw-normal" style="font-size:0.75rem;">Max 10MB per file &bull; PDF, PNG, JPG, DOC</span>
+                            </label>
+                            
+                            <div id="verificationDropzone" 
+                                 class="border rounded p-4 text-center bg-light position-relative" 
+                                 style="border-style: dashed !important; border-color: #CBD5E1 !important; transition: all 0.2s ease-in-out; cursor: pointer; min-height: 150px; display: flex; align-items: center; justify-content: center;">
+                                
+                                <input type="file" 
+                                       name="document" 
+                                       id="id_supporting_document" 
+                                       class="position-absolute top-0 start-0 w-100 h-100 opacity-0 cursor-pointer" 
+                                       style="cursor: pointer; z-index: 2;"
+                                       accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
+                                       multiple>
+                                
+                                <!-- Idle State -->
+                                <div id="dropzoneIdle" class="py-2" style="pointer-events: none;">
+                                    <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-2" style="width:48px;height:48px;background:#EFF6FF;color:#2563EB;">
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                                        </svg>
+                                    </div>
+                                    <div class="fw-semibold small text-dark mb-1">Drag &amp; drop or click to choose file(s)</div>
+                                    <div class="text-muted small">PDF, PNG, JPG, DOCX (up to 10 MB each)</div>
+                                </div>
+
+                                <!-- File Preview State (when files selected) -->
+                                <div id="dropzonePreview" class="d-none w-100 py-1" style="position: relative; z-index: 3;">
+                                    <div id="dropzoneFileList" class="d-flex flex-column gap-2 mb-3"></div>
+                                    <div class="d-flex justify-content-center gap-2">
+                                        <button type="button" id="btnClearFiles" class="btn btn-sm btn-outline-danger py-1 px-3 d-inline-flex align-items-center gap-1" style="font-size:0.8rem;">
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                            Remove / Select Different Files
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="dropzoneError" class="text-danger small mt-2 fw-semibold d-none"></div>
+                            {% if form.document.errors %}
+                                <div class="text-danger small mt-1">{{ form.document.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
                     <!-- Service Notice -->
                     <div class="alert alert-light border small text-muted mb-4 d-flex align-items-start gap-2">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2" class="flex-shrink-0 mt-0.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -204,6 +271,10 @@ document.addEventListener('DOMContentLoaded', function () {
     const guidanceText = document.getElementById('scopeGuidanceText');
     const form = document.getElementById('verificationRequestForm');
     const submitBtn = document.getElementById('btnSubmitVerification');
+    const docTipText = document.getElementById('docTipText');
+    const docInput = document.getElementById('id_supporting_document');
+    const fileSelectedList = document.getElementById('fileSelectedList');
+    const fileNamesUl = document.getElementById('fileNamesUl');
 
     const guidanceData = {
         'property': {
@@ -211,63 +282,72 @@ document.addEventListener('DOMContentLoaded', function () {
             placeholder: 'e.g. Plot 14, Block 2, Victoria Garden City, Lekki / Developer: Prime Oak Estates',
             hint: 'Enter property address, plot number, estate name, or declared title holder name.',
             title: 'Property, Land & Real Estate Due Diligence:',
-            text: 'Provide the land or house location, state, LGA, survey plan or C of O number, and the seller or estate developer name in Context & Requirements.'
+            text: 'Provide the land or house location, state, LGA, survey plan or C of O number, and the seller or estate developer name in Context & Requirements.',
+            docTip: 'Upload Land Title Document (C of O / R of O), Governor Consent, Registered Deed of Assignment, or Certified Survey Plan.'
         },
         'vehicle': {
             entity: 'vehicle',
             placeholder: 'e.g. 2021 Toyota Camry / Declared Owner: Chinedu Okafor',
             hint: 'Enter vehicle make, model, year, and declared owner name.',
             title: 'Vehicle & Automobile Ownership Check:',
-            text: 'Provide the Plate Number, Chassis/VIN, and State of registration. We verify ownership records and customs clearance status.'
+            text: 'Provide the Plate Number, Chassis/VIN, and State of registration. We verify ownership records and customs clearance status.',
+            docTip: 'Upload Proof of Ownership Certificate, Federal Customs Duty Paper, Vehicle Registration License, or Road Worthiness Certificate.'
         },
         'credential': {
             entity: 'person',
             placeholder: 'e.g. Full Name on Certificate (e.g. Babatunde Olawale Adeleke)',
             hint: 'Enter the exact graduate or certificate holder name as written on the document.',
             title: 'Academic & Qualification Certificate Vetting:',
-            text: 'Provide the institution name (e.g. UNILAG, OAU, WAEC), graduation year, course of study, and matriculation or certificate serial number.'
+            text: 'Provide the institution name (e.g. UNILAG, OAU, WAEC), graduation year, course of study, and matriculation or certificate serial number.',
+            docTip: 'Upload Degree / HND / Diploma Certificate scan, Statement of Result, Professional Certification, or NYSC Discharge Certificate.'
         },
         'business': {
             entity: 'business',
             placeholder: 'e.g. Dangote Cement Plc / Acme Logistics Limited',
             hint: 'Enter the registered business name or trading name.',
             title: 'Business & Corporate Registration (CAC) Check:',
-            text: 'Provide the CAC RC or BN registration number. We confirm incorporation status, registered address, active status, and listed directors.'
+            text: 'Provide the CAC RC or BN registration number. We confirm incorporation status, registered address, active status, and listed directors.',
+            docTip: 'Upload CAC Certificate of Incorporation, CAC Status Report, or Business Name Registration Certificate.'
         },
         'contract': {
             entity: 'asset',
             placeholder: 'e.g. Joint Venture Real Estate Agreement / Contract Ref #2026-081',
             hint: 'Enter the contract title, commercial deal reference, or agreement name.',
             title: 'Deal, Contract & Investment Vetting:',
-            text: 'Provide the names of all signing parties, the developer or investment entity, and the transaction context so our officers can verify authenticity.'
+            text: 'Provide the names of all signing parties, the developer or investment entity, and the transaction context so our officers can verify authenticity.',
+            docTip: 'Upload Signed Contract Agreement, Memorandum of Understanding (MoU), Power of Attorney, or Investment Proposal.'
         },
         'identity': {
             entity: 'person',
             placeholder: 'e.g. Full Legal Name (First, Middle, Surname)',
             hint: 'Enter official full legal name of the person being verified.',
             title: 'Personal Identity & Background Check:',
-            text: 'Provide government identifier (NIN or BVN), phone number, and context (e.g. pre-employment screening, tenant vetting, or guarantor check).'
+            text: 'Provide government identifier (NIN or BVN), phone number, and context (e.g. pre-employment screening, tenant vetting, or guarantor check).',
+            docTip: 'Upload National NIN Slip, Driver License, International Passport, or Permanent Voter Card (PVC).'
         },
         'employment': {
             entity: 'person',
             placeholder: 'e.g. Employee Full Legal Name',
             hint: 'Enter full legal name of current or prospective employee.',
             title: 'Employment & Workplace Record Check:',
-            text: 'Provide employer organization, position title, and employment period to verify authentic tenure and workplace clearance.'
+            text: 'Provide employer organization, position title, and employment period to verify authentic tenure and workplace clearance.',
+            docTip: 'Upload Official Employment Offer Letter, Confirmation Letter, Work ID Card, or Recent Payslip.'
         },
         'address': {
             entity: 'property',
             placeholder: 'e.g. 15 Admiralty Way, Lekki Phase 1, Lagos',
             hint: 'Enter full physical residential or business address.',
             title: 'Physical Address Verification:',
-            text: 'Provide complete landmark, street address, and resident/occupant contact details for field verification.'
+            text: 'Provide complete landmark, street address, and resident/occupant contact details for field verification.',
+            docTip: 'Upload Recent Utility Bill (PHCN/Electricity, Water), Tenancy Agreement, or Land Registry Receipt.'
         },
         'full_check': {
             entity: 'person',
             placeholder: 'e.g. Target Subject Legal Name or Business Name',
             hint: 'Enter full legal name of subject for multi-source comprehensive background investigation.',
             title: 'Full Comprehensive Due Diligence:',
-            text: 'Provide all available identifiers, residential details, and operational background for exhaustive cross-registry vetting.'
+            text: 'Provide all available identifiers, residential details, and operational background for exhaustive cross-registry vetting.',
+            docTip: 'Upload all relevant government IDs, property/asset papers, and transaction contracts for comprehensive evaluation.'
         }
     };
 
@@ -307,11 +387,165 @@ document.addEventListener('DOMContentLoaded', function () {
         if (guidanceText) {
             guidanceText.textContent = config.text;
         }
+        if (docTipText && config.docTip) {
+            docTipText.innerHTML = '<strong class="text-dark">Recommended for ' + (scopeSelect.options[scopeSelect.selectedIndex] ? scopeSelect.options[scopeSelect.selectedIndex].text : 'Selected Scope') + ':</strong> ' + config.docTip;
+        }
     }
 
     if (scopeSelect) {
         scopeSelect.addEventListener('change', updateGuidance);
         updateGuidance();
+    }
+
+
+    const dropzone = document.getElementById('verificationDropzone');
+    const dropzoneIdle = document.getElementById('dropzoneIdle');
+    const dropzonePreview = document.getElementById('dropzonePreview');
+    const dropzoneFileList = document.getElementById('dropzoneFileList');
+    const dropzoneError = document.getElementById('dropzoneError');
+    const btnClearFiles = document.getElementById('btnClearFiles');
+
+    function showError(msg) {
+        if (dropzoneError) {
+            dropzoneError.textContent = msg;
+            dropzoneError.classList.remove('d-none');
+        }
+        if (dropzone) {
+            dropzone.style.borderColor = '#DC2626';
+            dropzone.style.backgroundColor = '#FEF2F2';
+        }
+    }
+
+    function clearError() {
+        if (dropzoneError) {
+            dropzoneError.textContent = '';
+            dropzoneError.classList.add('d-none');
+        }
+        if (dropzone) {
+            dropzone.style.borderColor = '#CBD5E1';
+            dropzone.style.backgroundColor = '#F8FAFC';
+        }
+    }
+
+    function renderFiles(files) {
+        clearError();
+        if (!files || files.length === 0) {
+            if (dropzoneIdle) dropzoneIdle.classList.remove('d-none');
+            if (dropzonePreview) dropzonePreview.classList.add('d-none');
+            if (dropzoneFileList) dropzoneFileList.innerHTML = '';
+            return;
+        }
+
+        const maxBytes = 10 * 1024 * 1024;
+        const allowedExts = ['pdf', 'png', 'jpg', 'jpeg', 'doc', 'docx'];
+        let hasError = false;
+
+        Array.from(files).forEach(file => {
+            const ext = file.name.split('.').pop().toLowerCase();
+            if (file.size > maxBytes) {
+                showError('File "' + file.name + '" exceeds the 10 MB limit.');
+                hasError = true;
+            } else if (!allowedExts.includes(ext)) {
+                showError('File "' + file.name + '" has unsupported format (.' + ext + '). Only PDF, PNG, JPG, and DOC files are accepted.');
+                hasError = true;
+            }
+        });
+
+        if (hasError) {
+            if (docInput) docInput.value = '';
+            if (dropzoneIdle) dropzoneIdle.classList.remove('d-none');
+            if (dropzonePreview) dropzonePreview.classList.add('d-none');
+            if (dropzoneFileList) dropzoneFileList.innerHTML = '';
+            return;
+        }
+
+        if (dropzoneFileList) {
+            dropzoneFileList.innerHTML = '';
+            Array.from(files).forEach(file => {
+                const ext = file.name.split('.').pop().toLowerCase();
+                const isPdf = ext === 'pdf';
+                const isImg = ['png', 'jpg', 'jpeg', 'webp'].includes(ext);
+                const sizeStr = file.size > 1024 * 1024 
+                    ? (file.size / (1024 * 1024)).toFixed(2) + ' MB' 
+                    : (file.size / 1024).toFixed(1) + ' KB';
+
+                const card = document.createElement('div');
+                card.className = 'p-2.5 px-3 rounded bg-white border d-flex align-items-center justify-content-between text-start gap-2 shadow-sm';
+                
+                const badgeClass = isPdf ? 'bg-danger text-white' : (isImg ? 'bg-primary text-white' : 'bg-secondary text-white');
+                const badgeText = isPdf ? 'PDF' : (isImg ? 'IMG' : 'DOC');
+
+                let thumbnailHtml = '';
+                if (isImg) {
+                    const imgUrl = URL.createObjectURL(file);
+                    thumbnailHtml = '<img src="' + imgUrl + '" alt="Preview" style="max-height: 42px; max-width: 55px; object-fit: cover;" class="rounded border me-1">';
+                }
+
+                card.innerHTML = `
+                    <div class="d-flex align-items-center gap-2 min-w-0">
+                        ${thumbnailHtml}
+                        <div>
+                            <div class="d-flex align-items-center gap-1.5 mb-0.5">
+                                <span class="badge ${badgeClass} text-uppercase" style="font-size:0.65rem;letter-spacing:0.5px;">${badgeText}</span>
+                                <span class="fw-semibold text-dark text-truncate small" style="max-width:320px;" title="${file.name}">${file.name}</span>
+                            </div>
+                            <div class="text-muted" style="font-size:0.75rem;">${sizeStr}</div>
+                        </div>
+                    </div>
+                    <div class="text-success small fw-semibold d-flex align-items-center gap-1 flex-shrink-0">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        Ready
+                    </div>
+                `;
+                dropzoneFileList.appendChild(card);
+            });
+        }
+
+        if (dropzoneIdle) dropzoneIdle.classList.add('d-none');
+        if (dropzonePreview) dropzonePreview.classList.remove('d-none');
+    }
+
+    if (docInput) {
+        docInput.addEventListener('change', function () {
+            renderFiles(this.files);
+        });
+    }
+
+    if (dropzone) {
+        ['dragenter', 'dragover'].forEach(eventType => {
+            dropzone.addEventListener(eventType, function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                dropzone.style.borderColor = '#2563EB';
+                dropzone.style.backgroundColor = '#EFF6FF';
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(eventType => {
+            dropzone.addEventListener(eventType, function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                dropzone.style.borderColor = '#CBD5E1';
+                dropzone.style.backgroundColor = '#F8FAFC';
+            });
+        });
+
+        dropzone.addEventListener('drop', function (e) {
+            if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                if (docInput) {
+                    docInput.files = e.dataTransfer.files;
+                    renderFiles(docInput.files);
+                }
+            }
+        });
+    }
+
+    if (btnClearFiles && docInput) {
+        btnClearFiles.addEventListener('click', function (e) {
+            e.stopPropagation();
+            docInput.value = '';
+            renderFiles(null);
+        });
     }
 
     if (form && submitBtn) {

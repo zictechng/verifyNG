@@ -125,7 +125,7 @@ def verify(request):
       Exception       → unexpected; logged and surfaced as non-field error.
     """
     if request.method == 'POST':
-        form = VerificationRequestCreateForm(request.POST)
+        form = VerificationRequestCreateForm(request.POST, request.FILES)
         if form.is_valid():
             cd = form.cleaned_data
             try:
@@ -138,12 +138,13 @@ def verify(request):
                     identifier_type=cd.get('identifier_type') or None,
                     identifier_value=cd.get('identifier_value') or None,
                     ip_address=get_client_ip(request),
+                    documents=cd.get('documents') or request.FILES.getlist('document'),
                 )
                 messages.success(
                     request,
                     f"Verification request submitted. Reference: {verification_request.reference_number}"
                 )
-                return redirect('verification:detail', pk=verification_request.pk)
+                return redirect('verification:detail', reference_number=verification_request.reference_number)
 
             except ValidationError as e:
                 logger.warning(

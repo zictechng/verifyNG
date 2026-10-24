@@ -22,6 +22,10 @@ IDENTIFIER_DISPLAY_CHOICES = [
     ('account', 'Bank Account Number'),
 ]
 
+class MultipleFileInput(forms.FileInput):
+    allow_multiple_selected = True
+
+
 class VerificationRequestCreateForm(forms.Form):
     verification_type = forms.ChoiceField(
         choices=[('', '-- Select Verification Scope --')] + list(VerificationRequest.VERIFICATION_TYPES),
@@ -62,6 +66,16 @@ class VerificationRequestCreateForm(forms.Form):
             'placeholder': 'Describe the specific details to investigate. For property: state, location, surveyor plan, seller name. For car: model, chassis, plate. For certificate: university, graduation year, course.'
         })
     )
+    document = forms.FileField(
+        required=False,
+        widget=MultipleFileInput(attrs={
+            'class': 'form-control',
+            'id': 'id_supporting_document',
+            'accept': '.pdf,.png,.jpg,.jpeg,.doc,.docx',
+            'multiple': True,
+        }),
+        help_text="Attach relevant documents (e.g. C of O, survey plan, vehicle customs paper, academic certificate, CAC document). Max 10MB per file (PDF, PNG, JPG, DOC)."
+    )
 
     def clean(self):
         cleaned_data = super().clean()
@@ -77,6 +91,21 @@ class VerificationRequestCreateForm(forms.Form):
                 normalize_identifier(id_type, id_val)
             except ValueError as e:
                 self.add_error('identifier_value', str(e))
+
+        # Validate uploaded document(s)
+        if hasattr(self.files, 'getlist'):
+            uploaded_files = self.files.getlist('document')
+        else:
+            file_val = self.files.get('document') if self.files else None
+            uploaded_files = [file_val] if file_val else []
+        valid_files = []
+        for upload in uploaded_files:
+            try:
+                validate_file_upload(upload)
+                valid_files.append(upload)
+            except ValidationError as e:
+                self.add_error('document', e.message if hasattr(e, 'message') else str(e))
+        cleaned_data['documents'] = valid_files
 
         return cleaned_data
 
@@ -246,7 +275,7 @@ class CertificateApplyForm(forms.Form):
     )
     id_document_file = forms.FileField(
         required=False,
-        widget=forms.FileInput(attrs={
+        widget=MultipleFileInput(attrs={
             'class': 'form-control',
             'accept': '.png,.jpg,.jpeg,.pdf',
         }),

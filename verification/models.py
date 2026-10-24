@@ -1,3 +1,4 @@
+import os
 import secrets
 import string
 from datetime import timedelta
@@ -62,6 +63,12 @@ class VerificationRequest(models.Model):
         default='',
         help_text="Context and verification requirements submitted by the applicant"
     )
+    document = models.FileField(
+        upload_to='verification_docs/%Y/%m/',
+        blank=True,
+        null=True,
+        help_text="Primary supporting document uploaded by applicant"
+    )
     notes = models.TextField(
         blank=True,
         help_text="Internal notes for verification officer"
@@ -77,6 +84,17 @@ class VerificationRequest(models.Model):
         verbose_name = 'Verification Request'
         verbose_name_plural = 'Verification Requests'
         ordering = ['-created_at']
+
+    @property
+    def has_documents(self):
+        return self.documents.exists() or bool(self.document)
+
+    @property
+    def primary_document(self):
+        first_doc = self.documents.first()
+        if first_doc:
+            return first_doc
+        return None
 
     def __str__(self):
         return f"[{self.reference_number}] {self.get_verification_type_display()} - {self.get_status_display()}"
@@ -358,3 +376,64 @@ class CertificateQueryLog(models.Model):
 
     def __str__(self):
         return f"Query of {self.certificate.certificate_id} by {self.queried_by.username} at {self.queried_at}"
+
+
+class VerificationDocument(models.Model):
+    verification = models.ForeignKey(
+        VerificationRequest,
+        on_delete=models.CASCADE,
+        related_name='documents'
+    )
+    file = models.FileField(
+        upload_to='verification_docs/%Y/%m/',
+        help_text="Supporting verification document or proof"
+    )
+    document_name = models.CharField(
+        max_length=255,
+        blank=True
+    )
+    file_size = models.PositiveIntegerField(
+        default=0,
+        help_text="File size in bytes"
+    )
+    uploaded_at = models.DateTimeField(
+        default=timezone.now
+    )
+
+    class Meta:
+        verbose_name = 'Verification Document'
+        verbose_name_plural = 'Verification Documents'
+        ordering = ['uploaded_at']
+
+    def __str__(self):
+        return f"{self.document_name or self.file.name} [{self.verification.reference_number}]"
+
+    @property
+    def file_extension(self):
+        if self.file and self.file.name:
+            return os.path.splitext(self.file.name)[1].lower()
+        return ''
+
+    @property
+    def is_image(self):
+        return self.file_extension in ['.png', '.jpg', '.jpeg', '.webp']
+
+    @property
+    def is_pdf(self):
+        return self.file_extension == '.pdf'
+
+    @property
+    def formatted_size(self):
+        if not self.file_size:
+            if self.file:
+                try:
+                    size = self.file.size
+                    if size < 1024 * 1024:
+                        return f"{round(size / 1024, 1)} KB"
+                    return f"{round(size / (1024 * 1024), 2)} MB"
+                except Exception:
+                    pass
+            return "0 KB"
+        if self.file_size < 1024 * 1024:
+            return f"{round(self.file_size / 1024, 1)} KB"
+        return f"{round(self.file_size / (1024 * 1024), 2)} MB"
