@@ -85,8 +85,8 @@ except ImportError:
     Dispute = None
 
 try:
-    from verification.models import VerificationRequest, VerificationResult
-from core.models import SiteConfiguration, VerificationCertificate
+    from verification.models import VerificationRequest, VerificationResult, VerificationCertificate
+
 except ImportError:
     VerificationRequest = None
     VerificationCertificate = None
