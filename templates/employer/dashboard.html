@@ -112,9 +112,9 @@
             </a>
         </div>
         <div class="col-6 col-md-3">
-            <a href="{% url 'employer:team_list' %}" class="vng-card p-3 text-center h-100 d-block text-decoration-none">
-                <div class="fw-bold fs-3 mb-1" style="color:var(--vng-teal);">{{ team_count }}</div>
-                <div class="small text-muted">Team Members</div>
+            <a href="{% url 'verification:list' %}" class="vng-card p-3 text-center h-100 d-block text-decoration-none">
+                <div class="fw-bold fs-3 mb-1" style="color:var(--vng-teal);">{{ verifications_total|default:0 }}</div>
+                <div class="small text-muted">Verification</div>
             </a>
         </div>
     </div>

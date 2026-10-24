@@ -14,7 +14,8 @@ from django.core.cache import cache
 from django.db.models import Q
 from django.db import models as db_models
 from reports.models import FraudReport, Dispute, AuditLog
-from verification.models import VerificationRequest
+from verification.models import VerificationRequest, VerificationResult
+from core.models import SiteConfiguration
 from identities.models import Identifier, SubjectEntity
 from core.permissions import is_superadmin
 from core.tasks import send_email_notification_task
@@ -84,7 +85,8 @@ except ImportError:
     Dispute = None
 
 try:
-    from verification.models import VerificationRequest, VerificationCertificate
+    from verification.models import VerificationRequest, VerificationResult
+from core.models import SiteConfiguration, VerificationCertificate
 except ImportError:
     VerificationRequest = None
     VerificationCertificate = None
@@ -1144,6 +1146,76 @@ class AdminVerificationsView(SuperAdminRequiredMixin, TemplateView):
         return ctx
 
 
+def _dispatch_admin_verification_email(req, action, notes=None):
+    requester_email = getattr(req.requester, 'email', None) if req.requester else None
+    if not requester_email:
+        return
+
+    try:
+        config = SiteConfiguration.get_solo()
+        site_url = config.base_url.rstrip('/')
+        site_name = config.site_name
+    except Exception:
+        site_url = "http://localhost:8000"
+        site_name = "VerifyNG"
+
+    user_name = req.requester.get_full_name() or req.requester.username
+    subject_name = req.target_subject.name if req.target_subject else 'Target Subject'
+    ref_id = req.reference_number
+    scope_display = dict(VerificationRequest.VERIFICATION_TYPES).get(req.verification_type, req.verification_type)
+
+    if action == 'complete':
+        try:
+            html_body, text_body = render_email('verification_complete', {
+                'user_name': user_name,
+                'reference_number': ref_id,
+                'subject_name': subject_name,
+                'scope_display': scope_display,
+                'outcome_display': 'Verified Genuine',
+                'outcome': 'verified',
+                'summary': notes or 'Official verification confirmed and approved by administrator.',
+                'completed_at': timezone.now().strftime('%d %B %Y, %I:%M %p'),
+                'report_url': f"{site_url}/verification/{ref_id}/report/",
+                'detail_url': f"{site_url}/verification/{ref_id}/",
+            })
+            email_subject = f"Verification Completed [{ref_id}]: Verified Genuine — {site_name}"
+        except Exception:
+            html_body = None
+            email_subject = f"Verification Completed [{ref_id}]: Verified Genuine"
+            text_body = (
+                f"Hello {user_name},\n\n"
+                f"Your verification request [{ref_id}] for '{subject_name}' has been completed.\n"
+                f"Official Verdict: Verified Genuine\n\n"
+                f"View report: {site_url}/verification/{ref_id}/report/\n\n"
+                f"VerifyNG Trust & Safety Team"
+            )
+        send_email_notification_task.delay(requester_email, email_subject, text_body, html_message=html_body)
+
+    elif action == 'reject':
+        reason_text = notes or "Supporting documentation could not be substantiated against primary records."
+        try:
+            html_body, text_body = render_email('verification_declined', {
+                'user_name': user_name,
+                'reference_number': ref_id,
+                'subject_name': subject_name,
+                'scope_display': scope_display,
+                'reason': reason_text,
+                'declined_at': timezone.now().strftime('%d %B %Y, %I:%M %p'),
+                'detail_url': f"{site_url}/verification/{ref_id}/",
+            })
+            email_subject = f"Update on Verification Request [{ref_id}] — {site_name}"
+        except Exception:
+            html_body = None
+            email_subject = f"Update on Verification Request [{ref_id}]"
+            text_body = (
+                f"Hello {user_name},\n\n"
+                f"Your verification request [{ref_id}] for '{subject_name}' could not be completed.\n"
+                f"Reason: {reason_text}\n\n"
+                f"VerifyNG Trust & Safety Team"
+            )
+        send_email_notification_task.delay(requester_email, email_subject, text_body, html_message=html_body)
+
+
 class AdminVerificationActionView(SuperAdminRequiredMixin, View):
     """POST: complete or reject a verification request."""
     def post(self, request, pk):
@@ -1153,6 +1225,21 @@ class AdminVerificationActionView(SuperAdminRequiredMixin, View):
 
         if action == 'complete':
             req.status = 'completed'
+            if not hasattr(req, 'result') or req.result is None:
+                VerificationResult.objects.get_or_create(
+                    request=req,
+                    defaults={
+                        'outcome': 'verified',
+                        'summary': notes or 'Official verification confirmed and approved by administrator.',
+                        'verified_by': request.user,
+                        'verified_at': timezone.now(),
+                        'details': {
+                            'registry_status': 'verified',
+                            'record_status': 'authentic',
+                            'officer_advisory': 'Verified and approved by system administration.'
+                        }
+                    }
+                )
         elif action == 'reject':
             req.status = 'rejected'
         elif action == 'in_progress':
@@ -1163,6 +1250,9 @@ class AdminVerificationActionView(SuperAdminRequiredMixin, View):
 
         req.notes = notes
         req.save(update_fields=['status', 'notes', 'updated_at'])
+
+        if action in ('complete', 'reject'):
+            _dispatch_admin_verification_email(req, action, notes)
 
         AuditLog.objects.create(
             action=f"ADMIN_VERIFICATION_{action.upper()}",
@@ -1201,6 +1291,21 @@ class AdminVerificationDetailView(SuperAdminRequiredMixin, TemplateView):
 
         if action == 'complete':
             verification.status = 'completed'
+            if not hasattr(verification, 'result') or verification.result is None:
+                VerificationResult.objects.get_or_create(
+                    request=verification,
+                    defaults={
+                        'outcome': 'verified',
+                        'summary': notes or 'Official verification confirmed and approved by administrator.',
+                        'verified_by': request.user,
+                        'verified_at': timezone.now(),
+                        'details': {
+                            'registry_status': 'verified',
+                            'record_status': 'authentic',
+                            'officer_advisory': 'Verified and approved by system administration.'
+                        }
+                    }
+                )
         elif action == 'reject':
             verification.status = 'rejected'
         elif action == 'in_progress':
@@ -1209,6 +1314,9 @@ class AdminVerificationDetailView(SuperAdminRequiredMixin, TemplateView):
         if notes:
             verification.notes = notes
         verification.save(update_fields=['status', 'notes', 'updated_at'])
+
+        if action in ('complete', 'reject'):
+            _dispatch_admin_verification_email(verification, action, notes)
 
         AuditLog.objects.create(
             action=f"ADMIN_VERIFICATION_{action.upper()}",

@@ -1,10 +1,18 @@
 from django.contrib import admin
+from django.utils import timezone
 from verification.models import (
     VerificationRequest,
     VerificationResult,
     VerificationCertificate,
     CertificateQueryLog,
 )
+
+
+class VerificationResultInline(admin.StackedInline):
+    model = VerificationResult
+    extra = 0
+    can_delete = False
+    readonly_fields = ('verified_at',)
 
 
 @admin.register(VerificationRequest)
@@ -14,6 +22,21 @@ class VerificationRequestAdmin(admin.ModelAdmin):
     search_fields = ('reference_number', 'requester__username', 'requester__email')
     readonly_fields = ('reference_number', 'created_at', 'updated_at')
     ordering = ('-created_at',)
+    inlines = [VerificationResultInline]
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        if obj.status == 'completed' and not hasattr(obj, 'result'):
+            VerificationResult.objects.get_or_create(
+                request=obj,
+                defaults={
+                    'outcome': 'verified',
+                    'summary': obj.notes or 'Verification confirmed and completed by administrator.',
+                    'verified_by': request.user,
+                    'verified_at': timezone.now(),
+                    'details': {}
+                }
+            )
 
 
 @admin.register(VerificationResult)

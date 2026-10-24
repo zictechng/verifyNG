@@ -138,6 +138,20 @@ class VerificationDetailView(LoginRequiredMixin, DetailView):
         )
         if not can_view_verification(self.request.user, obj):
             raise PermissionDenied("You do not have authorization to view this verification record.")
+
+        # Ensure VerificationResult exists if status is completed
+        if obj.status == 'completed' and not hasattr(obj, 'result'):
+            VerificationResult.objects.get_or_create(
+                request=obj,
+                defaults={
+                    'outcome': 'verified',
+                    'summary': obj.notes or 'Official verification confirmed and approved.',
+                    'verified_by': self.request.user if (self.request.user.is_superuser or is_verification_officer(self.request.user)) else None,
+                    'verified_at': obj.updated_at or timezone.now(),
+                    'details': {}
+                }
+            )
+            obj.refresh_from_db()
         return obj
 
     def get_context_data(self, **kwargs):
@@ -291,8 +305,25 @@ class VerificationReportDocumentView(LoginRequiredMixin, DetailView):
             raise PermissionDenied("You do not have authorization to access this verification report.")
 
         # 2. Status gate: Report only exists for completed verifications with a recorded result
-        if obj.status != 'completed' or not hasattr(obj, 'result'):
+        if obj.status != 'completed':
             raise Http404("Official verification report is only generated for completed verifications.")
+
+
+        # Ensure VerificationResult exists (safeguard for administrator or direct completions)
+        if not hasattr(obj, 'result') or obj.result is None:
+            VerificationResult.objects.get_or_create(
+                request=obj,
+                defaults={
+                    'outcome': 'verified',
+                    'summary': obj.notes or 'Official verification confirmed and approved by administrator.',
+                    'verified_by': self.request.user if (self.request.user.is_superuser or is_verification_officer(self.request.user)) else None,
+                    'verified_at': obj.updated_at or timezone.now(),
+                    'details': {}
+                }
+            )
+            obj.refresh_from_db()
+
+
 
         return obj
 

@@ -36,7 +36,7 @@ from payments.services import check_user_entitlement, consume_user_entitlement
 from reports.models import AuditLog, FraudReport, ReportEvidence
 from reports.services import generate_report_reference_number
 from reports.storage_services import get_storage_service, StorageError
-from verification.models import CertificateQueryLog, VerificationCertificate
+from verification.models import CertificateQueryLog, VerificationCertificate, VerificationRequest
 from .models import (
     BulkCheckRow,
     BulkCheckUpload,
@@ -102,6 +102,7 @@ def employer_dashboard(request):
     staff_checks_total     = StaffCheckRequest.objects.filter(employer=profile, is_active=True).count()
     staff_checks_pending   = StaffCheckRequest.objects.filter(employer=profile, is_active=True, status='pending').count()
     staff_checks_completed = StaffCheckRequest.objects.filter(employer=profile, is_active=True, status='completed').count()
+    verifications_total    = VerificationRequest.objects.filter(requester=request.user).count()
 
     recent_checks = (
         StaffCheckRequest.objects
@@ -134,6 +135,7 @@ def employer_dashboard(request):
         'staff_checks_total':     staff_checks_total,
         'staff_checks_pending':   staff_checks_pending,
         'staff_checks_completed': staff_checks_completed,
+        'verifications_total':    verifications_total,
         'recent_checks':          recent_checks,
         'active_subscription':    active_subscription,
         'entitlement_reason':     entitlement_reason,
