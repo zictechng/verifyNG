@@ -11,6 +11,8 @@ from users.views import (
     AccountHubView,
     UserProfileUpdateView,
     DeleteAccountView,
+    UserIdentityVerificationSubmitView,
+    UserIdentityDocumentView,
     CustomPasswordResetView,
     CustomPasswordResetDoneView,
     CustomPasswordResetConfirmView,
@@ -34,6 +36,8 @@ urlpatterns = [
     path('account/', AccountHubView.as_view(), name='account_hub'),
     path('profile/', UserProfileUpdateView.as_view(), name='profile'),
     path('profile/legal-name-change/', LegalNameChangeRequestView.as_view(), name='legal_name_change_request'),
+    path('profile/verify-identity/', UserIdentityVerificationSubmitView.as_view(), name='verify_identity_submit'),
+    path('profile/id-document/', UserIdentityDocumentView.as_view(), name='id_document_preview'),
     path('delete-account/', DeleteAccountView.as_view(), name='delete_account'),
     path(
         'suspended/',

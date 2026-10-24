@@ -7,7 +7,48 @@
     <h1 class="adm-page-title">{{ target_user.get_full_name|default:target_user.username }}</h1>
     <p class="adm-page-sub">@{{ target_user.username }} · {{ target_user.email }}</p>
   </div>
-  <a href="{% url 'admin_portal:users' %}" class="btn-adm-outline">← All Users</a>
+  <div class="d-flex align-items-center gap-2 flex-wrap">
+    {% if target_user.has_id_document %}
+      <button type="button" class="btn-adm-outline-primary" data-bs-toggle="modal" data-bs-target="#viewUserIdDocModal">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        View ID Document
+      </button>
+    {% endif %}
+
+    {% if not target_user.identity_verified %}
+      {% if target_user.has_id_document or target_user.id_verification_status == 'pending' %}
+        <button type="button" class="btn-adm-primary"
+                data-confirm-action=""
+                data-title="Approve User Identity Verification"
+                data-body="Are you sure you want to approve identity verification for <strong>{{ target_user.get_full_name|default:target_user.username }}</strong> ({{ target_user.get_id_type_display|default:target_user.id_type|upper }}: {{ target_user.masked_id_number }})?<br><br>This will grant the user a verified identity badge across {{ site_config.site_name|default:'VerifyNG' }}."
+                data-confirm-label="Yes, Approve &amp; Verify"
+                data-confirm-class="btn-primary"
+                data-form-action="{% url 'admin_portal:user_detail' target_user.public_id %}"
+                data-hidden-action="verify_identity">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          Approve &amp; Verify Identity
+        </button>
+        <button type="button" class="btn-adm-outline-danger" data-bs-toggle="modal" data-bs-target="#rejectUserIdModal">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+          Decline ID Proof
+        </button>
+      {% endif %}
+    {% else %}
+      <button type="button" class="btn-adm-outline-warning"
+              data-confirm-action=""
+              data-title="Revoke Identity Verification"
+              data-body="Are you sure you want to revoke the identity verification badge for <strong>{{ target_user.get_full_name|default:target_user.username }}</strong>?<br><br>Their status will return to unverified and they will need to resubmit."
+              data-confirm-label="Yes, Revoke Verification"
+              data-confirm-class="btn-warning"
+              data-form-action="{% url 'admin_portal:user_detail' target_user.public_id %}"
+              data-hidden-action="revoke_identity">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+        Revoke Identity
+      </button>
+    {% endif %}
+
+    <a href="{% url 'admin_portal:users' %}" class="btn-adm-outline">← All Users</a>
+  </div>
 </div>
 
 {% include "admin_portal/_messages.html" %}
@@ -35,14 +76,90 @@
         <tr><th style="color:var(--adm-muted);font-weight:500;">Status</th>
           <td>{% if target_user.is_active %}<span class="adm-badge green"><span class="dot"></span>Active</span>{% else %}<span class="adm-badge red"><span class="dot"></span>Suspended</span>{% endif %}</td>
         </tr>
-        <tr><th style="color:var(--adm-muted);font-weight:500;">Identity Verified</th>
-          <td>{% if target_user.identity_verified %}<span class="adm-badge green">Yes</span>{% else %}<span class="adm-badge gray">No</span>{% endif %}</td>
+        <tr><th style="color:var(--adm-muted);font-weight:500;">Identity Status</th>
+          <td>
+            {% if target_user.identity_verified %}
+              <span class="adm-badge green"><span class="dot"></span>Verified</span>
+            {% elif target_user.id_verification_status == 'pending' %}
+              <span class="adm-badge amber"><span class="dot"></span>Pending Review</span>
+            {% elif target_user.id_verification_status == 'rejected' %}
+              <span class="adm-badge red"><span class="dot"></span>Declined</span>
+            {% else %}
+              <span class="adm-badge gray">Unverified</span>
+            {% endif %}
+          </td>
         </tr>
         <tr><th style="color:var(--adm-muted);font-weight:500;">Staff</th><td>{% if target_user.is_staff %}Yes{% else %}No{% endif %}</td></tr>
         <tr><th style="color:var(--adm-muted);font-weight:500;">Superuser</th><td>{% if target_user.is_superuser %}Yes{% else %}No{% endif %}</td></tr>
         <tr><th style="color:var(--adm-muted);font-weight:500;">Joined</th><td>{{ target_user.date_joined|date:"d M Y H:i" }}</td></tr>
         <tr><th style="color:var(--adm-muted);font-weight:500;">Last Login</th><td>{{ target_user.last_login|date:"d M Y H:i"|default:"Never" }}</td></tr>
       </table>
+    </div>
+
+    <!-- ── Government Identity Verification Card ── -->
+    <div class="adm-card mb-4">
+      <div class="adm-card-header d-flex justify-content-between align-items-center">
+        <span>Identity Credentials</span>
+        {% if target_user.identity_verified %}
+          <span class="adm-badge green"><span class="dot"></span>Verified</span>
+        {% elif target_user.id_verification_status == 'pending' %}
+          <span class="adm-badge amber"><span class="dot"></span>Pending Review</span>
+        {% elif target_user.id_verification_status == 'rejected' %}
+          <span class="adm-badge red"><span class="dot"></span>Declined</span>
+        {% else %}
+          <span class="adm-badge gray">Unverified</span>
+        {% endif %}
+      </div>
+      <div class="p-3">
+        {% if target_user.id_type or target_user.has_id_document %}
+          <table class="table table-sm mb-3 small">
+            <tr>
+              <th style="color:var(--adm-muted);font-weight:500;width:40%;">Document Type</th>
+              <td class="fw-semibold">{{ target_user.get_id_type_display|default:target_user.id_type|upper }}</td>
+            </tr>
+            <tr>
+              <th style="color:var(--adm-muted);font-weight:500;">ID Number</th>
+              <td class="font-monospace fw-semibold">{{ target_user.masked_id_number|default:"—" }}</td>
+            </tr>
+            {% if target_user.id_submitted_at %}
+            <tr>
+              <th style="color:var(--adm-muted);font-weight:500;">Submitted At</th>
+              <td>{{ target_user.id_submitted_at|date:"d M Y, H:i" }}</td>
+            </tr>
+            {% endif %}
+            {% if target_user.id_verified_at %}
+            <tr>
+              <th style="color:var(--adm-muted);font-weight:500;">Verified At</th>
+              <td>{{ target_user.id_verified_at|date:"d M Y, H:i" }}</td>
+            </tr>
+            {% endif %}
+            {% if target_user.id_rejection_reason %}
+            <tr>
+              <th style="color:var(--adm-muted);font-weight:500;">Decline Reason</th>
+              <td class="text-danger small">{{ target_user.id_rejection_reason }}</td>
+            </tr>
+            {% endif %}
+          </table>
+
+          {% if target_user.has_id_document %}
+            <div class="d-flex gap-2">
+              <button type="button" class="btn btn-adm-sm btn-adm-primary flex-grow-1 d-inline-flex align-items-center justify-content-center gap-1"
+                      data-bs-toggle="modal" data-bs-target="#viewUserIdDocModal">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                View ID Document
+              </button>
+              <a href="{% url 'admin_portal:user_id_document' target_user.public_id %}?download=1" class="btn btn-adm-sm btn-adm-outline" title="Download Document">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              </a>
+            </div>
+          {% endif %}
+        {% else %}
+          <div class="text-center py-3 text-muted small">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="mb-2 text-secondary opacity-50"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><line x1="15" y1="8" x2="17" y2="8"/><line x1="15" y1="12" x2="17" y2="12"/><line x1="7" y1="16" x2="17" y2="16"/></svg>
+            <p class="mb-0">No government identification credentials submitted yet.</p>
+          </div>
+        {% endif %}
+      </div>
     </div>
 
     <!-- ── Quick Actions ──────────────────────────────────────── -->
@@ -773,6 +890,101 @@
     </div>
   </div>
 </div>
+
+
+{# ── In-Browser User ID Document Viewer Modal ── #}
+{% if target_user.has_id_document %}
+<div class="modal fade" id="viewUserIdDocModal" tabindex="-1" aria-labelledby="viewUserIdDocModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-xl">
+    <div class="modal-content shadow-lg border-0" style="border-radius:12px;">
+      <div class="modal-header border-bottom py-3">
+        <h5 class="modal-title fw-bold" id="viewUserIdDocModalLabel">
+          Government Identity Document &mdash; {{ target_user.get_full_name|default:target_user.username }}
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-2 p-md-3 bg-light text-center">
+        {% if target_user.id_document_is_pdf %}
+          <object data="{% url 'admin_portal:user_id_document' target_user.public_id %}#toolbar=0" type="application/pdf" class="w-100 rounded border bg-white" style="height:75vh;min-height:550px;">
+            <iframe src="{% url 'admin_portal:user_id_document' target_user.public_id %}#toolbar=0" class="w-100 h-100 border-0" style="height:75vh;min-height:550px;">
+              <div class="p-4 text-center bg-white rounded">
+                <p class="text-muted small mb-3">Your browser does not render inline PDF previews.</p>
+                <a href="{% url 'admin_portal:user_id_document' target_user.public_id %}" target="_blank" class="btn btn-adm-primary">
+                  Open PDF in New Tab
+                </a>
+              </div>
+            </iframe>
+          </object>
+        {% else %}
+          <img src="{% url 'admin_portal:user_id_document' target_user.public_id %}" alt="Government ID Document" class="img-fluid rounded border shadow-sm" style="max-height:80vh;object-fit:contain;">
+        {% endif %}
+      </div>
+      <div class="modal-footer border-top py-2 d-flex justify-content-between">
+        <div class="small text-muted">
+          {{ target_user.get_id_type_display|default:target_user.id_type|upper }}: <strong>{{ target_user.masked_id_number|default:"—" }}</strong> &bull; Uploaded {{ target_user.id_submitted_at|date:"d M Y, H:i"|default:"Recently" }}
+        </div>
+        <div class="d-flex gap-2">
+          <a href="{% url 'admin_portal:user_id_document' target_user.public_id %}" target="_blank" rel="noopener noreferrer" class="btn btn-adm-sm btn-adm-outline">
+            Open in Full Tab
+          </a>
+          <button type="button" class="btn btn-adm-sm btn-adm-outline" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{# ── Decline ID Proof Modal with Spinner ── #}
+<div class="modal fade" id="rejectUserIdModal" tabindex="-1" aria-labelledby="rejectUserIdModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content shadow-lg border-0" style="border-radius:14px;">
+      <form method="post" action="{% url 'admin_portal:user_detail' target_user.public_id %}" id="rejectUserIdForm">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="reject_identity">
+        <div class="modal-header border-0 pb-0">
+          <h5 class="modal-title fw-bold text-danger" id="rejectUserIdModalLabel">Decline Identity Verification</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body py-3">
+          <p class="small text-secondary mb-3">
+            Please provide a specific compliance reason for declining the identity document for <strong>{{ target_user.get_full_name|default:target_user.username }}</strong>. This explanation will be displayed directly on the user's profile so they can resubmit valid credentials.
+          </p>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold" for="rejectUserIdReasonInput">Reason for Decline <span class="text-danger">*</span></label>
+            <textarea name="rejection_reason" id="rejectUserIdReasonInput" class="form-control" rows="3" required
+                      placeholder="e.g. Uploaded document is blurry or cropped, name does not match profile, or NIN could not be authenticated."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer border-0 pt-0 gap-2">
+          <button type="button" class="btn btn-outline-secondary btn-sm px-4" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" id="rejectUserIdSubmitBtn" class="btn btn-danger btn-sm px-4 d-inline-flex align-items-center gap-2">
+            <span id="rejectUserIdBtnLabel">Yes, Decline ID Proof</span>
+            <span id="rejectUserIdSpinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const rejectForm = document.getElementById('rejectUserIdForm');
+  const rejectBtn = document.getElementById('rejectUserIdSubmitBtn');
+  const rejectSpinner = document.getElementById('rejectUserIdSpinner');
+  const rejectLabel = document.getElementById('rejectUserIdBtnLabel');
+
+  if (rejectForm && rejectBtn) {
+    rejectForm.addEventListener('submit', function () {
+      rejectBtn.disabled = true;
+      rejectBtn.style.pointerEvents = 'none';
+      if (rejectSpinner) rejectSpinner.classList.remove('d-none');
+      if (rejectLabel) rejectLabel.textContent = 'Declining…';
+    });
+  }
+});
+</script>
 
 {% endblock admin_body %}
 

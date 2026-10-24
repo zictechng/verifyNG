@@ -4,11 +4,12 @@ from users.models import User
 
 class SubjectEntity(models.Model):
     ENTITY_TYPES = (
-        ('person', 'Person'),
-        ('business', 'Business'),
+        ('person', 'Person / Individual'),
+        ('business', 'Business / Company / Estate Developer'),
+        ('property', 'Property / Real Estate / Land'),
+        ('vehicle', 'Vehicle / Automobile'),
+        ('asset', 'Asset / Contract / Credential'),
     )
-    type = models.CharField(max_length=20, choices=ENTITY_TYPES, default='person')
-    name = models.CharField(max_length=255, db_index=True)
     type = models.CharField(max_length=20, choices=ENTITY_TYPES, default='person')
     name = models.CharField(max_length=255, db_index=True)
     photo = models.ImageField(
@@ -37,6 +38,9 @@ class Identifier(models.Model):
         ('account', 'Bank Account'),
         ('cac', 'CAC/RC Number'),
         ('email', 'Email Address'),
+        ('plate_vin', 'Vehicle Plate / VIN Number'),
+        ('property_ref', 'Land / Title / C of O Number'),
+        ('cert_no', 'Certificate / Matric Number'),
     )
     subject = models.ForeignKey(SubjectEntity, on_delete=models.CASCADE, related_name='identifiers')
     type = models.CharField(max_length=20, choices=IDENTIFIER_TYPES)

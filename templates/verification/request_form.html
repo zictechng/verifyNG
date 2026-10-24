@@ -6,14 +6,25 @@
 {% block content %}
 <div class="container py-4 py-md-5">
     <div class="row justify-content-center">
-        <div class="col-lg-8 col-md-10">
+        <div class="col-lg-9 col-md-11">
 
-            <!-- Header -->
-            <div class="mb-4 text-center">
-                <span class="vng-badge-trust mb-2">Independent Verification</span>
-                <h1 class="h3 fw-bold">Submit a Verification Request</h1>
-                <p class="small text-muted mb-0">
-                    Check identity credentials, company registration, or background information against verified public registry sources.
+            <!-- Breadcrumb / Back Link -->
+            <div class="mb-3">
+                <a href="{% if request.user.role in 'employer,agency,business' %}{% url 'verification:list' %}{% else %}{% url 'dashboard:index' %}{% endif %}" class="text-decoration-none small text-muted d-inline-flex align-items-center gap-1">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+                    Back to Verifications
+                </a>
+            </div>
+
+            <!-- Page Header -->
+            <div class="mb-4">
+                <div class="d-inline-flex align-items-center gap-2 px-2.5 py-1 rounded-pill mb-2" style="background:#EFF6FF;border:1px solid #BFDBFE;font-size:0.78rem;font-weight:600;color:#1E40AF;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+                    Official Verification Portal
+                </div>
+                <h1 class="h3 fw-bold mb-1" style="color:var(--vng-ink);">Submit a Verification Request</h1>
+                <p class="text-muted small mb-0">
+                    Conduct verified, primary-source due diligence on properties, land, vehicles, university certificates, corporate entities (CAC), or investment contracts before committing funds.
                 </p>
             </div>
 
@@ -27,15 +38,16 @@
             {% endif %}
 
             <!-- What You Get Callout -->
-            <div class="d-flex gap-3 align-items-start p-3 bg-light rounded-3 border mb-4 small">
-                <div style="color: var(--vng-primary); flex-shrink:0; margin-top:2px;">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <div class="p-3 mb-4 rounded-3 d-flex align-items-start gap-3" style="background:#F8FAFC;border:1px solid #E2E8F0;">
+                <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width:36px;height:36px;background:#EFF6FF;color:#2563EB;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
                 </div>
-                <div class="text-muted">
-                    Verified results are delivered as an official <strong>VerifyNG Verification Report</strong> — accessible from your dashboard after review. This is an independent assessment, not a government-issued DBS certificate.
+                <div class="small text-muted">
+                    <strong class="text-dark">Official Verification Report:</strong> Upon review by a VerifyNG Verification Officer, you receive a tamper-evident, printable <strong>Verification Report</strong> with verified registry findings, confirmation status, and advisory checkpoints.
                 </div>
             </div>
 
+            <!-- Form Card -->
             <div class="vng-card p-4 p-md-5">
 
                 {% if form.non_field_errors %}
@@ -49,59 +61,90 @@
                 <form method="post" id="verificationRequestForm" novalidate>
                     {% csrf_token %}
 
-                    <!-- Section 1: Subject Identity -->
-                    <div class="mb-4 pb-3 border-bottom">
-                        <h6 class="fw-bold text-uppercase small text-muted letter-spacing-1 mb-3">1 — Subject Identity</h6>
-
-                        <div class="mb-3">
-                            <label for="{{ form.subject_name.id_for_label }}" class="form-label small fw-semibold">
-                                Subject Legal / Registered Name <span class="text-danger">*</span>
-                            </label>
-                            {{ form.subject_name }}
-                            {% if form.subject_name.errors %}
-                                <div class="text-danger small mt-1">{{ form.subject_name.errors.0 }}</div>
-                            {% endif %}
+                    <!-- Step 1: Verification Scope & Target Subject -->
+                    <div class="mb-4 pb-4 border-bottom">
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <span class="badge rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center" style="width:24px;height:24px;font-size:12px;">1</span>
+                            <h6 class="fw-bold mb-0 text-uppercase small text-muted letter-spacing-1">Verification Scope &amp; Target Entity</h6>
                         </div>
 
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label for="{{ form.subject_type.id_for_label }}" class="form-label small fw-semibold">
-                                    Entity Type <span class="text-danger">*</span>
-                                </label>
-                                {{ form.subject_type }}
-                                {% if form.subject_type.errors %}
-                                    <div class="text-danger small mt-1">{{ form.subject_type.errors.0 }}</div>
-                                {% endif %}
-                            </div>
+                        <div class="row g-3 mb-3">
                             <div class="col-md-6">
                                 <label for="{{ form.verification_type.id_for_label }}" class="form-label small fw-semibold">
                                     Verification Scope <span class="text-danger">*</span>
                                 </label>
                                 {{ form.verification_type }}
+                                <div class="form-text small">Select the category of check you want conducted.</div>
                                 {% if form.verification_type.errors %}
                                     <div class="text-danger small mt-1">{{ form.verification_type.errors.0 }}</div>
                                 {% endif %}
                             </div>
+
+                            <div class="col-md-6">
+                                <label for="{{ form.subject_type.id_for_label }}" class="form-label small fw-semibold">
+                                    Entity Type <span class="text-danger">*</span>
+                                </label>
+                                {{ form.subject_type }}
+                                <div class="form-text small">Type of legal subject being investigated.</div>
+                                {% if form.subject_type.errors %}
+                                    <div class="text-danger small mt-1">{{ form.subject_type.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.subject_name.id_for_label }}" class="form-label small fw-semibold" id="lblSubjectName">
+                                Subject Legal / Registered Name <span class="text-danger">*</span>
+                            </label>
+                            {{ form.subject_name }}
+                            <div class="form-text small" id="hintSubjectName">
+                                Full name of the individual, registered company, property title holder, or vehicle owner.
+                            </div>
+                            {% if form.subject_name.errors %}
+                                <div class="text-danger small mt-1">{{ form.subject_name.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Dynamic Scope Guidance Box -->
+                        <div id="scopeGuidanceBox" class="p-3 rounded-3 mt-3" style="display:none;background:#F0FDF4;border:1px solid #BBF7D0;">
+                            <div class="d-flex align-items-start gap-2">
+                                <span id="scopeGuidanceIcon" class="text-success mt-0.5">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                                </span>
+                                <div class="small">
+                                    <strong id="scopeGuidanceTitle" class="text-success-emphasis">Property &amp; Land Verification Guidance:</strong>
+                                    <div id="scopeGuidanceText" class="text-muted mt-1">
+                                        For land or house verification, provide the exact location, C of O or Deed of Assignment reference, surveyor plan number, and the seller or estate developer's name.
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Section 2: Optional Identifier -->
-                    <div class="mb-4 pb-3 border-bottom">
-                        <h6 class="fw-bold text-uppercase small text-muted mb-1">2 — Registry Identifier <span class="text-muted fw-normal">(Optional)</span></h6>
+                    <!-- Step 2: Registry Identifier -->
+                    <div class="mb-4 pb-4 border-bottom">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <span class="badge rounded-circle bg-secondary text-white d-inline-flex align-items-center justify-content-center" style="width:24px;height:24px;font-size:12px;">2</span>
+                            <h6 class="fw-bold mb-0 text-uppercase small text-muted letter-spacing-1">Official Registry Identifier <span class="fw-normal text-muted">(Optional but Recommended)</span></h6>
+                        </div>
                         <p class="small text-muted mb-3">
-                            Providing a phone number, CAC RC/BN number, or email enables cryptographic exact-match lookup without exposing raw data.
+                            Supplying an official number enables rapid cryptographic indexing against primary government and institutional registries.
                         </p>
 
                         <div class="row g-3">
-                            <div class="col-md-4">
-                                <label class="form-label small fw-semibold">Identifier Type</label>
+                            <div class="col-md-5">
+                                <label for="{{ form.identifier_type.id_for_label }}" class="form-label small fw-semibold">
+                                    Identifier Type
+                                </label>
                                 {{ form.identifier_type }}
                                 {% if form.identifier_type.errors %}
                                     <div class="text-danger small mt-1">{{ form.identifier_type.errors.0 }}</div>
                                 {% endif %}
                             </div>
-                            <div class="col-md-8">
-                                <label class="form-label small fw-semibold">Identifier Value</label>
+                            <div class="col-md-7">
+                                <label for="{{ form.identifier_value.id_for_label }}" class="form-label small fw-semibold">
+                                    Identifier Value / Reference Number
+                                </label>
                                 {{ form.identifier_value }}
                                 {% if form.identifier_value.errors %}
                                     <div class="text-danger small mt-1">{{ form.identifier_value.errors.0 }}</div>
@@ -110,11 +153,14 @@
                         </div>
                     </div>
 
-                    <!-- Section 3: Context Notes -->
-                    <div class="mb-4 pb-3 border-bottom">
-                        <h6 class="fw-bold text-uppercase small text-muted mb-1">3 — Context & Requirements <span class="text-muted fw-normal">(Optional)</span></h6>
-                        <p class="small text-muted mb-3">
-                            Describe the specific purpose of this verification — e.g. pre-employment background check, landlord due diligence, contractor vetting.
+                    <!-- Step 3: Context & Requirements -->
+                    <div class="mb-4 pb-4 border-bottom">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <span class="badge rounded-circle bg-secondary text-white d-inline-flex align-items-center justify-content-center" style="width:24px;height:24px;font-size:12px;">3</span>
+                            <h6 class="fw-bold mb-0 text-uppercase small text-muted letter-spacing-1">Context &amp; Verification Requirements <span class="fw-normal text-muted">(Optional)</span></h6>
+                        </div>
+                        <p class="small text-muted mb-2">
+                            Describe what you want investigated and any known background details to ensure accurate verification.
                         </p>
                         {{ form.notes }}
                         {% if form.notes.errors %}
@@ -122,23 +168,28 @@
                         {% endif %}
                     </div>
 
-                    <!-- Disclaimer + Actions -->
-                    <div class="alert alert-light border small text-muted mb-4">
-                        <strong>Notice:</strong> Your request will be reviewed by an authorized VerifyNG Verification Officer. Typical turnaround is 2–5 business days. You will be notified on completion.
+                    <!-- Service Notice -->
+                    <div class="alert alert-light border small text-muted mb-4 d-flex align-items-start gap-2">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2" class="flex-shrink-0 mt-0.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        <div>
+                            <strong>Verification SLA &amp; Review Notice:</strong> Your request will be assigned to a designated VerifyNG Verification Officer. Average review turnaround is 1–3 business days. You will receive an email notification and status update in your portal upon completion.
+                        </div>
                     </div>
 
-                    <div class="d-flex justify-content-between align-items-center gap-2">
-                        <a href="{% url 'dashboard:index' %}" class="btn btn-vng-outline">
+                    <!-- Action Buttons -->
+                    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-stretch align-items-sm-center gap-2">
+                        <a href="{% if request.user.role in 'employer,agency,business' %}{% url 'verification:list' %}{% else %}{% url 'dashboard:index' %}{% endif %}" class="btn btn-vng-outline order-2 order-sm-1">
                             Cancel
                         </a>
-                        <button type="submit" id="btnSubmitVerification" class="btn btn-vng-primary btn-sm d-inline-flex align-items-center justify-content-center">
-                            <span class="btn-text">Submit Request &rarr;</span>
+                        <button type="submit" id="btnSubmitVerification" class="btn btn-vng-primary order-1 order-sm-2 d-inline-flex align-items-center justify-content-center gap-2 py-2 px-4">
+                            <span class="btn-text">Submit Verification Request &rarr;</span>
                             <span class="btn-spinner d-none">
-                                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
                                 Submitting...
                             </span>
                         </button>
                     </div>
+
                 </form>
             </div>
 
@@ -148,8 +199,124 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    const scopeSelect = document.getElementById('id_verification_scope');
+    const entitySelect = document.getElementById('id_entity_type');
+    const subjectNameInput = document.getElementById('id_subject_name');
+    const hintSubjectName = document.getElementById('hintSubjectName');
+    const guidanceTitle = document.getElementById('scopeGuidanceTitle');
+    const guidanceText = document.getElementById('scopeGuidanceText');
     const form = document.getElementById('verificationRequestForm');
     const submitBtn = document.getElementById('btnSubmitVerification');
+
+    const guidanceData = {
+        'property': {
+            entity: 'property',
+            placeholder: 'e.g. Plot 14, Block 2, Victoria Garden City, Lekki / Developer: Prime Oak Estates',
+            hint: 'Enter property address, plot number, estate name, or declared title holder name.',
+            title: 'Property, Land & Real Estate Due Diligence:',
+            text: 'Provide the land or house location, state, LGA, survey plan or C of O number, and the seller or estate developer name in Context & Requirements.'
+        },
+        'vehicle': {
+            entity: 'vehicle',
+            placeholder: 'e.g. 2021 Toyota Camry / Declared Owner: Chinedu Okafor',
+            hint: 'Enter vehicle make, model, year, and declared owner name.',
+            title: 'Vehicle & Automobile Ownership Check:',
+            text: 'Provide the Plate Number, Chassis/VIN, and State of registration. We verify ownership records and customs clearance status.'
+        },
+        'credential': {
+            entity: 'person',
+            placeholder: 'e.g. Full Name on Certificate (e.g. Babatunde Olawale Adeleke)',
+            hint: 'Enter the exact graduate or certificate holder name as written on the document.',
+            title: 'Academic & Qualification Certificate Vetting:',
+            text: 'Provide the institution name (e.g. UNILAG, OAU, WAEC), graduation year, course of study, and matriculation or certificate serial number.'
+        },
+        'business': {
+            entity: 'business',
+            placeholder: 'e.g. Dangote Cement Plc / Acme Logistics Limited',
+            hint: 'Enter the registered business name or trading name.',
+            title: 'Business & Corporate Registration (CAC) Check:',
+            text: 'Provide the CAC RC or BN registration number. We confirm incorporation status, registered address, active status, and listed directors.'
+        },
+        'contract': {
+            entity: 'asset',
+            placeholder: 'e.g. Joint Venture Real Estate Agreement / Contract Ref #2026-081',
+            hint: 'Enter the contract title, commercial deal reference, or agreement name.',
+            title: 'Deal, Contract & Investment Vetting:',
+            text: 'Provide the names of all signing parties, the developer or investment entity, and the transaction context so our officers can verify authenticity.'
+        },
+        'identity': {
+            entity: 'person',
+            placeholder: 'e.g. Full Legal Name (First, Middle, Surname)',
+            hint: 'Enter official full legal name of the person being verified.',
+            title: 'Personal Identity & Background Check:',
+            text: 'Provide government identifier (NIN or BVN), phone number, and context (e.g. pre-employment screening, tenant vetting, or guarantor check).'
+        },
+        'employment': {
+            entity: 'person',
+            placeholder: 'e.g. Employee Full Legal Name',
+            hint: 'Enter full legal name of current or prospective employee.',
+            title: 'Employment & Workplace Record Check:',
+            text: 'Provide employer organization, position title, and employment period to verify authentic tenure and workplace clearance.'
+        },
+        'address': {
+            entity: 'property',
+            placeholder: 'e.g. 15 Admiralty Way, Lekki Phase 1, Lagos',
+            hint: 'Enter full physical residential or business address.',
+            title: 'Physical Address Verification:',
+            text: 'Provide complete landmark, street address, and resident/occupant contact details for field verification.'
+        },
+        'full_check': {
+            entity: 'person',
+            placeholder: 'e.g. Target Subject Legal Name or Business Name',
+            hint: 'Enter full legal name of subject for multi-source comprehensive background investigation.',
+            title: 'Full Comprehensive Due Diligence:',
+            text: 'Provide all available identifiers, residential details, and operational background for exhaustive cross-registry vetting.'
+        }
+    };
+
+    function updateGuidance() {
+        if (!scopeSelect) return;
+        const selected = scopeSelect.value;
+        const box = document.getElementById('scopeGuidanceBox');
+
+        if (!selected) {
+            if (box) box.style.display = 'none';
+            if (subjectNameInput && !subjectNameInput.value) {
+                subjectNameInput.placeholder = 'e.g. Legal name of person, registered company, property, vehicle, or contract';
+            }
+            if (hintSubjectName) {
+                hintSubjectName.textContent = 'Full legal or registered name of the subject being investigated.';
+            }
+            return;
+        }
+
+        const config = guidanceData[selected];
+        if (!config) {
+            if (box) box.style.display = 'none';
+            return;
+        }
+
+        if (box) box.style.display = 'block';
+
+        if (subjectNameInput && !subjectNameInput.value) {
+            subjectNameInput.placeholder = config.placeholder;
+        }
+        if (hintSubjectName) {
+            hintSubjectName.textContent = config.hint;
+        }
+        if (guidanceTitle) {
+            guidanceTitle.textContent = config.title;
+        }
+        if (guidanceText) {
+            guidanceText.textContent = config.text;
+        }
+    }
+
+    if (scopeSelect) {
+        scopeSelect.addEventListener('change', updateGuidance);
+        updateGuidance();
+    }
+
     if (form && submitBtn) {
         form.addEventListener('submit', function () {
             const btnText = submitBtn.querySelector('.btn-text');
@@ -158,10 +325,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 btnText.classList.add('d-none');
                 btnSpinner.classList.remove('d-none');
             }
-            submitBtn.disabled = true;
+            submitBtn.setAttribute('disabled', 'disabled');
         });
     }
 });
 </script>
 {% endblock %}
-

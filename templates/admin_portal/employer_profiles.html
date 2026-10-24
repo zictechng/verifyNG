@@ -10,9 +10,11 @@
     <div class="col-md-4">
       <label class="form-label small fw-semibold mb-1" style="color:var(--adm-muted);">Verified</label>
       <select name="verified" class="form-select form-select-sm" style="height:38px;">
-        <option value="">All</option>
+        <option value="">All Statuses</option>
+        <option value="pending" {% if verified_filter == 'pending' %}selected{% endif %}>Pending CAC Review</option>
         <option value="yes" {% if verified_filter == 'yes' %}selected{% endif %}>Verified</option>
         <option value="no" {% if verified_filter == 'no' %}selected{% endif %}>Unverified</option>
+        <option value="rejected" {% if verified_filter == 'rejected' %}selected{% endif %}>CAC Rejected</option>
       </select>
     </div>
     <div class="col-md-6">
@@ -37,7 +39,18 @@
           <div><span class="adm-badge adm-badge-gray" style="font-size:0.68rem;padding:2px 6px;">{{ ep.organization_type_display }}</span></div></td>
         <td>{{ ep.user.email }}</td>
         <td>
-          {% if ep.is_verified %}<span class="adm-badge adm-badge-green">Verified</span>{% else %}<span class="adm-badge adm-badge-gray">Pending</span>{% endif %}
+          {% if ep.is_verified %}
+            <span class="adm-badge adm-badge-green"><span class="dot"></span>Verified</span>
+          {% elif ep.verification_status == 'pending' %}
+            <span class="adm-badge adm-badge-amber" title="CAC Document Awaiting Compliance Review"><span class="dot"></span>CAC Review</span>
+          {% elif ep.verification_status == 'rejected' %}
+            <span class="adm-badge adm-badge-red" title="{{ ep.rejection_reason }}"><span class="dot"></span>CAC Rejected</span>
+          {% else %}
+            <span class="adm-badge adm-badge-gray"><span class="dot"></span>Unverified</span>
+          {% endif %}
+          {% if ep.has_cac_document %}
+            <span class="adm-badge adm-badge-blue ms-1" title="CAC Incorporation Proof Attached">📄 Proof</span>
+          {% endif %}
           {% if ep.is_billing_exempt %}<span class="adm-badge adm-badge-blue ms-1" title="{{ ep.billing_exempt_notes|default:'Free Usage' }}">Free</span>{% endif %}
         </td>
         <td>{{ ep.created_at|date:"d M Y" }}</td>

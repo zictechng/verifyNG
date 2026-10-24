@@ -39,6 +39,7 @@ from verification.services import (
 from core.permissions import officer_required, is_verification_officer
 from core.rate_limiting import get_client_ip
 from reports.models import FraudReport
+from payments.models import Transaction
         
 logger = logging.getLogger(__name__)
 
@@ -200,12 +201,13 @@ class OfficerResolveView(LoginRequiredMixin, View):
             form = OfficerResolutionForm(request.POST)
             if form.is_valid():
                 try:
+                    details_data = form.cleaned_data.get('details_dict') or form.cleaned_data.get('details_json') or {}
                     complete_verification_request(
                         reference_number=reference_number,
                         officer_user=request.user,
                         outcome=form.cleaned_data['outcome'],
                         summary=form.cleaned_data['summary'],
-                        details=form.cleaned_data['details_json'],
+                        details=details_data,
                         ip_address=ip_addr
                     )
                     messages.success(request, f"Verification [{reference_number}] marked completed.")
@@ -248,6 +250,12 @@ APPROVED_REPORT_DETAIL_KEYS = {
     'institution_status',
     'findings_category',
     'verified_source',
+    'registry_checked',
+    'registration_ref',
+    'confirmed_owner',
+    'record_status',
+    'officer_advisory',
+    'inspection_date',
 }
 
 
@@ -464,7 +472,6 @@ class CertificatePublicVerifyView(View):
     template_name = 'verification/certificate_public_verify.html'
     def get(self, request, certificate_id):
         cert = VerificationCertificate.objects.filter(certificate_id=certificate_id).select_related('holder', 'subject').first()
-        # Audit scan event
         try:
             AuditLog.objects.create(
                 report=None,
@@ -480,45 +487,57 @@ class CertificatePublicVerifyView(View):
             )
         except Exception:
             pass
-        if not cert:
-            return render(request, self.template_name, {
-                'certificate': None,
-                'certificate_id': certificate_id,
-                'is_valid': False,
-            })
-        # Application metadata
-        app_log = None
-        for l in AuditLog.objects.filter(action="TRUSTPASS_APPLICATION_SUBMITTED").order_by('-timestamp')[:50]:
-            det = l.details if isinstance(l.details, dict) else {}
-            if det.get('certificate_id') == cert.certificate_id:
-                app_log = l
-                break
-        det = app_log.details if (app_log and isinstance(app_log.details, dict)) else {}
 
-        candidate_name = (cert.subject.name if cert.subject else None) or det.get('full_name')
-        if not candidate_name and cert.holder:
-            candidate_name = cert.holder.get_full_name() or cert.holder.username
-        nin_raw = det.get('nin', '')
-        nin_masked = det.get('nin_masked')
-        if not nin_masked and nin_raw and len(nin_raw) >= 6:
-            nin_masked = nin_raw[:3] + '****' + nin_raw[-2:]
-        elif not nin_masked:
-            nin_masked = 'Verified Record'
+        if not cert:
+            lookup_state = 'NOT_FOUND'
+        elif cert.status == 'revoked':
+            lookup_state = 'REVOKED'
+        elif cert.status == 'suspended':
+            lookup_state = 'SUSPENDED'
+        elif not cert.is_valid:
+            lookup_state = 'EXPIRED'
+        elif not cert.is_live_searchable:
+            lookup_state = 'GRACE_EXPIRED_MONITORING_REQUIRED'
+        else:
+            lookup_state = 'ACTIVE_VALID'
+
+        candidate_name = '—'
+        nin_masked = 'Verified Record'
+        det = {}
+        if cert:
+            app_log = None
+            for l in AuditLog.objects.filter(action="TRUSTPASS_APPLICATION_SUBMITTED").order_by('-timestamp')[:50]:
+                d = l.details if isinstance(l.details, dict) else {}
+                if d.get('certificate_id') == cert.certificate_id:
+                    app_log = l
+                    break
+            det = app_log.details if (app_log and isinstance(app_log.details, dict)) else {}
+
+            candidate_name = (cert.subject.name if cert.subject else None) or det.get('full_name')
+            if not candidate_name and cert.holder:
+                candidate_name = cert.holder.get_full_name() or cert.holder.username
+            nin_raw = det.get('nin', '')
+            nin_masked = det.get('nin_masked')
+            if not nin_masked and nin_raw and len(nin_raw) >= 6:
+                nin_masked = nin_raw[:3] + '****' + nin_raw[-2:]
+            elif not nin_masked:
+                nin_masked = 'Verified Record'
+
         return render(request, self.template_name, {
             'certificate': cert,
-            'certificate_id': cert.certificate_id,
+            'certificate_id': certificate_id,
             'candidate_name': candidate_name,
-            'check_level': cert.get_check_level_display() if hasattr(cert, 'get_check_level_display') else cert.check_level,
-            'status': cert.status,
-            'is_valid': (cert.status == 'active'),
+            'check_level': cert.get_check_level_display() if (cert and hasattr(cert, 'get_check_level_display')) else (cert.check_level if cert else 'Standard'),
+            'status': cert.status if cert else 'not_found',
+            'lookup_state': lookup_state,
+            'is_valid': (lookup_state == 'ACTIVE_VALID'),
             'dob': det.get('date_of_birth', '—'),
             'nin_masked': nin_masked,
             'employer_name': det.get('employer_name', '—'),
             'job_role': det.get('job_role', '—'),
-            'issued_date': cert.created_at,
-            'expires_at': cert.expires_at,
+            'issued_date': (cert.issued_at or cert.created_at) if cert else None,
+            'expires_at': cert.expires_at if cert else None,
         })
-
 
 
 class MyCertificatesListView(LoginRequiredMixin, ListView):
@@ -627,7 +646,6 @@ class CertificateQueryResultView(LoginRequiredMixin, View):
     template_name = 'verification/certificate_query_result.html'
 
     def get(self, request):
-        from payments.models import Transaction
 
         pending = request.session.pop('pending_cert_query', None)
         if not pending:

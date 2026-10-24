@@ -18,12 +18,12 @@
                 {% if request.user.is_superuser or is_officer %}
                     All Certificates (Officer View)
                 {% elif request.user.role == 'employer' or request.user.is_employer or request.user.role == 'business' %}
-                    Staff Clearance Applications (WCC / DBS)
+                    Staff Clearance Certificate (TrustPass)
                 {% else %}
                     My Certificates
                 {% endif %}
             </h1>
-            <p class="small text-muted mb-0">
+            <p class="text-muted mb-0">
                 {% if request.user.role == 'employer' or request.user.is_employer or request.user.role == 'business' %}
                     Clearance certificates and vetting checks submitted for your organization's candidates and staff.
                 {% else %}
@@ -33,7 +33,7 @@
         </div>
         <a href="{% url 'verification:certificate_apply' %}" class="btn btn-vng-primary btn-vng-sm">
             {% if request.user.role == 'employer' or request.user.is_employer or request.user.role == 'business' %}
-                + Apply for (WCC)
+                + Apply
             {% else %}
                 + Apply for Certificate
             {% endif %}

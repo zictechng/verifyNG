@@ -1,0 +1,552 @@
+{% extends 'public/base.html' %}
+{% load static %}
+
+{% block title %}Verify Workforce Certificate (TrustPass) | {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
+
+{% block extra_head %}
+<style>
+@media print {
+    /* 1. Hide non-printable navigation, forms, guidance, and buttons */
+    header,
+    footer,
+    nav,
+    .navbar,
+    .vng-navbar,
+    .vng-bottom-nav,
+    .vng-breadcrumb-area,
+    .vng-search-card,
+    .vng-guidance-area,
+    .btn-print-action,
+    #vng-logout-modal,
+    .alert-dismissible {
+        display: none !important;
+    }
+
+    /* 2. Format page for crisp, clean A4 output */
+    @page {
+        size: A4 portrait;
+        margin: 10mm 12mm;
+    }
+
+    body {
+        background-color: #FFFFFF !important;
+        color: #0F172A !important;
+        font-size: 13pt !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    .container {
+        max-width: 100% !important;
+        width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    /* 3. Official Print Header */
+    .print-official-header {
+        display: block !important;
+        margin-bottom: 1.25rem !important;
+        padding-bottom: 0.75rem !important;
+        border-bottom: 2px solid #0F766E !important;
+    }
+
+    /* 4. Target the compliance card */
+    .printable-compliance-card {
+        box-shadow: none !important;
+        border: 1.5px solid #CBD5E1 !important;
+        border-radius: 8px !important;
+        margin: 0 !important;
+        page-break-inside: avoid;
+        overflow: hidden !important;
+    }
+
+    /* Force background colors, badges, and gradients to print */
+    .printable-compliance-card,
+    .printable-compliance-card * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+}
+
+@media screen {
+    .print-official-header {
+        display: none !important;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-md-5">
+
+    {# ── Breadcrumb / Header ─────────────────────────────────────────────── #}
+    <div class="mb-4 vng-breadcrumb-area">
+        <a href="{% url 'employer:dashboard' %}" class="small text-muted text-decoration-none d-inline-flex align-items-center mb-2">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1">
+                <polyline points="15 18 9 12 15 6"/>
+            </svg>
+            Back to Dashboard
+        </a>
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+            <div>
+                <span class="vng-badge-trust mb-2">Workforce Clearance Registry</span>
+                <h1 class="h3 fw-bold mb-1">Verify Workforce Certificate (TrustPass)</h1>
+                <p class="small text-muted mb-0">
+                    Verify a candidate's clearance certificate against the live {{ site_config.site_name|default:"VerifyNG" }} registry.
+                </p>
+            </div>
+            <div>
+                <a href="{% url 'employer:staff_misconduct_report' %}" class="btn btn-outline-danger btn-vng-sm d-inline-flex align-items-center">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                    Report Misconduct on Certificate
+                </a>
+            </div>
+        </div>
+    </div>
+
+    {# ── Search Input Card ───────────────────────────────────────────────── #}
+    <div class="vng-card p-4 mb-4 vng-search-card">
+        <form method="post" id="certVerifyForm" class="needs-validation" novalidate>
+            {% csrf_token %}
+
+            <div class="row g-3 align-items-end">
+                <div class="col-12 col-md-4">
+                    <label class="form-label small fw-semibold mb-1" for="id_certificate_id">
+                        Certificate Reference ID <span class="text-danger">*</span>
+                    </label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light text-muted">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="4" width="18" height="16" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
+                                <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                            </svg>
+                        </span>
+                        <input type="text"
+                               name="certificate_id"
+                               id="id_certificate_id"
+                               class="form-control font-monospace"
+                               placeholder="e.g. VNG-2026-A1B2C3D4"
+                               value="{{ cert_id_input }}"
+                               required
+                               style="font-size: 15px; height: 42px; text-transform: uppercase;">
+                        <div class="invalid-feedback">Certificate ID is required.</div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-sm-6 col-md-3">
+                    <label class="form-label small fw-semibold mb-1" for="id_surname">
+                        Candidate Surname <span class="text-danger">*</span>
+                    </label>
+                    <input type="text"
+                           name="surname"
+                           id="id_surname"
+                           class="form-control"
+                           placeholder="Legal Surname"
+                           value="{{ surname_input }}"
+                           required
+                           style="font-size: 15px; height: 42px;">
+                    <div class="invalid-feedback">Surname is required.</div>
+                </div>
+
+                <div class="col-12 col-sm-6 col-md-3">
+                    <label class="form-label small fw-semibold mb-1" for="id_date_of_birth">
+                        Date of Birth <span class="text-danger">*</span>
+                    </label>
+                    <input type="date"
+                           name="date_of_birth"
+                           id="id_date_of_birth"
+                           class="form-control"
+                           value="{{ dob_input }}"
+                           required
+                           style="font-size: 15px; height: 42px;">
+                    <div class="invalid-feedback">Date of birth is required.</div>
+                </div>
+
+                <div class="col-12 col-md-2">
+                    <label class="form-label small fw-semibold mb-1 d-none d-md-block" style="visibility: hidden;">Action</label>
+                    <button type="submit" id="certSubmitBtn" class="btn btn-vng-primary w-100 d-inline-flex align-items-center justify-content-center" style="height: 42px; font-weight: 600;">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="me-1">
+                            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                        </svg>
+                        Check Status
+                    </button>
+                </div>
+            </div>
+            <div class="form-text small text-muted mt-2">
+                All 3 fields (Certificate ID, Candidate Surname, and Date of Birth) are required to verify and match the record.
+            </div>
+        </form>
+    </div>
+
+    {# ── Results Section ─────────────────────────────────────────────────── #}
+    {% if result %}
+        {% if result.lookup_state == 'VALIDATION_ERROR' %}
+        {# ── VALIDATION ERROR ALERT ─────────────────────────────────────────── #}
+        <div class="alert alert-danger d-flex align-items-center gap-2 p-3 rounded-3 mb-4">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2" class="flex-shrink-0">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <div class="small fw-semibold text-danger">
+                {{ result.message }}
+            </div>
+        </div>
+
+        {% elif result.lookup_state == 'ACTIVE_VALID' %}
+        {# ── Official Print-Only Header (Appears on Printed Compliance Document / PDF) ── #}
+        <div class="print-official-header">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <div class="d-flex align-items-center gap-2">
+                    {% if site_config and site_config.logo %}
+                        <img src="{{ site_config.logo.url }}" alt="{{ site_config.site_name|default:'VerifyNG' }}" height="36" class="me-1">
+                    {% else %}
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 2L3 7V12C3 17.52 6.84 22.74 12 24C17.16 22.74 21 17.52 21 12V7L12 2Z" fill="#2457D6"/>
+                            <path d="M10 15.5L6.5 12L7.91 10.59L10 12.67L16.09 6.59L17.5 8L10 15.5Z" fill="#FFFFFF"/>
+                        </svg>
+                    {% endif %}
+                    <div>
+                        <div class="fs-4 fw-bold text-dark" style="letter-spacing: -0.02em;">{{ site_config.site_name|default:"VerifyNG" }}</div>
+                        <div class="small text-muted" style="font-size: 11px;">National Workforce Clearance Registry &bull; TrustPass Verification</div>
+                    </div>
+                </div>
+                <div class="text-end small">
+                    <div class="fw-bold text-dark" style="font-size: 11px;">OFFICIAL COMPLIANCE VETTING RECORD</div>
+                    <div class="font-monospace text-muted" style="font-size: 11px;">Ref: {{ result.certificate_id }}</div>
+                    <div class="text-muted" style="font-size: 11px;">Employer: {{ profile.company_name }}</div>
+                </div>
+            </div>
+        </div>
+
+        {# ── CASE 1: ACTIVE & VALID ───────────────────────────────────────── #}
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4 printable-compliance-card" id="printableComplianceRecord">
+            <div class="p-4 text-white" style="background: linear-gradient(135deg, #0F766E 0%, #115E59 100%);">
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="d-inline-flex align-items-center justify-content-center bg-white text-success rounded-circle shadow-sm flex-shrink-0" style="width: 54px; height: 54px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" fill="currentColor" class="bi bi-shield-check" viewBox="0 0 16 16">
+                                <path d="M5.338 1.59a61.44 61.44 0 0 0-2.837.856.481.481 0 0 0-.328.39c-.554 4.157.726 7.19 2.253 9.188a10.725 10.725 0 0 0 2.287 2.233c.346.244.652.42.893.533.12.057.218.095.293.118a.55.55 0 0 0 .101.025.615.615 0 0 0 .1-.025c.076-.023.174-.061.294-.118.24-.113.547-.29.893-.533a10.726 10.726 0 0 0 2.287-2.233c1.527-1.997 2.807-5.031 2.253-9.188a.48.48 0 0 0-.328-.39c-.651-.213-1.75-.56-2.837-.855C9.552 1.29 8.531 1.067 8 1.067c-.53 0-1.552.223-2.662.524zM5.072.56C6.157.265 7.31 0 8 0s1.843.265 2.928.56c1.11.3 2.229.655 2.887.87a1.54 1.54 0 0 1 1.044 1.262c.596 4.477-.787 7.795-2.464 9.99a11.775 11.775 0 0 1-2.517 2.453 7.159 7.159 0 0 1-1.048.625c-.28.132-.581.24-.829.24s-.548-.108-.829-.24a7.158 7.158 0 0 1-1.048-.625 11.777 11.777 0 0 1-2.517-2.453C1.928 10.487.545 7.169 1.141 2.692A1.54 1.54 0 0 1 2.185 1.43 62.456 62.456 0 0 1 5.072.56z"/>
+                                <path d="M10.854 5.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 1 1 .708-.708L7.5 7.793l2.646-2.647a.5.5 0 0 1 .708 0z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <span class="badge bg-white px-3 py-1 rounded-pill fw-semibold text-uppercase mb-1" style="color: #0F766E;">
+                                Live Verified &bull; Active Record
+                            </span>
+                            <h2 class="h5 fw-bold mb-0">Certificate Current &amp; Fully Cleared</h2>
+                        </div>
+                    </div>
+                    <button class="btn btn-sm btn-light text-dark fw-semibold btn-print-action" onclick="window.print();">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1">
+                            <polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+                            <rect x="6" y="14" width="12" height="8"/>
+                        </svg>
+                        Print Compliance Record
+                    </button>
+                </div>
+            </div>
+
+            <div class="card-body p-4 bg-white">
+                <div class="row g-3">
+                    <div class="col-sm-6">
+                        <label class="text-muted small fw-semibold text-uppercase">Candidate Legal Name</label>
+                        <div class="fs-5 fw-bold text-dark">{{ result.candidate_name }}</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="text-muted small fw-semibold text-uppercase">Certificate Reference ID</label>
+                        <div class="font-monospace fw-bold text-primary fs-5">{{ result.certificate_id }}</div>
+                    </div>
+
+                    <hr class="my-2 text-muted">
+
+                    <div class="col-sm-4">
+                        <label class="text-muted small fw-semibold text-uppercase">Vetting Clearance Level</label>
+                        <div class="fw-semibold text-dark">{{ result.check_level }}</div>
+                    </div>
+                    <div class="col-sm-4">
+                        <label class="text-muted small fw-semibold text-uppercase">National Identity (NIN)</label>
+                        <div class="fw-semibold text-dark font-monospace">{{ result.nin_masked }}</div>
+                    </div>
+                    <div class="col-sm-4">
+                        <label class="text-muted small fw-semibold text-uppercase">Issue Date</label>
+                        <div class="text-dark">{{ result.issued_date|date:"d M Y"|default:"Official" }}</div>
+                    </div>
+
+                    <div class="col-12">
+                        <label class="text-muted small fw-semibold text-uppercase">Live Monitoring Status</label>
+                        <div>
+                            {% if result.in_grace_period %}
+                                <span class="badge bg-success-subtle text-success border border-success-subtle p-2">
+                                    ✓ 30-Day Grace Period Active ({{ result.grace_days_remaining }} day{{ result.grace_days_remaining|pluralize }} remaining)
+                                </span>
+                            {% else %}
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle p-2">
+                                    ✓ Continuous Live Monitoring Registry Active
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Findings Summary -->
+                <div class="alert alert-light border rounded-3 p-3 mt-4 mb-0">
+                    <div class="fw-semibold text-dark small mb-2 d-flex align-items-center">
+                        <span class="badge bg-success me-2">PASS</span> Live Registry Findings
+                    </div>
+                    <ul class="list-unstyled mb-0 small text-muted">
+                        <li class="mb-1">✓ Government Identity Binding &amp; Biometric NIN Authenticated</li>
+                        <li class="mb-1">✓ Zero Adverse Workplace Misconduct Records on File</li>
+                        <li>✓ No Active Fraud Watchlist Matches Recorded</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card-footer bg-light px-4 py-3 d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2 border-top">
+                <span class="small text-muted">
+                    🔒 Verification audit trail logged for company: <strong>{{ profile.company_name }}</strong>
+                </span>
+                <span class="small text-muted font-monospace">
+                    Checked at: {% now "d M Y, H:i T" %}
+                </span>
+            </div>
+        </div>
+
+        {% elif result.lookup_state == 'GRACE_EXPIRED_MONITORING_REQUIRED' %}
+        {# ── CASE 2: 30-DAY GRACE EXPIRED / CONTINUOUS MONITORING REQUIRED ─ #}
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4 printable-compliance-card">
+            <div class="p-4 text-white" style="background: linear-gradient(135deg, #D97706 0%, #B45309 100%);">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="d-inline-flex align-items-center justify-content-center bg-white rounded-circle shadow-sm flex-shrink-0" style="width: 54px; height: 54px; color: #D97706;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" fill="currentColor" class="bi bi-clock-history" viewBox="0 0 16 16">
+                            <path d="M8.515 1.019A7 7 0 0 0 8 1V0a8 8 0 0 1 .589.022zm2.004.45a7 7 0 0 0-.985-.299l.219-.976q.576.129 1.126.342zm1.37.71a7 7 0 0 0-.439-.27l.493-.87a8 8 0 0 1 .979.654l-.615.789a7 7 0 0 0-.418-.302zm1.834 1.79a7 7 0 0 0-.653-.796l.724-.69q.406.429.747.91zm.744 1.352a7 7 0 0 0-.214-.468l.893-.45a8 8 0 0 1 .45 1.088l-.95.313a7 7 0 0 0-.179-.483m.53 2.507a7 7 0 0 0-.1-1.025l.985-.17q.1.58.116 1.17zm-.131 1.538q.05-.254.081-.51l.993.123a8 8 0 0 1-.23 1.155l-.964-.267q.069-.247.12-.501m-.952 2.379q.276-.436.486-.908l.914.405q-.24.54-.555 1.038zm-.964 1.205q.183-.183.35-.378l.758.653a8 8 0 0 1-.401.432z"/>
+                            <path d="M8 1a7 7 0 1 0 4.95 11.95l.707.707A8.001 8.001 0 1 1 8 0z"/>
+                            <path d="M7.5 3a.5.5 0 0 1 .5.5v5.21l3.248 1.856a.5.5 0 0 1-.496.868l-3.5-2A.5.5 0 0 1 7 9V3.5a.5.5 0 0 1 .5-.5"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <span class="badge bg-white px-3 py-1 rounded-pill fw-semibold text-uppercase mb-1" style="color: #B45309;">
+                            Not on Live Registry &bull; Action Required
+                        </span>
+                        <h2 class="h5 fw-bold mb-0">Initial Verification Window Expired</h2>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-body p-4 bg-white">
+                <div class="alert alert-warning border-warning-subtle d-flex align-items-start gap-3 mb-4">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#B45309" stroke-width="2" class="flex-shrink-0 mt-1">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                    <div class="small">
+                        <div class="fw-bold mb-1" style="color: #92400E; font-size: 0.95rem;">Certificate Authentic &mdash; Initial 30-Day Window Expired</div>
+                        <div style="color: #78350F; line-height: 1.5;">
+                            Workforce Clearance Certificate <strong>{{ result.certificate_id }}</strong> was officially issued to <strong>{{ result.candidate_name }}</strong> on <strong>{{ result.issued_date|date:"d M Y" }}</strong>.
+                            However, the initial <strong>30-day post-issuance search window has expired</strong>, and this certificate is not enrolled in continuous monitoring.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-3 rounded-3 bg-light border mb-4">
+                    <h6 class="fw-bold text-dark mb-1 small text-uppercase">Why Is Continuous Monitoring Required?</h6>
+                    <p class="small text-muted mb-0">
+                        Under standard vetting compliance, point-in-time certificates cannot vouch for ongoing workplace integrity once the initial 30-day window closes. Continuous monitoring ensures certificates remain current and legally verifiable by employers.
+                    </p>
+                </div>
+
+                <div class="card border rounded-3 p-3 bg-light">
+                    <h6 class="fw-bold text-dark mb-1 small text-uppercase">Guidance for Employer</h6>
+                    <p class="small text-muted mb-0">
+                        This certificate cannot currently be verified online. If the candidate did not enroll within the 30-day window, request them to apply for a fresh Workforce Clearance Certificate (WCC) on {{ site_config.site_name|default:"VerifyNG" }}.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        {% elif result.lookup_state == 'SURNAME_DOB_MISMATCH' %}
+        {# ── CASE 3: SURNAME OR DOB MISMATCH ──────────────────────────────── #}
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4 printable-compliance-card">
+            <div class="p-4 text-white" style="background: linear-gradient(135deg, #EA580C 0%, #C2410C 100%);">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="d-inline-flex align-items-center justify-content-center bg-white text-danger rounded-circle shadow-sm flex-shrink-0" style="width: 54px; height: 54px;">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#EA580C" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <span class="badge bg-white px-3 py-1 rounded-pill fw-semibold text-uppercase mb-1" style="color: #EA580C;">
+                            Verification Mismatch
+                        </span>
+                        <h2 class="h5 fw-bold mb-0">Candidate Identity Details Do Not Match</h2>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-body p-4 bg-white">
+                <p class="text-dark mb-3">
+                    Certificate Reference ID <strong class="font-monospace">{{ result.certificate_id }}</strong> exists in our registry, but the <strong>Surname</strong> or <strong>Date of Birth</strong> provided does not match the official identity bound to this credential.
+                </p>
+
+                <div class="alert alert-warning small mb-0">
+                    <strong>Guidance for Employer:</strong> Check the spelling of the surname and date of birth as recorded on the candidate's national identity card (NIN). Ensure you have the exact credentials of the person presenting the certificate.
+                </div>
+            </div>
+        </div>
+
+        {% elif result.lookup_state == 'REVOKED' or result.lookup_state == 'SUSPENDED' %}
+        {# ── CASE 4: REVOKED OR SUSPENDED ─────────────────────────────────── #}
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4 printable-compliance-card">
+            <div class="p-4 text-white bg-danger">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="d-inline-flex align-items-center justify-content-center bg-white text-danger rounded-circle shadow-sm flex-shrink-0" style="width: 54px; height: 54px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" fill="currentColor" class="bi bi-x-octagon" viewBox="0 0 16 16">
+                            <path d="M4.54.146A.5.5 0 0 1 4.893 0h6.214a.5.5 0 0 1 .353.146l4.394 4.394a.5.5 0 0 1 .146.353v6.214a.5.5 0 0 1-.146.353l-4.394 4.394a.5.5 0 0 1-.353.146H4.893a.5.5 0 0 1-.353-.146L.146 11.46A.5.5 0 0 1 0 11.107V4.893a.5.5 0 0 1 .146-.353L4.54.146zM5.1 1 1 5.1v5.8L5.1 15h5.8l4.1-4.1V5.1L10.9 1H5.1z"/>
+                            <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <span class="badge bg-white text-danger px-3 py-1 rounded-pill fw-semibold text-uppercase mb-1">
+                            {% if result.lookup_state == 'REVOKED' %}Revoked Credential{% else %}Suspended Credential{% endif %}
+                        </span>
+                        <h2 class="h5 fw-bold mb-0">Certificate Is No Longer Current</h2>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-body p-4 bg-white">
+                <div class="alert alert-danger mb-3">
+                    <div class="fw-bold mb-1">⚠ Critical Notice for Employer</div>
+                    <div class="small">
+                        This certificate is <strong>no longer valid</strong> on the {{ site_config.site_name|default:"VerifyNG" }} registry.
+                        {% if result.cert.revocation_reason %}
+                            <div class="mt-1"><strong>Reason on file:</strong> {{ result.cert.revocation_reason }}</div>
+                        {% else %}
+                            <div class="mt-1">Adverse records, verified misconduct determinations, or regulatory sanctions have been registered against this credential.</div>
+                        {% endif %}
+                    </div>
+                </div>
+                <p class="small text-muted mb-0">
+                    <strong>Action Required:</strong> Do not accept this certificate for employment vetting. An employer must ask the applicant to apply for a fresh background verification.
+                </p>
+            </div>
+        </div>
+
+        {% elif result.lookup_state == 'EXPIRED' %}
+        {# ── CASE 5: EXPIRED ──────────────────────────────────────────────── #}
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4 printable-compliance-card">
+            <div class="p-4 text-white bg-secondary">
+                <h2 class="h5 fw-bold mb-0">⌛ Certificate Validity Term Expired</h2>
+            </div>
+            <div class="card-body p-4 bg-white">
+                <p class="small text-muted mb-0">
+                    This certificate expired on <strong>{{ result.expires_at|date:"d M Y" }}</strong>. The candidate must apply for a renewal to obtain an active certificate.
+                </p>
+            </div>
+        </div>
+
+        {% elif result.lookup_state == 'QUOTA_EXCEEDED' %}
+        {# ── CASE 6: QUOTA EXCEEDED ───────────────────────────────────────── #}
+        <div class="alert alert-warning d-flex align-items-center justify-content-between p-4 rounded-4 mb-4">
+            <div>
+                <div class="fw-bold mb-1">Check Limit Reached</div>
+                <div class="small text-muted">{{ result.message }}</div>
+            </div>
+            <a href="{% url 'payments:plans' %}" class="btn btn-vng-primary btn-sm flex-shrink-0 ms-3">
+                Upgrade Plan
+            </a>
+        </div>
+
+        {% else %}
+        {# ── CASE 7: NOT FOUND / UNRECOGNIZED ─────────────────────────────── #}
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4 printable-compliance-card">
+            <div class="p-4 text-white bg-dark">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="d-inline-flex align-items-center justify-content-center bg-white text-dark rounded-circle shadow-sm flex-shrink-0" style="width: 54px; height: 54px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" fill="currentColor" class="bi bi-question-circle" viewBox="0 0 16 16">
+                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
+                            <path d="M5.255 5.786a.237.237 0 0 0 .241.247h.825c.138 0 .248-.113.266-.25.09-.656.54-1.134 1.342-1.134.686 0 1.314.343 1.314 1.168 0 .635-.374.927-.965 1.371-.673.489-1.206 1.06-1.168 1.987l.003.217a.25.25 0 0 0 .25.246h.811a.25.25 0 0 0 .25-.25v-.105c0-.718.273-.927 1.01-1.486.609-.463 1.244-.977 1.244-2.056 0-1.511-1.276-2.241-2.673-2.241-1.267 0-2.655.59-2.75 2.286m1.557 5.763c0 .533.425.927 1.01.927.609 0 1.028-.394 1.028-.927 0-.552-.42-.94-1.029-.94-.584 0-1.009.388-1.009.94"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <span class="badge bg-secondary px-3 py-1 rounded-pill fw-semibold text-uppercase mb-1">Record Not Found</span>
+                        <h2 class="h5 fw-bold mb-0">Unrecognized Certificate ID</h2>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-body p-4 bg-white text-start">
+                <p class="text-dark small mb-3">
+                    No clearance certificate matching the reference <code class="fw-bold">{{ result.certificate_id|default:cert_id_input }}</code> exists in the {{ site_config.site_name|default:"VerifyNG" }} workforce registry.
+                </p>
+
+                <div class="p-3 rounded-3 bg-light border mb-4">
+                    <h6 class="fw-bold text-dark small text-uppercase mb-2">Possible Reasons:</h6>
+                    <ul class="small text-muted mb-0 ps-3">
+                        <li class="mb-1">The certificate reference was mistyped. Please check the reference on the candidate's document.</li>
+                        <li class="mb-1">The candidate has not been issued an official clearance certificate on {{ site_config.site_name|default:"VerifyNG" }}.</li>
+                        <li>The document presented may be an unverified or invalid draft.</li>
+                    </ul>
+                </div>
+
+                <div class="alert alert-info small mb-0">
+                    <strong>Guidance for Employer:</strong> Confirm the reference number with the candidate, or request them to apply for an official Workforce Clearance Certificate (WCC) on {{ site_config.site_name|default:"VerifyNG" }}.
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    {% endif %}
+
+    {# ── Guidance & Compliance Footer ─────────────────────────────────────── #}
+    <div class="mt-4 text-center vng-guidance-area">
+        <a class="text-muted text-decoration-none d-inline-flex align-items-center gap-1" data-bs-toggle="collapse" href="#registryGuidanceCollapse" role="button" aria-expanded="false" aria-controls="registryGuidanceCollapse">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+            </svg>
+            How does TrustPass verification work?
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </a>
+
+        <div class="collapse text-start mt-3" id="registryGuidanceCollapse">
+            <div class="card card-body bg-light border rounded-3 p-3 text-muted">
+                <div class="fw-semibold text-dark mb-1">Workforce Clearance Registry Guidelines:</div>
+                <ul class="mb-0 ps-3">
+                    <li class="mb-1"><strong>3-Point Identity Matching:</strong> Certificate Reference ID, Candidate Surname, and Date of Birth must match the national registry record.</li>
+                    <li class="mb-1"><strong>30-Day Enrollment Window:</strong> Freshly issued clearance certificates are live-searchable for 30 calendar days post-issuance.</li>
+                    <li class="mb-1"><strong>Continuous Verification:</strong> Beyond 30 days, certificates must be enrolled in continuous monitoring Services to remain current and verifiable online. Certificates not enrolled within this window cannot be searched and require a new application.</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Discreet compliance note at bottom -->
+        <div class="text-center text-muted small mt-4">
+            🔒 Official registry check compliant with NDPR. Employers must obtain candidate consent prior to verification.
+        </div>
+    </div>
+
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('certVerifyForm');
+    const submitBtn = document.getElementById('certSubmitBtn');
+
+    if (form && submitBtn) {
+        form.addEventListener('submit', function (e) {
+            if (!form.checkValidity()) {
+                e.preventDefault();
+                e.stopPropagation();
+                form.classList.add('was-validated');
+                return false;
+            }
+            // Show loading spinner and disable duplicate clicks
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Checking...';
+            form.submit();
+        });
+    }
+});
+</script>
+{% endblock %}

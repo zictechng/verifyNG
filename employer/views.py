@@ -1,52 +1,52 @@
-
-
-# employer/views.py
-import logging
 import csv
+import hashlib
 import io
+import json
+import logging
+import mimetypes
+import re
+from datetime import timedelta
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
+from django.core.mail import EmailMultiAlternatives, send_mail
 from django.core.paginator import Paginator
+from django.db import transaction
+from django.db.models import Q
+from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.template.loader import render_to_string
+from django.urls import reverse
+from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views import View
-from django.db import transaction
-from .tasks import process_bulk_upload_task, process_single_staff_check_task
-from django.http import HttpResponse
-from .models import BulkCheckUpload, BulkCheckRow
-from reports.models import FraudReport
-from identities.models import Identifier, SubjectEntity
-from django.core.mail import EmailMultiAlternatives
-from django.db.models import Q
-from django.core.files.storage import default_storage
-from django.core.files.base import ContentFile
-from django.shortcuts import redirect as _redirect
-from .models import TeamInvite
-from datetime import timedelta
-from .models import StaffCheckRequest
-from payments.models import Subscription
-
-from django.core.mail import send_mail
-from django.template.loader import render_to_string
-from django.utils import timezone
-
-from core.email_utils import render_email
-from django.urls import reverse
-from core.permissions import employer_required
-from .models import BulkCheckUpload, EmployerProfile, TeamMember
-import hashlib
-import json
-from django.http import JsonResponse
+from django.views.decorators.clickjacking import xframe_options_sameorigin
 from django.views.decorators.http import require_POST
 
-from identities.utils import hash_identifier_value
-from payments.services import check_user_entitlement, consume_user_entitlement
-
-from verification.models import VerificationCertificate
-from reports.models import FraudReport, ReportEvidence
-from identities.models import SubjectEntity
 from core.audit_utils import log_admin_action
+from core.email_utils import render_email
+from core.permissions import employer_required
+from core.rate_limiting import get_client_ip
+from identities.models import Identifier, SubjectEntity
+from identities.utils import hash_identifier_value
+from payments.models import Subscription
+from payments.services import check_user_entitlement, consume_user_entitlement
+from reports.models import AuditLog, FraudReport, ReportEvidence
+from reports.services import generate_report_reference_number
 from reports.storage_services import get_storage_service, StorageError
+from verification.models import CertificateQueryLog, VerificationCertificate
+from .models import (
+    BulkCheckRow,
+    BulkCheckUpload,
+    EmployerProfile,
+    StaffCheckMonitor,
+    StaffCheckRequest,
+    TeamInvite,
+    TeamMember,
+)
+from .tasks import process_bulk_upload_task, process_single_staff_check_task
 
 logger = logging.getLogger(__name__)
 
@@ -160,12 +160,43 @@ def employer_profile(request):
         profile.industry = request.POST.get('industry', '').strip()
         profile.company_address = request.POST.get('company_address', '').strip()
         profile.contact_phone = request.POST.get('contact_phone', '').strip()
-        profile.save(update_fields=[
-            'company_name', 'company_rc_number', 'industry',
-            'company_address', 'contact_phone', 'updated_at',
-        ])
-        messages.success(request, 'Company profile updated.')
+
+        cac_file = request.FILES.get('cac_document')
+        file_uploaded = False
+
+        if cac_file:
+            if cac_file.size > 5 * 1024 * 1024:
+                messages.error(request, 'The uploaded CAC document exceeds the 5MB size limit. Please upload a smaller file.')
+                return redirect('employer:profile')
+            ext = cac_file.name.split('.')[-1].lower() if '.' in cac_file.name else ''
+            if ext not in ('pdf', 'jpg', 'jpeg', 'png'):
+                messages.error(request, 'Invalid file format. Please upload a PDF, JPG, or PNG document.')
+                return redirect('employer:profile')
+            profile.cac_document = cac_file
+            profile.cac_uploaded_at = timezone.now()
+            file_uploaded = True
+            if not profile.is_verified:
+                profile.verification_status = 'pending'
+                profile.rejection_reason = ''
+
+        if request.POST.get('resubmit_review') == '1' and not profile.is_verified and profile.has_cac_document:
+            profile.verification_status = 'pending'
+            profile.rejection_reason = ''
+
+        profile.save()
+
+        if file_uploaded:
+            if not profile.is_verified:
+                messages.success(request, 'Company profile updated and CAC incorporation document submitted for compliance verification.')
+            else:
+                messages.success(request, 'Company profile and updated CAC document saved successfully.')
+        elif request.POST.get('resubmit_review') == '1':
+            messages.success(request, 'Your company profile has been resubmitted for verification review.')
+        else:
+            messages.success(request, 'Company profile updated successfully.')
+
         return redirect('employer:profile')
+
 
     context = {
         'profile': profile,
@@ -173,6 +204,32 @@ def employer_profile(request):
     }
     return render(request, 'employer/profile.html', context)
 
+
+
+@login_required
+@employer_required
+@xframe_options_sameorigin
+def employer_cac_document_view(request):
+    """In-browser document stream for the employer to preview their own CAC proof."""
+    profile = _get_or_create_employer_profile(request.user)
+    if not profile.cac_document:
+        raise Http404("No CAC document on file.")
+
+    try:
+        doc_file = profile.cac_document.open('rb')
+    except Exception:
+        raise Http404("Document could not be accessed.")
+
+    ext = profile.cac_document.name.split('.')[-1].lower() if '.' in profile.cac_document.name else 'pdf'
+    content_type, _ = mimetypes.guess_type(profile.cac_document.name)
+    if not content_type:
+        content_type = 'application/pdf' if ext == 'pdf' else 'image/jpeg'
+
+    response = HttpResponse(doc_file.read(), content_type=content_type)
+    response['Content-Disposition'] = f'inline; filename="CAC_document.{ext}"'
+    response['X-Frame-Options'] = 'SAMEORIGIN'
+    doc_file.close()
+    return response
 
 # ---------------------------------------------------------------------------
 # Bulk Checks — Upload list
@@ -394,7 +451,6 @@ def staff_check_create(request):
 @employer_required
 def staff_check_detail(request, check_id):
     profile = _get_or_create_employer_profile(request.user)
-    from .models import StaffCheckRequest
     check = get_object_or_404(StaffCheckRequest, id=check_id, employer=profile)
 
     # Check if monitoring is active
@@ -415,7 +471,6 @@ def staff_check_detail(request, check_id):
 def staff_check_cancel(request, check_id):
     """Fetch + Toast: cancels a pending/processing check request."""
     profile = _get_or_create_employer_profile(request.user)
-    from .models import StaffCheckRequest
     check = get_object_or_404(StaffCheckRequest, id=check_id, employer=profile)
 
     if check.status not in ('pending', 'processing'):
@@ -435,7 +490,6 @@ def staff_check_cancel(request, check_id):
 @employer_required
 def monitoring_list(request):
     profile = _get_or_create_employer_profile(request.user)
-    from .models import StaffCheckMonitor
 
     monitors = (
         StaffCheckMonitor.objects
@@ -463,7 +517,6 @@ def monitoring_toggle(request, check_id):
     - If monitor is paused → reactivate it.
     """
     profile = _get_or_create_employer_profile(request.user)
-    from .models import StaffCheckRequest, StaffCheckMonitor
 
     check = get_object_or_404(StaffCheckRequest, id=check_id, employer=profile)
 
@@ -657,6 +710,7 @@ def bulk_upload_create(request):
                 )
                 for i, r in enumerate(rows_data)
             ])
+    
 
         # Dispatch Celery task
         try:
@@ -1101,7 +1155,6 @@ def staff_misconduct_report(request):
             'violence': 'Workplace Violence / Safety Threat',
         }
         title = f"Staff Misconduct [{cert_id}]: {category_labels.get(misconduct_category, 'Workplace Misconduct')}"
-        from reports.services import generate_report_reference_number
         report_ref = generate_report_reference_number()
         full_allegation = (
             f"WORKPLACE MISCONDUCT REPORT\n"
@@ -1309,7 +1362,213 @@ def staff_check_export_csv(request):
             check.completed_at.strftime('%Y-%m-%d %H:%M') if check.completed_at else '—',
         ])
 
+
     return response
 
 
+# ---------------------------------------------------------------------------
+# Workforce Clearance Certificate (DBS) Verification
+# ---------------------------------------------------------------------------
 
+@login_required
+@employer_required
+def employer_certificate_verify(request):
+    """
+    UK DBS Online Status Check equivalent for employers, agencies, and screening teams.
+    Allows an employer to enter a candidate's Certificate ID (e.g. WCC-XXXX-YYYY / VNG-YYYY-XXXXXXXX)
+    and candidate Surname and Date of Birth. All three fields are required.
+    """
+    profile = _get_or_create_employer_profile(request.user)
+    result = None
+    cert_id_input = ''
+    surname_input = ''
+    dob_input = ''
+
+    if request.method == 'POST':
+        cert_id_input = request.POST.get('certificate_id', '').strip().upper()
+        surname_input = request.POST.get('surname', '').strip()
+        dob_input = request.POST.get('date_of_birth', '').strip()
+
+        missing = []
+        if not cert_id_input:
+            missing.append("Certificate Reference ID")
+        if not surname_input:
+            missing.append("Candidate Surname")
+        if not dob_input:
+            missing.append("Date of Birth")
+
+        if missing:
+            result = {
+                'lookup_state': 'VALIDATION_ERROR',
+                'message': f"All three fields are required to match the record: {', '.join(missing)}.",
+            }
+        else:
+            # Check entitlement before executing query
+            allowed, reason, details = check_user_entitlement(request.user, cost=1)
+            if not allowed:
+                result = {
+                    'lookup_state': 'QUOTA_EXCEEDED',
+                    'message': (
+                        'You have reached your verification check limit or require an active subscription '
+                        'to perform live certificate status checks. Please upgrade your plan.'
+                    ),
+                    'subscription_required': True,
+                }
+            else:
+                # Query registry for certificate
+                cert = (
+                    VerificationCertificate.objects
+                    .filter(certificate_id=cert_id_input)
+                    .select_related('holder', 'subject')
+                    .first()
+                )
+
+                if not cert:
+                    lookup_state = 'NOT_FOUND'
+                else:
+                    # Retrieve application metadata for surname / DOB verification
+                    app_log = None
+                    for l in AuditLog.objects.filter(action="TRUSTPASS_APPLICATION_SUBMITTED").order_by('-timestamp')[:50]:
+                        d = l.details if isinstance(l.details, dict) else {}
+                        if d.get('certificate_id') == cert.certificate_id:
+                            app_log = l
+                            break
+                    det = app_log.details if (app_log and isinstance(app_log.details, dict)) else {}
+
+                    # Candidate full name
+                    cand_name = (cert.subject.name if cert.subject else None) or det.get('full_name') or ''
+                    if not cand_name and cert.holder:
+                        cand_name = cert.holder.get_full_name() or cert.holder.username
+
+                    # Validate required surname against candidate tokens & holder name
+                    cand_tokens = [t.lower() for t in re.split(r'[\s,\.-]+', cand_name) if t]
+                    holder_last = (cert.holder.last_name or '').lower() if cert.holder else ''
+                    surname_clean = surname_input.lower().strip()
+                    surname_matches = (
+                        surname_clean in cand_tokens
+                        or surname_clean == holder_last
+                        or (len(surname_clean) >= 3 and any(surname_clean in tok or tok in surname_clean for tok in cand_tokens))
+                    )
+
+                    # Validate required DOB
+                    reg_dob = str(det.get('date_of_birth', '')).strip()
+                    if not reg_dob and getattr(cert.holder, 'date_of_birth', None):
+                        reg_dob = cert.holder.date_of_birth.strftime('%Y-%m-%d')
+
+                    dob_matches = True
+                    if reg_dob:
+                        dob_matches = (dob_input.strip() == reg_dob)
+
+                    if not surname_matches or not dob_matches:
+                        lookup_state = 'SURNAME_DOB_MISMATCH'
+                    elif cert.status == 'revoked':
+                        lookup_state = 'REVOKED'
+                    elif cert.status == 'suspended':
+                        lookup_state = 'SUSPENDED'
+                    elif not cert.is_valid:
+                        lookup_state = 'EXPIRED'
+                    elif not cert.is_live_searchable:
+                        lookup_state = 'GRACE_EXPIRED_MONITORING_REQUIRED'
+                    else:
+                        lookup_state = 'ACTIVE_VALID'
+
+                # Consume entitlement upon successful query attempt
+                consume_user_entitlement(request.user, cost=1)
+
+                candidate_name = '—'
+                nin_masked = 'Verified Record'
+                adjudicated_reports = []
+                check_level_display = 'Standard Clearance'
+                issued_date = None
+                expires_at = None
+
+                if cert:
+                    candidate_name = (cert.subject.name if cert.subject else None) or det.get('full_name')
+                    if not candidate_name and cert.holder:
+                        candidate_name = cert.holder.get_full_name() or cert.holder.username
+
+                    nin_raw = det.get('nin', '')
+                    nin_masked = det.get('nin_masked')
+                    if not nin_masked and nin_raw and len(nin_raw) >= 6:
+                        nin_masked = nin_raw[:3] + '****' + nin_raw[-2:]
+                    elif not nin_masked:
+                        nin_masked = 'Verified Record'
+
+                    check_level_display = (
+                        cert.get_check_level_display()
+                        if hasattr(cert, 'get_check_level_display')
+                        else cert.check_level.title()
+                    )
+                    issued_date = cert.issued_at or cert.created_at
+                    expires_at = cert.expires_at
+
+                    if cert.subject:
+                        adjudicated_reports = list(
+                            FraudReport.objects
+                            .filter(target_subject=cert.subject, state='published')
+                            .order_by('-created_at')[:5]
+                        )
+
+                    # Log query in CertificateQueryLog so candidate has a complete transparency record
+                    try:
+                        CertificateQueryLog.objects.create(
+                            certificate=cert,
+                            queried_by=request.user,
+                            payment=None,
+                            ip_address=get_client_ip(request),
+                            purpose='hiring',
+                            organisation_name=profile.company_name,
+                            result_snapshot={
+                                'lookup_state': lookup_state,
+                                'status': cert.status,
+                                'is_live_searchable': cert.is_live_searchable,
+                                'misconduct_count': len(adjudicated_reports),
+                                'employer_company': profile.company_name,
+                                'employer_username': request.user.username,
+                                'timestamp': timezone.now().isoformat(),
+                            }
+                        )
+                    except Exception as log_err:
+                        logger.warning("Could not create CertificateQueryLog: %s", log_err)
+
+                # Log admin audit trail
+                try:
+                    AuditLog.objects.create(
+                        report=None,
+                        action="EMPLOYER_CERTIFICATE_DBS_CHECK",
+                        performed_by=request.user,
+                        ip_address=get_client_ip(request),
+                        details={
+                            "certificate_id": cert_id_input,
+                            "employer": profile.company_name,
+                            "lookup_state": lookup_state,
+                        }
+                    )
+                except Exception:
+                    pass
+
+                result = {
+                    'lookup_state': lookup_state,
+                    'cert': cert,
+                    'certificate_id': cert_id_input,
+                    'candidate_name': candidate_name,
+                    'nin_masked': nin_masked,
+                    'check_level': check_level_display,
+                    'issued_date': issued_date,
+                    'expires_at': expires_at,
+                    'adjudicated_reports': adjudicated_reports,
+                    'has_misconduct': len(adjudicated_reports) > 0,
+                    'in_grace_period': cert.in_grace_period if cert else False,
+                    'grace_days_remaining': cert.grace_days_remaining if cert else 0,
+                    'is_monitoring_valid': cert.is_monitoring_valid if cert else False,
+                }
+
+    context = {
+        'profile': profile,
+        'result': result,
+        'cert_id_input': cert_id_input,
+        'surname_input': surname_input,
+        'dob_input': dob_input,
+        'page_title': 'Verify Workforce Certificate (TrustPass)',
+    }
+    return render(request, 'employer/certificate_verify.html', context)

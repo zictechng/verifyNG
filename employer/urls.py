@@ -8,6 +8,10 @@ urlpatterns = [
     # Dashboard & profile
     path('', views.employer_dashboard, name='dashboard'),
     path('profile/', views.employer_profile, name='profile'),
+    path('profile/cac-document/', views.employer_cac_document_view, name='cac_document_preview'),
+
+    # Workforce Clearance Certificate (DBS) Verification
+    path('certificate/verify/', views.employer_certificate_verify, name='certificate_verify'),
 
     # Staff check requests — BATCH 1
     path('checks/', views.staff_check_list, name='staff_check_list'),
@@ -24,7 +28,8 @@ urlpatterns = [
     path('bulk-checks/upload/', views.bulk_upload_create, name='bulk_upload_create'),
     path('bulk-checks/template.csv', views.bulk_csv_template, name='bulk_csv_template'),
     path('bulk-checks/<uuid:upload_id>/', views.bulk_upload_detail, name='bulk_upload_detail'),
-        # CSV Export — BATCH 8
+
+    # CSV Export — BATCH 8
     path('checks/export/', views.staff_check_export_csv, name='staff_check_export'),
 
     # Team — BATCH 3
@@ -39,10 +44,6 @@ urlpatterns = [
     # Person / Landlord quick-check — BATCH 4
     path('checks/person/', views.person_check_search, name='person_check_search'),
 
-    # Team invitation accept — public (no employer_required)
-    path('invite/accept/<str:token>/', views.team_invite_accept, name='team_invite_accept'),
-    # Person / Landlord quick-check — BATCH 4
-    path('checks/person/', views.person_check_search, name='person_check_search'),
     # Staff Misconduct Reporting on Clearance Certificate
     path('misconduct/report/', views.staff_misconduct_report, name='staff_misconduct_report'),
     path('misconduct/', views.staff_misconduct_list, name='staff_misconduct_list'),

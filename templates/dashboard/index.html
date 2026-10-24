@@ -24,6 +24,55 @@
         </div>
     </div>
 
+    {# ── Verification Status Banner ──────────────────────────────────────── #}
+    {% if not request.user.identity_verified and request.user.id_verification_status != 'verified' %}
+        {% if request.user.id_verification_status == 'pending' or request.user.has_id_document and request.user.id_verification_status != 'rejected' %}
+        <div class="alert d-flex align-items-start gap-3 mb-4"
+             style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:var(--vng-radius-md);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2" class="flex-shrink-0 mt-1">
+                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            </svg>
+            <div>
+                <div class="fw-semibold" style="color:#1E40AF;">Identity Document Under Compliance Review</div>
+                <div class="small" style="color:#1E40AF;">
+                    Your official identity credentials are under review by our compliance team.
+                    <a href="{% url 'users:profile' %}" style="color:#1E40AF;font-weight:600;text-decoration:underline;">View submission status &rarr;</a>
+                </div>
+            </div>
+        </div>
+        {% elif request.user.id_verification_status == 'rejected' %}
+        <div class="alert d-flex align-items-start gap-3 mb-4"
+             style="background:#FEF2F2;border:1px solid #FECACA;border-radius:var(--vng-radius-md);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2" class="flex-shrink-0 mt-1">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <div>
+                <div class="fw-semibold" style="color:#991B1B;">Identity Verification Declined</div>
+                <div class="small" style="color:#991B1B;">
+                    {{ request.user.id_rejection_reason|default:"Your credentials could not be authenticated." }}
+                    <a href="{% url 'users:profile' %}" style="color:#991B1B;font-weight:600;text-decoration:underline;">Upload updated ID proof &rarr;</a>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="alert d-flex align-items-start gap-3 mb-4"
+             style="background:#FEF3C7;border:1px solid #FDE68A;border-radius:var(--vng-radius-md);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#B45309" stroke-width="2" class="flex-shrink-0 mt-1">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            <div>
+                <div class="fw-semibold" style="color:#92400E;">Identity verification required</div>
+                <div class="small" style="color:#92400E;">
+                    Submit your official government credentials (NIN, PVC, Passport, or Driver's License) on your
+                    <a href="{% url 'users:profile' %}" style="color:#92400E;font-weight:600;text-decoration:underline;">profile page</a>
+                    to verify your account.
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    {% endif %}
+
     {# ── Stat Strip ──────────────────────────────────────────────────────── #}
     <div class="row g-3 mb-4">
         <div class="col-6 col-md-3">
@@ -33,10 +82,10 @@
             </div>
         </div>
         <div class="col-6 col-md-3">
-            <div class="vng-card p-3 text-center h-100">
+            <a href="{% url 'verification:list' %}" class="vng-card p-3 text-center h-100 d-block text-decoration-none">
                 <div class="fw-bold fs-3 text-primary mb-1">{{ total_verifications }}</div>
                 <div class="small text-muted">Verification Requests</div>
-            </div>
+            </a>
         </div>
         <div class="col-6 col-md-3">
             <div class="vng-card p-3 text-center h-100">
@@ -60,13 +109,17 @@
             <div class="vng-card p-4 h-100">
                 <div class="d-flex align-items-center justify-content-between mb-3">
                     <span class="small fw-semibold text-muted">Identity Status</span>
-                    {% if request.user.identity_verified %}
+                    {% if request.user.identity_verified or request.user.id_verification_status == 'verified' %}
                         <span class="badge bg-success">Verified</span>
+                    {% elif request.user.id_verification_status == 'pending' or request.user.has_id_document and request.user.id_verification_status != 'rejected' %}
+                        <span class="badge bg-primary">Under Review</span>
+                    {% elif request.user.id_verification_status == 'rejected' %}
+                        <span class="badge bg-danger">Declined</span>
                     {% else %}
                         <span class="badge bg-warning text-dark">Unverified</span>
                     {% endif %}
                 </div>
-                {% if request.user.identity_verified %}
+                {% if request.user.identity_verified or request.user.id_verification_status == 'verified' %}
                     <div class="d-flex align-items-center gap-3 mb-3">
                         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--vng-success)" stroke-width="1.5">
                             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
@@ -74,9 +127,38 @@
                         </svg>
                         <div>
                             <div class="fw-semibold" style="font-size:14px;">Identity Confirmed</div>
-                            <div class="small text-muted">NIN/BVN verified by VerifyNG</div>
+                            <div class="small text-muted">{{ request.user.get_id_type_display|default:"Government ID" }} &bull; Verified</div>
                         </div>
                     </div>
+                {% elif request.user.id_verification_status == 'pending' or request.user.has_id_document and request.user.id_verification_status != 'rejected' %}
+                    <div class="d-flex align-items-center gap-3 mb-3">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="1.8">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                        <div>
+                            <div class="fw-semibold text-primary" style="font-size:14px;">Under Review</div>
+                            <div class="small text-muted">Compliance officer review in progress</div>
+                        </div>
+                    </div>
+                    <a href="{% url 'users:profile' %}" class="btn btn-outline-primary btn-vng-sm w-100">
+                        View Submission Status &rarr;
+                    </a>
+                {% elif request.user.id_verification_status == 'rejected' %}
+                    <div class="d-flex align-items-center gap-3 mb-3">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="1.8">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" y1="8" x2="12" y2="12"/>
+                            <line x1="12" y1="16" x2="12.01" y2="16"/>
+                        </svg>
+                        <div>
+                            <div class="fw-semibold text-danger" style="font-size:14px;">Verification Declined</div>
+                            <div class="small text-muted">Document resubmission required</div>
+                        </div>
+                    </div>
+                    <a href="{% url 'users:profile' %}" class="btn btn-outline-danger btn-vng-sm w-100">
+                        Resubmit ID Document &rarr;
+                    </a>
                 {% else %}
                     <div class="d-flex align-items-center gap-3 mb-3">
                         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="1.5">

@@ -20,6 +20,53 @@ class User(AbstractUser):
         db_index=True,
         help_text="Primary RBAC role assignment"
     )
+    ID_TYPE_CHOICES = (
+        ('nin', 'National Identity Number (NIN)'),
+        ('voters_card', 'Permanent Voter Card (PVC)'),
+        ('passport', 'International Passport'),
+        ('drivers_license', "Driver's License"),
+    )
+
+    ID_STATUS_CHOICES = (
+        ('unverified', 'Unverified'),
+        ('pending', 'Pending Compliance Review'),
+        ('verified', 'Verified'),
+        ('rejected', 'Declined'),
+    )
+
+    id_type = models.CharField(
+        max_length=30,
+        choices=ID_TYPE_CHOICES,
+        blank=True,
+        default='',
+        help_text="Type of official government identity provided"
+    )
+    id_number = models.CharField(
+        max_length=100,
+        blank=True,
+        default='',
+        help_text="Official ID number provided by user"
+    )
+    id_document = models.FileField(
+        upload_to='identity_proofs/%Y/%m/',
+        blank=True,
+        null=True,
+        help_text="Uploaded scan/photo of government ID"
+    )
+    id_verification_status = models.CharField(
+        max_length=20,
+        choices=ID_STATUS_CHOICES,
+        default='unverified',
+        db_index=True,
+        help_text="Current identity verification review status"
+    )
+    id_rejection_reason = models.TextField(
+        blank=True,
+        default='',
+        help_text="Reason provided by compliance officer if rejected"
+    )
+    id_submitted_at = models.DateTimeField(null=True, blank=True)
+    id_verified_at = models.DateTimeField(null=True, blank=True)
     email = models.EmailField(
     unique=True,
     help_text="Required. Must be unique across all accounts.",
@@ -56,6 +103,32 @@ class User(AbstractUser):
         db_index=True,
         help_text="Public-facing user identifier — never expose the integer PK"
     )
+    @property
+    def has_id_document(self):
+        return bool(self.id_document and hasattr(self.id_document, 'name') and self.id_document.name)
+
+    @property
+    def id_document_is_pdf(self):
+        if not self.has_id_document:
+            return False
+        return self.id_document.name.lower().endswith('.pdf')
+
+    @property
+    def id_document_filename(self):
+        if not self.has_id_document:
+            return ""
+        import os
+        return os.path.basename(self.id_document.name)
+
+    @property
+    def masked_id_number(self):
+        if not self.id_number:
+            return ""
+        val = str(self.id_number).strip()
+        if len(val) <= 4:
+            return val
+        return "*" * (len(val) - 4) + val[-4:]
+
     def is_individual(self):
         return self.role == 'individual'
 

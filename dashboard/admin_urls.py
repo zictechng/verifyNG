@@ -12,6 +12,7 @@ from dashboard.admin_views import (
     AdminCommunicationsView,
     # Users — extended
     AdminUserDetailView,
+    AdminUserIdentityDocumentView,
     AdminUserActivityExportView,
     AdminUserHardDeleteView,
     AdminUserBlockView,
@@ -28,6 +29,7 @@ from dashboard.admin_views import (
     # Employer Profiles
     AdminEmployerProfilesView,
     AdminEmployerActionView,
+    AdminEmployerCACDocumentView,
     AdminEmployerDetailView,
     AdminEmployerActivityExportView,
     AdminEmployerLegacyRedirectView,
@@ -75,6 +77,7 @@ urlpatterns = [
     path('users/<uuid:public_id>/block/', AdminUserBlockView.as_view(), name='user_block'),
     path('users/<uuid:public_id>/hard-delete/', AdminUserHardDeleteView.as_view(), name='user_hard_delete'),
     path('users/<uuid:public_id>/export/', AdminUserActivityExportView.as_view(), name='user_activity_export'),
+    path('users/<uuid:public_id>/id-document/', AdminUserIdentityDocumentView.as_view(), name='user_id_document'),
 
         # ── User Creation ────────────────────────────────────────────────────────
     path('users/create/', AdminCreateUserView.as_view(), name='user_create'),
@@ -101,6 +104,7 @@ urlpatterns = [
     path('employers/', AdminEmployerProfilesView.as_view(), name='employer_profiles'),
     path('employers/<uuid:public_id>/', AdminEmployerDetailView.as_view(), name='employer_detail'),
     path('employers/<uuid:public_id>/action/', AdminEmployerActionView.as_view(), name='employer_action'),
+    path('employers/<uuid:public_id>/cac-document/', AdminEmployerCACDocumentView.as_view(), name='employer_cac_document'),
     path('employers/<uuid:public_id>/export/', AdminEmployerActivityExportView.as_view(), name='employer_activity_export'),
     path('employers/<int:pk>/', AdminEmployerLegacyRedirectView.as_view(), name='employer_legacy_redirect'),
     

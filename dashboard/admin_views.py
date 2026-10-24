@@ -465,6 +465,42 @@ class AdminCommunicationsView(SuperAdminRequiredMixin, TemplateView):
 
 # ── User Detail + Hard Delete + Block ─────────────────────────────────────
 
+
+class AdminUserIdentityDocumentView(SuperAdminRequiredMixin, View):
+    """
+    Secure document stream proxy for compliance officers to view a user's uploaded government ID inline.
+    """
+    def get(self, request, public_id):
+        target_user = get_object_or_404(User, public_id=public_id)
+        if not target_user.has_id_document:
+            raise Http404("No identity document uploaded for this user.")
+
+        try:
+            doc_file = target_user.id_document.open('rb')
+        except Exception:
+            raise Http404("Could not access the identity document.")
+
+        ext = target_user.id_document.name.split('.')[-1].lower() if '.' in target_user.id_document.name else 'pdf'
+        content_type, _ = mimetypes.guess_type(target_user.id_document.name)
+        if not content_type:
+            content_type = 'application/pdf' if ext == 'pdf' else 'image/jpeg'
+
+        as_download = request.GET.get('download') == '1'
+        disposition = 'attachment' if as_download else 'inline'
+        safe_name = f"ID_{slugify(target_user.username) or 'proof'}.{ext}"
+
+        response = HttpResponse(doc_file.read(), content_type=content_type)
+        response['Content-Disposition'] = f'{disposition}; filename="{safe_name}"'
+        response['X-Frame-Options'] = 'SAMEORIGIN'
+        doc_file.close()
+
+        AuditLog.objects.create(
+            action="ADMIN_VIEW_USER_IDENTITY_DOCUMENT",
+            performed_by=request.user,
+            details={"target_user_id": target_user.id, "target_username": target_user.username}
+        )
+        return response
+
 class AdminUserDetailView(SuperAdminRequiredMixin, TemplateView):
     """Full user profile: all fields, login history, reports, verifications, subscriptions."""
     template_name = "admin_portal/user_detail.html"
@@ -490,8 +526,61 @@ class AdminUserDetailView(SuperAdminRequiredMixin, TemplateView):
             messages.success(request, f"Service entitlements updated for '{target_user.username}' ({count} service(s) complimentary).")
             return redirect('admin_portal:user_detail', public_id=public_id)
         
+        elif action == 'verify_identity':
+            target_user.identity_verified = True
+            target_user.id_verification_status = 'verified'
+            target_user.id_verified_at = timezone.now()
+            target_user.id_rejection_reason = ''
+            target_user.save(update_fields=['identity_verified', 'id_verification_status', 'id_verified_at', 'id_rejection_reason'])
+            AuditLog.objects.create(
+                action="ADMIN_USER_IDENTITY_VERIFIED",
+                performed_by=request.user,
+                details={
+                    "target_user_id": target_user.id,
+                    "target_username": target_user.username,
+                    "id_type": target_user.id_type,
+                    "id_number": target_user.masked_id_number,
+                }
+            )
+            messages.success(request, f"Government identity verified for '{target_user.get_full_name() or target_user.username}'.")
+            return redirect('admin_portal:user_detail', public_id=public_id)
+
+        elif action == 'reject_identity':
+            target_user.identity_verified = False
+            target_user.id_verification_status = 'rejected'
+            reason = request.POST.get('rejection_reason', '').strip()
+            target_user.id_rejection_reason = reason if reason else 'Document could not be authenticated against registry standards.'
+            target_user.save(update_fields=['identity_verified', 'id_verification_status', 'id_rejection_reason'])
+            AuditLog.objects.create(
+                action="ADMIN_USER_IDENTITY_REJECTED",
+                performed_by=request.user,
+                details={
+                    "target_user_id": target_user.id,
+                    "target_username": target_user.username,
+                    "reason": target_user.id_rejection_reason,
+                }
+            )
+            messages.success(request, f"Identity proof declined for '{target_user.username}'.")
+            return redirect('admin_portal:user_detail', public_id=public_id)
+
+        elif action == 'revoke_identity':
+            target_user.identity_verified = False
+            target_user.id_verification_status = 'unverified'
+            target_user.save(update_fields=['identity_verified', 'id_verification_status'])
+            AuditLog.objects.create(
+                action="ADMIN_USER_IDENTITY_REVOKED",
+                performed_by=request.user,
+                details={
+                    "target_user_id": target_user.id,
+                    "target_username": target_user.username,
+                }
+            )
+            messages.success(request, f"Identity verification badge revoked for '{target_user.username}'.")
+            return redirect('admin_portal:user_detail', public_id=public_id)
+
         messages.error(request, "Invalid action.")
         return redirect('admin_portal:user_detail', public_id=public_id)
+
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         target_user = get_object_or_404(User, public_id=self.kwargs['public_id'])
@@ -1152,6 +1241,10 @@ class AdminEmployerProfilesView(SuperAdminRequiredMixin, TemplateView):
                 qs = qs.filter(is_verified=True)
             elif verified_filter == 'no':
                 qs = qs.filter(is_verified=False)
+            elif verified_filter == 'pending':
+                qs = qs.filter(verification_status='pending')
+            elif verified_filter == 'rejected':
+                qs = qs.filter(verification_status='rejected')
             paginator = Paginator(qs, per_page)
             ctx['page_obj'] = paginator.get_page(self.request.GET.get('page', 1))
         else:
@@ -1263,6 +1356,40 @@ class AdminEmployerLegacyRedirectView(SuperAdminRequiredMixin, View):
         return redirect('admin_portal:employer_detail', public_id=profile.user.public_id)
 
 
+
+class AdminEmployerCACDocumentView(SuperAdminRequiredMixin, View):
+    """
+    Secure document stream proxy for viewing employer CAC incorporation documents.
+    Serves the uploaded CAC document inline in browser without forced download.
+    """
+    def get(self, request, public_id):
+        profile = get_object_or_404(
+            EmployerProfile.objects.select_related('user'),
+            user__public_id=public_id
+        )
+        if not profile.cac_document:
+            raise Http404("No CAC document has been uploaded for this employer.")
+
+        try:
+            doc_file = profile.cac_document.open('rb')
+        except Exception:
+            raise Http404("Could not open the requested CAC document.")
+
+        ext = profile.cac_document.name.split('.')[-1].lower() if '.' in profile.cac_document.name else 'pdf'
+        content_type, _ = mimetypes.guess_type(profile.cac_document.name)
+        if not content_type:
+            content_type = 'application/pdf' if ext == 'pdf' else 'image/jpeg'
+
+        as_download = request.GET.get('download') == '1'
+        disposition = 'attachment' if as_download else 'inline'
+        safe_name = f"CAC_{slugify(profile.company_name) or 'document'}.{ext}"
+
+        response = HttpResponse(doc_file.read(), content_type=content_type)
+        response['Content-Disposition'] = f'{disposition}; filename="{safe_name}"'
+        response['X-Frame-Options'] = 'SAMEORIGIN'
+        doc_file.close()
+        return response
+
 class AdminEmployerActionView(SuperAdminRequiredMixin, View):
     """POST: verify, unverify, or toggle billing exemption for an employer profile."""
     def post(self, request, public_id):
@@ -1273,17 +1400,27 @@ class AdminEmployerActionView(SuperAdminRequiredMixin, View):
         action = request.POST.get('action', '')
         if action == 'verify':
             profile.is_verified = True
+            profile.verification_status = 'verified'
+            profile.rejection_reason = ''
             profile.verified_at = timezone.now()
             # Default to candidate checks waived on verification if not specified
             selected_services = request.POST.getlist('exempt_services')
             profile.exempt_services = selected_services if selected_services else ['check']
             if not profile.billing_exempt_notes:
                 profile.billing_exempt_notes = "Verified Company Complimentary Access"
-            profile.save(update_fields=['is_verified', 'verified_at', 'exempt_services', 'billing_exempt_notes'])
+            profile.save(update_fields=['is_verified', 'verification_status', 'rejection_reason', 'verified_at', 'exempt_services', 'billing_exempt_notes'])
             msg = f"Employer '{profile.company_name}' verified with complimentary service entitlements."
+        elif action == 'reject':
+            profile.is_verified = False
+            profile.verification_status = 'rejected'
+            reason = request.POST.get('rejection_reason', '').strip()
+            profile.rejection_reason = reason if reason else 'CAC registration document or details could not be validated.'
+            profile.save(update_fields=['is_verified', 'verification_status', 'rejection_reason'])
+            msg = f"CAC verification declined for '{profile.company_name}'."
         elif action == 'unverify':
             profile.is_verified = False
-            profile.save(update_fields=['is_verified'])
+            profile.verification_status = 'unverified'
+            profile.save(update_fields=['is_verified', 'verification_status'])
             msg = f"Employer '{profile.company_name}' unverified."
         elif action == 'update_billing_exempt':
             profile.is_billing_exempt = request.POST.get('is_billing_exempt') == 'on'

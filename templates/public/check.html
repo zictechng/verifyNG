@@ -1,7 +1,7 @@
 {% extends "public/base.html" %}
 {% load static %}
 
-{% block title %}Public Record Lookup — VerifyNG{% endblock %}
+{% block title %}Public Record Lookup — {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
 
 {% block content %}
 <div class="container py-4 py-md-5">
@@ -11,7 +11,7 @@
             <div class="text-center mb-4">
                 <span class="vng-badge-trust mb-2">Public Trust & Safety Search</span>
                 <h1 class="h3 fw-bold">Check Before You Trust: Individual & Business Lookup</h1>
-                <p class="text-muted mb-3" style="max-width: 580px; margin: 0 auto;">
+                <p class="mb-3" style="font-size: 15px; line-height: 1.55; color: #475569; max-width: 620px; margin: 0 auto;">
                     Verify prospective tenants, contractors, sellers, or business partners. Check confirmed identity, workplace certificates, and reported misconduct before you commit money or property.
                 </p>
                 <div class="d-flex flex-wrap justify-content-center gap-2">
@@ -25,7 +25,7 @@
                     </div>
                     <div class="d-inline-flex align-items-center gap-1.5 px-3 py-2 rounded-pill bg-white border shadow-sm" style="font-size: 13px; color: var(--vng-ink); border-color: #CBD5E1 !important;">
                         <span>🤝</span>
-                        <span><strong>Partners:</strong> Know who you do business with</span>
+                        <span><strong>Business:</strong> Know who you do business with</span>
                     </div>
                 </div>
             </div>
@@ -164,7 +164,7 @@
                         <div class="p-3 rounded-3 mb-3 border border-success" style="background: #f0fdf4;">
                             <div class="d-flex align-items-center justify-content-between mb-3">
                                 <span class="small fw-bold text-uppercase text-success">
-                                    ✓ Valid VerifyNG Certificate
+                                    ✓ Valid {{ site_config.site_name|default:"VerifyNG" }} Certificate
                                 </span>
                                 <span class="badge bg-success fs-6 px-3 py-2">ACTIVE</span>
                             </div>
@@ -200,7 +200,7 @@
                             </div>
                         </div>
                         <div class="vng-callout-notice py-2 px-3 small text-muted">
-                            This is a VerifyNG Verification Certificate and is not a government-issued document.
+                            This is a {{ site_config.site_name|default:"VerifyNG" }} Verification Certificate and is not a government-issued document.
                             Certificate validity is checked in real time.
                         </div>
                     </div>
@@ -303,6 +303,10 @@
                                   x-text="result.identity_verified ? '✓ Confirmed' : 'Not yet verified'">
                             </span>
                         </div>
+                        <!-- Clarification note for unverified status -->
+                        <div class="p-3 rounded-3 mt-2 bg-white border border-secondary border-opacity-25" x-show="!result.identity_verified" style="font-size:13.5px;line-height:1.55;color:#1E293B;">
+                            ℹ️ <strong>Note on Unverified Status:</strong> "Not yet verified" simply indicates this entity has not yet authenticated their government credentials (NIN / CAC) on {{ site_config.site_name|default:"VerifyNG" }}. It does not imply misconduct or fraud.
+                        </div>
                     </div>
 
                     <!-- 2. Community Allegations Card (Strictly Separated) -->
@@ -340,7 +344,7 @@
                         <div class="p-3 rounded-3 border border-primary" style="background: #f0f4ff;">
                             <div class="d-flex align-items-center justify-content-between mb-3">
                                 <span class="small fw-bold text-uppercase text-primary">
-                                    VerifyNG Certificates
+                                    {{ site_config.site_name|default:"VerifyNG" }} Certificates
                                 </span>
                                 <span class="badge bg-primary" x-text="result.certificates.length + ' Active'"></span>
                             </div>
@@ -379,28 +383,46 @@
                                 </div>
                             </template>
                             <p class="small text-muted mb-0 mt-1">
-                                Certificates are issued by VerifyNG and are not government documents. 
+                                Certificates are issued by {{ site_config.site_name|default:"VerifyNG" }} and are not government documents. 
                                 Validity is checked in real time.
                             </p>
                         </div>
                     </div>
                 </div>
 
-                <!-- Not Found / Error Display -->
-                <div class="mt-4 pt-3 border-top text-center" x-show="error && searched && !loading" x-cloak>
-                    <div class="rounded-circle bg-light d-inline-flex align-items-center justify-content-center p-3 mb-2 text-muted">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="10"/>
-                            <line x1="12" y1="8" x2="12" y2="12"/>
-                            <line x1="12" y1="16" x2="12.01" y2="16"/>
-                        </svg>
+                <!-- Not Found / No Records on File -->
+                <div class="mt-4 pt-3 border-top" x-show="error && searched && !loading" x-cloak>
+                    <div class="p-3 rounded-3 border bg-light text-center mb-0">
+                        <div class="rounded-circle bg-white shadow-sm d-inline-flex align-items-center justify-content-center p-3 mb-2 text-primary">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"/>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                            </svg>
+                        </div>
+                        <h5 class="fw-bold mb-2" style="color:var(--vng-ink);">No Adverse Reports on File</h5>
+                        <p class="mb-3" style="max-width:540px;margin:0 auto;font-size:14px;line-height:1.55;color:#334155;">
+                            No active community fraud allegations or verification claims have been published for this identifier on <strong>{{ site_config.site_name|default:"VerifyNG" }}</strong>.
+                        </p>
+                        <div class="p-3 rounded-3 bg-white border text-start mb-3" style="max-width:560px;margin:0 auto;font-size:13.5px;line-height:1.6;color:#334155;">
+                            <div class="fw-bold text-dark mb-1" style="font-size:14px;">⚠️ Safety Precaution:</div>
+                            An absence of reports in our registry does not guarantee that an entity or individual is completely risk-free. Bad actors frequently rotate new SIM cards, unlinked phone numbers, or fresh bank accounts. Always verify goods before sending money, insist on physical inspection, or request that the individual provides a verified credential.
+                        </div>
+                        <div class="d-flex justify-content-center gap-2 flex-wrap">
+                            <a href="{% url 'reports:create' %}" class="btn btn-sm btn-outline-danger">
+                                Report Suspicious Experience
+                            </a>
+                        </div>
                     </div>
-                    <h6 class="fw-bold mb-1">No Public Records Found</h6>
-                    <p class="small text-muted mb-3" x-text="error"></p>
-                    <a href="{% url 'reports:create' %}" class="btn btn-sm btn-outline-primary">
-                        Report Suspicious Activity Instead
-                    </a>
                 </div>
+            </div>
+
+            <!-- Statutory Due Diligence & Precaution Notice -->
+            <div class="p-3 p-md-4 rounded-3 mt-4 border bg-white text-start shadow-sm" style="font-size: 13.5px; line-height: 1.65; color: #334155; border-color: #CBD5E1 !important;">
+                <div class="fw-bold mb-2 d-flex align-items-center gap-2" style="font-size: 15px; color: var(--vng-ink);">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    {{ site_config.site_name|default:"VerifyNG" }} Due Diligence Notice
+                </div>
+                {{ site_config.site_name|default:"VerifyNG" }} provides risk indicators, verified credentials, and community-moderated dispute reports based on available records. An absence of negative records does not constitute an endorsement, nor does an unverified profile imply wrongdoing. Users must always exercise independent due diligence before transferring funds, hiring staff, or releasing property.
             </div>
         </div>
     </div>

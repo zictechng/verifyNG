@@ -9,27 +9,40 @@ from verification.models import VerificationCertificate
 from identities.utils import normalize_identifier
 from reports.forms import validate_file_upload, NIGERIAN_STATES
 
+IDENTIFIER_DISPLAY_CHOICES = [
+    ('', '-- None / Not Provided --'),
+    ('property_ref', 'Land / Title / C of O / Survey Plan Number'),
+    ('plate_vin', 'Vehicle Plate or VIN / Chassis Number'),
+    ('cert_no', 'Degree / Certificate / Matriculation Number'),
+    ('cac', 'CAC Registration Number (RC / BN)'),
+    ('phone', 'Phone Number'),
+    ('nin', 'National Identification Number (NIN)'),
+    ('bvn', 'Bank Verification Number (BVN)'),
+    ('email', 'Email Address'),
+    ('account', 'Bank Account Number'),
+]
+
 class VerificationRequestCreateForm(forms.Form):
+    verification_type = forms.ChoiceField(
+        choices=[('', '-- Select Verification Scope --')] + list(VerificationRequest.VERIFICATION_TYPES),
+        required=True,
+        widget=forms.Select(attrs={'class': 'form-select', 'id': 'id_verification_scope'})
+    )
+    subject_type = forms.ChoiceField(
+        choices=[('', '-- Select Entity Type --')] + list(SubjectEntity.ENTITY_TYPES),
+        required=True,
+        widget=forms.Select(attrs={'class': 'form-select', 'id': 'id_entity_type'})
+    )
     subject_name = forms.CharField(
         max_length=255,
         required=True,
         widget=forms.TextInput(attrs={
             'class': 'form-control',
-            'placeholder': 'Full legal person name or registered business name'
+            'placeholder': 'e.g. Plot 14 Block 2 Lekki Phase 1, Toyota Camry 2021, UNILAG Graduate Name, or Company Name'
         })
     )
-    subject_type = forms.ChoiceField(
-        choices=SubjectEntity.ENTITY_TYPES,
-        required=True,
-        widget=forms.Select(attrs={'class': 'form-select'})
-    )
-    verification_type = forms.ChoiceField(
-        choices=VerificationRequest.VERIFICATION_TYPES,
-        required=True,
-        widget=forms.Select(attrs={'class': 'form-select'})
-    )
     identifier_type = forms.ChoiceField(
-        choices=[('', 'None / Not Provided')] + [(t, t.upper()) for t in sorted(SUPPORTED_IDENTIFIER_TYPES)],
+        choices=IDENTIFIER_DISPLAY_CHOICES,
         required=False,
         widget=forms.Select(attrs={'class': 'form-select'})
     )
@@ -38,15 +51,15 @@ class VerificationRequestCreateForm(forms.Form):
         required=False,
         widget=forms.TextInput(attrs={
             'class': 'form-control',
-            'placeholder': 'e.g. Phone number, CAC RC number, or Email'
+            'placeholder': 'e.g. C of O No, Plate No, VIN, Certificate Serial No, CAC RC No'
         })
     )
     notes = forms.CharField(
         required=False,
         widget=forms.Textarea(attrs={
             'class': 'form-control',
-            'rows': 3,
-            'placeholder': 'Provide any contextual background or specific verification requirements'
+            'rows': 4,
+            'placeholder': 'Describe the specific details to investigate. For property: state, location, surveyor plan, seller name. For car: model, chassis, plate. For certificate: university, graduation year, course.'
         })
     )
 
@@ -78,31 +91,68 @@ class OfficerResolutionForm(forms.Form):
         required=True,
         widget=forms.Textarea(attrs={
             'class': 'form-control',
-            'rows': 4,
-            'placeholder': 'Executive summary of findings (e.g. verified CAC status, confirmed employment record)'
+            'rows': 3,
+            'placeholder': 'Official finding summary (e.g. Official search at Lands Bureau confirms C of O #45/45/2019 is genuine and registered to Alhaji Musa Bello. No active lis pendens or caveat recorded.)'
+        })
+    )
+    registry_checked = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'e.g. Lagos State Lands Bureau (Alausa), CAC Portal, UNILAG Senate Archive, FRSC'
+        })
+    )
+    registration_ref = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'e.g. C of O #45/45/2019, RC 1234567, VIN / Chassis No, Certificate Serial #'
+        })
+    )
+    confirmed_owner = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'e.g. Verified Owner Name, Title Holder, or Degree Awardee'
+        })
+    )
+    record_status = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'e.g. Active & Clean (No Caveat), Valid & Genuine, Counterfeit / Fake, Under Court Dispute'
+        })
+    )
+    advisory = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 2,
+            'placeholder': 'e.g. Safe to proceed with purchase. Recommend physical beacon inspection.'
         })
     )
     details_json = forms.CharField(
         required=False,
-        widget=forms.Textarea(attrs={
-            'class': 'form-control font-monospace',
-            'rows': 4,
-            'placeholder': '{\n  "registry_status": "Active",\n  "registration_date": "2020-01-15"\n}'
-        }),
-        help_text="Optional JSON object containing structured factual findings."
+        widget=forms.HiddenInput()
     )
 
-    def clean_details_json(self):
-        data = self.cleaned_data.get('details_json')
-        if not data or not data.strip():
-            return {}
-        try:
-            parsed = json.loads(data)
-            if not isinstance(parsed, dict):
-                raise ValidationError("Structured findings must be a valid JSON object (dictionary).")
-            return parsed
-        except json.JSONDecodeError as e:
-            raise ValidationError(f"Invalid JSON syntax: {str(e)}")
+    def clean(self):
+        cleaned_data = super().clean()
+        details = {}
+        if cleaned_data.get('registry_checked'):
+            details['registry_checked'] = cleaned_data['registry_checked'].strip()
+        if cleaned_data.get('registration_ref'):
+            details['registration_ref'] = cleaned_data['registration_ref'].strip()
+        if cleaned_data.get('confirmed_owner'):
+            details['confirmed_owner'] = cleaned_data['confirmed_owner'].strip()
+        if cleaned_data.get('record_status'):
+            details['record_status'] = cleaned_data['record_status'].strip()
+        if cleaned_data.get('advisory'):
+            details['officer_advisory'] = cleaned_data['advisory'].strip()
+        from django.utils import timezone
+        details['inspection_date'] = timezone.now().strftime('%d %b %Y')
+        cleaned_data['details_dict'] = details
+        return cleaned_data
 
 
 class OfficerRejectionForm(forms.Form):

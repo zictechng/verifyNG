@@ -44,8 +44,6 @@
         }
 
         html {
-            width: 100%;
-            overflow-x: hidden;
             -webkit-text-size-adjust: 100%;
         }
 
@@ -54,25 +52,20 @@
             background-color: var(--vng-page-bg) !important;
             color: #334155;
             -webkit-font-smoothing: antialiased;
-            width: 100%;
-            max-width: 100vw;
-            overflow-x: hidden;
             min-height: 100vh;
-            min-height: 100dvh; /* Modern iOS Safari dynamic viewport height */
             display: flex;
             flex-direction: column;
-            -webkit-overflow-scrolling: touch;
-            overscroll-behavior-y: contain; /* Prevents rubber-band jitter/bouncing */
         }
 
         main {
             flex: 1 0 auto;
             width: 100%;
-            max-width: 100vw;
-            overflow-x: hidden;
         }
 
         @media (max-width: 767.98px) {
+            body {
+                overflow-x: clip;
+            }
             body.has-bottom-nav {
                 padding-bottom: calc(var(--vng-bottom-nav-height) + env(safe-area-inset-bottom, 16px) + 16px) !important;
             }
@@ -347,6 +340,18 @@
             border-color: var(--vng-primary);
             text-decoration: none;
         }
+
+        /* Modal & Backdrop Mobile Stacking Context Fix */
+        .modal {
+            z-index: 1060 !important;
+        }
+        .modal-backdrop {
+            z-index: 1055 !important;
+        }
+        /* When any modal is open on mobile, hide the bottom navigation bar so it never overlaps buttons */
+        body.modal-open .vng-bottom-nav {
+            display: none !important;
+        }
     
     </style>
     
@@ -409,11 +414,16 @@
                             {% endif %}
                         </li>
                         {% endif %}
+                        {% if user.is_authenticated %}
+                        <li class="nav-item">
+                            <a class="nav-link vng-nav-link {% if request.resolver_match.app_name == 'verification' and request.resolver_match.url_name != 'certificate_public_verify' %}active{% endif %}" href="{% url 'verification:list' %}">Verifications</a>
+                        </li>
+                        {% endif %}
                         <li class="nav-item">
                             <a class="nav-link vng-nav-link {% if request.resolver_match.url_name == 'check' %}active{% endif %}" href="{% url 'check' %}">Verify</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link vng-nav-link {% if request.resolver_match.url_name == 'create' or request.resolver_match.url_name == 'report' %}active{% endif %}" href="{% url 'reports:create' %}">Report Fraud</a>
+                            <a class="nav-link vng-nav-link {% if request.resolver_match.app_name == 'reports' or request.resolver_match.url_name == 'report' %}active{% endif %}" href="{% url 'reports:create' %}">Report Fraud</a>
                         </li>
                     </ul>
 
@@ -476,7 +486,11 @@
                                      </a>
                                      <a href="{% url 'verification:my_certificates' %}" class="vng-avatar-item">
                                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
-                                         WCC Applications
+                                         TrustPass Applications
+                                     </a>
+                                     <a href="{% url 'employer:certificate_verify' %}" class="vng-avatar-item">
+                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                                         Verify Certificate
                                      </a>
                                      <a href="{% url 'employer:person_check_search' %}" class="vng-avatar-item">
                                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -513,7 +527,7 @@
                             </form>
                         {% else %}
                             <a href="{% url 'users:login' %}" class="btn btn-vng-outline btn-sm">Login</a>
-                            <a href="{% url 'users:register_landing' %}" class="btn btn-vng-primary btn-sm">Sign Up</a>
+                            <a href="{% url 'users:register_landing' %}" class="btn btn-vng-outline btn-sm">Sign Up</a>
                         {% endif %}
                     </div>
                 </div>
@@ -538,7 +552,8 @@
                             </a>
                         {% endif %}
                     {% else %}
-                        <a href="{% url 'users:login' %}" class="btn btn-vng-primary btn-sm py-1 px-3">Login</a>
+                        <a href="{% url 'users:login' %}" class="btn btn-outline-secondary btn-sm py-1 px-2.5 rounded-pill" style="font-size:0.78rem; font-weight:600;">Log In</a>
+                        <a href="{% url 'users:register_landing' %}" class="btn btn-outline-primary btn-sm py-1 px-2.5 rounded-pill" style="font-size:0.78rem; font-weight:600;">Sign Up</a>
                     {% endif %}
                 </div>
                 
@@ -635,7 +650,7 @@
         </a>
 
         <!-- Tab 3: Report -->
-        <a href="{% url 'reports:create' %}" class="vng-bottom-tab {% if request.resolver_match.url_name == 'create' or request.resolver_match.url_name == 'report' %}active{% endif %}">
+        <a href="{% url 'reports:create' %}" class="vng-bottom-tab {% if request.resolver_match.app_name == 'reports' or request.resolver_match.url_name == 'report' %}active{% endif %}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                 <path d="M12 8v4M12 16h.01"/>
@@ -650,13 +665,15 @@
                 <span>Account</span>
             </a>
         {% else %}
+            
+            <!-- Tab 5: Log In (Logged out) -->
             <a href="{% url 'users:login' %}" class="vng-bottom-tab {% if request.resolver_match.url_name == 'login' %}active{% endif %}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
                     <polyline points="10 17 15 12 10 7"/>
                     <line x1="15" y1="12" x2="3" y2="12"/>
                 </svg>
-                <span>Login</span>
+                <span>Log In</span>
             </a>
         {% endif %}
     </nav>
@@ -688,6 +705,9 @@
             </div>
         </div>
     </div>
+
+    {% block modals %}{% endblock %}
+
     <!-- Bootstrap JS & Alpine.js -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>

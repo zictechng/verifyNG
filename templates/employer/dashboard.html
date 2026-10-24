@@ -1,7 +1,7 @@
 {% extends 'public/base.html' %}
 {% load static %}
 
-{% block title %}Employer Dashboard | VerifyNG{% endblock %}
+{% block title %}Employer Dashboard | {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
 
 {% block content %}
 <div class="container py-4 py-md-5">
@@ -11,7 +11,7 @@
         <div>
             <span class="vng-badge-trust mb-2">{{profile.organization_type_display}} Portal</span>
             <h1 class="h3 fw-bold mb-1">{{ profile.company_name }}</h1>
-            <p class="small text-muted mb-0">Report Misconduct, run background checks, apply for WCC, verify and review bulk uploads.</p>
+            <p class="small text-muted mb-0">Report Misconduct, run background checks, verify workforce clearance certificates, and review bulk uploads.</p>
         </div>
       
         <div class="d-flex gap-2 flex-wrap">
@@ -20,15 +20,22 @@
                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                     <path d="M9 12l2 2 4-4"/>
                 </svg>
-                Apply for WCC
+                Apply for TrustPass
             </a>
-            
+
+            <a href="{% url 'employer:certificate_verify' %}" class="btn btn-outline-secondary btn-vng-sm d-inline-flex align-items-center">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1">
+                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                Verify Certificate
+            </a>
+
             <a href="{% url 'employer:staff_misconduct_report' %}" class="btn btn-outline-danger btn-vng-sm d-inline-flex align-items-center">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1">
                     <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
                     <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
                 </svg>
-                Report Staff Misconduct
+                Report Misconduct
             </a>
             
         </div>
@@ -36,21 +43,53 @@
 
     {# ── Verification Status Banner ──────────────────────────────────────── #}
     {% if not profile.is_verified %}
-    <div class="alert d-flex align-items-start gap-3 mb-4"
-         style="background:#FEF3C7;border:1px solid #FDE68A;border-radius:var(--vng-radius-md);">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#B45309" stroke-width="2" class="flex-shrink-0 mt-1">
-            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-            <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-        </svg>
-        <div>
-            <div class="fw-semibold" style="color:#92400E;">Company verification pending</div>
-            <div class="small" style="color:#92400E;">
-                Complete your <a href="{% url 'employer:profile' %}" style="color:#92400E;font-weight:600;">company profile</a>
-                to unlock full employer features.
+        {% if profile.verification_status == 'pending' %}
+        <div class="alert d-flex align-items-start gap-3 mb-4"
+             style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:var(--vng-radius-md);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2" class="flex-shrink-0 mt-1">
+                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            </svg>
+            <div>
+                <div class="fw-semibold" style="color:#1E40AF;">CAC Verification Under Review</div>
+                <div class="small" style="color:#1E40AF;">
+                    Your CAC incorporation certificate is currently under compliance review.
+                    <a href="{% url 'employer:profile' %}" style="color:#1E40AF;font-weight:600;text-decoration:underline;">View submission status &rarr;</a>
+                </div>
             </div>
         </div>
-    </div>
+        {% elif profile.verification_status == 'rejected' %}
+        <div class="alert d-flex align-items-start gap-3 mb-4"
+             style="background:#FEF2F2;border:1px solid #FECACA;border-radius:var(--vng-radius-md);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2" class="flex-shrink-0 mt-1">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <div>
+                <div class="fw-semibold" style="color:#991B1B;">CAC Verification Declined</div>
+                <div class="small" style="color:#991B1B;">
+                    {{ profile.rejection_reason|default:"Your CAC credentials could not be validated." }}
+                    <a href="{% url 'employer:profile' %}" style="color:#991B1B;font-weight:600;text-decoration:underline;">Upload updated CAC proof &rarr;</a>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="alert d-flex align-items-start gap-3 mb-4"
+             style="background:#FEF3C7;border:1px solid #FDE68A;border-radius:var(--vng-radius-md);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#B45309" stroke-width="2" class="flex-shrink-0 mt-1">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            <div>
+                <div class="fw-semibold" style="color:#92400E;">Company verification required</div>
+                <div class="small" style="color:#92400E;">
+                    Submit your CAC registration number and upload your certificate on your
+                    <a href="{% url 'employer:profile' %}" style="color:#92400E;font-weight:600;text-decoration:underline;">company profile</a>
+                    to verify your company.
+                </div>
+            </div>
+        </div>
+        {% endif %}
     {% endif %}
+
 
     {# ── Stat Strip ──────────────────────────────────────────────────────── #}
     <div class="row g-3 mb-4">
@@ -145,7 +184,23 @@
     
     {# ── Quick Links ─────────────────────────────────────────────────────── #}
     <div class="row g-3 mb-4">
-        <div class="col-md-3">
+        <div class="col-12 col-md-4">
+            <a href="{% url 'employer:certificate_verify' %}" class="vng-card p-4 d-block text-decoration-none h-100">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+                         style="width:44px;height:44px;background:#ECFDF5;color:#059669;">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="fw-semibold" style="color:var(--vng-ink);">Verify Certificate (TrustPass)</div>
+                        <div class="small text-muted">Instant online clearance check</div>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-6 col-md-4">
             <a href="{% url 'employer:staff_check_create' %}" class="vng-card p-4 d-block text-decoration-none h-100">
                 <div class="d-flex align-items-center gap-3">
                     <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
@@ -155,13 +210,13 @@
                         </svg>
                     </div>
                     <div>
-                        <div class="fw-semibold" style="color:var(--vng-ink);">New Staff Check</div>
-                        <div class="small text-muted">Background check a candidate</div>
+                        <div class="fw-semibold" style="color:var(--vng-ink);">Staff Check</div>
+                        <div class="small text-muted">Single candidate vetting</div>
                     </div>
                 </div>
             </a>
         </div>
-        <div class="col-md-3">
+        <div class="col-6 col-md-4">
             <a href="{% url 'employer:person_check_search' %}" class="vng-card p-4 d-block text-decoration-none h-100">
                 <div class="d-flex align-items-center gap-3">
                     <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
@@ -177,24 +232,7 @@
                 </div>
             </a>
         </div>
-        <div class="col-md-3">
-            <a href="{% url 'employer:team_list' %}" class="vng-card p-4 d-block text-decoration-none h-100">
-                <div class="d-flex align-items-center gap-3">
-                    <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
-                         style="width:44px;height:44px;background:var(--vng-teal-light);">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--vng-teal)" stroke-width="2">
-                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                        </svg>
-                    </div>
-                    <div>
-                        <div class="fw-semibold" style="color:var(--vng-ink);">Team Members</div>
-                        <div class="small text-muted">{{ team_count }} active member{{ team_count|pluralize }}</div>
-                    </div>
-                </div>
-            </a>
-        </div>
-        <div class="col-md-3">
+        <div class="col-6 col-md-6">
             <a href="{% url 'employer:bulk_upload_create' %}" class="vng-card p-4 d-block text-decoration-none h-100">
                 <div class="d-flex align-items-center gap-3">
                     <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
@@ -211,9 +249,26 @@
                 </div>
             </a>
         </div>
+        <div class="col-6 col-md-6">
+            <a href="{% url 'employer:team_list' %}" class="vng-card p-4 d-block text-decoration-none h-100">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+                         style="width:44px;height:44px;background:var(--vng-teal-light);">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--vng-teal)" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="fw-semibold" style="color:var(--vng-ink);">Team Members</div>
+                        <div class="small text-muted">{{ team_count }} active member{{ team_count|pluralize }}</div>
+                    </div>
+                </div>
+            </a>
+        </div>
     </div>
 
-        {# ── Plan / Subscription Widget — Batch 9 ──────────────────────────── #}
+    {# ── Plan / Subscription Widget — Batch 9 ──────────────────────────── #}
     <div class="vng-card mb-4">
         <div class="d-flex justify-content-between align-items-center p-4 pb-0">
             <h2 class="h6 fw-bold mb-0">Your Plan &amp; Quota</h2>

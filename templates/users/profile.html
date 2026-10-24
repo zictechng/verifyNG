@@ -13,87 +13,244 @@
 
         <div class="col-lg-9 col-md-8">
             <div class="mb-4">
-                <h1 class="h4 fw-bold mb-1">Profile</h1>
-                <p class="small text-muted mb-0">Update your name and email address.</p>
+                <h1 class="h4 fw-bold mb-1">Personal Profile</h1>
+                <p class="small text-muted mb-0">Manage your verified legal identity and account credentials.</p>
             </div>
 
             {% if messages %}
             {% for message in messages %}
-            <div class="alert alert-{{ message.tags|default:'success' }} alert-dismissible fade show small mb-4" role="alert">
+            <div class="alert alert-{{ message.tags|default:'success' }} alert-dismissible fade show small mb-4" role="alert" style="border-radius:var(--vng-radius-md,8px);">
                 {{ message }}
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
             {% endfor %}
             {% endif %}
 
-            <!-- Identity Verification Status Card -->
-            <div class="vng-card p-3 p-sm-4 mb-4">
+            {# ── Identity Verification Status & Submission Card ── #}
+            <div class="vng-card p-3 p-sm-4 mb-4" style="border-radius:12px;">
                 <div class="d-flex align-items-center justify-content-between mb-3">
-                    <span class="small fw-semibold text-muted">Identity Status</span>
-                    {% if user_profile.identity_verified %}
-                        <span class="badge bg-success">Verified</span>
+                    <span class="small fw-semibold text-muted text-uppercase letter-spacing-1">Government Identity Verification</span>
+                    {% if user_profile.identity_verified or user_profile.id_verification_status == 'verified' %}
+                        <span class="badge bg-success px-2.5 py-1.5"><span class="dot"></span>Verified Individual</span>
+                    {% elif user_profile.id_verification_status == 'pending' or user_profile.has_id_document and user_profile.id_verification_status != 'rejected' %}
+                        <span class="badge bg-primary px-2.5 py-1.5"><span class="dot"></span>Under Compliance Review</span>
+                    {% elif user_profile.id_verification_status == 'rejected' %}
+                        <span class="badge bg-danger px-2.5 py-1.5"><span class="dot"></span>Verification Declined</span>
                     {% else %}
-                        <span class="badge bg-warning text-dark">Unverified</span>
+                        <span class="badge bg-warning text-dark px-2.5 py-1.5"><span class="dot"></span>Unverified</span>
                     {% endif %}
                 </div>
-                {% if user_profile.identity_verified %}
-                    <div class="d-flex align-items-center gap-3">
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--vng-success)" stroke-width="1.8" class="flex-shrink-0">
+
+                {# ── State 1: Verified ── #}
+                {% if user_profile.identity_verified or user_profile.id_verification_status == 'verified' %}
+                    <div class="d-flex align-items-start gap-3 p-3 rounded-3" style="background:var(--vng-success-light,#ECFDF5);border:1px solid #BBF7D0;">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--vng-success,#16A34A)" stroke-width="2.2" class="flex-shrink-0 mt-0.5">
                             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                             <polyline points="9 12 11 14 15 10" stroke-width="2.5"/>
                         </svg>
-                        <div>
-                            <div class="fw-semibold" style="font-size:14px;color:var(--vng-ink);">Identity Confirmed</div>
-                            <div class="small text-muted">NIN/BVN identity verified by VerifyNG</div>
+                        <div class="flex-grow-1">
+                            <div class="fw-bold text-success" style="font-size:15px;">Identity Confirmed &bull; NDPR Verified</div>
+                            <div class="small text-muted mt-1">
+                                Verified via <strong>{{ user_profile.get_id_type_display|default:"Government Identity" }}</strong>
+                                {% if user_profile.masked_id_number %}&bull; <span class="font-monospace text-dark fw-semibold">{{ user_profile.masked_id_number }}</span>{% endif %}
+                                {% if user_profile.id_verified_at %}&bull; Verified on {{ user_profile.id_verified_at|date:"d M Y" }}{% endif %}
+                            </div>
+                            <div class="d-flex align-items-center gap-2 mt-2 pt-2 border-top border-success-subtle flex-wrap">
+                                {% if user_profile.has_id_document %}
+                                <button type="button" class="btn btn-sm btn-outline-success d-inline-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#viewUserIdModal">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                    View Verified Document
+                                </button>
+                                {% endif %}
+                                <span class="small text-muted">🔒 Legal name is locked to verified identity.</span>
+                            </div>
                         </div>
                     </div>
+
+                {# ── State 2: Pending Compliance Review ── #}
+                {% elif user_profile.id_verification_status == 'pending' or user_profile.has_id_document and user_profile.id_verification_status != 'rejected' %}
+                    <div class="d-flex align-items-start gap-3 p-3 rounded-3 mb-3" style="background:#EFF6FF;border:1px solid #BFDBFE;">
+                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2" class="flex-shrink-0 mt-0.5">
+                            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                        <div class="flex-grow-1">
+                            <div class="fw-bold" style="color:#1E40AF;font-size:15px;">Identity Document Under Compliance Review</div>
+                            <div class="small text-muted mt-1">
+                                Submitted: <strong>{{ user_profile.get_id_type_display|default:"Government ID" }}</strong>
+                                {% if user_profile.masked_id_number %}&bull; <span class="font-monospace text-dark">{{ user_profile.masked_id_number }}</span>{% endif %}
+                                &bull; {{ user_profile.id_submitted_at|date:"d M Y, H:i"|default:"Recently" }}
+                            </div>
+                            <div class="small text-secondary mt-1">
+                                Our verification officers inspect credentials against official registry databases. Typical turnaround is 1–2 business hours.
+                            </div>
+                            <div class="d-flex align-items-center gap-2 mt-2 pt-2 border-top border-primary-subtle flex-wrap">
+                                {% if user_profile.has_id_document %}
+                                <button type="button" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#viewUserIdModal">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                    View Submitted Proof
+                                </button>
+                                {% endif %}
+                                <button type="button" class="btn btn-sm btn-link text-decoration-none p-0 text-primary fw-semibold" id="toggleIdFormBtn">
+                                    Update or Re-Upload &rarr;
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                {# ── State 3: Declined / Rejected ── #}
+                {% elif user_profile.id_verification_status == 'rejected' %}
+                    <div class="d-flex align-items-start gap-3 p-3 rounded-3 mb-3" style="background:#FEF2F2;border:1px solid #FECACA;">
+                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2" class="flex-shrink-0 mt-0.5">
+                            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                        </svg>
+                        <div class="flex-grow-1">
+                            <div class="fw-bold text-danger" style="font-size:15px;">Identity Verification Declined</div>
+                            <div class="small text-danger mt-1">
+                                <strong>Compliance Reason:</strong> {{ user_profile.id_rejection_reason|default:"The submitted identity credentials or document could not be validated." }}
+                            </div>
+                            <div class="small text-muted mt-1">
+                                Please review your ID number and upload a clear, legible photo or scan of your government document below.
+                            </div>
+                        </div>
+                    </div>
+
+                {# ── State 4: Unverified Initial Prompt ── #}
                 {% else %}
-                    <div class="d-flex align-items-center gap-3 mb-3">
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="1.8" class="flex-shrink-0">
-                            <circle cx="12" cy="12" r="10"/>
-                            <line x1="12" y1="8" x2="12" y2="12"/>
-                            <line x1="12" y1="16" x2="12.01" y2="16"/>
+                    <div class="d-flex align-items-start gap-3 mb-3">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2" class="flex-shrink-0 mt-0.5">
+                            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
                         </svg>
                         <div>
-                            <div class="fw-semibold" style="font-size:14px;color:var(--vng-ink);">Verify Your Identity</div>
-                            <div class="small text-muted">Submit your NIN or official credentials to verify your profile</div>
+                            <div class="fw-semibold text-dark" style="font-size:15px;">Verify Your Identity</div>
+                            <div class="small text-muted">
+                                Submit your official Nigerian government credentials (NIN, Voter's Card, Passport, or Driver's License) to unlock verified trust clearance and submit fraud reports.
+                            </div>
                         </div>
                     </div>
-                    <a href="{% url 'verification:create' %}" class="btn btn-vng-primary btn-vng-sm w-100">
-                        Start Verification &rarr;
-                    </a>
+                {% endif %}
+
+                {# ── Submission Form Container (Active if unverified/rejected, or toggled if pending) ── #}
+                {% if not user_profile.identity_verified and user_profile.id_verification_status != 'verified' %}
+                <div id="idVerificationFormWrap" class="{% if user_profile.id_verification_status == 'pending' or user_profile.has_id_document and user_profile.id_verification_status != 'rejected' %}d-none{% endif %} pt-3 border-top mt-3">
+                    <form method="post" action="{% url 'users:verify_identity_submit' %}" enctype="multipart/form-data" id="identityVerificationForm" novalidate>
+                        {% csrf_token %}
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-sm-6">
+                                <label class="form-label small fw-semibold">Government Document Type <span class="text-danger">*</span></label>
+                                <select name="id_type" id="id_type_select" class="form-select" required style="font-size:16px;">
+                                    <option value="nin" {% if user_profile.id_type == 'nin' or not user_profile.id_type %}selected{% endif %}>National Identity Number (NIN)</option>
+                                    <option value="voters_card" {% if user_profile.id_type == 'voters_card' %}selected{% endif %}>Permanent Voter's Card (PVC)</option>
+                                    <option value="passport" {% if user_profile.id_type == 'passport' %}selected{% endif %}>International Passport</option>
+                                    <option value="drivers_license" {% if user_profile.id_type == 'drivers_license' %}selected{% endif %}>Driver's License (FRSC)</option>
+                                </select>
+                            </div>
+                            <div class="col-sm-6">
+                                <label class="form-label small fw-semibold" id="id_number_label">Identification Number <span class="text-danger">*</span></label>
+                                <input type="text" name="id_number" id="id_number_input" class="form-control font-monospace"
+                                       value="{{ user_profile.id_number }}" required placeholder="Enter 11-digit NIN" style="font-size:16px;">
+                                <div id="id_number_help" class="form-text small">Enter your 11-digit National Identity Number.</div>
+                            </div>
+                        </div>
+
+                        {# ── Dropzone Box with Click Effect ── #}
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold d-flex justify-content-between align-items-center">
+                                <span>Upload Identification Document Proof <span class="text-danger">*</span></span>
+                                <span class="badge bg-light text-secondary border fw-normal">PDF, JPG, PNG &bull; Max 5MB</span>
+                            </label>
+
+                            <div id="idDropzone" class="vng-dropzone" tabindex="0" role="button" aria-label="Upload identification document">
+                                <input type="file" name="id_document" id="idDocumentInput" accept=".pdf,.png,.jpg,.jpeg" class="d-none">
+
+                                {# Idle state #}
+                                <div id="idDropzoneIdle">
+                                    <div class="vng-dropzone-icon mb-2">
+                                        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="1.8">
+                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                            <polyline points="17 8 12 3 7 8"/>
+                                            <line x1="12" y1="3" x2="12" y2="15"/>
+                                        </svg>
+                                    </div>
+                                    <div class="fw-semibold text-dark small mb-1">
+                                        Drag &amp; drop your ID card or slip here, or <span class="text-primary text-decoration-underline">browse files</span>
+                                    </div>
+                                    <div class="text-muted" style="font-size:0.75rem;">
+                                        Attach a clear, uncropped photo or scan of your physical ID card or digital slip (PDF, JPG, PNG &bull; Max 5MB)
+                                    </div>
+                                </div>
+
+                                {# Preview state #}
+                                <div id="idDropzonePreview" class="d-none">
+                                    <div class="d-inline-flex align-items-center gap-3 p-3 bg-white border rounded-3 shadow-sm text-start" style="max-width:100%;">
+                                        <div id="idPreviewIconWrap" class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+                                             style="width:40px;height:40px;background:#EFF6FF;color:#2563EB;">
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                        </div>
+                                        <div class="overflow-hidden">
+                                            <div id="idPreviewFileName" class="fw-semibold text-truncate small text-dark" style="max-width:240px;">id_document.pdf</div>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <span id="idPreviewFileSize" class="text-muted" style="font-size:0.75rem;">1.2 MB</span>
+                                                <span class="badge bg-success-subtle text-success border border-success-subtle fw-normal" style="font-size:0.7rem;">Ready</span>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex align-items-center gap-1 ms-2">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-2" id="btnChangeIdFile" title="Choose another file" style="font-size:0.75rem;">
+                                                Change
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-danger py-1 px-2" id="btnRemoveIdFile" title="Remove file" style="font-size:0.75rem;">
+                                                &times;
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="idDropzoneError" class="text-danger small mt-2 fw-semibold d-none"></div>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center pt-2">
+                            <span class="small text-muted" style="font-size:12px;">🔒 Regulated NDPR compliant identity handling.</span>
+                            <button type="button" id="openIdConfirmBtn" class="btn btn-vng-primary btn-vng-sm px-4">
+                                Submit Identity for Verification
+                            </button>
+                        </div>
+                    </form>
+                </div>
                 {% endif %}
             </div>
 
-            <div class="vng-card p-4">
+            {# ── Basic Account Profile Form ── #}
+            <div class="vng-card p-4" style="border-radius:12px;">
+                <h2 class="h6 fw-bold mb-3" style="color:var(--vng-ink);">Account Information</h2>
                 <form method="post" novalidate>
                     {% csrf_token %}
                     <div class="row g-3 mb-3">
                         <div class="col-sm-6">
-                            <label class="form-label small fw-semibold">First Name</label>
+                            <label class="form-label small fw-semibold">Legal First Name</label>
                             {% if user_profile.identity_verified %}
                                 <div class="position-relative">
-                                    <input type="text" value="{{ form.first_name.value|default:'' }}" class="form-control bg-light" readonly disabled>
-                                    <span class="position-absolute end-0 top-50 translate-middle-y me-2 small" title="Verified Legal Name">🔒</span>
+                                    <input type="text" value="{{ form.first_name.value|default:'' }}" class="form-control bg-light" readonly disabled style="font-size:16px;">
+                                    <span class="position-absolute end-0 top-50 translate-middle-y me-2 small text-success" title="Verified Legal Name">🔒</span>
                                 </div>
                             {% else %}
                                 <input type="text" name="first_name" value="{{ form.first_name.value|default:'' }}"
                                        class="form-control{% if form.first_name.errors %} is-invalid{% endif %}"
-                                       placeholder="First name">
+                                       placeholder="First name" style="font-size:16px;">
                                 {% if form.first_name.errors %}<div class="invalid-feedback">{{ form.first_name.errors.0 }}</div>{% endif %}
                             {% endif %}
                         </div>
                         <div class="col-sm-6">
-                            <label class="form-label small fw-semibold">Last Name</label>
+                            <label class="form-label small fw-semibold">Legal Last Name</label>
                             {% if user_profile.identity_verified %}
                                 <div class="position-relative">
-                                    <input type="text" value="{{ form.last_name.value|default:'' }}" class="form-control bg-light" readonly disabled>
-                                    <span class="position-absolute end-0 top-50 translate-middle-y me-2 small" title="Verified Legal Name">🔒</span>
+                                    <input type="text" value="{{ form.last_name.value|default:'' }}" class="form-control bg-light" readonly disabled style="font-size:16px;">
+                                    <span class="position-absolute end-0 top-50 translate-middle-y me-2 small text-success" title="Verified Legal Name">🔒</span>
                                 </div>
                             {% else %}
                                 <input type="text" name="last_name" value="{{ form.last_name.value|default:'' }}"
                                        class="form-control{% if form.last_name.errors %} is-invalid{% endif %}"
-                                       placeholder="Last name">
+                                       placeholder="Last name" style="font-size:16px;">
                                 {% if form.last_name.errors %}<div class="invalid-feedback">{{ form.last_name.errors.0 }}</div>{% endif %}
                             {% endif %}
                         </div>
@@ -101,7 +258,7 @@
                         {% if user_profile.identity_verified %}
                         <div class="col-12 mt-1">
                             <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-1 p-2 rounded-2 bg-light border">
-                                <span class="small text-muted" style="font-size:12px;">🔒 Legal name is locked to verified NIN identity to prevent fraud.</span>
+                                <span class="small text-muted" style="font-size:12px;">🔒 Legal name is locked to verified identity to prevent fraud.</span>
                                 <button type="button" class="btn btn-link p-0 small fw-semibold text-decoration-none" data-bs-toggle="modal" data-bs-target="#legalNameChangeModal">
                                     👉 Request Legal Name Change
                                 </button>
@@ -114,17 +271,17 @@
                         <label class="form-label small fw-semibold">Email Address</label>
                         <input type="email" name="email" value="{{ form.email.value|default:'' }}"
                                class="form-control{% if form.email.errors %} is-invalid{% endif %}"
-                               placeholder="email@example.com">
+                               placeholder="email@example.com" style="font-size:16px;">
                         {% if form.email.errors %}<div class="invalid-feedback">{{ form.email.errors.0 }}</div>{% endif %}
                     </div>
 
                     <div class="mb-4">
                         <label class="form-label small fw-semibold">Username</label>
-                        <input type="text" value="{{ user_profile.username }}" class="form-control bg-light" disabled>
+                        <input type="text" value="{{ user_profile.username }}" class="form-control bg-light" disabled style="font-size:16px;">
                         <div class="form-text small text-muted">Username cannot be changed.</div>
                     </div>
 
-                    <div class="d-flex align-items-center justify-content-between pt-3 border-top">
+                    <div class="d-flex align-items-center justify-content-between pt-3 border-top flex-wrap gap-2">
                         <div class="small text-muted">
                             Joined {{ user_profile.date_joined|date:"F j, Y" }} &nbsp;·&nbsp;
                             <span class="badge bg-primary text-uppercase">{{ user_profile.get_role_display }}</span>
@@ -134,7 +291,7 @@
                                 <span class="badge bg-warning text-dark ms-1">Unverified</span>
                             {% endif %}
                         </div>
-                        <button type="submit" class="btn btn-vng-primary btn-vng-sm">Save Changes</button>
+                        <button type="submit" class="btn btn-vng-primary btn-vng-sm px-4">Save Changes</button>
                     </div>
                 </form>
             </div>
@@ -142,5 +299,371 @@
 
     </div>
 </div>
-{% endblock %}
+{% endblock content %}
 
+{% block modals %}
+{# ── In-Browser Identity Document Viewer Modal (for User) ── #}
+{% if user_profile.has_id_document %}
+<div class="modal fade" id="viewUserIdModal" tabindex="-1" aria-labelledby="viewUserIdModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content shadow-lg border-0" style="border-radius:14px;">
+      <div class="modal-header border-bottom py-3">
+        <h5 class="modal-title fw-bold small text-uppercase letter-spacing-1 text-muted" id="viewUserIdModalLabel">
+          {{ user_profile.get_id_type_display|default:"Identity Document" }} Preview
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-2 p-md-3 bg-light text-center">
+        {% if user_profile.id_document_is_pdf %}
+          <object data="{% url 'users:id_document_preview' %}#toolbar=0" type="application/pdf" class="w-100 rounded border bg-white" style="height:65vh;min-height:420px;">
+            <iframe src="{% url 'users:id_document_preview' %}#toolbar=0" class="w-100 h-100 border-0" style="height:65vh;min-height:420px;">
+              <div class="p-4 text-center bg-white rounded">
+                <p class="text-muted small mb-3">Your browser does not render inline PDF previews.</p>
+                <a href="{% url 'users:id_document_preview' %}" target="_blank" class="btn btn-sm btn-primary">
+                  Open PDF in New Tab
+                </a>
+              </div>
+            </iframe>
+          </object>
+        {% else %}
+          <img src="{% url 'users:id_document_preview' %}" alt="Identity Document" class="img-fluid rounded border shadow-sm" style="max-height:75vh;object-fit:contain;">
+        {% endif %}
+      </div>
+      <div class="modal-footer border-top py-2 d-flex justify-content-between">
+        <span class="small text-muted">{{ user_profile.get_id_type_display }} &bull; {{ user_profile.masked_id_number }}</span>
+        <div class="d-flex gap-2">
+          <a href="{% url 'users:id_document_preview' %}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            Open in Tab
+          </a>
+          <button type="button" class="btn btn-sm btn-outline-secondary px-3" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{# ── Confirmation Modal with Spinner (for Identity Submission) ── #}
+<div class="modal fade" id="confirmIdModal" tabindex="-1" aria-labelledby="confirmIdModalLabel" aria-hidden="true" style="z-index:1070;">
+  <div class="modal-dialog modal-dialog-centered" style="margin: 1.25rem auto; max-width: 480px; width: calc(100% - 1.5rem); z-index:1075;">
+    <div class="modal-content shadow-lg border-0" style="border-radius:16px; pointer-events:auto !important;">
+      <div class="modal-header border-0 pb-0 pt-3 px-3 px-sm-4">
+        <h5 class="modal-title fw-bold" id="confirmIdModalLabel" style="font-size:1.15rem;">Confirm Identity Submission</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body py-3 px-3 px-sm-4">
+        <p class="small text-secondary mb-3">
+            You are submitting your official government credentials for identity verification on <strong>{{ site_config.site_name|default:"VerifyNG" }}</strong>.
+        </p>
+        <div class="p-3 rounded-3 bg-light border small mb-3">
+            <div class="d-flex justify-content-between mb-2">
+                <span class="text-muted">Document Type:</span>
+                <span id="confirmModalDocType" class="fw-semibold text-end">National Identity</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+                <span class="text-muted">ID Number:</span>
+                <span id="confirmModalDocNum" class="fw-semibold font-monospace text-end">--</span>
+            </div>
+            <div class="d-flex justify-content-between">
+                <span class="text-muted">Attached File:</span>
+                <span id="confirmModalDocFile" class="fw-semibold text-truncate text-end" style="max-width:180px;">--</span>
+            </div>
+        </div>
+        <div class="alert alert-warning p-2.5 small mb-0 d-flex align-items-center gap-2" style="font-size:12px;border-radius:10px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="flex-shrink-0"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <div>I confirm that the submitted identification belongs to me and all credentials are authentic under NDPR guidelines.</div>
+        </div>
+      </div>
+      <div class="modal-footer border-0 pt-0 pb-3 px-3 px-sm-4 gap-2 d-flex flex-row justify-content-end">
+        <button type="button" class="btn btn-outline-secondary btn-sm px-3 flex-fill flex-sm-grow-0" style="min-height:46px;font-weight:600;font-size:14px;" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" id="confirmIdSubmitBtn" class="btn btn-vng-primary btn-sm px-4 flex-fill flex-sm-grow-0 d-inline-flex align-items-center justify-content-center gap-2" style="min-height:46px;font-size:15px;font-weight:700;cursor:pointer;position:relative;z-index:1080;pointer-events:auto !important;">
+          <span id="confirmIdBtnLabel">Confirm &amp; Submit</span>
+          <span id="confirmIdSpinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock modals %}
+
+{% block extra_scripts %}
+
+<style>
+/* ── Dropzone Click & Hover Styling ── */
+.vng-dropzone {
+    border: 2px dashed #CBD5E1;
+    border-radius: 12px;
+    background: #F8FAFC;
+    padding: 2rem 1.25rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.18s ease-in-out;
+    position: relative;
+    outline: none;
+    user-select: none;
+}
+.vng-dropzone:hover, .vng-dropzone:focus-visible {
+    border-color: #0D6EFD;
+    background: #F0F7FF;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(13, 110, 253, 0.08);
+}
+.vng-dropzone:active, .vng-dropzone.is-active {
+    transform: scale(0.985);
+    background: #E8F2FE;
+    border-color: #0B5ED7;
+    box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.16);
+}
+.vng-dropzone.is-dragover {
+    border-color: #0D6EFD;
+    background: #EFF6FF;
+    box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.22);
+}
+.vng-dropzone-icon {
+    transition: transform 0.2s ease;
+}
+.vng-dropzone:hover .vng-dropzone-icon {
+    transform: translateY(-2px);
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const typeSelect = document.getElementById('id_type_select');
+    const numInput = document.getElementById('id_number_input');
+    const numLabel = document.getElementById('id_number_label');
+    const numHelp = document.getElementById('id_number_help');
+
+    const dropzone = document.getElementById('idDropzone');
+    const fileInput = document.getElementById('idDocumentInput');
+    const idleState = document.getElementById('idDropzoneIdle');
+    const previewState = document.getElementById('idDropzonePreview');
+    const previewFileName = document.getElementById('idPreviewFileName');
+    const previewFileSize = document.getElementById('idPreviewFileSize');
+    const previewIconWrap = document.getElementById('idPreviewIconWrap');
+    const dropzoneError = document.getElementById('idDropzoneError');
+    const btnChangeFile = document.getElementById('btnChangeIdFile');
+    const btnRemoveFile = document.getElementById('btnRemoveIdFile');
+    const toggleIdFormBtn = document.getElementById('toggleIdFormBtn');
+    const idFormWrap = document.getElementById('idVerificationFormWrap');
+
+    const idForm = document.getElementById('identityVerificationForm');
+    const openConfirmBtn = document.getElementById('openIdConfirmBtn');
+    const confirmModalEl = document.getElementById('confirmIdModal');
+
+    // Ensure modal elements are direct children of <body> so no parent stacking contexts can overshadow them on mobile
+    if (confirmModalEl && confirmModalEl.parentNode !== document.body) {
+        document.body.appendChild(confirmModalEl);
+    }
+    const viewModalEl = document.getElementById('viewUserIdModal');
+    if (viewModalEl && viewModalEl.parentNode !== document.body) {
+        document.body.appendChild(viewModalEl);
+    }
+
+    const confirmModal = new bootstrap.Modal(confirmModalEl);
+    const confirmSubmitBtn = document.getElementById('confirmIdSubmitBtn');
+    const confirmSpinner = document.getElementById('confirmIdSpinner');
+    const confirmBtnLabel = document.getElementById('confirmIdBtnLabel');
+    const confirmModalDocType = document.getElementById('confirmModalDocType');
+    const confirmModalDocNum = document.getElementById('confirmModalDocNum');
+    const confirmModalDocFile = document.getElementById('confirmModalDocFile');
+
+    let currentFile = null;
+
+    // Toggle Re-Upload for pending/verified users
+    if (toggleIdFormBtn && idFormWrap) {
+        toggleIdFormBtn.addEventListener('click', function () {
+            idFormWrap.classList.toggle('d-none');
+            toggleIdFormBtn.textContent = idFormWrap.classList.contains('d-none') ? 'Update or Re-Upload →' : 'Hide Upload Form';
+        });
+    }
+
+    // Dynamic guidance based on ID type
+    if (typeSelect && numInput && numHelp) {
+        const guidance = {
+            'nin': { placeholder: 'Enter 11-digit NIN', help: 'Enter your 11-digit National Identity Number.', label: 'NIN Number' },
+            'voters_card': { placeholder: 'e.g. 90F5B12345678901234', help: 'Enter your 19-digit alphanumeric Voter Identification Number (VIN).', label: 'Voter ID (VIN)' },
+            'passport': { placeholder: 'e.g. A12345678', help: 'Enter your standard Nigerian Passport Number.', label: 'Passport Number' },
+            'drivers_license': { placeholder: 'e.g. ABC123456789', help: 'Enter your 12-character Driver’s License Number.', label: 'License Number' }
+        };
+        typeSelect.addEventListener('change', function () {
+            const cfg = guidance[typeSelect.value] || guidance['nin'];
+            numInput.placeholder = cfg.placeholder;
+            numHelp.textContent = cfg.help;
+            numLabel.innerHTML = cfg.label + ' <span class="text-danger">*</span>';
+        });
+    }
+
+    function formatBytes(bytes) {
+        if (!bytes || bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    function showError(msg) {
+        if (dropzoneError) {
+            dropzoneError.textContent = msg;
+            dropzoneError.classList.remove('d-none');
+        }
+    }
+    function clearError() {
+        if (dropzoneError) {
+            dropzoneError.textContent = '';
+            dropzoneError.classList.add('d-none');
+        }
+    }
+
+    function handleFile(file) {
+        clearError();
+        if (!file) return;
+
+        if (file.size > 5 * 1024 * 1024) {
+            showError('File is too large (' + formatBytes(file.size) + '). Maximum allowed size is 5MB.');
+            fileInput.value = '';
+            currentFile = null;
+            return;
+        }
+
+        const ext = file.name.split('.').pop().toLowerCase();
+        if (!['pdf', 'jpg', 'jpeg', 'png'].includes(ext)) {
+            showError('Invalid file format (.' + ext + '). Only PDF, JPG, and PNG documents are accepted.');
+            fileInput.value = '';
+            currentFile = null;
+            return;
+        }
+
+        currentFile = file;
+        previewFileName.textContent = file.name;
+        previewFileSize.textContent = formatBytes(file.size);
+
+        if (ext === 'pdf') {
+            previewIconWrap.style.background = '#FEF2F2';
+            previewIconWrap.style.color = '#DC2626';
+            previewIconWrap.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+        } else {
+            previewIconWrap.style.background = '#EFF6FF';
+            previewIconWrap.style.color = '#2563EB';
+            previewIconWrap.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>';
+        }
+
+        idleState.classList.add('d-none');
+        previewState.classList.remove('d-none');
+    }
+
+    function resetFile() {
+        fileInput.value = '';
+        currentFile = null;
+        clearError();
+        previewState.classList.add('d-none');
+        idleState.classList.remove('d-none');
+    }
+
+    if (dropzone && fileInput) {
+        dropzone.addEventListener('click', function (e) {
+            if (e.target.closest('#btnChangeIdFile') || e.target.closest('#btnRemoveIdFile')) return;
+            dropzone.classList.add('is-active');
+            setTimeout(() => dropzone.classList.remove('is-active'), 150);
+            fileInput.click();
+        });
+
+        dropzone.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                fileInput.click();
+            }
+        });
+
+        fileInput.addEventListener('change', function () {
+            if (fileInput.files && fileInput.files[0]) {
+                handleFile(fileInput.files[0]);
+            }
+        });
+
+        ['dragenter', 'dragover'].forEach(evt => {
+            dropzone.addEventListener(evt, function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                dropzone.classList.add('is-dragover');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(evt => {
+            dropzone.addEventListener(evt, function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                dropzone.classList.remove('is-dragover');
+            });
+        });
+
+        dropzone.addEventListener('drop', function (e) {
+            const dt = e.dataTransfer;
+            if (dt && dt.files && dt.files[0]) {
+                fileInput.files = dt.files;
+                handleFile(dt.files[0]);
+            }
+        });
+
+        if (btnChangeFile) {
+            btnChangeFile.addEventListener('click', function (e) {
+                e.stopPropagation();
+                fileInput.click();
+            });
+        }
+        if (btnRemoveFile) {
+            btnRemoveFile.addEventListener('click', function (e) {
+                e.stopPropagation();
+                resetFile();
+            });
+        }
+    }
+
+    // Confirmation Modal Trigger with Spinner
+    if (openConfirmBtn && idForm) {
+        openConfirmBtn.addEventListener('click', function () {
+            if (!numInput.value.trim()) {
+                numInput.focus();
+                numInput.classList.add('is-invalid');
+                return;
+            } else {
+                numInput.classList.remove('is-invalid');
+            }
+
+            if (typeSelect.value === 'nin') {
+                const cleaned = numInput.value.replace(/\D/g, '');
+                if (cleaned.length !== 11) {
+                    showError('A National Identity Number (NIN) must be exactly 11 digits.');
+                    numInput.focus();
+                    return;
+                }
+            }
+
+            {% if not user_profile.has_id_document %}
+            if (!currentFile) {
+                showError('Please attach a photo or PDF scan of your government identity document.');
+                return;
+            }
+            {% endif %}
+
+            confirmModalDocType.textContent = typeSelect.options[typeSelect.selectedIndex].text;
+            confirmModalDocNum.textContent = numInput.value.trim();
+            confirmModalDocFile.textContent = currentFile ? currentFile.name : '{{ user_profile.id_document_filename|default:"Existing Document on Record" }}';
+
+            confirmModal.show();
+        });
+
+        if (confirmSubmitBtn) {
+            confirmSubmitBtn.addEventListener('click', function () {
+                confirmSubmitBtn.disabled = true;
+                confirmSubmitBtn.style.pointerEvents = 'none';
+                confirmSpinner.classList.remove('d-none');
+                confirmIdBtnLabel.textContent = 'Uploading & Submitting…';
+                idForm.submit();
+            });
+        }
+    }
+});
+</script>
+{% endblock extra_scripts %}

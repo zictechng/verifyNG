@@ -1,18 +1,24 @@
+import secrets
+import string
+from datetime import timedelta
+from dateutil.relativedelta import relativedelta
 from django.db import models
 from django.utils import timezone
 from users.models import User
 from identities.models import SubjectEntity
-import secrets
-import string
-from django.utils import timezone as tz
+
 
 class VerificationRequest(models.Model):
     VERIFICATION_TYPES = (
-        ('identity', 'Identity Verification'),
-        ('employment', 'Employment Verification'),
-        ('address', 'Address Verification'),
-        ('credential', 'Credential Verification'),
-        ('full_check', 'Full Background Check'),
+        ('property', 'Property, Land & Real Estate Due Diligence'),
+        ('vehicle', 'Vehicle & Automobile Ownership Verification'),
+        ('credential', 'Academic & Qualification Certificate'),
+        ('business', 'Business & Corporate Registration (CAC)'),
+        ('contract', 'Deal, Contract & Investment Vetting'),
+        ('identity', 'Identity & Background Check'),
+        ('employment', 'Employment & Workplace Record'),
+        ('address', 'Physical Address Verification'),
+        ('full_check', 'Full Comprehensive Due Diligence'),
     )
 
     STATUS_CHOICES = (
@@ -116,16 +122,11 @@ class VerificationResult(models.Model):
         return f"Result: {self.get_outcome_display()} for {self.request.reference_number}"
 
 
-
 # ─── W-08: Certificate System ─────────────────────────────────────────────────
-
-import secrets
-
 
 def generate_certificate_id():
     """Generates unique certificate ID: VNG-{YEAR}-{8 uppercase hex chars}"""
-    from django.utils import timezone as tz
-    year = tz.now().year
+    year = timezone.now().year
     hex_part = secrets.token_hex(4).upper()
     return f"VNG-{year}-{hex_part}"
 
@@ -197,6 +198,15 @@ class VerificationCertificate(models.Model):
         default='',
         help_text="Cloudinary public_id for the certificate PDF — never a raw file path"
     )
+
+    # Continuous Monitoring / DBS Update Service Integration
+    is_monitoring_active = models.BooleanField(
+        default=False,
+        help_text="True if registered in continuous monitoring / Update Service"
+    )
+    monitoring_activated_at = models.DateTimeField(null=True, blank=True)
+    monitoring_expires_at = models.DateTimeField(null=True, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=True)
@@ -212,12 +222,48 @@ class VerificationCertificate(models.Model):
     @property
     def is_valid(self) -> bool:
         """True only when status is active and not past expiry."""
-        from django.utils import timezone as tz
         if self.status != 'active':
             return False
-        if self.expires_at and tz.now() > self.expires_at:
+        if self.expires_at and timezone.now() > self.expires_at:
             return False
         return True
+
+    @property
+    def days_since_issued(self) -> int:
+        base_date = self.issued_at or self.created_at
+        if not base_date:
+            return 0
+        diff = (timezone.now() - base_date).days
+        return max(0, diff)
+
+    @property
+    def in_grace_period(self) -> bool:
+        """Returns True if certificate is within initial 30 days of issuance."""
+        return self.days_since_issued <= 30
+
+    @property
+    def grace_days_remaining(self) -> int:
+        return max(0, 30 - self.days_since_issued)
+
+    @property
+    def is_monitoring_valid(self) -> bool:
+        """Active if monitoring is flagged True and has not expired."""
+        if not self.is_monitoring_active:
+            return False
+        if self.monitoring_expires_at and timezone.now() > self.monitoring_expires_at:
+            return False
+        return True
+
+    @property
+    def is_live_searchable(self) -> bool:
+        """
+        Certificate is live searchable if:
+        1. Status is 'active' (not pending, suspended, revoked, or expired)
+        2. AND either within the initial 30-day grace period OR has active continuous monitoring.
+        """
+        if not self.is_valid:
+            return False
+        return self.in_grace_period or self.is_monitoring_valid
 
     @property
     def expiry_years(self) -> int:
@@ -229,32 +275,28 @@ class VerificationCertificate(models.Model):
         Transitions certificate from 'pending' to 'active'.
         Sets issued_at and calculates expires_at from expiry_years.
         """
-        from django.utils import timezone as tz
-        from dateutil.relativedelta import relativedelta
         if self.status != 'pending':
             raise ValueError(f"Cannot activate certificate in status '{self.status}'.")
         self.status = 'active'
-        self.issued_at = tz.now()
+        self.issued_at = timezone.now()
         self.expires_at = self.issued_at + relativedelta(years=self.expiry_years)
         self.save(update_fields=['status', 'issued_at', 'expires_at', 'updated_at'])
 
     def suspend(self, reason: str = ''):
         """Transitions active certificate to suspended."""
-        from django.utils import timezone as tz
         if self.status != 'active':
             raise ValueError(f"Cannot suspend certificate in status '{self.status}'.")
         self.status = 'suspended'
-        self.suspended_at = tz.now()
+        self.suspended_at = timezone.now()
         self.suspension_reason = reason
         self.save(update_fields=['status', 'suspended_at', 'suspension_reason', 'updated_at'])
 
     def revoke(self, reason: str = ''):
         """Irrevocably revokes an active or suspended certificate."""
-        from django.utils import timezone as tz
         if self.status not in ('active', 'suspended'):
             raise ValueError(f"Cannot revoke certificate in status '{self.status}'.")
         self.status = 'revoked'
-        self.revoked_at = tz.now()
+        self.revoked_at = timezone.now()
         self.revocation_reason = reason
         self.is_active = False
         self.save(update_fields=['status', 'revoked_at', 'revocation_reason', 'is_active', 'updated_at'])
@@ -262,7 +304,7 @@ class VerificationCertificate(models.Model):
 
 class CertificateQueryLog(models.Model):
     """
-    Append-only audit log for every paid lookup of a certificate.
+    Append-only audit log for every paid or authorized employer lookup of a certificate.
     Rows must never be updated or deleted.
     result_snapshot is an immutable record of what counts were shown at query time.
     """
@@ -285,7 +327,9 @@ class CertificateQueryLog(models.Model):
     )
     payment = models.ForeignKey(
         'payments.Transaction',
-        on_delete=models.PROTECT,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='certificate_queries'
     )
     queried_at = models.DateTimeField(auto_now_add=True, db_index=True)
@@ -309,6 +353,3 @@ class CertificateQueryLog(models.Model):
 
     def __str__(self):
         return f"Query of {self.certificate.certificate_id} by {self.queried_by.username} at {self.queried_at}"
-        
-
-

@@ -26,6 +26,34 @@ class EmployerProfile(models.Model):
     industry = models.CharField(max_length=100, blank=True)
     company_address = models.TextField(blank=True)
     contact_phone = models.CharField(max_length=20, blank=True)
+    VERIFICATION_STATUS_CHOICES = (
+        ('unverified', 'Unverified'),
+        ('pending', 'Pending Review'),
+        ('verified', 'Verified'),
+        ('rejected', 'Rejected'),
+    )
+    cac_document = models.FileField(
+        upload_to='cac_certificates/%Y/%m/',
+        blank=True,
+        null=True,
+        help_text="Uploaded CAC Certificate or Status Report"
+    )
+    verification_status = models.CharField(
+        max_length=20,
+        choices=VERIFICATION_STATUS_CHOICES,
+        default='unverified',
+        help_text="Current compliance verification review status"
+    )
+    rejection_reason = models.TextField(
+        blank=True,
+        default='',
+        help_text="Reason provided by compliance team if CAC verification is declined"
+    )
+    cac_uploaded_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Timestamp when CAC document was uploaded"
+    )
     is_verified = models.BooleanField(
         default=False,
         help_text="True when VerifyNG has confirmed the company identity"
@@ -76,6 +104,23 @@ class EmployerProfile(models.Model):
             'business': 'Business Entity',
         }
         return labels.get(role, 'Organization')
+
+    @property
+    def has_cac_document(self):
+        return bool(self.cac_document and hasattr(self.cac_document, 'name') and self.cac_document.name)
+
+    @property
+    def cac_document_is_pdf(self):
+        if not self.has_cac_document:
+            return False
+        return self.cac_document.name.lower().endswith('.pdf')
+
+    @property
+    def cac_filename(self):
+        if not self.has_cac_document:
+            return ""
+        import os
+        return os.path.basename(self.cac_document.name)
 
 
 class TeamMember(models.Model):

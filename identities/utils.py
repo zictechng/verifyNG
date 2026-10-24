@@ -6,7 +6,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 
-SUPPORTED_IDENTIFIER_TYPES = {'phone', 'nin', 'bvn', 'account', 'cac', 'email'}
+SUPPORTED_IDENTIFIER_TYPES = {'phone', 'nin', 'bvn', 'account', 'cac', 'email', 'plate_vin', 'property_ref', 'cert_no'}
 
 PHONE_DELIMITERS_REGEX = re.compile(r'[\s().-]')
 PHONE_ALLOWED_CHARS_REGEX = re.compile(r'^[0-9\s().+\-]+$')
@@ -99,6 +99,24 @@ def normalize_identifier(identifier_type: str, raw_value: str) -> str:
         except ValidationError:
             raise ValueError("Email address format is invalid.")
         return lowered
+
+    elif identifier_type == 'plate_vin':
+        stripped = re.sub(r'[\s\-_]', '', cleaned).upper()
+        if 4 <= len(stripped) <= 20:
+            return stripped
+        raise ValueError("Vehicle Plate or VIN number must be between 4 and 20 alphanumeric characters.")
+
+    elif identifier_type == 'property_ref':
+        stripped = re.sub(r'[\s]', '', cleaned).upper()
+        if 3 <= len(stripped) <= 40:
+            return stripped
+        raise ValueError("Property, Land Title, or C of O reference must be between 3 and 40 characters.")
+
+    elif identifier_type == 'cert_no':
+        stripped = re.sub(r'[\s]', '', cleaned).upper()
+        if 3 <= len(stripped) <= 50:
+            return stripped
+        raise ValueError("Certificate or matriculation number must be between 3 and 50 characters.")
 
     raise ValueError(f"Unhandled identifier type '{identifier_type}'.")
 

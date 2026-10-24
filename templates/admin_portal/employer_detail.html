@@ -1,10 +1,11 @@
 {% extends "admin_portal/base_admin.html" %}
-{% block title %}{{ profile.company_name }} — Employer Detail | VerifyNG Admin{% endblock %}
+{% block title %}{{ profile.company_name }} — Employer Detail | {{ site_config.site_name|default:"VerifyNG" }} Admin{% endblock %}
 
 {% block breadcrumb %}
 <li class="breadcrumb-item"><a href="{% url 'admin_portal:overview' %}">Overview</a></li>
 <li class="breadcrumb-item"><a href="{% url 'admin_portal:employer_profiles' %}">Employers</a></li>
 <li class="breadcrumb-item active">{{ profile.company_name }}</li>
+
 {% endblock %}
 
 {% block admin_body %}
@@ -16,6 +17,10 @@
     <p class="mb-0">
       {% if profile.is_verified %}
         <span class="adm-badge green"><span class="dot"></span>Verified {{ profile.organization_type_display }}</span>
+      {% elif profile.verification_status == 'pending' %}
+        <span class="adm-badge amber"><span class="dot"></span>Pending CAC Review</span>
+      {% elif profile.verification_status == 'rejected' %}
+        <span class="adm-badge red" title="{{ profile.rejection_reason }}"><span class="dot"></span>CAC Declined</span>
       {% else %}
         <span class="adm-badge amber"><span class="dot"></span>Unverified</span>
       {% endif %}
@@ -53,18 +58,30 @@
       Revoke Plan
     </button>
     {% endif %}
-        {% if not profile.is_verified %}
-    <button type="button" class="btn-adm-outline-primary"
+    {% if profile.has_cac_document %}
+    <button type="button" class="btn-adm-outline-primary" data-bs-toggle="modal" data-bs-target="#viewCacModal">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      View CAC Document
+    </button>
+    {% endif %}
+    {% if not profile.is_verified %}
+    <button type="button" class="btn-adm-primary"
             data-confirm-action=""
-            data-title="Verify Employer Profile"
-            data-body="Are you sure you want to approve and mark <strong>{{ profile.company_name }}</strong> as a Verified Employer? This will activate their verified organization badge and team access."
-            data-confirm-label="Yes, Verify Employer"
+            data-title="Approve Employer CAC Verification"
+            data-body="Are you sure you want to approve CAC verification for <strong>{{ profile.company_name }}</strong> (CAC RC/BN: {{ profile.company_rc_number|default:'Not provided' }})?<br><br>This will activate their verified organization badge and team access."
+            data-confirm-label="Yes, Approve & Verify"
             data-confirm-class="btn-primary"
             data-form-action="{% url 'admin_portal:employer_action' profile.public_id %}"
             data-hidden-action="verify">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-      Verify Employer
+      Approve &amp; Verify
     </button>
+    {% if profile.has_cac_document or profile.verification_status == 'pending' %}
+    <button type="button" class="btn-adm-outline-danger" data-bs-toggle="modal" data-bs-target="#rejectCacModal">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+      Decline CAC Proof
+    </button>
+    {% endif %}
     {% else %}
     <button type="button" class="btn-adm-outline-warning"
             data-confirm-action=""
@@ -119,7 +136,44 @@
             </tr>
             <tr style="border-bottom:1px solid var(--adm-border);">
               <td class="py-2 td-muted" style="font-size:0.82rem;">RC / BN Number</td>
-              <td class="py-2 mono" style="font-size:0.845rem;">{{ profile.company_rc_number|default:"—" }}</td>
+              <td class="py-2 mono" style="font-size:0.845rem;">
+                {{ profile.company_rc_number|default:"—" }}
+                {% if profile.is_verified %}
+                  <span class="adm-badge adm-badge-green ms-1" style="font-size:0.68rem;">Verified</span>
+                {% elif profile.verification_status == 'pending' %}
+                  <span class="adm-badge adm-badge-amber ms-1" style="font-size:0.68rem;">Under Review</span>
+                {% elif profile.verification_status == 'rejected' %}
+                  <span class="adm-badge adm-badge-red ms-1" style="font-size:0.68rem;">Declined</span>
+                {% endif %}
+              </td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--adm-border);">
+              <td class="py-2 td-muted" style="font-size:0.82rem;">CAC Proof Document</td>
+              <td class="py-2" style="font-size:0.845rem;">
+                {% if profile.has_cac_document %}
+                  <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <button type="button" class="btn btn-adm-sm btn-adm-primary d-inline-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#viewCacModal">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                      View Document
+                    </button>
+                    <a href="{% url 'admin_portal:employer_cac_document' profile.public_id %}" target="_blank" rel="noopener noreferrer" class="btn btn-adm-sm btn-adm-outline d-inline-flex align-items-center gap-1">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                      Open in Tab
+                    </a>
+                  </div>
+                  <div class="text-muted mt-1" style="font-size:0.72rem;">
+                    Uploaded {{ profile.cac_uploaded_at|date:"d M Y, H:i"|default:"Recently" }}
+                    &bull; {% if profile.cac_document_is_pdf %}PDF Document{% else %}Image Document{% endif %}
+                  </div>
+                  {% if profile.verification_status == 'rejected' and profile.rejection_reason %}
+                  <div class="text-danger mt-1 small" style="font-size:0.75rem;">
+                    <strong>Declined reason:</strong> {{ profile.rejection_reason }}
+                  </div>
+                  {% endif %}
+                {% else %}
+                  <span class="text-muted">No document uploaded yet</span>
+                {% endif %}
+              </td>
             </tr>
             <tr style="border-bottom:1px solid var(--adm-border);">
               <td class="py-2 td-muted" style="font-size:0.82rem;">Industry</td>
@@ -657,6 +711,101 @@
     </div>
   </div>
 </div>
+
+{# ── In-Browser CAC Document Viewer Modal ── #}
+{% if profile.has_cac_document %}
+<div class="modal fade" id="viewCacModal" tabindex="-1" aria-labelledby="viewCacModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-xl">
+    <div class="modal-content shadow-lg border-0" style="border-radius:12px;">
+      <div class="modal-header border-bottom py-3">
+        <h5 class="modal-title fw-bold" id="viewCacModalLabel">
+          CAC Incorporation Document &mdash; {{ profile.company_name }}
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-2 p-md-3 bg-light text-center">
+        {% if profile.cac_document_is_pdf %}
+          <object data="{% url 'admin_portal:employer_cac_document' profile.public_id %}#toolbar=0" type="application/pdf" class="w-100 rounded border bg-white" style="height:75vh;min-height:550px;">
+            <iframe src="{% url 'admin_portal:employer_cac_document' profile.public_id %}#toolbar=0" class="w-100 h-100 border-0" style="height:75vh;min-height:550px;">
+              <div class="p-4 text-center bg-white rounded">
+                <p class="text-muted small mb-3">Your browser does not render inline PDF previews.</p>
+                <a href="{% url 'admin_portal:employer_cac_document' profile.public_id %}" target="_blank" class="btn btn-adm-primary">
+                  Open PDF in New Tab
+                </a>
+              </div>
+            </iframe>
+          </object>
+        {% else %}
+          <img src="{% url 'admin_portal:employer_cac_document' profile.public_id %}" alt="CAC Incorporation Proof" class="img-fluid rounded border shadow-sm" style="max-height:80vh;object-fit:contain;">
+        {% endif %}
+      </div>
+      <div class="modal-footer border-top py-2 d-flex justify-content-between">
+        <div class="small text-muted">
+          RC/BN: <strong>{{ profile.company_rc_number|default:"—" }}</strong> &bull; Uploaded {{ profile.cac_uploaded_at|date:"d M Y, H:i" }}
+        </div>
+        <div class="d-flex gap-2">
+          <a href="{% url 'admin_portal:employer_cac_document' profile.public_id %}" target="_blank" rel="noopener noreferrer" class="btn btn-adm-sm btn-adm-outline">
+            Open in Full Tab
+          </a>
+          <button type="button" class="btn btn-adm-sm btn-adm-outline" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{# ── Decline CAC Proof Modal with Spinner ── #}
+<div class="modal fade" id="rejectCacModal" tabindex="-1" aria-labelledby="rejectCacModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content shadow-lg border-0" style="border-radius:14px;">
+      <form method="post" action="{% url 'admin_portal:employer_action' profile.public_id %}" id="rejectCacForm">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="reject">
+        <div class="modal-header border-0 pb-0">
+          <h5 class="modal-title fw-bold text-danger" id="rejectCacModalLabel">Decline CAC Verification</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body py-3">
+          <p class="small text-secondary mb-3">
+            Please provide a specific compliance reason for declining the CAC proof for <strong>{{ profile.company_name }}</strong>. This explanation will be displayed to the employer so they can correct their documents.
+          </p>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold" for="rejectReasonInput">Reason for Decline <span class="text-danger">*</span></label>
+            <textarea name="rejection_reason" id="rejectReasonInput" class="form-control" rows="3" required
+                      placeholder="e.g. Uploaded document is illegible, company registration name does not match CAC record, or RC number is invalid."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer border-0 pt-0 gap-2">
+          <button type="button" class="btn btn-outline-secondary btn-sm px-4" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" id="rejectSubmitBtn" class="btn btn-danger btn-sm px-4 d-inline-flex align-items-center gap-2">
+            <span id="rejectBtnLabel">Yes, Decline CAC Proof</span>
+            <span id="rejectSpinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const rejectForm = document.getElementById('rejectCacForm');
+  const rejectBtn = document.getElementById('rejectSubmitBtn');
+  const rejectSpinner = document.getElementById('rejectSpinner');
+  const rejectLabel = document.getElementById('rejectBtnLabel');
+
+  if (rejectForm && rejectBtn) {
+    rejectForm.addEventListener('submit', function () {
+      rejectBtn.disabled = true;
+      rejectBtn.style.pointerEvents = 'none';
+      if (rejectSpinner) rejectSpinner.classList.remove('d-none');
+      if (rejectLabel) rejectLabel.textContent = 'Declining…';
+    });
+  }
+});
+</script>
+
 {% endblock admin_body %}
 {% block admin_scripts %}
 <script>
