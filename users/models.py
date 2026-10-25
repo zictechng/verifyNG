@@ -231,6 +231,10 @@ class LoginAudit(models.Model):
     def __str__(self):
         return f"{self.username_attempted} ({self.status}) at {self.timestamp}"
 
+    @property
+    def was_successful(self) -> bool:
+        return self.status == 'success'
+
 
 class UserServiceAccess(models.Model):
     """
@@ -241,10 +245,16 @@ class UserServiceAccess(models.Model):
     """
 
     SERVICE_CHOICES = (
-        ('check',        'Search / Check'),
-        ('fraud_report', 'Fraud Reporting'),
-        ('verification', 'Identity Verification'),
-        ('certificate',  'Certificate Application'),
+        ('public_check',       'Public Record Check (/check/)'),
+        ('person_check',       'Person Quick-Check'),
+        ('staff_check',        'Staff Background Check'),
+        ('bulk_upload',        'Bulk CSV Screening'),
+        ('verification',       'Business / CAC Verification'),
+        ('certificate',        'TrustPass Certificate Application'),
+        ('certificate_verify', 'Verify Workforce Certificate (TrustPass)'),
+        ('monitoring',         'Continuous Staff Monitoring'),
+        ('fraud_report',       'Fraud Crime Reporting'),
+        ('misconduct_report',  'Staff Misconduct Reporting'),
     )
 
     user = models.ForeignKey(

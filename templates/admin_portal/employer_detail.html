@@ -262,6 +262,58 @@
     {% endif %}
   </div>
   <div class="p-3 p-md-4">
+    <!-- Live Billing & Plan Status Indicator -->
+    {% if active_subscription %}
+      <div class="p-3 mb-3 rounded-3" style="background:#f0fdf4; border:1px solid #bbf7d0;">
+        <div class="d-flex align-items-center justify-content-between mb-1 flex-wrap gap-2">
+          <span class="small fw-bold text-success" style="font-size:0.82rem;">
+            <i class="bi bi-patch-check-fill me-1"></i>Active Commercial Plan: {{ active_subscription.plan.name }}
+          </span>
+          <span class="adm-badge adm-badge-green" style="font-size:0.72rem;">
+            {% if active_subscription.plan.has_unlimited_checks %}
+              Unlimited Checks
+            {% else %}
+              {{ active_subscription.remaining_checks }} / {{ active_subscription.plan.check_limit }} checks remaining
+            {% endif %}
+          </span>
+        </div>
+        <div class="text-muted small" style="font-size:0.75rem;">
+          Period: {{ active_subscription.current_period_start|date:"d M Y" }} to {{ active_subscription.current_period_end|date:"d M Y" }} &bull; Automatically metered per team check.
+        </div>
+      </div>
+    {% elif profile.is_billing_exempt %}
+      <div class="p-3 mb-3 rounded-3" style="background:#f5f3ff; border:1px solid #ddd6fe;">
+        <div class="d-flex align-items-center justify-content-between mb-1 flex-wrap gap-2">
+          <span class="small fw-bold" style="color:#6d28d9; font-size:0.82rem;">
+            <i class="bi bi-award-fill me-1"></i>Master VIP Exemption Active
+          </span>
+          <span class="adm-badge" style="background:#ede9fe; color:#6d28d9; border:1px solid #c4b5fd; font-size:0.72rem;">All Organization Services Waived</span>
+        </div>
+        <div class="text-muted small" style="font-size:0.75rem;">
+          This organization and all team members bypass payment checks without subscription deductions.
+        </div>
+      </div>
+    {% else %}
+      <div class="p-3 mb-3 rounded-3" style="background:{% if free_quota.checks_used >= site_settings.free_check_limit %}#fef2f2; border:1px solid #fecaca;{% else %}#eff6ff; border:1px solid #bfdbfe;{% endif %};">
+        <div class="d-flex align-items-center justify-content-between mb-1 flex-wrap gap-2">
+          <span class="small fw-bold {% if free_quota.checks_used >= site_settings.free_check_limit %}text-danger{% else %}text-primary{% endif %}" style="font-size:0.82rem;">
+            <i class="bi {% if free_quota.checks_used >= site_settings.free_check_limit %}bi-exclamation-octagon-fill text-danger{% else %}bi-info-circle-fill text-primary{% endif %} me-1"></i>
+            {% if free_quota.checks_used >= site_settings.free_check_limit %}Paywall Active (Free Quota Exhausted){% else %}Starter Free Tier{% endif %}
+          </span>
+          <span class="adm-badge {% if free_quota.checks_used >= site_settings.free_check_limit %}adm-badge-red{% else %}adm-badge-blue{% endif %}" style="font-size:0.72rem;">
+            {{ free_quota.checks_used }} / {{ site_settings.free_check_limit }} free checks used
+          </span>
+        </div>
+        <div class="text-muted small" style="font-size:0.75rem;">
+          {% if free_quota.checks_used >= site_settings.free_check_limit %}
+            Company has consumed all free starter checks. Subscription or admin waiver required to perform additional candidate verifications.
+          {% else %}
+            Unsubscribed company using platform starter allowance.
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+
     <form method="post" action="{% url 'admin_portal:employer_action' profile.public_id %}">
       {% csrf_token %}
       <input type="hidden" name="action" value="update_billing_exempt">
@@ -283,43 +335,112 @@
       </div>
       <!-- Granular Service Matrix Grid (Mobile-friendly responsive cards) -->
       <div class="row g-3">
-        <!-- 1. Fraud Reporting (Always Free) -->
+        <!-- 1. Fraud Crime Reporting (Always Free) -->
         <div class="col-12 col-md-6">
           <div class="p-3 rounded-3 border h-100 d-flex justify-content-between align-items-center bg-light">
             <div>
               <div class="fw-semibold small d-flex align-items-center gap-1">
-                <i class="bi bi-shield-exclamation text-danger"></i> Fraud Crime Reporting
+                <i class="bi bi-shield-exclamation text-danger"></i> Fraud Crime Reporting (<code>/reports/create/</code>)
               </div>
-              <div class="small text-muted" style="font-size:0.75rem;">Submit scam incidents and suspect fraud reports.</div>
+              <div class="small text-muted" style="font-size:0.75rem;">Citizen and suspect crime reports, fraud alerts.</div>
             </div>
             <span class="adm-badge green text-nowrap"><i class="bi bi-check me-1"></i>Always Free</span>
           </div>
         </div>
-        <!-- 2. Staff / Candidate Checks -->
+
+        <!-- 2. Verify Workforce Certificate -->
         <div class="col-12 col-md-6">
           <div class="p-3 rounded-3 border h-100 d-flex justify-content-between align-items-center">
             <div>
               <div class="fw-semibold small d-flex align-items-center gap-1">
-                <i class="bi bi-person-check text-primary"></i> Staff &amp; Person Checks
+                <i class="bi bi-patch-check-fill text-success"></i> Verify Workforce Certificate (<code>/employer/certificate/verify/</code>)
               </div>
-              <div class="small text-muted" style="font-size:0.75rem;">Instant NIN &amp; phone searches, trust scores, flag counts.</div>
+              <div class="small text-muted" style="font-size:0.75rem;">Real-time validation of candidate TrustPass credentials and live standing.</div>
             </div>
             <div class="form-check form-switch mb-0 ms-2">
               <input class="form-check-input" type="checkbox" role="switch"
-                     name="exempt_services" value="check" id="empSvcCheck"
-                     {% if 'check' in profile.exempt_services or profile.is_billing_exempt %}checked{% endif %}
+                     name="exempt_services" value="certificate_verify" id="empSvcCertVerify"
+                     {% if 'certificate_verify' in profile.exempt_services or profile.is_billing_exempt %}checked{% endif %}
                      style="cursor:pointer;width:2.5em;height:1.3em;">
             </div>
           </div>
         </div>
-        <!-- 3. Bulk CSV Checks -->
+
+        <!-- 3. Staff Misconduct Reporting (Always Free) -->
+        <div class="col-12 col-md-6">
+          <div class="p-3 rounded-3 border h-100 d-flex justify-content-between align-items-center bg-light">
+            <div>
+              <div class="fw-semibold small d-flex align-items-center gap-1">
+                <i class="bi bi-exclamation-octagon text-danger"></i> Staff Misconduct Reporting (<code>/employer/misconduct/report/</code>)
+              </div>
+              <div class="small text-muted" style="font-size:0.75rem;">Submit formal incident report against certified staff.</div>
+            </div>
+            <span class="adm-badge green text-nowrap"><i class="bi bi-check me-1"></i>Always Free</span>
+          </div>
+        </div>
+
+        <!-- 4. Public Record Search Engine -->
         <div class="col-12 col-md-6">
           <div class="p-3 rounded-3 border h-100 d-flex justify-content-between align-items-center">
             <div>
               <div class="fw-semibold small d-flex align-items-center gap-1">
-                <i class="bi bi-file-earmark-spreadsheet text-success"></i> Bulk CSV Candidate Checks
+                <i class="bi bi-search text-primary"></i> Public Record Search Engine (<code>/check/</code>)
               </div>
-              <div class="small text-muted" style="font-size:0.75rem;">Batch candidate screening up to 500 records per upload.</div>
+              <div class="small text-muted" style="font-size:0.75rem;">Public search engine lookup by NIN, Phone, or hash.</div>
+            </div>
+            <div class="form-check form-switch mb-0 ms-2">
+              <input class="form-check-input" type="checkbox" role="switch"
+                     name="exempt_services" value="public_check" id="empSvcPublicCheck"
+                     {% if 'public_check' in profile.exempt_services or 'check' in profile.exempt_services or profile.is_billing_exempt %}checked{% endif %}
+                     style="cursor:pointer;width:2.5em;height:1.3em;">
+            </div>
+          </div>
+        </div>
+
+        <!-- 5. Person Quick-Check -->
+        <div class="col-12 col-md-6">
+          <div class="p-3 rounded-3 border h-100 d-flex justify-content-between align-items-center">
+            <div>
+              <div class="fw-semibold small d-flex align-items-center gap-1">
+                <i class="bi bi-person-check text-info"></i> Person Quick-Check (<code>/employer/person-check/</code>)
+              </div>
+              <div class="small text-muted" style="font-size:0.75rem;">Instant candidate screening by Phone or NIN with quick indicator.</div>
+            </div>
+            <div class="form-check form-switch mb-0 ms-2">
+              <input class="form-check-input" type="checkbox" role="switch"
+                     name="exempt_services" value="person_check" id="empSvcPersonCheck"
+                     {% if 'person_check' in profile.exempt_services or 'quick_check' in profile.exempt_services or profile.is_billing_exempt %}checked{% endif %}
+                     style="cursor:pointer;width:2.5em;height:1.3em;">
+            </div>
+          </div>
+        </div>
+
+        <!-- 6. Staff Background Check -->
+        <div class="col-12 col-md-6">
+          <div class="p-3 rounded-3 border h-100 d-flex justify-content-between align-items-center">
+            <div>
+              <div class="fw-semibold small d-flex align-items-center gap-1">
+                <i class="bi bi-person-lines-fill text-primary"></i> Staff Background Check (<code>/employer/staff/check/</code>)
+              </div>
+              <div class="small text-muted" style="font-size:0.75rem;">Formal candidate background investigation dossier.</div>
+            </div>
+            <div class="form-check form-switch mb-0 ms-2">
+              <input class="form-check-input" type="checkbox" role="switch"
+                     name="exempt_services" value="staff_check" id="empSvcStaffCheck"
+                     {% if 'staff_check' in profile.exempt_services or profile.is_billing_exempt %}checked{% endif %}
+                     style="cursor:pointer;width:2.5em;height:1.3em;">
+            </div>
+          </div>
+        </div>
+
+        <!-- 7. Bulk CSV Screening -->
+        <div class="col-12 col-md-6">
+          <div class="p-3 rounded-3 border h-100 d-flex justify-content-between align-items-center">
+            <div>
+              <div class="fw-semibold small d-flex align-items-center gap-1">
+                <i class="bi bi-file-earmark-spreadsheet text-success"></i> Bulk CSV Screening (<code>/employer/bulk-checks/</code>)
+              </div>
+              <div class="small text-muted" style="font-size:0.75rem;">Batch employee roster screening up to 500 records per upload.</div>
             </div>
             <div class="form-check form-switch mb-0 ms-2">
               <input class="form-check-input" type="checkbox" role="switch"
@@ -329,12 +450,13 @@
             </div>
           </div>
         </div>
-        <!-- 4. Continuous Monitoring -->
+
+        <!-- 8. Continuous Staff Monitoring -->
         <div class="col-12 col-md-6">
           <div class="p-3 rounded-3 border h-100 d-flex justify-content-between align-items-center">
             <div>
               <div class="fw-semibold small d-flex align-items-center gap-1">
-                <i class="bi bi-broadcast text-warning"></i> Continuous Staff Monitoring
+                <i class="bi bi-broadcast text-warning"></i> Continuous Staff Monitoring (<code>/employer/monitoring/</code>)
               </div>
               <div class="small text-muted" style="font-size:0.75rem;">24/7 background watchers with email alerts on new flags.</div>
             </div>
@@ -346,12 +468,13 @@
             </div>
           </div>
         </div>
-        <!-- 5. Identity Verification -->
+
+        <!-- 9. Business & Identity Verification -->
         <div class="col-12 col-md-6">
           <div class="p-3 rounded-3 border h-100 d-flex justify-content-between align-items-center">
             <div>
               <div class="fw-semibold small d-flex align-items-center gap-1">
-                <i class="bi bi-patch-check text-info"></i> Identity &amp; Document Verification
+                <i class="bi bi-patch-check text-info"></i> Business &amp; ID Verification (<code>/verification/create/</code>)
               </div>
               <div class="small text-muted" style="font-size:0.75rem;">Official government document and CAC diligence requests.</div>
             </div>
@@ -363,14 +486,15 @@
             </div>
           </div>
         </div>
-        <!-- 6. Trust Certificates -->
+
+        <!-- 10. TrustPass Certificate Application -->
         <div class="col-12 col-md-6">
           <div class="p-3 rounded-3 border h-100 d-flex justify-content-between align-items-center">
             <div>
               <div class="fw-semibold small d-flex align-items-center gap-1">
-                <i class="bi bi-award text-secondary"></i> Trust Certificates
+                <i class="bi bi-award text-secondary"></i> TrustPass Certificate Application (<code>/verification/certificate/apply/</code>)
               </div>
-              <div class="small text-muted" style="font-size:0.75rem;">Issuance of cryptographically signed PDF trust credentials.</div>
+              <div class="small text-muted" style="font-size:0.75rem;">Issuance of cryptographically signed TrustPass™ workforce credentials.</div>
             </div>
             <div class="form-check form-switch mb-0 ms-2">
               <input class="form-check-input" type="checkbox" role="switch"
@@ -397,6 +521,68 @@
         </div>
       </div>
     </form>
+  </div>
+</div>
+
+{# ── Service Access Restrictions ──────────────────────────────────────── #}
+<div class="adm-card mt-4" id="serviceAccessCard">
+  <div class="adm-card-header d-flex justify-content-between align-items-center">
+    <div>
+      <h2 class="adm-card-title d-flex align-items-center gap-2 mb-1">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+        Service Access Restrictions
+      </h2>
+      <p class="small text-muted mb-0">Restrict this employer organization and its team members from specific services without suspending the account.</p>
+    </div>
+  </div>
+  <div class="p-3 p-md-4">
+    <div class="row g-3">
+      {% for service_key, service_label in service_choices %}
+      <div class="col-12 col-md-6" id="svc-row-{{ service_key }}">
+        <div class="p-3 rounded-3 border h-100 d-flex justify-content-between align-items-center">
+          <div>
+            <div class="fw-semibold small">{{ service_label }}</div>
+            <div class="small mt-1 svc-status-text" id="svc-status-{{ service_key }}" style="font-size:0.75rem;"></div>
+          </div>
+          <div class="form-check form-switch mb-0 ms-3">
+            <input class="form-check-input svc-toggle"
+                   type="checkbox" role="switch"
+                   data-service="{{ service_key }}"
+                   data-label="{{ service_label }}"
+                   style="cursor:pointer;width:2.5em;height:1.3em;">
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Toast for toggle feedback -->
+    <div id="svcToast" class="alert small mb-0 shadow mt-3 d-none"
+         style="position:fixed;bottom:1.5rem;right:1.5rem;z-index:1070;min-width:280px;"></div>
+  </div>
+</div>
+
+<!-- Restrict Service Modal -->
+<div class="modal fade" id="restrictServiceModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header py-3 px-4" style="background:#1e2a3a;">
+        <h5 class="modal-title fw-semibold text-white fs-6">Restrict Service Access</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body px-4 py-3">
+        <p class="small mb-3 text-muted" id="rsModalMsg"></p>
+        <textarea id="rsModalReason" class="form-control form-control-sm"
+                  rows="3" placeholder="Reason for restriction (optional)"></textarea>
+      </div>
+      <div class="modal-footer border-top px-4 py-3 gap-2">
+        <button type="button" class="btn btn-outline-secondary btn-sm px-3" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-warning btn-sm px-4 fw-semibold" id="rsModalConfirmBtn">
+          <span id="rsModalSpinner" class="spinner-border spinner-border-sm me-1 d-none"></span>
+          Restrict Service
+        </button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -522,10 +708,12 @@
               <td class="mono" style="font-size:0.8rem;">{{ log.ip_address|default:"—" }}</td>
               <td class="td-muted" style="font-size:0.78rem;">{{ log.user_agent|truncatechars:50|default:"—" }}</td>
               <td>
-                {% if log.was_successful %}
-                  <span class="adm-badge green" style="font-size:0.7rem;">Success</span>
+                {% if log.status == 'success' or log.was_successful %}
+                  <span class="adm-badge green" style="font-size:0.7rem;"><span class="dot"></span>Success</span>
+                {% elif log.status == 'blocked' %}
+                  <span class="adm-badge amber" style="font-size:0.7rem;"><span class="dot"></span>Blocked</span>
                 {% else %}
-                  <span class="adm-badge red" style="font-size:0.7rem;">Failed</span>
+                  <span class="adm-badge red" style="font-size:0.7rem;"><span class="dot"></span>Failed</span>
                 {% endif %}
               </td>
             </tr>
@@ -853,8 +1041,130 @@ document.addEventListener('DOMContentLoaded', function () {
         submitBtn.disabled = true;
       });
     }
-  })();
+
+})();
 </script>
 
+<script>
+(function () {
+  const rules = {{ service_access_rules_json|default:'[]'|safe }};
+  const stateMap = {};
+  rules.forEach(r => { stateMap[r.service] = r.is_restricted; });
+
+  document.querySelectorAll('.svc-toggle').forEach(function (chk) {
+    const svc = chk.dataset.service;
+    const restricted = stateMap[svc] === true;
+    chk.checked = !restricted;
+    updateStatus(svc, restricted);
+  });
+
+  function updateStatus(svc, restricted) {
+    const el = document.getElementById('svc-status-' + svc);
+    if (!el) return;
+    if (restricted) {
+      el.textContent = 'Restricted (Blocked)';
+      el.className = 'small mt-1 text-danger fw-semibold';
+    } else {
+      el.textContent = 'Active (Allowed)';
+      el.className = 'small mt-1 text-success';
+    }
+  }
+
+  function showToast(ok, msg) {
+    const t = document.getElementById('svcToast');
+    if (!t) return;
+    t.className = 'alert small mb-0 shadow ' + (ok ? 'alert-success' : 'alert-danger');
+    t.textContent = msg;
+    t.classList.remove('d-none');
+    setTimeout(() => { t.classList.add('d-none'); }, 3500);
+  }
+
+  let pendingCheckbox = null;
+  let pendingService  = null;
+  const targetUserPublicId = '{{ profile.user.public_id }}';
+  const modalEl = document.getElementById('restrictServiceModal');
+  const modal   = modalEl ? new bootstrap.Modal(modalEl) : null;
+  const msgEl   = document.getElementById('rsModalMsg');
+  const reasonEl= document.getElementById('rsModalReason');
+  const confirmBtn = document.getElementById('rsModalConfirmBtn');
+  const spinner = document.getElementById('rsModalSpinner');
+
+  document.querySelectorAll('.svc-toggle').forEach(function (chk) {
+    chk.addEventListener('change', function () {
+      const svc   = this.dataset.service;
+      const label = this.dataset.label;
+
+      if (!this.checked) {
+        this.checked = true;
+        pendingCheckbox = this;
+        pendingService  = svc;
+        if (msgEl) msgEl.textContent = `Are you sure you want to restrict ${profileCompanyName} team from accessing "${label}"?`;
+        if (reasonEl) reasonEl.value = '';
+        if (modal) modal.show();
+      } else {
+        postServiceAccess(svc, 'allow', '', chk);
+      }
+    });
+  });
+
+  const profileCompanyName = '{{ profile.company_name|escapejs }}';
+
+  if (confirmBtn) {
+    confirmBtn.addEventListener('click', function () {
+      if (!pendingService || !pendingCheckbox) return;
+      const reason = reasonEl ? reasonEl.value.trim() : '';
+      if (spinner) spinner.classList.remove('d-none');
+      confirmBtn.disabled = true;
+
+      postServiceAccess(pendingService, 'restrict', reason, pendingCheckbox, function () {
+        if (spinner) spinner.classList.add('d-none');
+        confirmBtn.disabled = false;
+        if (modal) modal.hide();
+      });
+    });
+  }
+
+  function postServiceAccess(service, action, reason, chk, onComplete) {
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value
+      || document.cookie.split('; ').find(r => r.startsWith('csrftoken='))?.split('=')[1];
+
+    fetch(`/admin-portal/users/${targetUserPublicId}/service-access/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-CSRFToken': csrfToken,
+      },
+      body: new URLSearchParams({ service, action, reason }),
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.ok) {
+        const restricted = action === 'restrict';
+        chk.checked = !restricted;
+        updateStatus(service, restricted);
+        showToast(true, data.message || 'Updated successfully.');
+      } else {
+        chk.checked = !chk.checked;
+        showToast(false, data.error || 'Request failed.');
+      }
+    })
+    .catch(() => {
+      chk.checked = !chk.checked;
+      showToast(false, 'Network error. Please try again.');
+    })
+    .finally(() => {
+      if (onComplete) onComplete();
+    });
+  }
+  const empMaster = document.getElementById('empMasterExempt');
+  if (empMaster) {
+    empMaster.addEventListener('change', function () {
+      document.querySelectorAll('input[name="exempt_services"]').forEach(function (chk) {
+        chk.checked = empMaster.checked;
+      });
+    });
+  }
+})();
+</script>
 {% endblock admin_scripts %}
 

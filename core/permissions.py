@@ -50,6 +50,22 @@ def is_agency(user):
     return getattr(user, 'role', None) == 'agency'
 
 
+def get_user_home_url(user) -> str:
+    """
+    Returns the appropriate destination dashboard URL for a user based on their role:
+    - Employer / Agency / Business / Team Member -> 'employer:dashboard'
+    - Staff / Superuser -> 'admin_portal:overview'
+    - Regular Candidate / Individual -> 'dashboard:index'
+    """
+    if not user or not user.is_authenticated:
+        return 'public:home'
+    if getattr(user, 'is_staff', False) or getattr(user, 'is_superuser', False):
+        return 'admin_portal:overview'
+    if is_employer(user):
+        return 'employer:dashboard'
+    return 'dashboard:index'
+
+
 def can_view_report(user, report):
     """
     Report visibility policy:

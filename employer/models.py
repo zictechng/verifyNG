@@ -298,6 +298,7 @@ class StaffCheckRequest(models.Model):
     )
     STATUS_CHOICES = (
         ('pending',     'Pending'),
+        ('pending_payment', 'Pending Payment'),
         ('processing',  'Processing'),
         ('completed',   'Completed'),
         ('failed',      'Failed'),

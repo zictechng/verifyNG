@@ -27,7 +27,7 @@ from reports.services import (
     fulfill_moderator_info_request,
 )
 from reports.storage_services import get_storage_service_for_provider, StorageError
-from core.permissions import can_view_report, can_view_evidence, is_moderator
+from core.permissions import can_view_report, can_view_evidence, is_moderator, get_user_home_url
 from core.rate_limiting import get_client_ip
 
 logger = logging.getLogger(__name__)
@@ -39,14 +39,23 @@ class ReportCreateView(LoginRequiredMixin, FormView):
 
     def dispatch(self, request, *args, **kwargs):
         # LoginRequiredMixin handles unauthenticated users via super().
-        # For authenticated-but-unverified users, block here before form renders.
-        if request.user.is_authenticated and not request.user.identity_verified:
-            messages.warning(
-                request,
-                "You must verify your identity (NIN or BVN) before submitting a fraud report. "
-                "Please complete identity verification first."
-            )
-            return redirect('verification:create')
+        if request.user.is_authenticated:
+            from payments.services import check_user_entitlement
+            allowed, reason, details = check_user_entitlement(request.user, service='fraud_report')
+            if not allowed and reason == 'service_restricted':
+                messages.error(
+                    request,
+                    details.get('message', "Access to Fraud Crime Reporting has been restricted for your account by platform administration.")
+                )
+                return redirect(get_user_home_url(request.user))
+
+            if not request.user.identity_verified:
+                messages.warning(
+                    request,
+                    "You must verify your identity (NIN or BVN) before submitting a fraud report. "
+                    "Please complete identity verification first."
+                )
+                return redirect('verification:create')
         return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):

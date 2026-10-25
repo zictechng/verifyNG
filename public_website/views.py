@@ -38,7 +38,25 @@ def check(request):
         response['Retry-After'] = str(retry_after)
         return response
 
-    return render(request, 'public/check.html')
+    from payments.models import SiteSettings
+    from payments.services import check_user_entitlement
+    site_settings = SiteSettings.get()
+
+    user_entitlement = None
+    if request.user.is_authenticated:
+        allowed, reason, details = check_user_entitlement(request.user, service='public_check', cost=1)
+        user_entitlement = {
+            'allowed': allowed,
+            'reason': reason,
+            'details': details,
+        }
+
+    context = {
+        'site_settings': site_settings,
+        'is_public_check_free': site_settings.is_service_free('public_check'),
+        'user_entitlement': user_entitlement,
+    }
+    return render(request, 'public/check.html', context)
 
 
 

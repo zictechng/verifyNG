@@ -97,12 +97,15 @@ except ImportError:
     EmployerProfile = None
 
 try:
-    from payments.models import Subscription, Plan, SiteSettings, PlatformConfiguration
+    from payments.models import Subscription, Plan, SiteSettings, PlatformConfiguration, FreeUsageQuota
+    from payments.services import get_active_subscription
 except ImportError:
     Subscription = None
     Plan = None
     SiteSettings = None
     PlatformConfiguration = None
+    FreeUsageQuota = None
+    get_active_subscription = None
 
 logger = logging.getLogger(__name__)
 
@@ -646,14 +649,15 @@ class AdminUserDetailView(SuperAdminRequiredMixin, TemplateView):
         # Available plans for credit subscription modal
         if Plan:
             ctx['available_plans'] = Plan.objects.filter(is_active=True).order_by('display_order', 'price_kobo')
-            # Pass current active plan ID so modal can warn on duplicate selection
-            active_sub = Subscription.objects.filter(
-                user=target_user, status='active'
-            ).select_related('plan').first()
+            active_sub = get_active_subscription(target_user)
+            ctx['active_subscription'] = active_sub
             ctx['user_active_plan_id'] = active_sub.plan.pk if active_sub else None
         else:
             ctx['available_plans'] = []
+            ctx['active_subscription'] = None
             ctx['user_active_plan_id'] = None
+        ctx['free_quota'] = FreeUsageQuota.for_user(target_user)
+        ctx['site_settings'] = SiteSettings.get()
         return ctx
 
 
@@ -1337,18 +1341,26 @@ class AdminEmployerDetailView(SuperAdminRequiredMixin, TemplateView):
         ctx['profile'] = profile
         ctx['team_members'] = team_members
         ctx['active_tab'] = self.request.GET.get('tab', 'login')
-        # Credit Subscription Plan Support
+        # Credit Subscription Plan Support & Entitlement State
         if Plan:
             ctx['available_plans'] = Plan.objects.filter(is_active=True).order_by('display_order', 'price_kobo')
-            active_sub = Subscription.objects.filter(
-                user=profile.user, status='active'
-            ).select_related('plan').first()
+            active_sub = get_active_subscription(profile.user)
             ctx['active_subscription'] = active_sub
             ctx['user_active_plan_id'] = active_sub.plan.pk if active_sub else None
         else:
             ctx['available_plans'] = []
             ctx['active_subscription'] = None
             ctx['user_active_plan_id'] = None
+        ctx['free_quota'] = FreeUsageQuota.for_user(profile.user)
+        ctx['site_settings'] = SiteSettings.get()
+
+        service_rules = UserServiceAccess.objects.filter(user=profile.user)
+        ctx['service_access_rules'] = service_rules
+        ctx['service_access_rules_json'] = json.dumps([
+            {'service': r.service, 'is_restricted': r.is_restricted}
+            for r in service_rules
+        ])
+        ctx['service_choices'] = UserServiceAccess.SERVICE_CHOICES
         return ctx
 
 
@@ -2131,15 +2143,77 @@ class AdminSiteSettingsView(SuperAdminRequiredMixin, TemplateView):
             messages.error(request, "Limits must be whole numbers.")
             return redirect('admin_portal:site_settings')
 
+        site.free_tier_enabled = request.POST.get('free_tier_enabled') == 'on'
         site.maintenance_mode = request.POST.get('maintenance_mode') == 'on'
+
+        # Global Service Entitlement Toggles
+        valid_modes = ('paid', 'free')
+        site.service_quick_check = request.POST.get('service_quick_check', site.service_quick_check)
+        if site.service_quick_check not in valid_modes:
+            site.service_quick_check = 'paid'
+
+        site.service_staff_check = request.POST.get('service_staff_check', site.service_staff_check)
+        if site.service_staff_check not in valid_modes:
+            site.service_staff_check = 'paid'
+
+        site.service_bulk_upload = request.POST.get('service_bulk_upload', site.service_bulk_upload)
+        if site.service_bulk_upload not in valid_modes:
+            site.service_bulk_upload = 'paid'
+
+        site.service_business_verification = request.POST.get('service_business_verification', site.service_business_verification)
+        if site.service_business_verification not in valid_modes:
+            site.service_business_verification = 'paid'
+
+        site.service_public_check = request.POST.get('service_public_check', site.service_public_check)
+        if site.service_public_check not in valid_modes:
+            site.service_public_check = 'paid'
+
+        site.service_certificate_creation = request.POST.get('service_certificate_creation', site.service_certificate_creation)
+        if site.service_certificate_creation not in valid_modes:
+            site.service_certificate_creation = 'paid'
+
+        site.service_certificate_verify = request.POST.get('service_certificate_verify', site.service_certificate_verify)
+        if site.service_certificate_verify not in valid_modes:
+            site.service_certificate_verify = 'paid'
+
+        site.service_monitoring = request.POST.get('service_monitoring', site.service_monitoring)
+        if site.service_monitoring not in valid_modes:
+            site.service_monitoring = 'paid'
+
+        try:
+            site.price_public_check = max(0, int(request.POST.get('price_public_check', site.price_public_check)))
+            site.price_person_check = max(0, int(request.POST.get('price_person_check', site.price_person_check)))
+            site.price_staff_check_standard = max(0, int(request.POST.get('price_staff_check_standard', site.price_staff_check_standard)))
+            site.price_staff_check_enhanced = max(0, int(request.POST.get('price_staff_check_enhanced', site.price_staff_check_enhanced)))
+            site.price_trustpass_1yr = max(0, int(request.POST.get('price_trustpass_1yr', site.price_trustpass_1yr)))
+            site.price_trustpass_3yr = max(0, int(request.POST.get('price_trustpass_3yr', site.price_trustpass_3yr)))
+            site.price_verification_basic = max(0, int(request.POST.get('price_verification_basic', site.price_verification_basic)))
+            site.price_verification_business = max(0, int(request.POST.get('price_verification_business', site.price_verification_business)))
+            site.price_certificate_verify = max(0, int(request.POST.get('price_certificate_verify', site.price_certificate_verify)))
+            site.price_monitoring_annual = max(0, int(request.POST.get('price_monitoring_annual', site.price_monitoring_annual)))
+            site.price_bulk_check_per_row = max(0, int(request.POST.get('price_bulk_check_per_row', site.price_bulk_check_per_row)))
+        except (ValueError, TypeError):
+            pass
+
         site.save()
 
         AuditLog.objects.create(
             action="ADMIN_SITE_SETTINGS_UPDATE",
             performed_by=request.user,
-            details={"free_check_limit": site.free_check_limit}
+            details={
+                "free_tier_enabled": site.free_tier_enabled,
+                "free_check_limit": site.free_check_limit,
+                "service_quick_check": site.service_quick_check,
+                "service_staff_check": site.service_staff_check,
+                "service_bulk_upload": site.service_bulk_upload,
+                "service_business_verification": site.service_business_verification,
+                "service_public_check": site.service_public_check,
+                "service_certificate_creation": site.service_certificate_creation,
+                "service_certificate_verify": site.service_certificate_verify,
+                "service_monitoring": site.service_monitoring,
+            }
         )
-        messages.success(request, "Site settings updated.")
+        messages.success(request, "Global site settings & service entitlements updated successfully.")
         return redirect('admin_portal:site_settings')
 
 

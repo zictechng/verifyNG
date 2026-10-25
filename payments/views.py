@@ -145,6 +145,49 @@ def _activate_free_plan(user, plan: Plan):
 # Payment Callback (Paystack redirects user here after payment)
 # ---------------------------------------------------------------------------
 
+
+def _route_payg_success(request, transaction):
+    meta = (
+        transaction.paystack_response.get('data', {}).get('metadata')
+        or {}
+    )
+    service = meta.get('service', '')
+    if service == 'certificate':
+        cert_id = meta.get('certificate_id')
+        if cert_id:
+            messages.success(
+                request,
+                f"Payment of ₦{transaction.amount_naira:,.0f} verified successfully! "
+                f"Your TrustPass Clearance Application [{cert_id}] has been submitted for review."
+            )
+            return redirect('verification:my_certificate', certificate_id=cert_id)
+    elif service == 'staff_check':
+        check_id = meta.get('staff_check_id')
+        if check_id:
+            messages.success(
+                request,
+                f"Payment of ₦{transaction.amount_naira:,.0f} verified successfully! "
+                "Your staff background check is now processing."
+            )
+            return redirect('employer:staff_check_detail', check_id=check_id)
+    elif service in ('verification', 'business_verification'):
+        req_ref = meta.get('verification_reference')
+        if req_ref:
+            messages.success(
+                request,
+                f"Payment of ₦{transaction.amount_naira:,.0f} verified successfully! "
+                f"Verification request [{req_ref}] is now pending officer review."
+            )
+            return redirect('verification:detail', reference_number=req_ref)
+    elif service in ('person_check', 'quick_check'):
+        messages.success(
+            request,
+            f"Payment of ₦{transaction.amount_naira:,.0f} verified! "
+            "You can now run your person quick-check."
+        )
+        return redirect('employer:person_check_search')
+    return None
+
 @login_required
 def payment_callback(request):
     """
@@ -185,6 +228,10 @@ def payment_callback(request):
         # Route certificate query payments to the dedicated result view
         if request.session.get('pending_cert_query', {}).get('transaction_reference') == reference:
             return redirect('verification:certificate_query_result')
+        if not transaction.plan:
+            payg_redirect = _route_payg_success(request, transaction)
+            if payg_redirect:
+                return payg_redirect
         return render(request, 'payments/callback.html', {
             'success': True,
             'transaction': transaction,
@@ -224,6 +271,11 @@ def payment_callback(request):
     # If this payment was for a certificate query, route to the cert result view
     if success and request.session.get('pending_cert_query', {}).get('transaction_reference') == reference:
         return redirect('verification:certificate_query_result')
+
+    if success and not transaction.plan:
+        payg_redirect = _route_payg_success(request, transaction)
+        if payg_redirect:
+            return payg_redirect
 
     context = {
         'success': success,

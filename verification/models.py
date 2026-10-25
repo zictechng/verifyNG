@@ -32,6 +32,7 @@ class VerificationRequest(models.Model):
 
     STATUS_CHOICES = (
         ('pending', 'Pending'),
+        ('pending_payment', 'Pending Payment'),
         ('in_progress', 'In Progress'),
         ('completed', 'Completed'),
         ('rejected', 'Rejected'),
@@ -190,6 +191,7 @@ class VerificationCertificate(models.Model):
     CERTIFICATE_TYPES = CHECK_LEVEL_CHOICES
     STATUS_CHOICES = (
         ('pending', 'Pending — awaiting officer activation'),
+        ('pending_payment', 'Pending Payment'),
         ('active', 'Active'),
         ('suspended', 'Suspended'),
         ('revoked', 'Revoked'),

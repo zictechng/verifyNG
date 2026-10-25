@@ -11,7 +11,7 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.http import HttpResponseRedirect, Http404, HttpResponse
 from django.urls import reverse
 from verification.tasks import generate_certificate_pdf
-from payments.services import check_user_entitlement, consume_user_entitlement
+from payments.services import check_user_entitlement, consume_user_entitlement, initialize_service_checkout
 from verification.models import VerificationRequest, VerificationResult, VerificationDocument
 from reports.models import AuditLog
 from verification.forms import (
@@ -38,10 +38,10 @@ from verification.services import (
     log_certificate_query,
     generate_certificate_pdf_bytes
 )
-from core.permissions import officer_required, is_verification_officer
+from core.permissions import officer_required, is_verification_officer, get_user_home_url
 from core.rate_limiting import get_client_ip
 from reports.models import FraudReport
-from payments.models import Transaction
+from payments.models import Transaction, SiteSettings
         
 logger = logging.getLogger(__name__)
 
@@ -91,9 +91,32 @@ class VerificationCreateView(LoginRequiredMixin, FormView):
     """Allows authenticated users to request an identity or background verification."""
     form_class = VerificationRequestCreateForm
     template_name = 'verification/request_form.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            allowed, reason, details = check_user_entitlement(request.user, service='verification')
+            if not allowed:
+                if reason == 'service_restricted':
+                    messages.error(
+                        request,
+                        details.get('message', "Access to Identity Verification has been restricted for your account by platform administration.")
+                    )
+                    return redirect(get_user_home_url(request.user))
+                if request.method == 'GET':
+                    messages.warning(
+                        request,
+                        "An active subscription or verified entitlement is required to request identity & document verifications. "
+                        "Please upgrade your plan to continue."
+                    )
+                    return redirect('payments:plans')
+        return super().dispatch(request, *args, **kwargs)
+
     def form_valid(self, form):
         allowed, reason, details = check_user_entitlement(self.request.user, service='verification')
         if not allowed:
+            if reason == 'service_restricted':
+                messages.error(self.request, details.get('message', "Your account has been restricted from requesting verifications."))
+                return redirect(get_user_home_url(self.request.user))
             messages.error(
                 self.request,
                 "An active subscription or verified entitlement is required to request identity & document verifications. "
@@ -309,25 +332,8 @@ class VerificationReportDocumentView(LoginRequiredMixin, DetailView):
             raise PermissionDenied("You do not have authorization to access this verification report.")
 
         # 2. Status gate: Report only exists for completed verifications with a recorded result
-        if obj.status != 'completed':
+        if obj.status != 'completed' or not hasattr(obj, 'result') or obj.result is None:
             raise Http404("Official verification report is only generated for completed verifications.")
-
-
-        # Ensure VerificationResult exists (safeguard for administrator or direct completions)
-        if not hasattr(obj, 'result') or obj.result is None:
-            VerificationResult.objects.get_or_create(
-                request=obj,
-                defaults={
-                    'outcome': 'verified',
-                    'summary': obj.notes or 'Official verification confirmed and approved by administrator.',
-                    'verified_by': self.request.user if (self.request.user.is_superuser or is_verification_officer(self.request.user)) else None,
-                    'verified_at': obj.updated_at or timezone.now(),
-                    'details': {}
-                }
-            )
-            obj.refresh_from_db()
-
-
 
         return obj
 
@@ -377,9 +383,20 @@ class CertificateApplyView(LoginRequiredMixin, View):
     """
     Multi-step TrustPass Background Clearance application wizard (DBS-style).
     Applicants apply directly for their employment or enhanced clearance certificate.
+    Supports both active subscription quota and direct Paystack Pay-As-You-Go checkout.
     """
     template_name = 'verification/certificate_apply.html'
+
     def get(self, request):
+        allowed, reason, details = check_user_entitlement(request.user, service='certificate')
+        if not allowed and reason == 'service_restricted':
+            messages.error(
+                request,
+                details.get('message', "Your account has been restricted from applying for TrustPass certificates by platform administration.")
+            )
+            return redirect(get_user_home_url(request.user))
+
+        site_settings = SiteSettings.get()
         user = request.user
         initial = {
             'full_name': user.get_full_name().strip() or user.username,
@@ -387,39 +404,109 @@ class CertificateApplyView(LoginRequiredMixin, View):
             'check_level': request.GET.get('level', 'employment'),
         }
         form = CertificateApplyForm(initial=initial)
-        return render(request, self.template_name, {'form': form})
+        context = {
+            'form': form,
+            'has_entitlement': allowed,
+            'entitlement_details': details,
+            'price_trustpass_1yr': site_settings.price_trustpass_1yr,
+            'price_trustpass_3yr': site_settings.price_trustpass_3yr,
+        }
+        return render(request, self.template_name, context)
+
     def post(self, request):
+        allowed, reason, details = check_user_entitlement(request.user, service='certificate')
+        if not allowed and reason == 'service_restricted':
+            messages.error(
+                request,
+                details.get('message', "Your account has been restricted from applying for TrustPass certificates by platform administration.")
+            )
+            return redirect(get_user_home_url(request.user))
+
         form = CertificateApplyForm(request.POST, request.FILES)
+        site_settings = SiteSettings.get()
+        context = {
+            'form': form,
+            'has_entitlement': allowed,
+            'entitlement_details': details,
+            'price_trustpass_1yr': site_settings.price_trustpass_1yr,
+            'price_trustpass_3yr': site_settings.price_trustpass_3yr,
+        }
+
         if not form.is_valid():
-            return render(request, self.template_name, {'form': form})
+            return render(request, self.template_name, context)
+
         cd = form.cleaned_data
         ip_addr = get_client_ip(request)
+        tier_choice = cd.get('check_level') or cd.get('certificate_type') or 'employment'
+
         try:
-            certificate = create_trustpass_certificate_application(
-                holder=request.user,
-                full_name=cd['full_name'],
-                check_level=cd.get('check_level') or cd.get('certificate_type') or 'employment',
-                date_of_birth=cd.get('date_of_birth'),
-                gender=cd.get('gender', ''),
-                phone_number=cd.get('phone_number', ''),
-                email=cd.get('email', ''),
-                nin=cd.get('nin', ''),
-                id_document_type=cd.get('id_document_type', ''),
-                id_document_file=cd.get('id_document_file'),
-                employer_name=cd.get('employer_name', ''),
-                job_role=cd.get('job_role', ''),
-                residential_state=cd.get('residential_state', ''),
-                residential_city=cd.get('residential_city', ''),
-                ip_address=ip_addr,
-            )
-            messages.success(
-                request,
-                f"Your TrustPass Clearance Application [{certificate.certificate_id}] has been submitted successfully for verification review."
-            )
-            return redirect('verification:my_certificate', certificate_id=certificate.certificate_id)
+            if allowed:
+                certificate = create_trustpass_certificate_application(
+                    holder=request.user,
+                    full_name=cd['full_name'],
+                    check_level=tier_choice,
+                    date_of_birth=cd.get('date_of_birth'),
+                    gender=cd.get('gender', ''),
+                    phone_number=cd.get('phone_number', ''),
+                    email=cd.get('email', ''),
+                    nin=cd.get('nin', ''),
+                    id_document_type=cd.get('id_document_type', ''),
+                    id_document_file=cd.get('id_document_file'),
+                    employer_name=cd.get('employer_name', ''),
+                    job_role=cd.get('job_role', ''),
+                    residential_state=cd.get('residential_state', ''),
+                    residential_city=cd.get('residential_city', ''),
+                    ip_address=ip_addr,
+                    status='pending',
+                )
+                consume_user_entitlement(request.user, service='certificate')
+                messages.success(
+                    request,
+                    f"Your TrustPass Clearance Application [{certificate.certificate_id}] has been submitted successfully for verification review."
+                )
+                return redirect('verification:my_certificate', certificate_id=certificate.certificate_id)
+            else:
+                certificate = create_trustpass_certificate_application(
+                    holder=request.user,
+                    full_name=cd['full_name'],
+                    check_level=tier_choice,
+                    date_of_birth=cd.get('date_of_birth'),
+                    gender=cd.get('gender', ''),
+                    phone_number=cd.get('phone_number', ''),
+                    email=cd.get('email', ''),
+                    nin=cd.get('nin', ''),
+                    id_document_type=cd.get('id_document_type', ''),
+                    id_document_file=cd.get('id_document_file'),
+                    employer_name=cd.get('employer_name', ''),
+                    job_role=cd.get('job_role', ''),
+                    residential_state=cd.get('residential_state', ''),
+                    residential_city=cd.get('residential_city', ''),
+                    ip_address=ip_addr,
+                    status='pending_payment',
+                )
+                tier_slug = 'enhanced' if tier_choice == 'enhanced' else 'standard'
+                amount_naira = site_settings.get_service_price('certificate', tier_slug)
+
+                checkout_data = initialize_service_checkout(
+                    user=request.user,
+                    service='certificate',
+                    tier=tier_slug,
+                    amount_naira=amount_naira,
+                    metadata={
+                        'certificate_id': certificate.certificate_id,
+                        'check_level': tier_choice,
+                    }
+                )
+                request.session['vng_pending_ref'] = checkout_data['reference']
+                return redirect(checkout_data['authorization_url'])
+
         except ValidationError as e:
             form.add_error(None, e.message if hasattr(e, 'message') else str(e))
-            return render(request, self.template_name, {'form': form})
+            return render(request, self.template_name, context)
+        except Exception as exc:
+            logger.exception("Failed to process TrustPass application: %s", exc)
+            form.add_error(None, f"Application could not be initialized: {exc}")
+            return render(request, self.template_name, context)
 
 
 class MyCertificateView(LoginRequiredMixin, DetailView):
@@ -506,7 +593,31 @@ class CertificatePublicVerifyView(View):
     """
     template_name = 'verification/certificate_public_verify.html'
     def get(self, request, certificate_id):
-        cert = VerificationCertificate.objects.filter(certificate_id=certificate_id).select_related('holder', 'subject').first()
+        from core.rate_limiting import check_rate_limit
+        import re
+
+        # Rate limit to protect QR verification endpoint against automated scraping
+        is_limited, retry_after = check_rate_limit(request, namespace="qr_verify", limit=60, window=60)
+        if is_limited:
+            response = HttpResponse(
+                "Rate limit exceeded. Please wait a moment before scanning again.",
+                status=429,
+                content_type="text/plain; charset=utf-8"
+            )
+            response['Retry-After'] = str(retry_after)
+            return response
+
+        # Strict format validation: only permit standard certificate reference characters
+        cert_id_clean = (certificate_id or '').strip().upper()
+        if not re.match(r'^[A-Z0-9-]{5,40}$', cert_id_clean):
+            return render(request, self.template_name, {
+                'certificate_id': certificate_id,
+                'lookup_state': 'NOT_FOUND',
+                'candidate_name': '—',
+                'nin_masked': '—',
+            })
+
+        cert = VerificationCertificate.objects.filter(certificate_id=cert_id_clean).select_related('holder', 'subject').first()
         try:
             AuditLog.objects.create(
                 report=None,

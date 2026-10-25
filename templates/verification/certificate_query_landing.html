@@ -8,7 +8,11 @@
 <div class="container py-4 py-md-5">
 
     <div class="mb-4">
+        {% if request.user.role in 'employer,agency,business' %}
+        <a href="{% url 'employer:dashboard' %}" class="text-decoration-none small text-muted">&larr; Back to Employer Dashboard</a>
+        {% else %}
         <a href="{% url 'dashboard:index' %}" class="text-decoration-none small text-muted">&larr; Back to Member Portal</a>
+        {% endif %}
         <h1 class="h3 fw-bold mt-1 mb-0">Verify a VerifyNG Certificate</h1>
         <p class="small text-muted mb-0">Enter a certificate ID to check its authenticity and current status.</p>
     </div>

@@ -51,7 +51,8 @@ def create_verification_request(
     identifier_type: str = None,
     identifier_value: str = None,
     ip_address: str = None,
-    documents=None
+    documents=None,
+    status: str = 'pending'
 ) -> VerificationRequest:
     """
     Submits a new VerificationRequest atomically.
@@ -103,9 +104,9 @@ def create_verification_request(
                     requester=requester,
                     target_subject=target_subject,
                     verification_type=verification_type,
-                    status='pending',
+                    status=status,
                     user_requirements=notes.strip() if notes else "",
-                    notes=""
+                    notes=notes.strip() if notes else ""
                 )
 
                 # Process supporting documents if attached
@@ -386,7 +387,7 @@ def reject_verification_request(
                     'reason': reason,
                     'detail_url': f"{site_url}/verification/{ref}/",
                 })
-                subject = f"Verification Request Update [{ref}] — {config.site_name}"
+                subject = f"Verification Request Declined [{ref}] — {config.site_name}"
             except Exception as e:
                 logger.error("Failed to render verification_declined email template: %s", e)
                 html_body = None
@@ -430,6 +431,7 @@ def create_certificate_application(
     holder,
     check_level: str,
     ip_address: str = None,
+    status: str = 'pending',
 ):
     """
     Creates a VerificationCertificate in 'pending' status.
@@ -506,6 +508,7 @@ def create_trustpass_certificate_application(
     residential_state: str = '',
     residential_city: str = '',
     ip_address: str = None,
+    status: str = 'pending',
 ):
     """
     Submits a standalone TrustPass Background Clearance application (DBS-style).
@@ -609,7 +612,7 @@ def create_trustpass_certificate_application(
             subject=subject,
             holder=holder,
             check_level=check_level,
-            status='pending',
+            status=status,
         )
         AuditLog.objects.create(
             report=None,
@@ -647,6 +650,7 @@ def process_certificate_query(
     purpose: str,
     organisation_name: str = '',
     ip_address: str = None,
+    status: str = 'pending',
 ):
     """
     Validates payment, builds result_snapshot with published fraud report counts only,

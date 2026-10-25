@@ -70,6 +70,22 @@ def check_lookup(request, payload: CheckLookupRequest):
     except ValueError as e:
         raise HttpError(400, str(e))
 
+    # Evaluate Global Entitlement & Paid Access for public check
+    from payments.models import SiteSettings
+    from payments.services import check_user_entitlement, consume_user_entitlement
+    site_settings = SiteSettings.get()
+
+    if request.user.is_authenticated:
+        allowed, reason, details = check_user_entitlement(request.user, service='public_check', cost=1)
+        if not allowed:
+            if reason == 'service_restricted':
+                raise HttpError(403, "service_restricted")
+            raise HttpError(402, "quota_exceeded")
+        if not site_settings.is_service_free('public_check'):
+            consume_user_entitlement(request.user, service='public_check', cost=1)
+    elif not site_settings.is_service_free('public_check'):
+        raise HttpError(401, "login_required")
+
     record = lookup_public_record(val_hash)
     if not record:
         raise Http404("No record found for this identifier.")
@@ -88,6 +104,22 @@ def check_identifier(request, identifier_hash: str):
         )
         response['Retry-After'] = str(retry_after)
         return response
+
+    # Evaluate Global Entitlement & Paid Access for direct hash check
+    from payments.models import SiteSettings
+    from payments.services import check_user_entitlement, consume_user_entitlement
+    site_settings = SiteSettings.get()
+
+    if request.user.is_authenticated:
+        allowed, reason, details = check_user_entitlement(request.user, service='public_check', cost=1)
+        if not allowed:
+            if reason == 'service_restricted':
+                raise HttpError(403, "service_restricted")
+            raise HttpError(402, "quota_exceeded")
+        if not site_settings.is_service_free('public_check'):
+            consume_user_entitlement(request.user, service='public_check', cost=1)
+    elif not site_settings.is_service_free('public_check'):
+        raise HttpError(401, "login_required")
 
     record = lookup_public_record(identifier_hash)
     if not record:
@@ -117,10 +149,8 @@ class CertificateLookupResponse(Schema):
 @api.get("/certificate/{certificate_id}", response=CertificateLookupResponse)
 def certificate_lookup(request, certificate_id: str):
     """
-    Public endpoint: look up a VerifyNG certificate by its certificate_id.
-    Used by landlords, employers, and QR-code scans.
-    No authentication required — certificate IDs are public references.
-    Rate-limited under the shared api_check namespace.
+    Look up a VerifyNG certificate by its certificate_id via the web search interface.
+    Rate-limited and subject to global public check monetization settings.
     """
     is_limited, retry_after = check_rate_limit(request, namespace="api_check")
     if is_limited:
@@ -131,6 +161,22 @@ def certificate_lookup(request, certificate_id: str):
         )
         response['Retry-After'] = str(retry_after)
         return response
+
+    # Evaluate Global Entitlement & Paid Access when searched via web search
+    from payments.models import SiteSettings
+    from payments.services import check_user_entitlement, consume_user_entitlement
+    site_settings = SiteSettings.get()
+
+    if request.user.is_authenticated:
+        allowed, reason, details = check_user_entitlement(request.user, service='public_check', cost=1)
+        if not allowed:
+            if reason == 'service_restricted':
+                raise HttpError(403, "service_restricted")
+            raise HttpError(402, "quota_exceeded")
+        if not site_settings.is_service_free('public_check'):
+            consume_user_entitlement(request.user, service='public_check', cost=1)
+    elif not site_settings.is_service_free('public_check'):
+        raise HttpError(401, "login_required")
 
     try:
         cert = (
@@ -143,16 +189,14 @@ def certificate_lookup(request, certificate_id: str):
 
     subject = cert.subject
     subject_name = (
-        subject.full_name
-        or subject.business_name
-        or "Unknown Entity"
+        (getattr(subject, 'name', None) if subject else None)
+        or (getattr(subject, 'full_name', None) if subject else None)
+        or (cert.holder.get_full_name() if cert.holder else None)
+        or (cert.holder.username if cert.holder else None)
+        or "Verified Entity"
     )
-    entity_type  = subject.entity_type  if hasattr(subject, 'entity_type')  else 'individual'
-    id_verified  = (
-        subject.identity_verified
-        if hasattr(subject, 'identity_verified')
-        else False
-    )
+    entity_type = (getattr(subject, 'type', None) if subject else None) or 'person'
+    id_verified = bool(cert.is_valid)
 
     return {
         "certificate_id":      cert.certificate_id,

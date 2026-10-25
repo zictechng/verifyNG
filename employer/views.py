@@ -32,7 +32,8 @@ from core.rate_limiting import get_client_ip
 from identities.models import Identifier, SubjectEntity
 from identities.utils import hash_identifier_value
 from payments.models import Subscription
-from payments.services import check_user_entitlement, consume_user_entitlement
+from payments.services import check_user_entitlement, consume_user_entitlement, initialize_service_checkout
+from payments.models import SiteSettings
 from reports.models import AuditLog, FraudReport, ReportEvidence
 from reports.services import generate_report_reference_number
 from reports.storage_services import get_storage_service, StorageError
@@ -381,6 +382,13 @@ def staff_check_list(request):
 def staff_check_create(request):
     profile = _get_or_create_employer_profile(request.user)
 
+    allowed, reason, details = check_user_entitlement(request.user, service='staff_check', cost=1)
+    if not allowed and reason == 'service_restricted':
+        messages.error(request, details.get('message', "Your organization has been restricted from performing staff background checks by platform administration."))
+        return redirect('employer:dashboard')
+
+    site_settings = SiteSettings.get()
+
     if request.method == 'POST':
         full_name    = request.POST.get('full_name', '').strip()
         phone_number = request.POST.get('phone_number', '').strip()
@@ -399,52 +407,98 @@ def staff_check_create(request):
 
         if errors:
             context = {
-                'profile':    profile,
-                'errors':     errors,
-                'form_data':  request.POST,
-                'page_title': 'New Staff Check',
+                'profile':        profile,
+                'errors':         errors,
+                'form_data':      request.POST,
+                'has_entitlement': allowed,
+                'price_standard': site_settings.price_staff_check_standard,
+                'price_enhanced': site_settings.price_staff_check_enhanced,
+                'page_title':     'New Staff Check',
             }
             return render(request, 'employer/staff_check_create.html', context)
         
         # Enforce check entitlement before proceeding
-        allowed, reason, details = check_user_entitlement(request.user, cost=1)
-        if not allowed:
-            messages.error(
-                request,
-                "You have reached your check limit or require an active subscription to perform checks. "
-                "Please upgrade your plan to continue."
+        allowed, reason, details = check_user_entitlement(request.user, service='staff_check', cost=1)
+        if not allowed and reason == 'service_restricted':
+            messages.error(request, details.get('message', "Your organization has been restricted from performing staff background checks by platform administration."))
+            return redirect('employer:dashboard')
+
+        if allowed:
+            check = StaffCheckRequest.objects.create(
+                employer     = profile,
+                requested_by = request.user,
+                full_name    = full_name,
+                phone_number = phone_number,
+                nin_hash     = _hash_nin(raw_nin) if raw_nin else '',
+                email        = email,
+                check_type   = check_type,
+                purpose      = purpose,
+                status       = 'pending',
             )
-            return redirect('payments:plans')
-        check = StaffCheckRequest.objects.create(
-            employer     = profile,
-            requested_by = request.user,
-            full_name    = full_name,
-            phone_number = phone_number,
-            nin_hash     = _hash_nin(raw_nin) if raw_nin else '',
-            email        = email,
-            check_type   = check_type,
-            purpose      = purpose,
-        )
-        # Deduct 1 check entitlement
-        consume_user_entitlement(request.user, cost=1)
+            # Deduct 1 check entitlement
+            consume_user_entitlement(request.user, service='staff_check', cost=1)
 
-        # Dispatch background check processing task
-        try:
-            process_single_staff_check_task.delay(str(check.id))
-        except Exception as exc:
-            logger.warning("Could not dispatch Celery task for check %s: %s", check.id, exc)
-            # Resilient fallback: run inline if Celery/Redis is offline in local dev
+            # Dispatch background check processing task
             try:
-                process_single_staff_check_task(str(check.id))
-            except Exception as e:
-                logger.exception("Inline execution failed for check %s: %s", check.id, e)
+                process_single_staff_check_task.delay(str(check.id))
+            except Exception as exc:
+                logger.warning("Could not dispatch Celery task for check %s: %s", check.id, exc)
+                try:
+                    process_single_staff_check_task(str(check.id))
+                except Exception as e:
+                    logger.exception("Inline execution failed for check %s: %s", check.id, e)
 
-        messages.success(request, f'Check request submitted for {full_name}. Reference: {str(check.id)[:8].upper()}')
-        return redirect('employer:staff_check_detail', check_id=check.id)
+            messages.success(request, f'Check request submitted for {full_name}. Reference: {str(check.id)[:8].upper()}')
+            return redirect('employer:staff_check_detail', check_id=check.id)
+        else:
+            # Pay-As-You-Go single check checkout
+            check = StaffCheckRequest.objects.create(
+                employer     = profile,
+                requested_by = request.user,
+                full_name    = full_name,
+                phone_number = phone_number,
+                nin_hash     = _hash_nin(raw_nin) if raw_nin else '',
+                email        = email,
+                check_type   = check_type,
+                purpose      = purpose,
+                status       = 'pending_payment',
+            )
+            amount_naira = site_settings.get_service_price('staff_check', check_type)
+            try:
+                checkout_data = initialize_service_checkout(
+                    user=request.user,
+                    service='staff_check',
+                    tier=check_type,
+                    amount_naira=amount_naira,
+                    metadata={
+                        'staff_check_id': str(check.id),
+                        'check_type': check_type,
+                        'full_name': full_name,
+                    }
+                )
+                request.session['vng_pending_ref'] = checkout_data['reference']
+                return redirect(checkout_data['authorization_url'])
+            except Exception as exc:
+                logger.exception("Failed to initialize staff check checkout: %s", exc)
+                messages.error(request, f"Unable to initialize payment: {exc}")
+                context = {
+                    'profile':        profile,
+                    'errors':         [f"Payment gateway error: {exc}"],
+                    'form_data':      request.POST,
+                    'has_entitlement': allowed,
+                    'price_standard': site_settings.price_staff_check_standard,
+                    'price_enhanced': site_settings.price_staff_check_enhanced,
+                    'page_title':     'New Staff Check',
+                }
+                return render(request, 'employer/staff_check_create.html', context)
 
     context = {
-        'profile':    profile,
-        'page_title': 'New Staff Check',
+        'profile':        profile,
+        'has_entitlement': allowed,
+        'entitlement_details': details,
+        'price_standard': site_settings.price_staff_check_standard,
+        'price_enhanced': site_settings.price_staff_check_enhanced,
+        'page_title':     'New Staff Check',
     }
     return render(request, 'employer/staff_check_create.html', context)
 
@@ -539,10 +593,10 @@ def monitoring_toggle(request, check_id):
         else:
             allowed, reason, details = check_user_entitlement(request.user, service='monitoring')
             if not allowed:
-                return JsonResponse({
-                    'ok': False,
-                    'message': 'Active subscription or monitoring entitlement required to resume staff monitoring.'
-                }, status=403)
+                msg = details.get('message', 'Active subscription or monitoring entitlement required to resume staff monitoring.')
+                if reason == 'service_restricted':
+                    msg = 'Staff monitoring has been restricted for your organization by platform administration.'
+                return JsonResponse({'ok': False, 'message': msg}, status=403)
             monitor.monitor_status = 'active'
             monitor.save(update_fields=['monitor_status', 'updated_at'])
             msg = f'Monitoring resumed for {check.full_name}.'
@@ -551,10 +605,10 @@ def monitoring_toggle(request, check_id):
         allowed, reason, details = check_user_entitlement(request.user, service='monitoring')
         if not allowed:
             monitor.delete()
-            return JsonResponse({
-                'ok': False,
-                'message': 'Active subscription or monitoring entitlement required to enable staff monitoring.'
-            }, status=403)
+            msg = details.get('message', 'Active subscription or monitoring entitlement required to enable staff monitoring.')
+            if reason == 'service_restricted':
+                msg = 'Staff monitoring has been restricted for your organization by platform administration.'
+            return JsonResponse({'ok': False, 'message': msg}, status=403)
         msg = f'Monitoring started for {check.full_name}.'
         new_status = 'active'
     return JsonResponse({'ok': True, 'message': msg, 'monitor_status': new_status})
@@ -576,6 +630,11 @@ def bulk_upload_create(request):
            trigger Celery task, redirect to detail page.
     """
     profile = _get_or_create_employer_profile(request.user)
+
+    allowed, reason, details = check_user_entitlement(request.user, service='bulk_upload', cost=1)
+    if not allowed and reason == 'service_restricted':
+        messages.error(request, details.get('message', "Your organization has been restricted from bulk CSV candidate screening by platform administration."))
+        return redirect('employer:dashboard')
 
     if request.method == 'POST':
         uploaded_file = request.FILES.get('csv_file')
@@ -672,7 +731,7 @@ def bulk_upload_create(request):
             })
         # Enforce check entitlement for bulk check volume
         cost = len(rows_data)
-        allowed, reason, details = check_user_entitlement(request.user, cost=cost)
+        allowed, reason, details = check_user_entitlement(request.user, service='bulk_upload', cost=cost)
         if not allowed:
             remaining = details.get('remaining', 0)
             return render(request, 'employer/bulk_upload_create.html', {
@@ -701,7 +760,7 @@ def bulk_upload_create(request):
                 row_count=len(rows_data),
                 status='pending',
             )
-            consume_user_entitlement(request.user, cost=cost)
+            consume_user_entitlement(request.user, service='bulk_upload', cost=cost)
             BulkCheckRow.objects.bulk_create([
                 BulkCheckRow(
                     upload=upload,
@@ -1005,15 +1064,21 @@ def person_check_search(request):
                 }
             else:
                 # Check credit/subscription entitlement
-                allowed, reason, details = check_user_entitlement(request.user, cost=1)
+                allowed, reason, details = check_user_entitlement(request.user, service='person_check', cost=1)
                 if not allowed:
-                    result = {
-                        'error': (
-                            'You have reached your check limit or require an active subscription '
-                            'to perform person quick-checks. Please upgrade your plan.'
-                        ),
-                        'subscription_required': True,
-                    }
+                    if reason == 'service_restricted':
+                        result = {
+                            'error': details.get('message', 'Access to person quick-checks has been restricted for your account by platform administration.'),
+                            'subscription_required': False,
+                        }
+                    else:
+                        result = {
+                            'error': (
+                                'You have reached your check limit or require an active subscription '
+                                'to perform person quick-checks. Please upgrade your plan.'
+                            ),
+                            'subscription_required': True,
+                        }
                 else:
                     # Decide identifier type by prefix
                     phone_prefixes = ('070', '080', '081', '090', '091', '071', '091')
@@ -1038,7 +1103,7 @@ def person_check_search(request):
                             .first()
                         )
                     # Deduct check entitlement after search succeeds
-                    consume_user_entitlement(request.user, cost=1)
+                    consume_user_entitlement(request.user, service='person_check', cost=1)
                     if ident is None:
                         result = {
                             'found':      False,
@@ -1095,6 +1160,11 @@ def staff_misconduct_report(request):
     against a staff member holding a VerifyNG Clearance Certificate.
     Enforces mandatory documentary proof, legal indemnity warranty, and audit logging.
     """
+    allowed, reason, details = check_user_entitlement(request.user, service='misconduct_report')
+    if not allowed and reason == 'service_restricted':
+        messages.error(request, details.get('message', "Your organization has been restricted from submitting staff misconduct reports by platform administration."))
+        return redirect('employer:dashboard')
+
     profile = _get_or_create_employer_profile(request.user)
     certificate_id_prefill = request.GET.get('certificate_id', '').strip()
     if request.method == 'POST':
@@ -1423,16 +1493,22 @@ def employer_certificate_verify(request):
             }
         else:
             # Check entitlement before executing query
-            allowed, reason, details = check_user_entitlement(request.user, cost=1)
+            allowed, reason, details = check_user_entitlement(request.user, service='certificate_verify', cost=1)
             if not allowed:
-                result = {
-                    'lookup_state': 'QUOTA_EXCEEDED',
-                    'message': (
-                        'You have reached your verification check limit or require an active subscription '
-                        'to perform live certificate status checks. Please upgrade your plan.'
-                    ),
-                    'subscription_required': True,
-                }
+                if reason == 'service_restricted':
+                    result = {
+                        'lookup_state': 'ACCESS_RESTRICTED',
+                        'message': details.get('message', 'Access to certificate verification has been restricted for your account by platform administration.'),
+                    }
+                else:
+                    result = {
+                        'lookup_state': 'QUOTA_EXCEEDED',
+                        'message': (
+                            'You have reached your verification check limit or require an active subscription '
+                            'to perform live certificate status checks. Please upgrade your plan.'
+                        ),
+                        'subscription_required': True,
+                    }
             else:
                 # Query registry for certificate
                 cert = (
@@ -1492,7 +1568,7 @@ def employer_certificate_verify(request):
                         lookup_state = 'ACTIVE_VALID'
 
                 # Consume entitlement upon successful query attempt
-                consume_user_entitlement(request.user, cost=1)
+                consume_user_entitlement(request.user, service='certificate_verify', cost=1)
 
                 candidate_name = '—'
                 nin_masked = 'Verified Record'

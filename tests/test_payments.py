@@ -536,3 +536,105 @@ class PaymentAuditLogTest(TestCase):
         log = PaymentAuditLog.objects.create(action='FREE_PLAN_ACTIVATED', user=self.user)
         self.assertIsNotNone(log.timestamp)
 
+
+
+# ─── Pay-As-You-Go Service Tests ──────────────────────────────────────────────
+
+class PayAsYouGoServiceTest(TestCase):
+
+    def setUp(self):
+        self.user = make_user(username='payg_user', email='payg@example.com')
+        self.settings = SiteSettings.get()
+
+    @patch('payments.services.requests.post')
+    def test_initialize_service_checkout_pricing_and_transaction(self, mock_post):
+        from payments.services import initialize_service_checkout
+
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.json.return_value = {
+            'status': True,
+            'message': 'Authorization URL created',
+            'data': {
+                'authorization_url': 'https://checkout.paystack.com/payg-test',
+                'access_code': 'ACC_TEST_123',
+                'reference': 'PAYG-REF-1',
+            }
+        }
+
+        # 1-Year Standard TrustPass
+        res_1yr = initialize_service_checkout(
+            user=self.user,
+            service='certificate',
+            tier='standard',
+        )
+        self.assertEqual(res_1yr['amount_naira'], self.settings.price_trustpass_1yr)
+        self.assertEqual(res_1yr['authorization_url'], 'https://checkout.paystack.com/payg-test')
+
+        trx_1yr = Transaction.objects.get(reference=res_1yr['reference'])
+        self.assertEqual(trx_1yr.amount_kobo, self.settings.price_trustpass_1yr * 100)
+        self.assertEqual(trx_1yr.status, 'pending')
+
+        # 3-Year Enhanced TrustPass
+        res_3yr = initialize_service_checkout(
+            user=self.user,
+            service='certificate',
+            tier='enhanced',
+        )
+        self.assertEqual(res_3yr['amount_naira'], self.settings.price_trustpass_3yr)
+        trx_3yr = Transaction.objects.get(reference=res_3yr['reference'])
+        self.assertEqual(trx_3yr.amount_kobo, self.settings.price_trustpass_3yr * 100)
+
+        # Audit log verification
+        self.assertTrue(PaymentAuditLog.objects.filter(action='CHECKOUT_INITIATED', user=self.user).exists())
+
+    def test_fulfill_payg_trustpass_certificate(self):
+        from payments.services import _fulfill_payg_transaction
+        from verification.models import VerificationCertificate
+        from identities.models import SubjectEntity
+
+        subject = SubjectEntity.objects.create(name="Applicant Test", type="person")
+        cert = VerificationCertificate.objects.create(
+            certificate_id="VNG-PAYG-TEST",
+            subject=subject,
+            holder=self.user,
+            status='pending_payment',
+        )
+
+        trx = Transaction.objects.create(
+            user=self.user,
+            reference="VNG-TRX-CERT-PAYG",
+            amount_kobo=150000,
+            status='success',
+            paystack_response={'data': {'metadata': {'service': 'certificate', 'certificate_id': cert.certificate_id}}}
+        )
+
+        _fulfill_payg_transaction(trx, {'metadata': {'service': 'certificate', 'certificate_id': cert.certificate_id}})
+        cert.refresh_from_db()
+        self.assertEqual(cert.status, 'pending')
+
+    @patch('employer.tasks.process_single_staff_check_task.delay')
+    def test_fulfill_payg_staff_check(self, mock_delay):
+        from payments.services import _fulfill_payg_transaction
+        from employer.models import EmployerProfile, StaffCheckRequest
+
+        profile = EmployerProfile.objects.create(user=self.user, company_name="Test Corp")
+        check = StaffCheckRequest.objects.create(
+            employer=profile,
+            requested_by=self.user,
+            full_name="Staff Test",
+            check_type='standard',
+            status='pending_payment',
+        )
+
+        trx = Transaction.objects.create(
+            user=self.user,
+            reference="VNG-TRX-STAFF-PAYG",
+            amount_kobo=150000,
+            status='success',
+            paystack_response={'data': {'metadata': {'service': 'staff_check', 'staff_check_id': str(check.id)}}}
+        )
+
+        _fulfill_payg_transaction(trx, {'metadata': {'service': 'staff_check', 'staff_check_id': str(check.id)}})
+        check.refresh_from_db()
+        self.assertEqual(check.status, 'pending')
+        mock_delay.assert_called_once_with(str(check.id))

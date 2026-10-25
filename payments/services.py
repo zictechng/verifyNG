@@ -146,7 +146,10 @@ def verify_transaction(reference: str) -> dict:
     if paystack_status == 'success':
         transaction.status = 'success'
         transaction.save(update_fields=['status', 'paystack_reference', 'paystack_response', 'updated_at'])
-        _activate_subscription(transaction, paystack_data)
+        if transaction.plan:
+            _activate_subscription(transaction, paystack_data)
+        else:
+            _fulfill_payg_transaction(transaction, paystack_data)
     else:
         transaction.status = 'failed'
         transaction.failure_reason = paystack_data.get('gateway_response', 'Payment not successful')
@@ -300,20 +303,74 @@ def check_user_entitlement(user, service: str = 'check', cost: int = 1) -> tuple
     """
     Universal service-by-service credit & subscription entitlement checker.
     Evaluates:
-      1. Fraud Reporting exception (permanently free for all users).
-      2. Global Free Mode (platform-wide promotional switch).
-      3. Staff / Superuser administrative bypass.
-      4. Per-User & Per-Agency granular service matrix (exempt_services).
-      5. Per-Organization granular service matrix (EmployerProfile.exempt_services).
-      6. Active Commercial Subscription & Free Tier Quotas.
+      1. Staff / Superuser administrative bypass.
+      2. Service-level Account Restrictions (UserServiceAccess).
+      3. Statutory Free Services (fraud_report, certificate_verify).
+      4. Global Free Mode (PlatformConfiguration.free_access_mode).
+      5. Per-User & Per-Agency VIP Waivers (User.is_billing_exempt / exempt_services).
+      6. Per-Organization VIP Waivers (EmployerProfile.is_billing_exempt / exempt_services).
+      7. Global Service Master Switch (SiteSettings.is_service_free).
+      8. Active Commercial Subscription (Subscription check quota).
+      9. Standard Free Tier Quota (FreeUsageQuota).
     """
-    # 1. Fraud Reporting is ALWAYS complimentary for everyone
-    if service == 'fraud_report':
-        return True, 'fraud_report_free', {
-            'message': 'Fraud reporting is complimentary for all users.',
+    # 1. Staff / Superuser administrative bypass
+    if getattr(user, 'is_superuser', False) or getattr(user, 'is_staff', False):
+        return True, 'staff_bypass', {
+            'message': 'Staff administrative privileges active.',
             'remaining': 'unlimited',
         }
-    # 2. Global Platform Free Mode (Master Switch)
+
+    # 2. Check if user or employer organization has an active administrative restriction
+    try:
+        from users.models import UserServiceAccess
+        target_users = [user]
+        employer = getattr(user, 'employer_profile', None)
+        if not employer:
+            membership = getattr(user, 'employer_memberships', None)
+            if membership:
+                active_mem = membership.filter(is_active=True).select_related('employer__user').first()
+                if active_mem and active_mem.employer and active_mem.employer.user:
+                    target_users.append(active_mem.employer.user)
+
+        # Determine service key and aliases for access check
+        check_services = [service]
+        if service in ('quick_check', 'person_check'):
+            check_services.extend(['person_check', 'quick_check'])
+        elif service == 'staff_check':
+            check_services.append('staff_check')
+        elif service in ('public_check', 'check'):
+            check_services.extend(['public_check', 'check'])
+        elif service in ('certificate_creation', 'trustpass', 'certificate'):
+            check_services.extend(['certificate', 'certificate_creation', 'trustpass'])
+        elif service == 'certificate_verify':
+            check_services.append('certificate_verify')
+        elif service in ('business_verification', 'verification'):
+            check_services.extend(['verification', 'business_verification'])
+        elif service in ('bulk_check', 'bulk_upload'):
+            check_services.extend(['bulk_upload', 'bulk_check'])
+        elif service in ('misconduct_report',):
+            check_services.append('misconduct_report')
+        elif service in ('monitoring',):
+            check_services.append('monitoring')
+        elif service in ('fraud_report',):
+            check_services.append('fraud_report')
+
+        if UserServiceAccess.objects.filter(user__in=target_users, service__in=check_services, is_restricted=True).exists():
+            return False, 'service_restricted', {
+                'message': f'Access to this service has been restricted for your account by platform administration.',
+                'remaining': 0,
+            }
+    except Exception as exc:
+        logger.warning("Could not evaluate UserServiceAccess: %s", exc)
+
+    # 3. Statutory Free Services (Fraud Crime Reporting & Staff Misconduct Reporting)
+    if service in ('fraud_report', 'misconduct_report'):
+        return True, 'statutory_free', {
+            'message': 'Complimentary access for statutory service.',
+            'remaining': 'unlimited',
+        }
+
+    # 4. Global Platform Free Mode (Master Switch)
     try:
         config = PlatformConfiguration.get()
         if config.free_access_mode:
@@ -323,16 +380,10 @@ def check_user_entitlement(user, service: str = 'check', cost: int = 1) -> tuple
             }
     except Exception as e:
         logger.warning("Could not check PlatformConfiguration free_access_mode: %s", e)
-    # 3. Staff / Superuser privileges
-    if getattr(user, 'is_superuser', False) or getattr(user, 'is_staff', False):
-        return True, 'staff_bypass', {
-            'message': 'Staff administrative privileges active.',
-            'remaining': 'unlimited',
-        }
     # 4. Per-User / Agency Granular Service Exemption
     user_master_exempt = getattr(user, 'is_billing_exempt', False)
     user_exempt_services = getattr(user, 'exempt_services', None) or []
-    if user_master_exempt or service in user_exempt_services:
+    if user_master_exempt or any(s in user_exempt_services for s in check_services):
         return True, 'service_free_granted', {
             'message': f'Complimentary access granted for {service}.',
             'remaining': 'unlimited',
@@ -351,7 +402,7 @@ def check_user_entitlement(user, service: str = 'check', cost: int = 1) -> tuple
         if employer:
             org_master_exempt = getattr(employer, 'is_billing_exempt', False)
             org_exempt_services = getattr(employer, 'exempt_services', None) or []
-            if org_master_exempt or service in org_exempt_services:
+            if org_master_exempt or any(s in org_exempt_services for s in check_services):
                 return True, 'organization_service_free_granted', {
                     'message': f'Complimentary {service} access granted to {employer.company_name}.',
                     'remaining': 'unlimited',
@@ -360,7 +411,15 @@ def check_user_entitlement(user, service: str = 'check', cost: int = 1) -> tuple
                 }
     except Exception as e:
         logger.warning("Could not check organization service exemption: %s", e)
-    # 6. Active Commercial Subscription Check
+    # 6. Global Service-by-Service Free Master Switch (SiteSettings)
+    site_settings = SiteSettings.get()
+    if site_settings.is_service_free(service):
+        return True, 'service_globally_free', {
+            'message': f'Service {service} is globally complimentary.',
+            'remaining': 'unlimited',
+        }
+
+    # 7. Active Commercial Subscription Check
     sub = get_active_subscription(user)
     if sub:
         # Unlimited Plan
@@ -372,27 +431,37 @@ def check_user_entitlement(user, service: str = 'check', cost: int = 1) -> tuple
         # Capped Plan
         current_used = getattr(sub, 'checks_used', 0)
         limit = sub.plan.check_limit
+        remaining = max(0, limit - current_used)
         if current_used + cost <= limit:
             return True, 'subscribed', {
                 'plan': sub.plan.name,
-                'remaining': max(0, limit - (current_used + cost)),
+                'remaining': remaining,
                 'limit': limit,
                 'used': current_used,
             }
         else:
             return False, 'subscription_quota_exceeded', {
                 'plan': sub.plan.name,
-                'remaining': max(0, limit - current_used),
+                'remaining': remaining,
                 'limit': limit,
                 'used': current_used,
             }
-    # 4. Standard Free Tier Quota (unsubscribed users)
+
+    # 8. Standard Free Tier Quota (unsubscribed users)
+    if not site_settings.free_tier_enabled:
+        return False, 'free_tier_disabled', {
+            'message': 'Free check quota is currently disabled. Please subscribe to continue.',
+            'remaining': 0,
+            'limit': 0,
+            'used': 0,
+        }
+
     quota = FreeUsageQuota.for_user(user)
-    site_settings = SiteSettings.get()
     limit = site_settings.free_check_limit
+    remaining = max(0, limit - quota.checks_used)
     if quota.checks_used + cost <= limit:
         return True, 'free_tier', {
-            'remaining': max(0, limit - (quota.checks_used + cost)),
+            'remaining': remaining,
             'limit': limit,
             'used': quota.checks_used,
         }
@@ -400,6 +469,7 @@ def check_user_entitlement(user, service: str = 'check', cost: int = 1) -> tuple
         'remaining': 0,
         'limit': limit,
         'used': quota.checks_used,
+        'message': f'You have used your {limit} free check(s). Please upgrade your plan to continue.',
     }
 def user_can_perform_check(user) -> tuple[bool, str]:
     """
@@ -416,7 +486,11 @@ def consume_user_entitlement(user, service: str = 'check', cost: int = 1) -> boo
     - Active subscribers with capped plans: increments subscription.checks_used.
     - Free tier users: increments FreeUsageQuota.checks_used.
     """
-    if service == 'fraud_report':
+    if service in ('fraud_report', 'certificate_verify', 'misconduct_report'):
+        return True
+    # If service is globally complimentary in SiteSettings, skip deduction
+    site_settings = SiteSettings.get()
+    if site_settings.is_service_free(service):
         return True
     try:
         config = PlatformConfiguration.get()
@@ -426,10 +500,25 @@ def consume_user_entitlement(user, service: str = 'check', cost: int = 1) -> boo
         pass
     if getattr(user, 'is_superuser', False) or getattr(user, 'is_staff', False):
         return True
+
+    check_services = [service]
+    if service in ('quick_check', 'person_check'):
+        check_services.extend(['person_check', 'quick_check', 'check'])
+    elif service == 'staff_check':
+        check_services.extend(['staff_check', 'check'])
+    elif service in ('public_check', 'check'):
+        check_services.extend(['public_check', 'check'])
+    elif service in ('certificate_creation', 'trustpass', 'certificate'):
+        check_services.extend(['certificate', 'certificate_creation', 'trustpass'])
+    elif service in ('business_verification', 'verification'):
+        check_services.extend(['verification', 'business_verification'])
+    elif service in ('bulk_check', 'bulk_upload'):
+        check_services.extend(['bulk_upload', 'bulk_check'])
+
     # Per-user or per-agency service exemption skips deduction
     user_master_exempt = getattr(user, 'is_billing_exempt', False)
     user_exempt_services = getattr(user, 'exempt_services', None) or []
-    if user_master_exempt or service in user_exempt_services:
+    if user_master_exempt or any(s in user_exempt_services for s in check_services):
         return True
     # Per-organization service exemption skips deduction
     try:
@@ -443,7 +532,7 @@ def consume_user_entitlement(user, service: str = 'check', cost: int = 1) -> boo
         if employer:
             org_master_exempt = getattr(employer, 'is_billing_exempt', False)
             org_exempt_services = getattr(employer, 'exempt_services', None) or []
-            if org_master_exempt or service in org_exempt_services:
+            if org_master_exempt or any(s in org_exempt_services for s in check_services):
                 return True
     except Exception:
         pass
@@ -460,3 +549,197 @@ def consume_user_entitlement(user, service: str = 'check', cost: int = 1) -> boo
     FreeUsageQuota.objects.filter(pk=quota.pk).update(checks_used=F('checks_used') + cost)
     return True
 
+
+
+def initialize_service_checkout(
+    user,
+    service: str,
+    tier: str = 'standard',
+    amount_naira: int = None,
+    metadata: dict = None,
+    callback_url: str = None,
+) -> dict:
+    """
+    Initialize a direct Paystack Pay-As-You-Go checkout for any single platform service
+    (e.g., TrustPass certificate, staff background check, person quick-check, CAC verification, etc.).
+
+    Returns:
+        {
+            'authorization_url': str,  # Paystack checkout redirect URL
+            'reference': str,          # Transaction reference
+            'access_code': str,
+            'amount_naira': int,
+        }
+    """
+    site_settings = SiteSettings.get()
+    if amount_naira is None:
+        amount_naira = site_settings.get_service_price(service, tier)
+
+    amount_kobo = int(amount_naira * 100)
+    if amount_kobo <= 0:
+        raise ValueError(f"Service '{service}' (tier: '{tier}') is complimentary or priced at ₦0.")
+
+    reference = generate_reference()
+
+    transaction = Transaction.objects.create(
+        user=user,
+        plan=None,
+        subscription=None,
+        reference=reference,
+        amount_kobo=amount_kobo,
+        currency='NGN',
+        status='pending',
+    )
+
+    cb_url = callback_url or _build_callback_url()
+
+    meta = {
+        'type': 'pay_as_you_go',
+        'service': service,
+        'tier': tier,
+        'user_id': user.id,
+        'username': user.username,
+        'email': user.email,
+        'transaction_id': str(transaction.id),
+    }
+    if metadata:
+        meta.update(metadata)
+
+    payload = {
+        'email': user.email,
+        'amount': amount_kobo,
+        'currency': 'NGN',
+        'reference': reference,
+        'callback_url': cb_url,
+        'metadata': meta,
+    }
+
+    try:
+        response = requests.post(
+            f'{PAYSTACK_BASE_URL}/transaction/initialize',
+            json=payload,
+            headers=_headers(),
+            timeout=10,
+        )
+        response.raise_for_status()
+        data = response.json()
+    except Exception as exc:
+        transaction.status = 'failed'
+        transaction.failure_reason = str(exc)
+        transaction.save(update_fields=['status', 'failure_reason', 'updated_at'])
+        logger.error("Paystack PAYG initialize failed (ref=%s, service=%s): %s", reference, service, exc)
+        raise RuntimeError(f"Payment gateway unavailable: {exc}") from exc
+
+    if not data.get('status'):
+        transaction.status = 'failed'
+        transaction.failure_reason = data.get('message', 'Unknown Paystack error')
+        transaction.save(update_fields=['status', 'failure_reason', 'updated_at'])
+        raise RuntimeError(data.get('message', 'Payment initialization failed'))
+
+    result = data['data']
+    transaction.paystack_reference = result.get('reference', '')
+    transaction.paystack_response = data
+    transaction.save(update_fields=['paystack_reference', 'paystack_response', 'updated_at'])
+
+    PaymentAuditLog.objects.create(
+        action='CHECKOUT_INITIATED',
+        user=user,
+        transaction=transaction,
+        details={'service': service, 'tier': tier, 'amount_naira': amount_naira, 'reference': reference},
+    )
+
+    return {
+        'authorization_url': result['authorization_url'],
+        'reference': reference,
+        'access_code': result.get('access_code', ''),
+        'amount_naira': amount_naira,
+    }
+
+
+def _fulfill_payg_transaction(transaction: Transaction, paystack_data: dict):
+    """
+    Fulfill a completed Pay-As-You-Go payment for a platform service.
+    Unlocks certificates, initiates staff checks, or activates continuous monitoring.
+    Idempotent and safe to run on webhooks or callback redirects.
+    """
+    meta = (
+        paystack_data.get('metadata')
+        or transaction.paystack_response.get('data', {}).get('metadata')
+        or {}
+    )
+    service = meta.get('service', '')
+    tier = meta.get('tier', 'standard')
+
+    # 1. TrustPass Certificate
+    if service == 'certificate':
+        cert_id = meta.get('certificate_id')
+        if cert_id:
+            from verification.models import VerificationCertificate
+            from reports.models import AuditLog
+            cert = VerificationCertificate.objects.filter(certificate_id=cert_id).first()
+            if cert and cert.status == 'pending_payment':
+                cert.status = 'pending'
+                cert.save(update_fields=['status', 'updated_at'])
+                try:
+                    AuditLog.objects.create(
+                        report=None,
+                        action="TRUSTPASS_PAYG_PAYMENT_SUCCESS",
+                        performed_by=transaction.user,
+                        details={
+                            "certificate_id": cert_id,
+                            "reference": transaction.reference,
+                            "amount_naira": transaction.amount_naira,
+                        }
+                    )
+                except Exception:
+                    pass
+                logger.info("TrustPass certificate %s unlocked and moved to pending review after payment %s", cert_id, transaction.reference)
+
+    # 2. Staff Background Check
+    elif service == 'staff_check':
+        check_id = meta.get('staff_check_id')
+        if check_id:
+            from employer.models import StaffCheckRequest
+            from employer.tasks import process_single_staff_check_task
+            check = StaffCheckRequest.objects.filter(id=check_id).first()
+            if check and check.status == 'pending_payment':
+                check.status = 'pending'
+                check.save(update_fields=['status', 'updated_at'])
+                try:
+                    process_single_staff_check_task.delay(str(check.id))
+                except Exception:
+                    try:
+                        process_single_staff_check_task(str(check.id))
+                    except Exception as e:
+                        logger.warning("Failed to dispatch staff check task %s inline: %s", check.id, e)
+                logger.info("Staff check %s unlocked and processing after payment %s", check_id, transaction.reference)
+
+    # 3. Document / CAC Verification
+    elif service in ('verification', 'business_verification'):
+        req_ref = meta.get('verification_reference')
+        if req_ref:
+            from verification.models import VerificationRequest
+            v_req = VerificationRequest.objects.filter(reference_number=req_ref).first()
+            if v_req and v_req.status == 'pending_payment':
+                v_req.status = 'pending'
+                v_req.save(update_fields=['status', 'updated_at'])
+                try:
+                    from verification.tasks import notify_verification_request_created
+                    notify_verification_request_created.delay(v_req.id)
+                except Exception:
+                    pass
+                logger.info("Verification request %s unlocked after payment %s", req_ref, transaction.reference)
+
+    # 4. Continuous Monitoring
+    elif service == 'monitoring':
+        cert_id = meta.get('certificate_id')
+        if cert_id:
+            from verification.models import VerificationCertificate
+            cert = VerificationCertificate.objects.filter(certificate_id=cert_id).first()
+            if cert:
+                cert.is_monitoring_active = True
+                cert.monitoring_activated_at = timezone.now()
+                from dateutil.relativedelta import relativedelta
+                cert.monitoring_expires_at = timezone.now() + relativedelta(years=1)
+                cert.save(update_fields=['is_monitoring_active', 'monitoring_activated_at', 'monitoring_expires_at', 'updated_at'])
+                logger.info("Monitoring activated for certificate %s after payment %s", cert_id, transaction.reference)

@@ -1,58 +1,665 @@
 {% extends "admin_portal/base_admin.html" %}
-{% block title %}Site Settings — Admin{% endblock %}
+{% load static %}
+
+{% block title %}Site Settings & Global Service Entitlements — Admin{% endblock %}
+
 {% block admin_body %}
-<div class="adm-page-header">
-  <h1 class="adm-page-title">Site Settings</h1>
-  <p class="adm-page-sub">Free-tier check limits, payment system flags, and plan management.</p>
+<div class="adm-page-header d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+  <div>
+    <h1 class="adm-page-title mb-1">Site Settings &amp; Global Entitlements</h1>
+    <p class="adm-page-sub mb-0">Platform-wide monetization switches, starter free quota limits, and service-by-service entitlement controls.</p>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    <span class="adm-badge {% if settings_obj.free_tier_enabled %}adm-badge-green{% else %}adm-badge-red{% endif %} px-3 py-2">
+      <i class="bi bi-circle-fill me-1" style="font-size:0.6rem;"></i>
+      Free Tier: {% if settings_obj.free_tier_enabled %}Active ({{ settings_obj.free_check_limit }} Checks){% else %}Disabled{% endif %}
+    </span>
+    {% if settings_obj.maintenance_mode %}
+      <span class="adm-badge adm-badge-amber px-3 py-2">Checkout Inactive</span>
+    {% endif %}
+  </div>
 </div>
 
 {% include "admin_portal/_messages.html" %}
 
-<div class="row g-4">
-  <div class="col-lg-6">
-    <div class="adm-card">
-      <div class="adm-card-header">Free Tier Configuration</div>
-      <form method="post" class="p-4">
-        {% csrf_token %}
-        <div class="mb-3">
-          <label class="form-label fw-semibold">Free Checks Per Window</label>
-          <input type="number" name="free_check_limit" class="form-control" value="{{ settings_obj.free_check_limit }}" min="0" max="100">
-          <div class="form-text">Number of free lookups per user per rolling window.</div>
+<!-- Master Settings Form -->
+<form method="post" id="siteSettingsForm" class="needs-validation" novalidate>
+  {% csrf_token %}
+
+  <div class="row g-4 mb-4">
+
+    <!-- 1. Starter Free Tier Quota Manager -->
+    <div class="col-lg-5">
+      <div class="adm-card h-100 shadow-sm border">
+        <div class="adm-card-header d-flex justify-content-between align-items-center bg-light py-3 px-4 border-bottom">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-gift fs-5 text-primary"></i>
+            <span class="fw-bold text-dark">Starter Free Quota Manager</span>
+          </div>
+          <span class="badge bg-secondary-subtle text-secondary small">User Acquisition</span>
         </div>
-        <div class="mb-3">
-          <label class="form-label fw-semibold">Window Duration (Days)</label>
-          <input type="number" name="free_check_window_days" class="form-control" value="{{ settings_obj.free_check_window_days }}" min="1" max="365">
-        </div>
-        <div class="mb-3">
-          <div class="form-check form-switch">
-            <input class="form-check-input" type="checkbox" name="maintenance_mode" id="payMaintenance" {% if settings_obj.maintenance_mode %}checked{% endif %}>
-            <label class="form-check-label fw-semibold" for="payMaintenance">Disable Checkout (Maintenance)</label>
+        <div class="p-4">
+          <p class="small text-muted mb-4">
+            Configure the complimentary search quota awarded to newly registered users before the platform paywall is enforced.
+          </p>
+
+          <!-- Master Free Quota Switch -->
+          <div class="p-3 mb-4 rounded-3 border bg-light d-flex align-items-center justify-content-between">
+            <div>
+              <div class="fw-bold small text-dark">Enable Starter Free Quota</div>
+              <div class="text-muted" style="font-size:0.75rem;">Give new accounts free initial searches</div>
+            </div>
+            <div class="form-check form-switch mb-0">
+              <input class="form-check-input" type="checkbox" role="switch" name="free_tier_enabled" id="freeTierToggle"
+                     {% if settings_obj.free_tier_enabled %}checked{% endif %} style="cursor:pointer;width:2.6em;height:1.3em;">
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold small text-dark" for="freeCheckLimit">New User Free Check Quota</label>
+            <div class="input-group">
+              <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+              <input type="number" name="free_check_limit" id="freeCheckLimit" class="form-control"
+                     value="{{ settings_obj.free_check_limit }}" min="0" max="100000" required>
+              <span class="input-group-text text-muted small">Checks</span>
+            </div>
+            <div class="form-text" style="font-size:0.78rem;">
+              Set to <code>0</code> or turn toggle OFF to require immediate payment/subscription upon signup.
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label fw-semibold small text-dark" for="freeWindowDays">Quota Rolling Window (Days)</label>
+            <div class="input-group">
+              <span class="input-group-text bg-white"><i class="bi bi-calendar3"></i></span>
+              <input type="number" name="free_check_window_days" id="freeWindowDays" class="form-control"
+                     value="{{ settings_obj.free_check_window_days }}" min="1" max="99999" required>
+              <span class="input-group-text text-muted small">Days</span>
+            </div>
+            <div class="form-text" style="font-size:0.78rem;">
+              Number of days before an unsubscribed user's free quota resets (default 30 days).
+            </div>
+          </div>
+
+          <hr class="my-4">
+
+          <!-- Payment System Flag -->
+          <div class="p-3 rounded-3 border bg-light">
+            <div class="d-flex align-items-center justify-content-between">
+              <div>
+                <div class="fw-bold small text-danger">Payment Checkout Maintenance</div>
+                <div class="text-muted" style="font-size:0.75rem;">Temporarily halts Paystack checkout platform-wide</div>
+              </div>
+              <div class="form-check form-switch mb-0">
+                <input class="form-check-input" type="checkbox" role="switch" name="maintenance_mode" id="payMaintenance"
+                       {% if settings_obj.maintenance_mode %}checked{% endif %} style="cursor:pointer;width:2.4em;height:1.2em;">
+              </div>
+            </div>
           </div>
         </div>
-        <button type="submit" class="btn btn-adm-primary w-100">Save Site Settings</button>
-      </form>
+      </div>
+    </div>
+
+    <!-- 2. Global Service-by-Service Entitlement Toggles -->
+    <div class="col-lg-7">
+      <div class="adm-card h-100 shadow-sm border">
+        <div class="adm-card-header d-flex justify-content-between align-items-center bg-light py-3 px-4 border-bottom">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-toggles fs-5 text-primary"></i>
+            <span class="fw-bold text-dark">Global Service Entitlement Switches</span>
+          </div>
+          <span class="badge bg-primary-subtle text-primary small">Master Controls</span>
+        </div>
+        <div class="p-4">
+          <p class="small text-muted mb-3">
+            Select whether each service consumes user credits / requires an active plan, or is complimentary platform-wide.
+          </p>
+
+          <div class="table-responsive">
+            <table class="table align-middle mb-0" style="font-size:0.875rem;">
+              <thead class="table-light">
+                <tr>
+                  <th style="min-width:200px;">Platform Service</th>
+                  <th style="width:140px;">Current State</th>
+                  <th style="min-width:180px;">Access Setting</th>
+                </tr>
+              </thead>
+              <tbody>
+
+                <!-- 1. Person Quick-Check -->
+                <tr>
+                  <td>
+                    <div class="fw-semibold text-dark">Person Quick-Check</div>
+                    <div class="text-muted" style="font-size:0.74rem;">Instant phone / NIN lookup in employer portal</div>
+                  </td>
+                  <td>
+                    {% if settings_obj.service_quick_check == 'free' %}
+                      <span class="adm-badge adm-badge-green">Complimentary</span>
+                    {% else %}
+                      <span class="adm-badge adm-badge-blue">Consumes Credit</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <select name="service_quick_check" class="form-select form-select-sm">
+                      <option value="paid" {% if settings_obj.service_quick_check == 'paid' %}selected{% endif %}>Paid / Consumes Credit</option>
+                      <option value="free" {% if settings_obj.service_quick_check == 'free' %}selected{% endif %}>Free / Complimentary</option>
+                    </select>
+                  </td>
+                </tr>
+
+                <!-- 2. Staff Background Check -->
+                <tr>
+                  <td>
+                    <div class="fw-semibold text-dark">Staff Background Check</div>
+                    <div class="text-muted" style="font-size:0.74rem;">Single check &amp; bulk CSV screening for employees</div>
+                  </td>
+                  <td>
+                    {% if settings_obj.service_staff_check == 'free' %}
+                      <span class="adm-badge adm-badge-green">Complimentary</span>
+                    {% else %}
+                      <span class="adm-badge adm-badge-blue">Consumes Credit</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <select name="service_staff_check" class="form-select form-select-sm">
+                      <option value="paid" {% if settings_obj.service_staff_check == 'paid' %}selected{% endif %}>Paid / Consumes Credit</option>
+                      <option value="free" {% if settings_obj.service_staff_check == 'free' %}selected{% endif %}>Free / Complimentary</option>
+                    </select>
+                  </td>
+                </tr>
+
+                <!-- 2b. Bulk CSV Screening -->
+                <tr>
+                  <td>
+                    <div class="fw-semibold text-dark">Bulk CSV Employee Screening</div>
+                    <div class="text-muted" style="font-size:0.74rem;">Batch employee upload via spreadsheet (N checks deducted)</div>
+                  </td>
+                  <td>
+                    {% if settings_obj.service_bulk_upload == 'free' %}
+                      <span class="adm-badge adm-badge-green">Complimentary</span>
+                    {% else %}
+                      <span class="adm-badge adm-badge-blue">Consumes Credit</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <select name="service_bulk_upload" class="form-select form-select-sm">
+                      <option value="paid" {% if settings_obj.service_bulk_upload == 'paid' %}selected{% endif %}>Paid / Consumes Credit</option>
+                      <option value="free" {% if settings_obj.service_bulk_upload == 'free' %}selected{% endif %}>Free / Complimentary</option>
+                    </select>
+                  </td>
+                </tr>
+
+                <!-- 3. Business / CAC Verification -->
+                <tr>
+                  <td>
+                    <div class="fw-semibold text-dark">Business / CAC Verification</div>
+                    <div class="text-muted" style="font-size:0.74rem;">Official company RC and document verification</div>
+                  </td>
+                  <td>
+                    {% if settings_obj.service_business_verification == 'free' %}
+                      <span class="adm-badge adm-badge-green">Complimentary</span>
+                    {% else %}
+                      <span class="adm-badge adm-badge-blue">Consumes Credit</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <select name="service_business_verification" class="form-select form-select-sm">
+                      <option value="paid" {% if settings_obj.service_business_verification == 'paid' %}selected{% endif %}>Paid / Consumes Credit</option>
+                      <option value="free" {% if settings_obj.service_business_verification == 'free' %}selected{% endif %}>Free / Complimentary</option>
+                    </select>
+                  </td>
+                </tr>
+
+                <!-- 4. Public Header Search (/check/) -->
+                <tr>
+                  <td>
+                    <div class="fw-semibold text-dark">Public Check (<code>/check/</code>)</div>
+                    <div class="text-muted" style="font-size:0.74rem;">Public header &amp; homepage search engine</div>
+                  </td>
+                  <td>
+                    {% if settings_obj.service_public_check == 'free' %}
+                      <span class="adm-badge adm-badge-green">Complimentary</span>
+                    {% else %}
+                      <span class="adm-badge adm-badge-blue">Paid / Credit Required</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <select name="service_public_check" class="form-select form-select-sm">
+                      <option value="paid" {% if settings_obj.service_public_check == 'paid' %}selected{% endif %}>Paid (Login &amp; Quota Required)</option>
+                      <option value="free" {% if settings_obj.service_public_check == 'free' %}selected{% endif %}>Free (Open Rate-Limited)</option>
+                    </select>
+                  </td>
+                </tr>
+
+                <!-- 5. Certificate / TrustPass Creation -->
+                <tr>
+                  <td>
+                    <div class="fw-semibold text-dark">Certificate &amp; TrustPass Creation</div>
+                    <div class="text-muted" style="font-size:0.74rem;">Generating cryptographic PDF &amp; QR certificates</div>
+                  </td>
+                  <td>
+                    {% if settings_obj.service_certificate_creation == 'free' %}
+                      <span class="adm-badge adm-badge-green">Complimentary</span>
+                    {% else %}
+                      <span class="adm-badge adm-badge-blue">Consumes Credit</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <select name="service_certificate_creation" class="form-select form-select-sm">
+                      <option value="paid" {% if settings_obj.service_certificate_creation == 'paid' %}selected{% endif %}>Paid / Consumes Credit</option>
+                      <option value="free" {% if settings_obj.service_certificate_creation == 'free' %}selected{% endif %}>Free / Complimentary</option>
+                    </select>
+                  </td>
+                </tr>
+
+                <!-- 6. Ongoing Monitoring Services -->
+                <tr>
+                  <td>
+                    <div class="fw-semibold text-dark">Continuous Monitoring</div>
+                    <div class="text-muted" style="font-size:0.74rem;">Automated background alerts when staff are flagged</div>
+                  </td>
+                  <td>
+                    {% if settings_obj.service_monitoring == 'free' %}
+                      <span class="adm-badge adm-badge-green">Complimentary</span>
+                    {% else %}
+                      <span class="adm-badge adm-badge-blue">Paid / Subscription Only</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <select name="service_monitoring" class="form-select form-select-sm">
+                      <option value="paid" {% if settings_obj.service_monitoring == 'paid' %}selected{% endif %}>Paid / Subscription Only</option>
+                      <option value="free" {% if settings_obj.service_monitoring == 'free' %}selected{% endif %}>Free / Complimentary</option>
+                    </select>
+                  </td>
+                </tr>
+
+                <!-- 6.5 Employer Workforce Certificate Status Check -->
+                <tr>
+                  <td>
+                    <div class="fw-semibold text-dark">Employer Workforce Certificate Verification</div>
+                    <div class="text-muted" style="font-size:0.74rem;">Live status check by Certificate ID + Surname + DOB (/employer/certificate/verify/)</div>
+                  </td>
+                  <td>
+                    {% if settings_obj.service_certificate_verify == 'free' %}
+                      <span class="adm-badge adm-badge-green">Complimentary</span>
+                    {% else %}
+                      <span class="adm-badge adm-badge-blue">Consumes Credit</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <select name="service_certificate_verify" class="form-select form-select-sm">
+                      <option value="paid" {% if settings_obj.service_certificate_verify == 'paid' %}selected{% endif %}>Paid / Consumes Credit</option>
+                      <option value="free" {% if settings_obj.service_certificate_verify == 'free' %}selected{% endif %}>Free / Complimentary</option>
+                    </select>
+                  </td>
+                </tr>
+
+                <!-- 7. Certificate ID QR Verification (LOCKED ALWAYS FREE) -->
+                <tr class="table-light">
+                  <td>
+                    <div class="fw-semibold text-dark">Certificate ID QR Verification</div>
+                    <div class="text-muted" style="font-size:0.74rem;">Public validation for employers scanning badges</div>
+                  </td>
+                  <td>
+                    <span class="adm-badge adm-badge-green"><i class="bi bi-shield-check me-1"></i>Always Free</span>
+                  </td>
+                  <td>
+                    <span class="text-muted small fst-italic">Mandatory Free (Public QR Scans)</span>
+                  </td>
+                </tr>
+
+                <!-- 8. Fraud Reporting (LOCKED ALWAYS FREE) -->
+                <tr class="table-light">
+                  <td>
+                    <div class="fw-semibold text-dark">Fraud &amp; Misconduct Reporting</div>
+                    <div class="text-muted" style="font-size:0.74rem;">Community whistleblowing and dispute filings</div>
+                  </td>
+                  <td>
+                    <span class="adm-badge adm-badge-green"><i class="bi bi-shield-check me-1"></i>Always Free</span>
+                  </td>
+                  <td>
+                    <span class="text-muted small fst-italic">Mandatory Free (Statutory Policy)</span>
+                  </td>
+                </tr>
+
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Precedence Notification Callout -->
+          <div class="mt-3 p-3 rounded-3 bg-light border" style="font-size:0.8rem;line-height:1.5;color:#475569;">
+            <div class="d-flex align-items-start gap-2">
+              <i class="bi bi-info-circle-fill text-primary mt-0.5"></i>
+              <div>
+                <strong>Account Precedence Notice:</strong> If an individual user or employer profile is specifically granted billing exemption or service waivers in their account dossier, their individual account settings take precedence over these global defaults.
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 2.5 Pay-As-You-Go Service Pricing Catalog -->
+  <div class="adm-card shadow-sm border mb-4">
+    <div class="adm-card-header d-flex flex-wrap justify-content-between align-items-center bg-light py-3 px-4 border-bottom gap-2">
+      <div class="d-flex align-items-center gap-2">
+        <i class="bi bi-tag-fill fs-5 text-primary"></i>
+        <span class="fw-bold text-dark">Pay-As-You-Go Service Pricing Catalog</span>
+      </div>
+      <span class="badge bg-success-subtle text-success small">A La Carte Unit Prices (₦ NGN)</span>
+    </div>
+    <div class="p-4">
+      <p class="small text-muted mb-4">
+        Set the per-transaction unit price charged when a customer uses a service without an active subscription package or check quota. Prices are in Nigerian Naira (₦).
+      </p>
+
+      <div class="row g-4">
+        <!-- TrustPass Certificates -->
+        <div class="col-md-6">
+          <div class="p-3 rounded-3 border bg-light h-100">
+            <h6 class="fw-bold text-dark d-flex align-items-center gap-2 mb-3">
+              <i class="bi bi-award text-primary"></i> TrustPass™ Clearance Certificates
+            </h6>
+            <div class="mb-3">
+              <label class="form-label small fw-semibold text-dark" for="priceTrustPass1Yr">Standard 1-Year Certificate (<code>employment</code>)</label>
+              <div class="input-group input-group-sm">
+                <span class="input-group-text bg-white">₦</span>
+                <input type="number" name="price_trustpass_1yr" id="priceTrustPass1Yr" class="form-control"
+                       value="{{ settings_obj.price_trustpass_1yr }}" min="0" step="50" required>
+              </div>
+              <div class="form-text" style="font-size:0.75rem;">Standard 1-year employment clearance credential.</div>
+            </div>
+            <div>
+              <label class="form-label small fw-semibold text-dark" for="priceTrustPass3Yr">Enhanced 3-Year Certificate (<code>enhanced</code>)</label>
+              <div class="input-group input-group-sm">
+                <span class="input-group-text bg-white">₦</span>
+                <input type="number" name="price_trustpass_3yr" id="priceTrustPass3Yr" class="form-control"
+                       value="{{ settings_obj.price_trustpass_3yr }}" min="0" step="50" required>
+              </div>
+              <div class="form-text" style="font-size:0.75rem;">Multi-year high-integrity workforce certificate.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Staff Background Checks -->
+        <div class="col-md-6">
+          <div class="p-3 rounded-3 border bg-light h-100">
+            <h6 class="fw-bold text-dark d-flex align-items-center gap-2 mb-3">
+              <i class="bi bi-person-lines-fill text-primary"></i> Staff Background Investigations
+            </h6>
+            <div class="mb-3">
+              <label class="form-label small fw-semibold text-dark" for="priceStaffStd">Standard Staff Check (<code>standard</code>)</label>
+              <div class="input-group input-group-sm">
+                <span class="input-group-text bg-white">₦</span>
+                <input type="number" name="price_staff_check_standard" id="priceStaffStd" class="form-control"
+                       value="{{ settings_obj.price_staff_check_standard }}" min="0" step="50" required>
+              </div>
+              <div class="form-text" style="font-size:0.75rem;">Automated identity, phone &amp; NIN candidate vetting.</div>
+            </div>
+            <div>
+              <label class="form-label small fw-semibold text-dark" for="priceStaffEnh">Enhanced Staff Check (<code>enhanced</code>)</label>
+              <div class="input-group input-group-sm">
+                <span class="input-group-text bg-white">₦</span>
+                <input type="number" name="price_staff_check_enhanced" id="priceStaffEnh" class="form-control"
+                       value="{{ settings_obj.price_staff_check_enhanced }}" min="0" step="50" required>
+              </div>
+              <div class="form-text" style="font-size:0.75rem;">In-depth background check with manual officer review.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Document & Business Verifications -->
+        <div class="col-md-6">
+          <div class="p-3 rounded-3 border bg-light h-100">
+            <h6 class="fw-bold text-dark d-flex align-items-center gap-2 mb-3">
+              <i class="bi bi-building-check text-primary"></i> Document &amp; Entity Verifications
+            </h6>
+            <div class="mb-3">
+              <label class="form-label small fw-semibold text-dark" for="priceVerifBasic">Basic Identity / Address Verification</label>
+              <div class="input-group input-group-sm">
+                <span class="input-group-text bg-white">₦</span>
+                <input type="number" name="price_verification_basic" id="priceVerifBasic" class="form-control"
+                       value="{{ settings_obj.price_verification_basic }}" min="0" step="50" required>
+              </div>
+              <div class="form-text" style="font-size:0.75rem;">Individual ID, address, or credential document vetting.</div>
+            </div>
+            <div>
+              <label class="form-label small fw-semibold text-dark" for="priceVerifBiz">CAC Corporate / Property Diligence</label>
+              <div class="input-group input-group-sm">
+                <span class="input-group-text bg-white">₦</span>
+                <input type="number" name="price_verification_business" id="priceVerifBiz" class="form-control"
+                       value="{{ settings_obj.price_verification_business }}" min="0" step="50" required>
+              </div>
+              <div class="form-text" style="font-size:0.75rem;">Full CAC corporate registration, vehicle, or real estate diligence.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Searches, Monitoring & Bulk Screening -->
+        <div class="col-md-6">
+          <div class="p-3 rounded-3 border bg-light h-100">
+            <h6 class="fw-bold text-dark d-flex align-items-center gap-2 mb-3">
+              <i class="bi bi-search text-primary"></i> Searches, Monitoring &amp; Bulk
+            </h6>
+            <div class="row g-2 mb-3">
+              <div class="col-6">
+                <label class="form-label small fw-semibold text-dark" for="pricePublicCheck">Public Search (/check/)</label>
+                <div class="input-group input-group-sm">
+                  <span class="input-group-text bg-white">₦</span>
+                  <input type="number" name="price_public_check" id="pricePublicCheck" class="form-control"
+                         value="{{ settings_obj.price_public_check }}" min="0" step="50" required>
+                </div>
+              </div>
+              <div class="col-6">
+                <label class="form-label small fw-semibold text-dark" for="pricePersonCheck">Person Quick-Check</label>
+                <div class="input-group input-group-sm">
+                  <span class="input-group-text bg-white">₦</span>
+                  <input type="number" name="price_person_check" id="pricePersonCheck" class="form-control"
+                         value="{{ settings_obj.price_person_check }}" min="0" step="50" required>
+                </div>
+              </div>
+            </div>
+            <div class="row g-2">
+              <div class="col-6">
+                <label class="form-label small fw-semibold text-dark" for="priceCertVerify">Cert Status Check</label>
+                <div class="input-group input-group-sm">
+                  <span class="input-group-text bg-white">₦</span>
+                  <input type="number" name="price_certificate_verify" id="priceCertVerify" class="form-control"
+                         value="{{ settings_obj.price_certificate_verify }}" min="0" step="50" required>
+                </div>
+                <div class="form-text" style="font-size:0.72rem;">Employer 3-point check.</div>
+              </div>
+              <div class="col-6">
+                <label class="form-label small fw-semibold text-dark" for="priceBulkRow">Bulk CSV (Per Row)</label>
+                <div class="input-group input-group-sm">
+                  <span class="input-group-text bg-white">₦</span>
+                  <input type="number" name="price_bulk_check_per_row" id="priceBulkRow" class="form-control"
+                         value="{{ settings_obj.price_bulk_check_per_row }}" min="0" step="10" required>
+                </div>
+                <div class="form-text" style="font-size:0.72rem;">Per candidate in CSV.</div>
+              </div>
+            </div>
+            <div class="mt-3">
+              <label class="form-label small fw-semibold text-dark" for="priceMonAnnual">Continuous Monitoring (Annual / Staff)</label>
+              <div class="input-group input-group-sm">
+                <span class="input-group-text bg-white">₦</span>
+                <input type="number" name="price_monitoring_annual" id="priceMonAnnual" class="form-control"
+                       value="{{ settings_obj.price_monitoring_annual }}" min="0" step="100" required>
+              </div>
+              <div class="form-text" style="font-size:0.72rem;">24/7 background staff alerts per enrolled candidate.</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
     </div>
   </div>
 
-  {% if plans %}
-  <div class="col-lg-6">
-    <div class="adm-card">
-      <div class="adm-card-header">Subscription Plans</div>
-      <table class="adm-table">
-        <thead><tr><th>Plan</th><th>Price</th><th>Interval</th><th>Active</th></tr></thead>
-        <tbody>
-          {% for plan in plans %}
-          <tr>
-            <td>{{ plan.name }}</td>
-            <td>₦{{ plan.price_kobo|floatformat:0 }} kobo</td>
-            <td>{{ plan.get_interval_display }}</td>
-            <td>{% if plan.is_active %}<span class="adm-badge adm-badge-green">Yes</span>{% else %}<span class="adm-badge adm-badge-gray">No</span>{% endif %}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+  <!-- Bottom Action Bar -->
+  <div class="d-flex justify-content-end align-items-center gap-3 p-3 bg-white border rounded-3 mb-5 shadow-sm">
+    <button type="button" class="btn btn-adm-outline" onclick="window.location.reload();">Discard Changes</button>
+    <button type="button" class="btn btn-adm-primary px-4" onclick="openConfirmSaveModal()">
+      <i class="bi bi-save me-1"></i> Save Global Settings &amp; Entitlements
+    </button>
+  </div>
+
+  <!-- Confirmation Modal -->
+  <div class="modal fade" id="confirmSaveModal" tabindex="-1" aria-labelledby="confirmSaveModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header border-bottom py-3 px-4">
+          <h5 class="modal-title fw-semibold text-dark" id="confirmSaveModalLabel">Confirm Global Settings Update</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4 text-center">
+          <div class="mb-3">
+            <div class="rounded-circle d-inline-flex align-items-center justify-content-center bg-primary-subtle text-primary" style="width:54px;height:54px;">
+              <i class="bi bi-sliders fs-3"></i>
+            </div>
+          </div>
+          <h6 class="fw-bold text-dark mb-2">Apply Platform-Wide Monetization Changes?</h6>
+          <p class="small text-muted mb-0">
+            These changes will take effect immediately. All search checks, service restrictions, and free quotas across the platform will update according to your new configuration.
+          </p>
+        </div>
+        <div class="modal-footer border-top py-3 px-4">
+          <button type="button" class="btn btn-adm-outline" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-adm-primary" id="modalConfirmBtn" onclick="submitSettingsForm(this)">
+            Yes, Apply Settings Now
+          </button>
+        </div>
+      </div>
     </div>
   </div>
-  {% endif %}
+
+</form>
+
+<!-- 3. Pay-As-You-Go Packs & Subscription Plans Management -->
+<div class="adm-card shadow-sm border mb-4">
+  <div class="adm-card-header d-flex flex-wrap justify-content-between align-items-center bg-light py-3 px-4 border-bottom gap-2">
+    <div>
+      <span class="fw-bold text-dark fs-6">Pay-As-You-Go Packs &amp; Subscription Plans</span>
+      <span class="text-muted small ms-2">({{ plans|length }} Active Models)</span>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <div class="input-group input-group-sm" style="width:200px;">
+        <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+        <input type="text" id="planFilterInput" class="form-control" placeholder="Search plans..." onkeyup="filterPlansTable()">
+      </div>
+      <a href="{% url 'admin_portal:plans' %}" class="btn btn-adm-sm btn-adm-primary">
+        <i class="bi bi-plus-circle me-1"></i> Manage / Create Plans
+      </a>
+    </div>
+  </div>
+  <div class="table-responsive">
+    <table class="adm-table mb-0" id="plansTable">
+      <thead>
+        <tr>
+          <th>Plan / Pack Name</th>
+          <th>Type / Interval</th>
+          <th>Price</th>
+          <th>Check Quota</th>
+          <th>Paystack Code</th>
+          <th>Status</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for plan in plans %}
+        <tr>
+          <td>
+            <div class="fw-semibold text-dark">{{ plan.name }}</div>
+            <div class="text-muted" style="font-size:0.75rem;">Slug: <code>{{ plan.slug }}</code></div>
+          </td>
+          <td>
+            {% if plan.interval == 'one_time' %}
+              <span class="badge bg-warning-subtle text-dark border">Pay-As-You-Go Pack</span>
+            {% elif plan.interval == 'yearly' %}
+              <span class="badge bg-purple-subtle text-purple border">Annual Plan</span>
+            {% else %}
+              <span class="badge bg-primary-subtle text-primary border">Monthly Subscription</span>
+            {% endif %}
+          </td>
+          <td class="fw-bold text-dark">
+            {% if plan.price_kobo == 0 %}
+              <span class="text-success">Free</span>
+            {% else %}
+              ₦{{ plan.price_naira|floatformat:0 }}
+            {% endif %}
+          </td>
+          <td>
+            {% if plan.has_unlimited_checks %}
+              <span class="adm-badge adm-badge-green">Unlimited</span>
+            {% else %}
+              <span class="fw-semibold">{{ plan.check_limit }} checks</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if plan.paystack_plan_code %}
+              <code style="font-size:0.75rem;">{{ plan.paystack_plan_code }}</code>
+            {% else %}
+              <span class="text-muted small">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if plan.is_active %}
+              <span class="adm-badge adm-badge-green">Active</span>
+            {% else %}
+              <span class="adm-badge adm-badge-gray">Inactive</span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            <a href="{% url 'admin_portal:plans' %}?edit={{ plan.id }}" class="btn btn-adm-sm btn-adm-outline">
+              Edit Plan
+            </a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7" class="text-center py-4 text-muted small">
+            No subscription plans or pay-as-you-go packs found. <a href="{% url 'admin_portal:plans' %}">Create one now</a>.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
+
+{% endblock %}
+
+{% block admin_scripts %}
+<script>
+function openConfirmSaveModal() {
+  const form = document.getElementById('siteSettingsForm');
+  if (form && !form.checkValidity()) {
+    form.reportValidity();
+    return;
+  }
+  const modalEl = document.getElementById('confirmSaveModal');
+  if (modalEl) {
+    const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+    modal.show();
+  }
+}
+
+function submitSettingsForm(btn) {
+
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Saving Settings...';
+  document.getElementById('siteSettingsForm').submit();
+  setTimeout(function() { btn.disabled = true; }, 20);
+}
+
+function filterPlansTable() {
+  const q = document.getElementById('planFilterInput').value.toLowerCase();
+  const rows = document.querySelectorAll('#plansTable tbody tr');
+  rows.forEach(r => {
+    const text = r.textContent.toLowerCase();
+    r.style.display = text.includes(q) ? '' : 'none';
+  });
+}
+</script>
 {% endblock %}

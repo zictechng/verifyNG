@@ -15,6 +15,10 @@ from reports.models import FraudReport
 class RateLimitingEndpointRegressionTestCase(TestCase):
     def setUp(self):
         caches['default'].clear()
+        from payments.models import SiteSettings
+        site = SiteSettings.get()
+        site.service_public_check = 'free'
+        site.save()
         self.subject = SubjectEntity.objects.create(type='person', name='Lookup Target')
         self.identifier = Identifier.objects.create(
             subject=self.subject,
@@ -100,3 +104,32 @@ class RateLimitingEndpointRegressionTestCase(TestCase):
         res = self.client.get('/api/v1/check/non_existent_hash_999')
         self.assertEqual(res.status_code, 404)
 
+
+    def test_paid_public_check_enforces_auth_and_quota(self):
+        from users.models import User
+        from payments.models import SiteSettings, FreeUsageQuota
+        site = SiteSettings.get()
+        site.service_public_check = 'paid'
+        site.free_tier_enabled = True
+        site.free_check_limit = 1
+        site.save()
+
+        # Anonymous gets 401
+        res = self.client.get('/api/v1/check/hash_abc123')
+        self.assertEqual(res.status_code, 401)
+        self.assertEqual(res.json()['detail'], 'login_required')
+
+        # Authenticated user with quota gets 200
+        user = User.objects.create_user(username='paid_test_user', password='password123')
+        quota = FreeUsageQuota.for_user(user)
+        quota.checks_used = 0
+        quota.save()
+
+        self.client.force_login(user)
+        res_auth = self.client.get('/api/v1/check/hash_abc123')
+        self.assertEqual(res_auth.status_code, 200)
+
+        # Second check exceeds limit: returns 402
+        res_auth2 = self.client.get('/api/v1/check/hash_abc123')
+        self.assertEqual(res_auth2.status_code, 402)
+        self.assertEqual(res_auth2.json()['detail'], 'quota_exceeded')

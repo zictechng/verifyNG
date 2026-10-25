@@ -260,6 +260,62 @@
         {% endif %}
       </div>
       <div class="card-body p-3">
+        <!-- Live Billing & Plan Status Indicator -->
+        {% if active_subscription %}
+          <div class="p-2 mb-3 rounded-2" style="background:#f0fdf4; border:1px solid #bbf7d0;">
+            <div class="d-flex align-items-center justify-content-between mb-1">
+              <span class="small fw-bold text-success" style="font-size:0.78rem;">
+                <i class="bi bi-patch-check-fill me-1"></i>Active Commercial Plan
+              </span>
+              <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size:0.68rem;">{{ active_subscription.plan.name }}</span>
+            </div>
+            <div class="small text-dark d-flex justify-content-between align-items-center" style="font-size:0.75rem;">
+              <span>Check Allowance:</span>
+              <strong class="text-success">
+                {% if active_subscription.plan.has_unlimited_checks %}
+                  Unlimited
+                {% else %}
+                  {{ active_subscription.remaining_checks }} / {{ active_subscription.plan.check_limit }} remaining
+                {% endif %}
+              </strong>
+            </div>
+            <div class="text-muted" style="font-size:0.7rem; margin-top:2px;">
+              Renews {{ active_subscription.current_period_end|date:"d M Y" }} · Automatically metered
+            </div>
+          </div>
+        {% elif target_user.is_billing_exempt %}
+          <div class="p-2 mb-3 rounded-2" style="background:#f5f3ff; border:1px solid #ddd6fe;">
+            <div class="d-flex align-items-center justify-content-between mb-1">
+              <span class="small fw-bold" style="color:#6d28d9; font-size:0.78rem;">
+                <i class="bi bi-award-fill me-1"></i>Master VIP Waiver Active
+              </span>
+              <span class="badge border" style="background:#ede9fe; color:#6d28d9; border-color:#c4b5fd; font-size:0.68rem;">All Services Free</span>
+            </div>
+            <div class="text-muted" style="font-size:0.7rem;">
+              Account bypasses all paywalls and subscription metering without deductions.
+            </div>
+          </div>
+        {% else %}
+          <div class="p-2 mb-3 rounded-2" style="background:{% if free_quota.checks_used >= site_settings.free_check_limit %}#fef2f2; border:1px solid #fecaca;{% else %}#eff6ff; border:1px solid #bfdbfe;{% endif %}">
+            <div class="d-flex align-items-center justify-content-between mb-1">
+              <span class="small fw-bold {% if free_quota.checks_used >= site_settings.free_check_limit %}text-danger{% else %}text-primary{% endif %}" style="font-size:0.78rem;">
+                <i class="bi {% if free_quota.checks_used >= site_settings.free_check_limit %}bi-exclamation-octagon-fill text-danger{% else %}bi-info-circle-fill text-primary{% endif %} me-1"></i>
+                {% if free_quota.checks_used >= site_settings.free_check_limit %}Paywall Active (Quota Reached){% else %}Starter Free Tier{% endif %}
+              </span>
+              <span class="badge {% if free_quota.checks_used >= site_settings.free_check_limit %}bg-danger-subtle text-danger border border-danger-subtle{% else %}bg-primary-subtle text-primary border border-primary-subtle{% endif %}" style="font-size:0.68rem;">
+                {{ free_quota.checks_used }} / {{ site_settings.free_check_limit }} used
+              </span>
+            </div>
+            <div class="text-muted" style="font-size:0.7rem;">
+              {% if free_quota.checks_used >= site_settings.free_check_limit %}
+                User has exhausted starter checks. Subscriptions or admin waivers required to continue.
+              {% else %}
+                Standard user consuming {{ site_settings.free_check_limit }}-check platform starter allowance.
+              {% endif %}
+            </div>
+          </div>
+        {% endif %}
+
         <form method="post" action="{% url 'admin_portal:user_detail' target_user.public_id %}">
           {% csrf_token %}
           <input type="hidden" name="action" value="update_billing_exempt">
@@ -281,29 +337,76 @@
           <!-- 1. Fraud Reporting -->
           <div class="d-flex align-items-center justify-content-between py-2 border-bottom">
             <div>
-              <div class="small fw-semibold">Fraud Crime Reporting</div>
-              <div class="text-muted" style="font-size:0.72rem;">Submit scam incidents</div>
+              <div class="small fw-semibold">Fraud Crime Reporting (<code>/reports/create/</code>)</div>
+              <div class="text-muted" style="font-size:0.72rem;">Submit scam incidents and fraud alerts</div>
             </div>
             <span class="adm-badge green" style="font-size:0.65rem;">Always Free</span>
           </div>
-          <!-- 2. Staff & Person Checks -->
+          <!-- 2. Verify Workforce Certificate -->
           <div class="d-flex align-items-center justify-content-between py-2 border-bottom">
             <div>
-              <div class="small fw-semibold">Staff &amp; Person Checks</div>
-              <div class="text-muted" style="font-size:0.72rem;">NIN &amp; phone trust checks</div>
+              <div class="small fw-semibold">Verify Workforce Certificate (<code>/employer/certificate/verify/</code>)</div>
+              <div class="text-muted" style="font-size:0.72rem;">Validate TrustPass certificate &amp; live standing</div>
             </div>
             <div class="form-check form-switch mb-0">
               <input class="form-check-input" type="checkbox" role="switch"
-                     name="exempt_services" value="check" id="userSvcCheck"
-                     {% if 'check' in target_user.exempt_services or target_user.is_billing_exempt %}checked{% endif %}
+                     name="exempt_services" value="certificate_verify" id="userSvcCertVerify"
+                     {% if 'certificate_verify' in target_user.exempt_services or target_user.is_billing_exempt %}checked{% endif %}
                      style="cursor:pointer;width:2.3em;height:1.2em;">
             </div>
           </div>
-          <!-- 3. Bulk CSV Checks -->
+          <!-- 3. Staff Misconduct Reporting -->
           <div class="d-flex align-items-center justify-content-between py-2 border-bottom">
             <div>
-              <div class="small fw-semibold">Bulk CSV Checks</div>
-              <div class="text-muted" style="font-size:0.72rem;">Screen up to 500 records</div>
+              <div class="small fw-semibold">Staff Misconduct Reporting (<code>/employer/misconduct/report/</code>)</div>
+              <div class="text-muted" style="font-size:0.72rem;">Incident reports against certified personnel</div>
+            </div>
+            <span class="adm-badge green" style="font-size:0.65rem;">Always Free</span>
+          </div>
+          <!-- 4. Public Record Search Engine -->
+          <div class="d-flex align-items-center justify-content-between py-2 border-bottom">
+            <div>
+              <div class="small fw-semibold">Public Record Search (<code>/check/</code>)</div>
+              <div class="text-muted" style="font-size:0.72rem;">Public search engine lookup by NIN, phone, hash</div>
+            </div>
+            <div class="form-check form-switch mb-0">
+              <input class="form-check-input" type="checkbox" role="switch"
+                     name="exempt_services" value="public_check" id="userSvcPublicCheck"
+                     {% if 'public_check' in target_user.exempt_services or 'check' in target_user.exempt_services or target_user.is_billing_exempt %}checked{% endif %}
+                     style="cursor:pointer;width:2.3em;height:1.2em;">
+            </div>
+          </div>
+          <!-- 5. Person Quick-Check -->
+          <div class="d-flex align-items-center justify-content-between py-2 border-bottom">
+            <div>
+              <div class="small fw-semibold">Person Quick-Check (<code>/employer/person-check/</code>)</div>
+              <div class="text-muted" style="font-size:0.72rem;">Instant candidate vetting by Phone or NIN</div>
+            </div>
+            <div class="form-check form-switch mb-0">
+              <input class="form-check-input" type="checkbox" role="switch"
+                     name="exempt_services" value="person_check" id="userSvcPersonCheck"
+                     {% if 'person_check' in target_user.exempt_services or 'quick_check' in target_user.exempt_services or target_user.is_billing_exempt %}checked{% endif %}
+                     style="cursor:pointer;width:2.3em;height:1.2em;">
+            </div>
+          </div>
+          <!-- 6. Staff Background Check -->
+          <div class="d-flex align-items-center justify-content-between py-2 border-bottom">
+            <div>
+              <div class="small fw-semibold">Staff Background Check (<code>/employer/staff/check/</code>)</div>
+              <div class="text-muted" style="font-size:0.72rem;">Formal candidate background investigation dossier</div>
+            </div>
+            <div class="form-check form-switch mb-0">
+              <input class="form-check-input" type="checkbox" role="switch"
+                     name="exempt_services" value="staff_check" id="userSvcStaffCheck"
+                     {% if 'staff_check' in target_user.exempt_services or target_user.is_billing_exempt %}checked{% endif %}
+                     style="cursor:pointer;width:2.3em;height:1.2em;">
+            </div>
+          </div>
+          <!-- 7. Bulk CSV Checks -->
+          <div class="d-flex align-items-center justify-content-between py-2 border-bottom">
+            <div>
+              <div class="small fw-semibold">Bulk CSV Candidate Checks (<code>/employer/bulk-checks/</code>)</div>
+              <div class="text-muted" style="font-size:0.72rem;">Batch screening up to 500 records per upload</div>
             </div>
             <div class="form-check form-switch mb-0">
               <input class="form-check-input" type="checkbox" role="switch"
@@ -312,11 +415,11 @@
                      style="cursor:pointer;width:2.3em;height:1.2em;">
             </div>
           </div>
-          <!-- 4. Continuous Monitoring -->
+          <!-- 8. Continuous Monitoring -->
           <div class="d-flex align-items-center justify-content-between py-2 border-bottom">
             <div>
-              <div class="small fw-semibold">Continuous Monitoring</div>
-              <div class="text-muted" style="font-size:0.72rem;">24/7 staff fraud alerts</div>
+              <div class="small fw-semibold">Continuous Staff Monitoring (<code>/employer/monitoring/</code>)</div>
+              <div class="text-muted" style="font-size:0.72rem;">24/7 background watchers with email alerts</div>
             </div>
             <div class="form-check form-switch mb-0">
               <input class="form-check-input" type="checkbox" role="switch"
@@ -325,11 +428,11 @@
                      style="cursor:pointer;width:2.3em;height:1.2em;">
             </div>
           </div>
-          <!-- 5. Identity Verification -->
+          <!-- 9. Identity & CAC Verification -->
           <div class="d-flex align-items-center justify-content-between py-2 border-bottom">
             <div>
-              <div class="small fw-semibold">Identity Verification</div>
-              <div class="text-muted" style="font-size:0.72rem;">CAC &amp; government IDs</div>
+              <div class="small fw-semibold">Business &amp; ID Verification (<code>/verification/create/</code>)</div>
+              <div class="text-muted" style="font-size:0.72rem;">CAC &amp; government ID verification requests</div>
             </div>
             <div class="form-check form-switch mb-0">
               <input class="form-check-input" type="checkbox" role="switch"
@@ -338,11 +441,11 @@
                      style="cursor:pointer;width:2.3em;height:1.2em;">
             </div>
           </div>
-          <!-- 6. Trust Certificates -->
+          <!-- 10. TrustPass Certificate Application -->
           <div class="d-flex align-items-center justify-content-between py-2 border-bottom">
             <div>
-              <div class="small fw-semibold">Trust Certificates</div>
-              <div class="text-muted" style="font-size:0.72rem;">Signed PDF certificates</div>
+              <div class="small fw-semibold">TrustPass Certificate Application (<code>/verification/certificate/apply/</code>)</div>
+              <div class="text-muted" style="font-size:0.72rem;">Application and issuance of clearance credentials</div>
             </div>
             <div class="form-check form-switch mb-0">
               <input class="form-check-input" type="checkbox" role="switch"
@@ -1127,6 +1230,15 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
   });
+
+  const userMaster = document.getElementById('userMasterExempt');
+  if (userMaster) {
+    userMaster.addEventListener('change', function () {
+      document.querySelectorAll('input[name="exempt_services"]').forEach(function (chk) {
+        chk.checked = userMaster.checked;
+      });
+    });
+  }
 })();
 </script>
 

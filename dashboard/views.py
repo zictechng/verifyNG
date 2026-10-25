@@ -1,10 +1,11 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.shortcuts import redirect
 from django.views.generic import TemplateView
 
 from reports.models import FraudReport, Dispute
 from verification.models import VerificationRequest
-from core.permissions import is_moderator, is_verification_officer
+from core.permissions import is_moderator, is_verification_officer, is_employer
 from verification.models import VerificationRequest, VerificationCertificate
 
 # ── Add to top imports ────────────────────────────────────────────────────────
@@ -81,6 +82,12 @@ def _get_user_summary_counts(user):
 
 class DashboardIndexView(LoginRequiredMixin, TemplateView):
     template_name = "dashboard/index.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            if not (request.user.is_staff or request.user.is_superuser) and is_employer(request.user):
+                return redirect('employer:dashboard')
+        return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)

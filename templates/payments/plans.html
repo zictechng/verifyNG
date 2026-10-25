@@ -148,6 +148,122 @@
       {% endfor %}
     </div>
 
+    <!-- Pay-As-You-Go Per-Service Pricing Table -->
+    <div class="mt-5 pt-4">
+      <div class="text-center mb-4">
+        <span class="badge rounded-pill mb-2" style="background:var(--vng-teal-light, #E6FFFA);color:var(--vng-teal, #0D9488);font-size:.8rem;font-weight:600;padding:.4rem .9rem;">Flexible On-Demand Access</span>
+        <h2 class="fw-800 h4 mb-2">Pay-As-You-Go Service Rates</h2>
+        <p class="text-muted small mx-auto" style="max-width:540px;">No recurring subscription needed. Pay per verification or background check whenever you need it.</p>
+      </div>
+
+      <div class="vng-card p-0 overflow-hidden shadow-sm" style="border-radius:var(--vng-radius-lg, 12px);border:1px solid var(--vng-border, #E2E8F0);background:#fff;">
+        <div class="table-responsive">
+          <table class="table align-middle mb-0" style="font-size:.9rem;">
+            <thead class="bg-light text-muted small text-uppercase">
+              <tr>
+                <th class="ps-4 py-3" style="font-weight:700;">Platform Service</th>
+                <th class="py-3" style="font-weight:700;">Coverage & Validity</th>
+                <th class="py-3" style="font-weight:700;">Rate (NGN)</th>
+                <th class="pe-4 py-3 text-end" style="font-weight:700;">Direct Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="ps-4 py-3">
+                  <div class="fw-bold text-dark">TrustPass Clearance Certificate (Standard)</div>
+                  <div class="text-muted small">Applicant Workplace Integrity Credential + NIN & Fraud Check</div>
+                </td>
+                <td class="py-3"><span class="badge bg-success">1-Year Validity</span></td>
+                <td class="py-3"><strong class="text-dark">₦{{ site_settings.price_trustpass_1yr|floatformat:0 }}</strong></td>
+                <td class="pe-4 py-3 text-end"><a href="{% url 'verification:certificate_apply' %}?level=employment" class="btn btn-sm btn-outline-primary rounded-pill px-3">Apply</a></td>
+              </tr>
+              <tr>
+                <td class="ps-4 py-3">
+                  <div class="fw-bold text-dark">TrustPass Clearance Certificate (Enhanced)</div>
+                  <div class="text-muted small">Management & Security Credential + Comprehensive multi-identifier screening</div>
+                </td>
+                <td class="py-3"><span class="badge bg-primary">3-Year Validity</span></td>
+                <td class="py-3"><strong class="text-dark">₦{{ site_settings.price_trustpass_3yr|floatformat:0 }}</strong></td>
+                <td class="pe-4 py-3 text-end"><a href="{% url 'verification:certificate_apply' %}?level=enhanced" class="btn btn-sm btn-outline-primary rounded-pill px-3">Apply</a></td>
+              </tr>
+              <tr>
+                <td class="ps-4 py-3">
+                  <div class="fw-bold text-dark">Staff Background Investigation (Standard)</div>
+                  <div class="text-muted small">Employer single staff check (NIN + Phone + Fraud Registry)</div>
+                </td>
+                <td class="py-3"><span class="badge bg-secondary">Single Check</span></td>
+                <td class="py-3"><strong class="text-dark">₦{{ site_settings.price_staff_check_standard|floatformat:0 }}</strong></td>
+                <td class="pe-4 py-3 text-end"><a href="{% url 'employer:staff_check_create' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">Run Check</a></td>
+              </tr>
+              <tr>
+                <td class="ps-4 py-3">
+                  <div class="fw-bold text-dark">Staff Background Investigation (Enhanced)</div>
+                  <div class="text-muted small">Executive / High-risk background diligence report</div>
+                </td>
+                <td class="py-3"><span class="badge bg-secondary">Single Check</span></td>
+                <td class="py-3"><strong class="text-dark">₦{{ site_settings.price_staff_check_enhanced|floatformat:0 }}</strong></td>
+                <td class="pe-4 py-3 text-end"><a href="{% url 'employer:staff_check_create' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">Run Check</a></td>
+              </tr>
+              <tr>
+                <td class="ps-4 py-3">
+                  <div class="fw-bold text-dark">Person Quick-Check / Tenant Screening</div>
+                  <div class="text-muted small">Instant phone / NIN reputation & trust query</div>
+                </td>
+                <td class="py-3"><span class="badge bg-secondary">Single Query</span></td>
+                <td class="py-3"><strong class="text-dark">₦{{ site_settings.price_person_check|floatformat:0 }}</strong></td>
+                <td class="pe-4 py-3 text-end"><a href="{% url 'employer:person_check_search' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">Quick Check</a></td>
+              </tr>
+              <tr>
+                <td class="ps-4 py-3">
+                  <div class="fw-bold text-dark">Workforce Certificate Status Verification</div>
+                  <div class="text-muted small">Employer 3-point credential validity confirmation</div>
+                </td>
+                <td class="py-3"><span class="badge bg-secondary">Single Check</span></td>
+                <td class="py-3"><strong class="text-dark">₦{{ site_settings.price_certificate_verify|floatformat:0 }}</strong></td>
+                <td class="pe-4 py-3 text-end"><a href="{% url 'employer:certificate_verify' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">Verify Cert</a></td>
+              </tr>
+              <tr>
+                <td class="ps-4 py-3">
+                  <div class="fw-bold text-dark">Document & Identity Verification</div>
+                  <div class="text-muted small">Basic National Identity & Address Proof Document Diligence</div>
+                </td>
+                <td class="py-3"><span class="badge bg-secondary">Per Request</span></td>
+                <td class="py-3"><strong class="text-dark">₦{{ site_settings.price_verification_basic|floatformat:0 }}</strong></td>
+                <td class="pe-4 py-3 text-end"><a href="{% url 'verification:create' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">Request</a></td>
+              </tr>
+              <tr>
+                <td class="ps-4 py-3">
+                  <div class="fw-bold text-dark">Corporate & CAC Business Due Diligence</div>
+                  <div class="text-muted small">Company registration, director vetting & corporate diligence</div>
+                </td>
+                <td class="py-3"><span class="badge bg-secondary">Per Request</span></td>
+                <td class="py-3"><strong class="text-dark">₦{{ site_settings.price_verification_business|floatformat:0 }}</strong></td>
+                <td class="pe-4 py-3 text-end"><a href="{% url 'verification:create' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">Request</a></td>
+              </tr>
+              <tr>
+                <td class="ps-4 py-3">
+                  <div class="fw-bold text-dark">Continuous Staff Monitoring</div>
+                  <div class="text-muted small">Automated alert on registered staff misconduct & arrest records</div>
+                </td>
+                <td class="py-3"><span class="badge bg-info text-dark">Annual Watcher</span></td>
+                <td class="py-3"><strong class="text-dark">₦{{ site_settings.price_monitoring_annual|floatformat:0 }}</strong> <span class="text-muted small">/ staff / yr</span></td>
+                <td class="pe-4 py-3 text-end"><a href="{% url 'employer:monitoring_list' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">Monitor</a></td>
+              </tr>
+              <tr>
+                <td class="ps-4 py-3">
+                  <div class="fw-bold text-dark">Fraud Crime & Whistleblower Reporting</div>
+                  <div class="text-muted small">Public crime reporting & community protection</div>
+                </td>
+                <td class="py-3"><span class="badge bg-success">Complimentary</span></td>
+                <td class="py-3"><strong class="text-success">Free (₦0)</strong></td>
+                <td class="pe-4 py-3 text-end"><a href="{% url 'reports:create' %}" class="btn btn-sm btn-success rounded-pill px-3">Report</a></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <!-- Footer note -->
     <p class="text-center text-muted mt-5 mb-0" style="font-size:.825rem;">
       All prices in Nigerian Naira (₦). Payments powered by <strong>Paystack</strong>. Cancel anytime.

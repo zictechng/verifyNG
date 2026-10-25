@@ -68,9 +68,9 @@
                 <div class="row g-3 mb-3">
                     <div class="col-sm-6">
                         <label class="form-label fw-semibold" for="check_type">Check Level <span class="text-danger">*</span></label>
-                        <select id="check_type" name="check_type" class="form-select">
-                            <option value="standard" {% if form_data.check_type != 'enhanced' %}selected{% endif %}>Standard Check</option>
-                            <option value="enhanced" {% if form_data.check_type == 'enhanced' %}selected{% endif %}>Enhanced Check</option>
+                        <select id="check_type" name="check_type" class="form-select" onchange="updatePriceDisplay(this.value)">
+                            <option value="standard" {% if form_data.check_type != 'enhanced' %}selected{% endif %}>Standard Check — ₦{{ price_standard|floatformat:0 }}</option>
+                            <option value="enhanced" {% if form_data.check_type == 'enhanced' %}selected{% endif %}>Enhanced Check — ₦{{ price_enhanced|floatformat:0 }}</option>
                         </select>
                         <div class="form-text">Standard: identity + fraud records. Enhanced: full background.</div>
                     </div>
@@ -84,10 +84,43 @@
 
                 <hr class="my-4">
 
+                {% if has_entitlement %}
+                <div class="alert alert-success d-flex align-items-center gap-2 py-2 px-3 mb-3 small rounded-3 border-0">
+                    <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path fill="#15803D" d="M9 12l2 2 4-4m5-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <span><strong>Plan Coverage Active:</strong> 1 check will be deducted from your subscription/free quota.</span>
+                </div>
+                {% else %}
+                <div class="alert alert-info d-flex align-items-center justify-content-between flex-wrap gap-2 py-2 px-3 mb-3 small rounded-3 border-0" style="background:#EFF6FF;border-left:4px solid #2563EB !important;">
+                    <div>
+                        <strong>Pay-As-You-Go Check:</strong>
+                        No subscription quota available. You will be redirected to Paystack to complete single-check payment (<span id="paygPriceDisplay">₦{{ price_standard|floatformat:0 }}</span>).
+                    </div>
+                    <span class="badge bg-primary">Instant Paystack Checkout</span>
+                </div>
+                {% endif %}
+
                 <div class="d-flex gap-3">
-                    <button type="submit" class="btn btn-vng-primary" data-loading-text="Submitting check…">Submit Check Request</button>
+                    <button type="submit" class="btn btn-vng-primary" data-loading-text="Submitting check…">
+                        {% if has_entitlement %}
+                        Submit Check Request
+                        {% else %}
+                        Pay & Run Check (<span id="btnPriceDisplay">₦{{ price_standard|floatformat:0 }}</span>) &rarr;
+                        {% endif %}
+                    </button>
                     <a href="{% url 'employer:staff_check_list' %}" class="btn btn-vng-outline">Cancel</a>
                 </div>
+
+                <script>
+                    function updatePriceDisplay(val) {
+                        const stdPrice = '₦{{ price_standard|floatformat:0 }}';
+                        const enhPrice = '₦{{ price_enhanced|floatformat:0 }}';
+                        const p = val === 'enhanced' ? enhPrice : stdPrice;
+                        const pEl = document.getElementById('paygPriceDisplay');
+                        if (pEl) pEl.textContent = p;
+                        const bEl = document.getElementById('btnPriceDisplay');
+                        if (bEl) bEl.textContent = p;
+                    }
+                </script>
             </form>
 
         </div>

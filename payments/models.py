@@ -11,10 +11,19 @@ from users.models import User
 class SiteSettings(models.Model):
     """
     Singleton model — only one row ever exists.
-    Admin edits this row to control global free-tier limits.
+    Admin edits this row to control global free-tier limits and service entitlements.
     """
+    SERVICE_ACCESS_CHOICES = (
+        ('paid', 'Paid / Consumes Credit'),
+        ('free', 'Free / Complimentary'),
+    )
+
+    free_tier_enabled = models.BooleanField(
+        default=True,
+        help_text="Master toggle to enable or disable the starter free check quota."
+    )
     free_check_limit = models.PositiveIntegerField(
-        default=3,
+        default=2,
         help_text="Number of free checks an unsubscribed user gets per window."
     )
     free_check_window_days = models.PositiveIntegerField(
@@ -25,6 +34,102 @@ class SiteSettings(models.Model):
         default=False,
         help_text="Put the payment system into maintenance mode (disables checkout)."
     )
+
+    # Master switches for platform services
+    service_quick_check = models.CharField(
+        max_length=10,
+        choices=SERVICE_ACCESS_CHOICES,
+        default='paid',
+        help_text="Person Quick-Check in Employer Portal"
+    )
+    service_staff_check = models.CharField(
+        max_length=10,
+        choices=SERVICE_ACCESS_CHOICES,
+        default='paid',
+        help_text="Staff Background Check (Single & Bulk)"
+    )
+    service_bulk_upload = models.CharField(
+        max_length=10,
+        choices=SERVICE_ACCESS_CHOICES,
+        default='paid',
+        help_text="Bulk CSV Employee Checks"
+    )
+    service_business_verification = models.CharField(
+        max_length=10,
+        choices=SERVICE_ACCESS_CHOICES,
+        default='paid',
+        help_text="Business / CAC Verification"
+    )
+    service_public_check = models.CharField(
+        max_length=10,
+        choices=SERVICE_ACCESS_CHOICES,
+        default='paid',
+        help_text="Public Header Search (/check/)"
+    )
+    service_certificate_creation = models.CharField(
+        max_length=10,
+        choices=SERVICE_ACCESS_CHOICES,
+        default='paid',
+        help_text="Certificate / TrustPass Creation"
+    )
+    service_certificate_verify = models.CharField(
+        max_length=10,
+        choices=SERVICE_ACCESS_CHOICES,
+        default='paid',
+        help_text="Employer Workforce Certificate Verification"
+    )
+    service_monitoring = models.CharField(
+        max_length=10,
+        choices=SERVICE_ACCESS_CHOICES,
+        default='paid',
+        help_text="Continuous Monitoring Services"
+    )
+
+    # Pay-As-You-Go Per-Service Pricing (in Naira ₦)
+    price_public_check = models.PositiveIntegerField(
+        default=500,
+        help_text="Single Public / Header Search price in Naira"
+    )
+    price_person_check = models.PositiveIntegerField(
+        default=500,
+        help_text="Employer Person Quick-Check price in Naira"
+    )
+    price_staff_check_standard = models.PositiveIntegerField(
+        default=1500,
+        help_text="Standard Staff Background Check price in Naira"
+    )
+    price_staff_check_enhanced = models.PositiveIntegerField(
+        default=3500,
+        help_text="Enhanced Staff Background Check price in Naira"
+    )
+    price_trustpass_1yr = models.PositiveIntegerField(
+        default=1500,
+        help_text="1-Year Standard TrustPass Certificate price in Naira"
+    )
+    price_trustpass_3yr = models.PositiveIntegerField(
+        default=3500,
+        help_text="3-Year Enhanced TrustPass Certificate price in Naira"
+    )
+    price_verification_basic = models.PositiveIntegerField(
+        default=1500,
+        help_text="Basic Identity/Address Verification price in Naira"
+    )
+    price_verification_business = models.PositiveIntegerField(
+        default=3500,
+        help_text="CAC Business / Corporate Diligence price in Naira"
+    )
+    price_certificate_verify = models.PositiveIntegerField(
+        default=500,
+        help_text="Employer Certificate Status Check price in Naira"
+    )
+    price_monitoring_annual = models.PositiveIntegerField(
+        default=3000,
+        help_text="Annual continuous monitoring price per staff member in Naira"
+    )
+    price_bulk_check_per_row = models.PositiveIntegerField(
+        default=350,
+        help_text="Bulk CSV screening price per candidate row in Naira"
+    )
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -32,13 +137,59 @@ class SiteSettings(models.Model):
         verbose_name_plural = 'Site Settings'
 
     def __str__(self):
-        return f"Site Settings (free limit: {self.free_check_limit} per {self.free_check_window_days} days)"
+        status = f"free limit: {self.free_check_limit}" if self.free_tier_enabled else "free limit: Disabled"
+        return f"Site Settings ({status}, Quick-Check: {self.service_quick_check}, Public Check: {self.service_public_check})"
 
     @classmethod
     def get(cls):
         """Always returns the singleton instance, creating it if absent."""
         obj, _ = cls.objects.get_or_create(pk=1)
         return obj
+
+    def is_service_free(self, service: str) -> bool:
+        """Returns True if the service is globally configured as complimentary."""
+        if service in ('fraud_report', 'misconduct_report'):
+            return True
+        mapping = {
+            'quick_check': self.service_quick_check,
+            'person_check': self.service_quick_check,
+            'staff_check': self.service_staff_check,
+            'bulk_upload': self.service_bulk_upload,
+            'bulk_check': self.service_bulk_upload,
+            'verification': self.service_business_verification,
+            'business_verification': self.service_business_verification,
+            'public_check': self.service_public_check,
+            'check': self.service_public_check,
+            'certificate': self.service_certificate_creation,
+            'trustpass': self.service_certificate_creation,
+            'certificate_verify': getattr(self, 'service_certificate_verify', 'paid'),
+            'monitoring': self.service_monitoring,
+        }
+        mode = mapping.get(service, 'paid')
+        return mode == 'free'
+
+    def get_service_price(self, service: str, tier: str = 'standard') -> int:
+        """Returns the Pay-As-You-Go price in Naira for a service and tier."""
+        tier_clean = (tier or 'standard').lower()
+        if service in ('public_check', 'check'):
+            return self.price_public_check
+        elif service in ('person_check', 'quick_check'):
+            return self.price_person_check
+        elif service == 'staff_check':
+            return self.price_staff_check_enhanced if tier_clean == 'enhanced' else self.price_staff_check_standard
+        elif service in ('certificate', 'trustpass'):
+            return self.price_trustpass_3yr if tier_clean in ('enhanced', '3yr', '3_years', '3') else self.price_trustpass_1yr
+        elif service in ('verification', 'business_verification'):
+            if tier_clean in ('business', 'cac', 'corporate', 'full_check', 'property', 'vehicle'):
+                return self.price_verification_business
+            return self.price_verification_basic
+        elif service == 'certificate_verify':
+            return self.price_certificate_verify
+        elif service == 'monitoring':
+            return self.price_monitoring_annual
+        elif service in ('bulk_upload', 'bulk_check'):
+            return self.price_bulk_check_per_row
+        return 0
 
 
 class PlatformConfiguration(models.Model):
@@ -272,6 +423,12 @@ class Subscription(models.Model):
             return None
         delta = self.current_period_end - timezone.now()
         return max(0, delta.days)
+
+    @property
+    def remaining_checks(self):
+        if self.plan.has_unlimited_checks:
+            return 'Unlimited'
+        return max(0, self.plan.check_limit - self.checks_used)
 
 
 class Transaction(models.Model):

@@ -110,18 +110,17 @@ class UserLoginView(LoginView):
     def get_success_url(self):
         """Route to the correct portal based on user role."""
         user = self.request.user
-        role = getattr(user, 'role', 'individual')
+        redirect_to = self.get_redirect_url()
+        from core.permissions import get_user_home_url, is_employer
 
-        if user.is_superuser or user.is_staff:
-            return reverse('admin_portal:overview')
-        if role == 'employer':
-            return reverse('employer:dashboard')
-        if role in ('moderator', 'officer'):
-            return reverse('admin_portal:overview')
-        if role == 'agency':
-            return reverse('dashboard:index')
-        # Default: individual / business
-        return reverse('dashboard:index')
+        if redirect_to:
+            # If an employer/agency/business user was redirected with next pointing to candidate dashboard/profile,
+            # reroute them to their appropriate employer portal instead.
+            if is_employer(user) and redirect_to.rstrip('/') in ('/dashboard', '/users/profile'):
+                return reverse('employer:dashboard')
+            return redirect_to
+
+        return reverse(get_user_home_url(user))
 
 
 class UserLogoutView(LogoutView):
