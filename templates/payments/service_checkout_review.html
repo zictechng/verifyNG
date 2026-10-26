@@ -1,0 +1,156 @@
+{% extends "public/base.html" %}
+{% load static %}
+
+{% block title %}Review Order: {{ item.name }} — VerifyNG{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-7 col-md-9">
+
+      <!-- Breadcrumb / Back Link -->
+      <div class="mb-3">
+        <a href="{% url 'payments:plans' %}" class="text-decoration-none small text-muted d-inline-flex align-items-center gap-1">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+          Back to Plans &amp; Rates
+        </a>
+      </div>
+
+      <!-- Card Container -->
+      <div class="vng-card p-3 p-sm-4 p-md-5 rounded-4 shadow-sm" style="border: 1px solid #E2E8F0; background: #fff;">
+        
+        <div class="d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-3 mb-4 pb-3 border-bottom">
+          <div>
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-semibold px-2.5 py-1 text-uppercase" style="font-size: 0.75rem;">
+              Step 1 of 2: Service Order Review
+            </span>
+            <h2 class="h4 fw-bold mt-2 mb-1" style="color: var(--vng-ink);">Confirm Pay-As-You-Go Check</h2>
+            <p class="text-muted small mb-0">Review service details and rate before proceeding to secure payment.</p>
+          </div>
+          <div class="text-start text-sm-end flex-shrink-0">
+            <span class="text-muted small d-block" style="font-size: 0.75rem;">Access Type</span>
+            <span class="badge bg-secondary-subtle text-secondary border fw-bold">{{ item.badge }}</span>
+          </div>
+        </div>
+
+        <!-- Service Item Summary Box -->
+        <div class="p-3 p-sm-4 rounded-3 mb-4" style="background: #F8FAFC; border: 1px solid #E2E8F0;">
+          <div class="d-flex flex-column flex-sm-row align-items-start justify-content-between gap-3 pb-3 mb-3 border-bottom">
+            <div>
+              <h4 class="fw-bold mb-1 text-dark" style="font-size: 1.15rem;">{{ item.name }}</h4>
+              <p class="text-muted small mb-0" style="max-width: 420px; line-height: 1.5;">{{ item.description }}</p>
+            </div>
+            <div class="text-start text-sm-end flex-shrink-0 pt-1 pt-sm-0">
+              <div class="text-muted small" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em;">Single Service Fee</div>
+              <div class="h3 fw-bold mb-0 text-primary" style="line-height: 1.1;">
+                ₦{{ item.price|floatformat:0 }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Coverage and deliverable -->
+          <div class="d-flex align-items-start gap-2 mb-2">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.5" class="flex-shrink-0 mt-0.5"><polyline points="20 6 9 17 4 12"/></svg>
+            <span class="small fw-semibold text-dark" style="line-height: 1.4;">
+              Coverage: {{ item.coverage }}
+            </span>
+          </div>
+          <div class="d-flex align-items-start gap-2 text-muted small">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2" class="flex-shrink-0 mt-0.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <span style="line-height: 1.4;">Pre-authorized for immediate execution upon completion of checkout.</span>
+          </div>
+        </div>
+
+        <!-- Billed Account Details -->
+        <div class="mb-4">
+          <h6 class="small fw-bold text-uppercase text-muted letter-spacing-1 mb-2">Billed Account</h6>
+          <div class="p-3 rounded-3 d-flex align-items-center justify-content-between flex-wrap gap-2" style="background: #fff; border: 1px solid #E2E8F0;">
+            <div class="d-flex align-items-center gap-3">
+              <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold" style="width: 38px; height: 38px; background: #2563EB;">
+                {{ request.user.username|slice:":1"|upper }}
+              </div>
+              <div>
+                <div class="fw-semibold small text-dark">{{ request.user.get_full_name|default:request.user.username }}</div>
+                <div class="text-muted small">{{ request.user.email }}</div>
+              </div>
+            </div>
+            {% if request.user.identity_verified or request.user.id_verification_status == 'verified' %}
+              <span class="badge bg-success-subtle text-success border border-success-subtle fw-semibold" style="font-size: 0.75rem;">Verified Member</span>
+            {% elif request.user.id_verification_status == 'pending' %}
+              <span class="badge bg-warning-subtle text-warning border border-warning-subtle fw-semibold" style="font-size: 0.75rem;">Pending Review</span>
+            {% else %}
+              <span class="badge bg-light text-muted border fw-normal" style="font-size: 0.75rem;">Registered Account</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Pricing Breakdown -->
+        <div class="table-responsive mb-4">
+          <table class="table table-borderless table-sm small mb-0">
+            <tbody>
+              <tr>
+                <td class="text-muted">Item Subtotal</td>
+                <td class="text-end fw-semibold">₦{{ item.price|floatformat:0 }}</td>
+              </tr>
+              <tr>
+                <td class="text-muted">Gateway Surcharge &amp; VAT</td>
+                <td class="text-end text-success fw-semibold">₦0 (Covered by VerifyNG)</td>
+              </tr>
+              <tr class="border-top">
+                <td class="pt-2 fw-bold text-dark fs-6">Total Due:</td>
+                <td class="pt-2 text-end fw-bold text-primary fs-5">
+                  ₦{{ item.price|floatformat:0 }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Security & Guarantee Notice -->
+        <div class="alert alert-light border small text-muted mb-4 d-flex align-items-start gap-2">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2" class="flex-shrink-0 mt-0.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <div>
+            <strong>Secured by Paystack:</strong> Your transaction is encrypted with 256-bit bank-grade SSL security. Certified PCI-DSS Level 1 compliant. Supports Nigerian debit cards, USSD, and bank transfers.
+          </div>
+        </div>
+
+        <!-- Action CTAs -->
+        <div class="d-grid gap-2">
+          <a href="{% url 'payments:service_checkout_execute' service_key %}?tier={{ tier }}"
+             id="proceedBtn"
+             onclick="return handleCheckoutSubmit(this, 'Connecting to Paystack...');"
+             class="btn btn-vng-primary py-3 px-3 fw-bold fs-6 shadow-sm d-flex align-items-center justify-content-center gap-2"
+             style="border-radius: 9999px;">
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" class="flex-shrink-0"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+            <span class="d-inline-flex align-items-center flex-wrap justify-content-center gap-1">
+              <span>Pay ₦{{ item.price|floatformat:0 }} via Paystack</span>
+              <span class="text-nowrap">&rarr;</span>
+            </span>
+          </a>
+          <a href="{% url 'payments:plans' %}#payg-rates" id="cancelBtn" class="btn btn-vng-outline py-2 text-center" style="border-radius: 9999px; font-size: 0.9rem;">
+            Cancel &amp; Return to Rates
+          </a>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+function handleCheckoutSubmit(btn, loadingText) {
+  if (btn.classList.contains('disabled')) return false;
+  btn.classList.add('disabled');
+  btn.style.pointerEvents = 'none';
+  btn.style.opacity = '0.85';
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" style="width:1.2rem;height:1.2rem;border-width:0.18em;"></span><span>' + (loadingText || 'Connecting to Paystack...') + '</span>';
+  var cancelBtn = document.getElementById('cancelBtn');
+  if (cancelBtn) {
+    cancelBtn.style.pointerEvents = 'none';
+    cancelBtn.style.opacity = '0.5';
+  }
+  return true;
+}
+</script>
+{% endblock %}

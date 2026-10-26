@@ -434,19 +434,19 @@
         {% endwith %}
 
         <!-- Section 1: Subject Profile & Target Record -->
-        <div class="section-heading">1. Target Subject &amp; Verification Scope</div>
+        <div class="section-heading">1. Target Details &amp; Verification Category</div>
         <table class="data-table">
             <tbody>
                 <tr>
-                    <th>Subject Legal / Registered Name</th>
+                    <th>Full Legal Name / Registered Title</th>
                     <td><strong>{{ verification_request.target_subject.name |capfirst }}</strong></td>
                 </tr>
                 <tr>
-                    <th>Target Entity Type</th>
+                    <th>Target Type</th>
                     <td>{{ verification_request.target_subject.get_type_display |capfirst }}</td>
                 </tr>
                 <tr>
-                    <th>Verification Scope Category</th>
+                    <th>Verification Category</th>
                     <td>{{ verification_request.get_verification_type_display |capfirst }}</td>
                 </tr>
                 <tr>

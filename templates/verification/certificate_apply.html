@@ -36,6 +36,16 @@
                 <p class="small text-muted mb-0">Official workplace background and integrity clearance for employment and licensing across Nigeria.</p>
             </div>
 
+            {% if prepaid_reference and not messages %}
+            <div class="alert alert-success alert-dismissible fade show shadow-sm d-flex align-items-center justify-content-between py-2.5 px-3 mb-4" role="alert" style="border-radius:10px; font-size:0.9rem;">
+                <div class="d-flex align-items-center gap-2">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-success flex-shrink-0"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    <span>Payment Successful! Your payment Reference {{ prepaid_reference }} for TrustPass Clearance Certificate has been confirmed. You may now proceed with your request.</span>
+                </div>
+                <button type="button" class="btn-close ms-2" data-bs-dismiss="alert" aria-label="Close" style="font-size:0.8rem;"></button>
+            </div>
+            {% endif %}
+
             <!-- Stepper Container -->
             <div class="vng-card p-4 p-md-5" x-data="{
                 step: 1,
@@ -174,7 +184,7 @@
                             <div class="fw-bold text-dark mb-1" style="font-size: 0.885rem; letter-spacing: -0.01em;">
                                 A verified clearance gives you instant trust with employers and clients
                             </div>
-                            <div class="text-secondary" style="font-size: 0.85rem; line-height: 1.45;">
+                            <div class="text-secondary" style="font-size: 1.0rem; line-height: 1.45;">
                                 A TrustPass certificate proves your background integrity upfront. Once verified, your credential can be shared with multiple employers and verified online in seconds &mdash; saving you the stress and cost of repeat checks for every application.
                             </div>
                         </div>
@@ -183,6 +193,10 @@
 
                 <form method="post" enctype="multipart/form-data" novalidate @submit="submitting = true">
                     {% csrf_token %}
+
+                    {% if prepaid_reference %}
+                    <input type="hidden" name="paid_ref" value="{{ prepaid_reference }}">
+                    {% endif %}
 
                     <!-- ========================================== -->
                     <!-- STEP 1: Personal Profile                   -->
@@ -498,7 +512,12 @@
                             </dl>
                         </div>
 
-                        {% if has_entitlement %}
+                        {% if prepaid_reference %}
+                        <div class="alert alert-success d-flex align-items-center gap-2 py-2 px-3 mb-4 small rounded-3 border-0">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#15803D" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                            <span><strong>Payment Confirmed:</strong> Reference <code>{{ prepaid_reference }}</code>. No additional payment required.</span>
+                        </div>
+                        {% elif has_entitlement %}
                         <div class="alert alert-success d-flex align-items-center gap-2 py-2 px-3 mb-4 small rounded-3 border-0">
                             <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path fill="#15803D" d="M9 12l2 2 4-4m5-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                             <span><strong>Plan Coverage Active:</strong> Your account has included check quota available. No wallet charge will be deducted.</span>
@@ -528,7 +547,9 @@
                         <div class="d-flex justify-content-between align-items-center">
                             <button type="button" class="btn btn-outline-secondary px-3" @click="step = 3" :disabled="submitting">&larr; Back</button>
                             <button type="submit" class="btn btn-vng-primary px-5 py-2 d-inline-flex align-items-center justify-content-center" :disabled="!declared || submitting">
-                                {% if has_entitlement %}
+                                {% if prepaid_reference %}
+                                <span x-show="!submitting">Submit Clearance Application (Pre-Paid) &rarr;</span>
+                                {% elif has_entitlement %}
                                 <span x-show="!submitting">Submit Clearance Application (Use Quota) &rarr;</span>
                                 {% else %}
                                 <span x-show="!submitting">Pay & Submit Clearance (<span x-text="checkLevel === 'employment' ? '₦{{ price_trustpass_1yr|floatformat:0 }}' : '₦{{ price_trustpass_3yr|floatformat:0 }}'"></span>) &rarr;</span>

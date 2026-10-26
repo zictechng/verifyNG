@@ -71,22 +71,41 @@ def check_lookup(request, payload: CheckLookupRequest):
     except ValueError as e:
         raise HttpError(400, str(e))
 
-    # Check if authorized via verified single-service direct payment
+    # Check if authorized via verified single-service direct payment, unconsumed credit, or prepaid balance
+    from payments.models import SiteSettings
+    from payments.services import check_user_entitlement, consume_user_entitlement, get_user_prepaid_balance, deduct_user_prepaid_balance
+    site_settings = SiteSettings.get()
+    payg_price = site_settings.get_service_price('public_check')
+
     paid_ref = (payload.paid_ref or request.GET.get('paid_ref', '')).strip()
     is_direct_paid = False
-    if paid_ref and request.user.is_authenticated:
+    paid_tx = None
+    used_prepaid_balance = False
+    if request.user.is_authenticated:
         from payments.models import Transaction
-        trx = Transaction.objects.filter(reference=paid_ref, user=request.user, status='success').first()
-        if trx:
-            is_direct_paid = True
+        if paid_ref:
+            cand = Transaction.objects.filter(reference=paid_ref, user=request.user, status='success', is_active=True).first()
+            if cand:
+                meta = (cand.paystack_response or {}).get('data', {}).get('metadata', {})
+                if meta.get('service') == 'public_check':
+                    paid_tx = cand
+                    is_direct_paid = True
+        if not is_direct_paid:
+            for cand in Transaction.objects.filter(user=request.user, status='success', is_active=True).order_by('-created_at'):
+                meta = (cand.paystack_response or {}).get('data', {}).get('metadata', {})
+                if meta.get('service') == 'public_check':
+                    paid_tx = cand
+                    is_direct_paid = True
+                    break
+        if not is_direct_paid:
+            user_balance = get_user_prepaid_balance(request.user)
+            if user_balance >= payg_price:
+                is_direct_paid = True
+                used_prepaid_balance = True
 
     # Evaluate Global Entitlement & Paid Access for public check
-    from payments.models import SiteSettings
-    from payments.services import check_user_entitlement, consume_user_entitlement
-    site_settings = SiteSettings.get()
-
     if is_direct_paid:
-        pass  # Query already paid for directly via Paystack
+        pass  # Query already paid for directly via Paystack or covered by prepaid account balance
     elif request.user.is_authenticated:
         allowed, reason, details = check_user_entitlement(request.user, service='public_check', cost=1)
         if not allowed:
@@ -101,6 +120,13 @@ def check_lookup(request, payload: CheckLookupRequest):
     record = lookup_public_record(val_hash)
     if not record:
         raise Http404("No record found for this identifier.")
+
+    if is_direct_paid:
+        if paid_tx:
+            paid_tx.is_active = False
+            paid_tx.save(update_fields=['is_active'])
+        elif used_prepaid_balance:
+            deduct_user_prepaid_balance(request.user, payg_price, "Public Record Lookup")
 
     return record
 
@@ -117,22 +143,41 @@ def check_identifier(request, identifier_hash: str):
         response['Retry-After'] = str(retry_after)
         return response
 
-    # Check if authorized via verified single-service direct payment
+    # Check if authorized via verified single-service direct payment, unconsumed credit, or prepaid balance
+    from payments.models import SiteSettings
+    from payments.services import check_user_entitlement, consume_user_entitlement, get_user_prepaid_balance, deduct_user_prepaid_balance
+    site_settings = SiteSettings.get()
+    payg_price = site_settings.get_service_price('public_check')
+
     paid_ref = request.GET.get('paid_ref', '').strip()
     is_direct_paid = False
-    if paid_ref and request.user.is_authenticated:
+    paid_tx = None
+    used_prepaid_balance = False
+    if request.user.is_authenticated:
         from payments.models import Transaction
-        trx = Transaction.objects.filter(reference=paid_ref, user=request.user, status='success').first()
-        if trx:
-            is_direct_paid = True
+        if paid_ref:
+            cand = Transaction.objects.filter(reference=paid_ref, user=request.user, status='success', is_active=True).first()
+            if cand:
+                meta = (cand.paystack_response or {}).get('data', {}).get('metadata', {})
+                if meta.get('service') == 'public_check':
+                    paid_tx = cand
+                    is_direct_paid = True
+        if not is_direct_paid:
+            for cand in Transaction.objects.filter(user=request.user, status='success', is_active=True).order_by('-created_at'):
+                meta = (cand.paystack_response or {}).get('data', {}).get('metadata', {})
+                if meta.get('service') == 'public_check':
+                    paid_tx = cand
+                    is_direct_paid = True
+                    break
+        if not is_direct_paid:
+            user_balance = get_user_prepaid_balance(request.user)
+            if user_balance >= payg_price:
+                is_direct_paid = True
+                used_prepaid_balance = True
 
     # Evaluate Global Entitlement & Paid Access for direct hash check
-    from payments.models import SiteSettings
-    from payments.services import check_user_entitlement, consume_user_entitlement
-    site_settings = SiteSettings.get()
-
     if is_direct_paid:
-        pass  # Query already paid for directly via Paystack
+        pass  # Query already paid for directly via Paystack or covered by prepaid account balance
     elif request.user.is_authenticated:
         allowed, reason, details = check_user_entitlement(request.user, service='public_check', cost=1)
         if not allowed:
@@ -147,6 +192,13 @@ def check_identifier(request, identifier_hash: str):
     record = lookup_public_record(identifier_hash)
     if not record:
         raise Http404("No record found for this identifier hash.")
+
+    if is_direct_paid:
+        if paid_tx:
+            paid_tx.is_active = False
+            paid_tx.save(update_fields=['is_active'])
+        elif used_prepaid_balance:
+            deduct_user_prepaid_balance(request.user, payg_price, "Public Record Lookup")
 
     return record
 
@@ -185,22 +237,41 @@ def certificate_lookup(request, certificate_id: str):
         response['Retry-After'] = str(retry_after)
         return response
 
-    # Check if authorized via verified single-service direct payment
+    # Check if authorized via verified single-service direct payment, unconsumed credit, or prepaid balance
+    from payments.models import SiteSettings
+    from payments.services import check_user_entitlement, consume_user_entitlement, get_user_prepaid_balance, deduct_user_prepaid_balance
+    site_settings = SiteSettings.get()
+    payg_price = site_settings.get_service_price('public_check')
+
     paid_ref = request.GET.get('paid_ref', '').strip()
     is_direct_paid = False
-    if paid_ref and request.user.is_authenticated:
+    paid_tx = None
+    used_prepaid_balance = False
+    if request.user.is_authenticated:
         from payments.models import Transaction
-        trx = Transaction.objects.filter(reference=paid_ref, user=request.user, status='success').first()
-        if trx:
-            is_direct_paid = True
+        if paid_ref:
+            cand = Transaction.objects.filter(reference=paid_ref, user=request.user, status='success', is_active=True).first()
+            if cand:
+                meta = (cand.paystack_response or {}).get('data', {}).get('metadata', {})
+                if meta.get('service') == 'public_check':
+                    paid_tx = cand
+                    is_direct_paid = True
+        if not is_direct_paid:
+            for cand in Transaction.objects.filter(user=request.user, status='success', is_active=True).order_by('-created_at'):
+                meta = (cand.paystack_response or {}).get('data', {}).get('metadata', {})
+                if meta.get('service') == 'public_check':
+                    paid_tx = cand
+                    is_direct_paid = True
+                    break
+        if not is_direct_paid:
+            user_balance = get_user_prepaid_balance(request.user)
+            if user_balance >= payg_price:
+                is_direct_paid = True
+                used_prepaid_balance = True
 
     # Evaluate Global Entitlement & Paid Access when searched via web search
-    from payments.models import SiteSettings
-    from payments.services import check_user_entitlement, consume_user_entitlement
-    site_settings = SiteSettings.get()
-
     if is_direct_paid:
-        pass  # Query already paid for directly via Paystack
+        pass  # Query already paid for directly via Paystack or covered by prepaid account balance
     elif request.user.is_authenticated:
         allowed, reason, details = check_user_entitlement(request.user, service='public_check', cost=1)
         if not allowed:
@@ -220,6 +291,13 @@ def certificate_lookup(request, certificate_id: str):
         )
     except VerificationCertificate.DoesNotExist:
         raise Http404("No certificate found with this ID.")
+
+    if is_direct_paid:
+        if paid_tx:
+            paid_tx.is_active = False
+            paid_tx.save(update_fields=['is_active'])
+        elif used_prepaid_balance:
+            deduct_user_prepaid_balance(request.user, payg_price, "Public Record Lookup")
 
     subject = cert.subject
     subject_name = (

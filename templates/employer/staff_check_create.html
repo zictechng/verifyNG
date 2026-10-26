@@ -30,9 +30,22 @@
             </div>
             {% endif %}
 
+            {% if prepaid_reference and not messages %}
+            <div class="alert alert-success alert-dismissible fade show shadow-sm d-flex align-items-center justify-content-between py-2.5 px-3 mb-3" role="alert" style="border-radius:10px; font-size:0.9rem;">
+                <div class="d-flex align-items-center gap-2">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-success flex-shrink-0"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    <span>Payment Successful! Your payment Reference {{ prepaid_reference }} for Staff Background Check has been confirmed. You may now proceed with your request.</span>
+                </div>
+                <button type="button" class="btn-close ms-2" data-bs-dismiss="alert" aria-label="Close" style="font-size:0.8rem;"></button>
+            </div>
+            {% endif %}
+
             {# Form #}
             <form method="post" class="vng-card p-4">
                 {% csrf_token %}
+                {% if prepaid_reference %}
+                <input type="hidden" name="paid_ref" value="{{ prepaid_reference }}">
+                {% endif %}
 
                 <div class="mb-3">
                     <label class="form-label fw-semibold" for="full_name">Full Name <span class="text-danger">*</span></label>

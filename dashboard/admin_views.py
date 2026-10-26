@@ -2835,7 +2835,7 @@ class AdminFinancialReportView(SuperAdminRequiredMixin, TemplateView):
         )
         plan_breakdown = [
             {
-                'plan_name': row['plan__name'] or 'No Plan',
+                'plan_name': row['plan__name'] or 'Pay-As-You-Go / Direct Services',
                 'count':     row['count'],
                 'revenue':   (row['total'] or 0) / 100,
             }
@@ -2900,7 +2900,7 @@ class AdminFinancialReportView(SuperAdminRequiredMixin, TemplateView):
 
         writer = csv_mod.writer(response)
         writer.writerow([
-            'Reference', 'Paystack Ref', 'User', 'Plan',
+            'Reference', 'Paystack Ref', 'User', 'Plan / Service',
             'Amount (₦)', 'Currency', 'Status', 'Date'
         ])
         for txn in qs:
@@ -2908,7 +2908,7 @@ class AdminFinancialReportView(SuperAdminRequiredMixin, TemplateView):
                 txn.reference,
                 txn.paystack_reference or '—',
                 txn.user.get_full_name() if txn.user else '—',
-                txn.plan.name if txn.plan else '—',
+                txn.item_display_name,
                 f"{txn.amount_naira:.2f}",
                 txn.currency,
                 txn.get_status_display(),
@@ -3105,7 +3105,7 @@ class AdminFinancialReportView(SuperAdminRequiredMixin, TemplateView):
             user_name = '—'
             if txn.user:
                 user_name = (txn.user.get_full_name() or txn.user.username or '—')[:22]
-            srv_name = (txn.plan.name if txn.plan else 'Single Check')[:22]
+            srv_name = txn.item_display_name[:26]
             ref_str = f"Ref: {txn.reference[:18]}" if txn.reference else '—'
             if txn.paystack_reference:
                 ref_str += f"<br/>Ext: {txn.paystack_reference[:18]}"

@@ -10,7 +10,7 @@ from identities.utils import normalize_identifier
 from reports.forms import validate_file_upload, NIGERIAN_STATES
 
 IDENTIFIER_DISPLAY_CHOICES = [
-    ('', '-- None / Not Provided --'),
+    ('', '-- Select Document / Reference Type (Optional) --'),
     ('property_ref', 'Land / Title / C of O / Survey Plan Number'),
     ('plate_vin', 'Vehicle Plate or VIN / Chassis Number'),
     ('cert_no', 'Degree / Certificate / Matriculation Number'),
@@ -52,12 +52,12 @@ class MultipleFileField(forms.FileField):
 
 class VerificationRequestCreateForm(forms.Form):
     verification_type = forms.ChoiceField(
-        choices=[('', '-- Select Verification Scope --')] + list(VerificationRequest.VERIFICATION_TYPES),
+        choices=[('', '-- Select Verification Category --')] + list(VerificationRequest.VERIFICATION_TYPES),
         required=True,
         widget=forms.Select(attrs={'class': 'form-select', 'id': 'id_verification_scope'})
     )
     subject_type = forms.ChoiceField(
-        choices=[('', '-- Select Entity Type --')] + list(SubjectEntity.ENTITY_TYPES),
+        choices=[('', '-- Select Target Type (Person, Business, Property, Vehicle) --')] + list(SubjectEntity.ENTITY_TYPES),
         required=True,
         widget=forms.Select(attrs={'class': 'form-select', 'id': 'id_entity_type'})
     )
@@ -66,19 +66,21 @@ class VerificationRequestCreateForm(forms.Form):
         required=True,
         widget=forms.TextInput(attrs={
             'class': 'form-control',
-            'placeholder': 'e.g. Plot 14 Block 2 Lekki Phase 1, Toyota Camry 2021, UNILAG Graduate Name, or Company Name'
+            'id': 'id_subject_name',
+            'placeholder': 'e.g. Legal name of person, registered company, land/property title, or vehicle model'
         })
     )
     identifier_type = forms.ChoiceField(
         choices=IDENTIFIER_DISPLAY_CHOICES,
         required=False,
-        widget=forms.Select(attrs={'class': 'form-select'})
+        widget=forms.Select(attrs={'class': 'form-select', 'id': 'id_identifier_type'})
     )
     identifier_value = forms.CharField(
         max_length=255,
         required=False,
         widget=forms.TextInput(attrs={
             'class': 'form-control',
+            'id': 'id_identifier_value',
             'placeholder': 'e.g. C of O No, Plate No, VIN, Certificate Serial No, CAC RC No'
         })
     )
@@ -101,9 +103,9 @@ class VerificationRequestCreateForm(forms.Form):
         id_val = cleaned_data.get('identifier_value')
 
         if id_type and not id_val:
-            self.add_error('identifier_value', "Identifier value must be provided if identifier type is selected.")
+            self.add_error('identifier_value', "Please enter the reference number or details for the selected document type.")
         elif id_val and not id_type:
-            self.add_error('identifier_type', "Identifier type must be selected when specifying an identifier value.")
+            self.add_error('identifier_type', "Please select the document or reference type for the entered number.")
         elif id_type and id_val:
             try:
                 normalize_identifier(id_type, id_val)

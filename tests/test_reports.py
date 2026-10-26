@@ -367,24 +367,36 @@ class FileDisputeTest(TestCase):
         self.assertEqual(self.report.state, 'disputed')
 
     @MOCK_CELERY
-    def test_dispute_against_non_published_report_rejected(self, mock_celery):
-        submitted_report = make_report(self.reporter, state='submitted')
+    def test_dispute_against_rejected_report_fails(self, mock_celery):
+        rejected_report = make_report(self.reporter, state='rejected')
         with self.assertRaises(ValueError):
             file_dispute_for_report(
-                report=submitted_report,
+                report=rejected_report,
                 disputant=self.disputant,
                 reason='Should not work.',
             )
 
     @MOCK_CELERY
-    def test_dispute_against_under_review_report_rejected(self, mock_celery):
-        under_review = make_report(self.reporter, state='under_review')
+    def test_dispute_against_resolved_report_fails(self, mock_celery):
+        resolved_report = make_report(self.reporter, state='resolved')
         with self.assertRaises(ValueError):
             file_dispute_for_report(
-                report=under_review,
+                report=resolved_report,
                 disputant=self.disputant,
                 reason='Should not work.',
             )
+
+    @MOCK_CELERY
+    def test_dispute_allowed_during_pre_publication_fair_hearing(self, mock_celery):
+        under_review = make_report(self.reporter, state='under_review')
+        dispute = file_dispute_for_report(
+            report=under_review,
+            disputant=self.disputant,
+            reason='Fair hearing counter-evidence before publication.',
+        )
+        self.assertIsNotNone(dispute)
+        under_review.refresh_from_db()
+        self.assertEqual(under_review.state, 'disputed')
 
 
 # ─── resolve_dispute() service ────────────────────────────────────────────────

@@ -125,14 +125,14 @@
                   Unavailable
                 </button>
               {% else %}
-                <a href="{% url 'payments:checkout' plan.slug %}"
+                <a href="{% url 'payments:checkout_review' plan.slug %}"
                    class="btn w-100 fw-700 {% if plan.is_featured %}btn-vng-primary{% else %}btn-vng-outline{% endif %}"
                    style="border-radius:9999px;padding:.75rem;">
                   {% if plan.is_free %}Get Started Free{% else %}Get {{ plan.name }}{% endif %}
                 </a>
               {% endif %}
             {% else %}
-              <a href="{% url 'users:login' %}?next={% url 'payments:checkout' plan.slug %}"
+              <a href="{% url 'users:login' %}?next={% url 'payments:checkout_review' plan.slug %}"
                  class="btn w-100 fw-700 {% if plan.is_featured %}btn-vng-primary{% else %}btn-vng-outline{% endif %}"
                  style="border-radius:9999px;padding:.75rem;">
                 Sign in to Subscribe
@@ -149,14 +149,23 @@
     </div>
 
     <!-- Pay-As-You-Go Per-Service Pricing Table -->
-    <div class="mt-5 pt-4">
-      <div class="text-center mb-4">
+    <div class="mt-5 pt-4" id="payg-rates">
+      <div class="mb-4">
         <span class="badge rounded-pill mb-2" style="background:var(--vng-teal-light, #E6FFFA);color:var(--vng-teal, #0D9488);font-size:.8rem;font-weight:600;padding:.4rem .9rem;">Flexible On-Demand Access</span>
-        <h2 class="fw-800 h4 mb-2">Pay-As-You-Go Service Rates</h2>
-        <p class="text-muted small mx-auto" style="max-width:540px;">No recurring subscription needed. Pay per verification or background check whenever you need it.</p>
+        <h2 class="fw-800 h4 mb-1">Pay-As-You-Go Service Rates</h2>
+        <p class="text-muted small mb-0">Use your available account balance or pay per verification whenever you need it.</p>
       </div>
 
-      <div class="vng-card p-0 overflow-hidden shadow-sm" style="border-radius:var(--vng-radius-lg, 12px);border:1px solid var(--vng-border, #E2E8F0);background:#fff;">
+      <!-- Universal Dynamic Balance Protection Notice -->
+      <div class="alert alert-light border small text-muted mb-3 d-flex align-items-start gap-2" style="background:#F8FAFC;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2" class="flex-shrink-0 mt-1"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+        <div>
+          <strong>Dynamic Balance Freedom:</strong> Your pre-paid balance is universal and never expires. You can spend your credit across any service below. If your balance is less than the required service cost, the system automatically prompts you to top up only the exact difference (minimum ₦100).
+        </div>
+      </div>
+
+      <!-- Desktop View: Full Responsive Table -->
+      <div class="d-none d-md-block vng-card p-0 overflow-hidden shadow-sm" style="border-radius:var(--vng-radius-lg, 12px);border:1px solid var(--vng-border, #E2E8F0);background:#fff;">
         <div class="table-responsive">
           <table class="table align-middle mb-0" style="font-size:.9rem;">
             <thead class="bg-light text-muted small text-uppercase">
@@ -170,21 +179,21 @@
             <tbody>
               <tr>
                 <td class="ps-4 py-3">
-                  <div class="fw-bold text-dark">TrustPass Clearance Certificate (Standard)</div>
-                  <div class="text-muted small">Applicant Workplace Integrity Credential + NIN & Fraud Check</div>
+                  <div class="fw-bold text-dark">Clearance Certificate (TrustPass, Standard)</div>
+                  <div class="text-muted small">Applicant Workplace Integrity Credential & Fraud Check Clearance</div>
                 </td>
                 <td class="py-3"><span class="badge bg-success">1-Year Validity</span></td>
                 <td class="py-3"><strong class="text-dark">₦{{ site_settings.price_trustpass_1yr|floatformat:0 }}</strong></td>
-                <td class="pe-4 py-3 text-end"><a href="{% url 'verification:certificate_apply' %}?level=employment" class="btn btn-sm btn-outline-primary rounded-pill px-3">Apply</a></td>
+                <td class="pe-4 py-3 text-end"><a href="{% url 'payments:service_checkout_review' 'certificate' %}?tier=employment" class="btn btn-sm btn-outline-primary rounded-pill px-3">Get Standard Pass (₦{{ site_settings.price_trustpass_1yr|floatformat:0 }})</a></td>
               </tr>
               <tr>
                 <td class="ps-4 py-3">
-                  <div class="fw-bold text-dark">TrustPass Clearance Certificate (Enhanced)</div>
+                  <div class="fw-bold text-dark"> Clearance Certificate (TrustPass, Enhanced)</div>
                   <div class="text-muted small">Management & Security Credential + Comprehensive multi-identifier screening</div>
                 </td>
                 <td class="py-3"><span class="badge bg-primary">3-Year Validity</span></td>
                 <td class="py-3"><strong class="text-dark">₦{{ site_settings.price_trustpass_3yr|floatformat:0 }}</strong></td>
-                <td class="pe-4 py-3 text-end"><a href="{% url 'verification:certificate_apply' %}?level=enhanced" class="btn btn-sm btn-outline-primary rounded-pill px-3">Apply</a></td>
+                <td class="pe-4 py-3 text-end"><a href="{% url 'payments:service_checkout_review' 'certificate' %}?tier=enhanced" class="btn btn-sm btn-outline-primary rounded-pill px-3">Get Enhanced Pass (₦{{ site_settings.price_trustpass_3yr|floatformat:0 }})</a></td>
               </tr>
               <tr>
                 <td class="ps-4 py-3">
@@ -193,7 +202,7 @@
                 </td>
                 <td class="py-3"><span class="badge bg-secondary">Single Check</span></td>
                 <td class="py-3"><strong class="text-dark">₦{{ site_settings.price_staff_check_standard|floatformat:0 }}</strong></td>
-                <td class="pe-4 py-3 text-end"><a href="{% url 'employer:staff_check_create' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">Run Check</a></td>
+                <td class="pe-4 py-3 text-end"><a href="{% url 'payments:service_checkout_review' 'staff_check' %}?tier=standard" class="btn btn-sm btn-outline-primary rounded-pill px-3">Order Staff Check (₦{{ site_settings.price_staff_check_standard|floatformat:0 }})</a></td>
               </tr>
               <tr>
                 <td class="ps-4 py-3">
@@ -202,61 +211,76 @@
                 </td>
                 <td class="py-3"><span class="badge bg-secondary">Single Check</span></td>
                 <td class="py-3"><strong class="text-dark">₦{{ site_settings.price_staff_check_enhanced|floatformat:0 }}</strong></td>
-                <td class="pe-4 py-3 text-end"><a href="{% url 'employer:staff_check_create' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">Run Check</a></td>
+                <td class="pe-4 py-3 text-end"><a href="{% url 'payments:service_checkout_review' 'staff_check' %}?tier=enhanced" class="btn btn-sm btn-outline-primary rounded-pill px-3">Order Enhanced Check (₦{{ site_settings.price_staff_check_enhanced|floatformat:0 }})</a></td>
               </tr>
               <tr>
                 <td class="ps-4 py-3">
-                  <div class="fw-bold text-dark">Public Trust &amp; Safety Search / Record Lookup</div>
-                  <div class="text-muted small">Phone, NIN, Bank Account, CAC or Certificate trust &amp; background query</div>
+                  <div class="fw-bold text-dark">Public Trust &amp; Safety Check / Record Lookup</div>
+                  <div class="text-muted small">Check With Phone, NIN, Bank Account, CAC or Certificate ID Against Fraud &amp; background query</div>
                 </td>
                 <td class="py-3"><span class="badge bg-secondary">Single Check</span></td>
                 <td class="py-3"><strong class="text-dark">₦{{ site_settings.price_public_check|floatformat:0 }}</strong></td>
-                <td class="pe-4 py-3 text-end"><a href="{% url 'check' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">Search</a></td>
+                <td class="pe-4 py-3 text-end"><a href="{% url 'payments:service_checkout_review' 'public_check' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">Pay &amp; Search (₦{{ site_settings.price_public_check|floatformat:0 }})</a></td>
               </tr>
               <tr>
                 <td class="ps-4 py-3">
                   <div class="fw-bold text-dark">Person Quick-Check / Tenant Screening</div>
-                  <div class="text-muted small">Instant phone / NIN reputation & trust query</div>
+                  <div class="text-muted small">Instant Check With Phone / NIN reputation & trust query</div>
                 </td>
                 <td class="py-3"><span class="badge bg-secondary">Single Query</span></td>
                 <td class="py-3"><strong class="text-dark">₦{{ site_settings.price_person_check|floatformat:0 }}</strong></td>
-                <td class="pe-4 py-3 text-end"><a href="{% url 'employer:person_check_search' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">Quick Check</a></td>
+                <td class="pe-4 py-3 text-end"><a href="{% url 'payments:service_checkout_review' 'person_check' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">Pay &amp; Quick-Check (₦{{ site_settings.price_person_check|floatformat:0 }})</a></td>
               </tr>
               <tr>
                 <td class="ps-4 py-3">
-                  <div class="fw-bold text-dark">Workforce Certificate Status Verification</div>
-                  <div class="text-muted small">Employer 3-point credential validity confirmation</div>
+                  <div class="fw-bold text-dark"> Verify Workforce Certificate (TrustPass)</div>
+                  <div class="text-muted small">verify candidate certificate authenticity, expiration date, and post-issuance fraud or misconduct flags.</div>
                 </td>
                 <td class="py-3"><span class="badge bg-secondary">Single Check</span></td>
                 <td class="py-3"><strong class="text-dark">₦{{ site_settings.price_certificate_verify|floatformat:0 }}</strong></td>
-                <td class="pe-4 py-3 text-end"><a href="{% url 'employer:certificate_verify' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">Verify Cert</a></td>
+                <td class="pe-4 py-3 text-end"><a href="{% url 'payments:service_checkout_review' 'certificate_verify' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">Verify Cert (₦{{ site_settings.price_certificate_verify|floatformat:0 }})</a></td>
               </tr>
               <tr>
                 <td class="ps-4 py-3">
                   <div class="fw-bold text-dark">Document & Identity Verification</div>
-                  <div class="text-muted small">Basic National Identity & Address Proof Document Diligence</div>
+                  <div class="text-muted small">Basic national identity & address proof document diligence verification check</div>
                 </td>
                 <td class="py-3"><span class="badge bg-secondary">Per Request</span></td>
                 <td class="py-3"><strong class="text-dark">₦{{ site_settings.price_verification_basic|floatformat:0 }}</strong></td>
-                <td class="pe-4 py-3 text-end"><a href="{% url 'verification:create' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">Request</a></td>
+                <td class="pe-4 py-3 text-end"><a href="{% url 'payments:service_checkout_review' 'verification' %}?tier=basic" class="btn btn-sm btn-outline-primary rounded-pill px-3">Order Basic Check (₦{{ site_settings.price_verification_basic|floatformat:0 }})</a></td>
               </tr>
               <tr>
                 <td class="ps-4 py-3">
-                  <div class="fw-bold text-dark">Corporate & CAC Business Due Diligence</div>
-                  <div class="text-muted small">Company registration, director vetting & corporate diligence</div>
+                  <div class="fw-bold text-dark">Corporate & Business Due Diligence Check</div>
+                  <div class="text-muted small">Company registration, director vetting, business activities status & corporate diligence check</div>
                 </td>
                 <td class="py-3"><span class="badge bg-secondary">Per Request</span></td>
                 <td class="py-3"><strong class="text-dark">₦{{ site_settings.price_verification_business|floatformat:0 }}</strong></td>
-                <td class="pe-4 py-3 text-end"><a href="{% url 'verification:create' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">Request</a></td>
+                <td class="pe-4 py-3 text-end"><a href="{% url 'payments:service_checkout_review' 'verification' %}?tier=business" class="btn btn-sm btn-outline-primary rounded-pill px-3">Order CAC Check (₦{{ site_settings.price_verification_business|floatformat:0 }})</a></td>
+              </tr>
+              <tr>
+                <td class="ps-4 py-3">
+                  <div class="fw-bold text-dark">Full Comprehensive Due Diligence (Property, Land & Vehicles)</div>
+                  <div class="text-muted small">Officer registry inspection for land titles, C of O, VIN chassis, genuine ownership & commercial contracts verification</div>
+                </td>
+                <td class="py-3"><span class="badge bg-primary">Deep Investigation</span></td>
+                <td class="py-3"><strong class="text-dark">₦{{ site_settings.price_verification_business|floatformat:0 }}</strong></td>
+                <td class="pe-4 py-3 text-end"><a href="{% url 'payments:service_checkout_review' 'verification' %}?tier=full_check" class="btn btn-sm btn-outline-primary rounded-pill px-3">Order Full Check (₦{{ site_settings.price_verification_business|floatformat:0 }})</a></td>
               </tr>
               <tr>
                 <td class="ps-4 py-3">
                   <div class="fw-bold text-dark">Certificate Monitoring Services (TrustPass)</div>
-                  <div class="text-muted small">Automated alert on registered staff misconduct & arrest records</div>
+                  <div class="text-muted small">
+                    {% if request.user.is_authenticated and request.user.is_employer %}
+                      Continuous workforce trust assurance: real-time validation and active standing for your employed personnel
+                    {% else %}
+                      Enables employers &amp; landlords to easily verify your active certificate and build trust, without paying for repeat checks each time you prove your integrity for jobs or tenancy
+                    {% endif %}
+                  </div>
                 </td>
                 <td class="py-3"><span class="badge bg-info text-dark">Annual Watcher</span></td>
                 <td class="py-3"><strong class="text-dark">₦{{ site_settings.price_monitoring_annual|floatformat:0 }}</strong> <span class="text-muted small">/ staff / yr</span></td>
-                <td class="pe-4 py-3 text-end"><a href="{% url 'employer:monitoring_list' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">Monitor</a></td>
+                <td class="pe-4 py-3 text-end"><a href="{% url 'payments:service_checkout_review' 'monitoring' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">Join Monitoring (₦{{ site_settings.price_monitoring_annual|floatformat:0 }}/yr)</a></td>
               </tr>
               <tr>
                 <td class="ps-4 py-3">
@@ -265,19 +289,288 @@
                 </td>
                 <td class="py-3"><span class="badge bg-secondary">Per Candidate</span></td>
                 <td class="py-3"><strong class="text-dark">₦{{ site_settings.price_bulk_check_per_row|floatformat:0 }}</strong></td>
-                <td class="pe-4 py-3 text-end"><a href="{% url 'employer:bulk_upload_create' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">Bulk Upload</a></td>
+                <td class="pe-4 py-3 text-end"><a href="{% url 'employer:bulk_upload_create' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">Bulk Upload (₦{{ site_settings.price_bulk_check_per_row|floatformat:0 }}/ea)</a></td>
               </tr>
               <tr>
                 <td class="ps-4 py-3">
                   <div class="fw-bold text-dark">Fraud Crime & Whistleblower Reporting</div>
-                  <div class="text-muted small">Public crime reporting & community protection</div>
+                  <div class="text-muted small">Report any fraud, scams, unfulfilled business dealing & community protection</div>
                 </td>
-                <td class="py-3"><span class="badge bg-success">Complimentary</span></td>
+                <td class="py-3"><span class="badge bg-success">Free for ever</span></td>
                 <td class="py-3"><strong class="text-success">Free (₦0)</strong></td>
-                <td class="pe-4 py-3 text-end"><a href="{% url 'reports:create' %}" class="btn btn-sm btn-success rounded-pill px-3">Report</a></td>
+                <td class="pe-4 py-3 text-end"><a href="{% url 'reports:create' %}" class="btn btn-sm btn-success rounded-pill px-3">Report Free (₦0)</a></td>
               </tr>
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- Mobile & Small Devices View: Clean Service Cards List -->
+      <div class="d-md-none vng-card p-0 overflow-hidden shadow-sm mb-4" style="border-radius:var(--vng-radius-lg, 12px);border:1px solid var(--vng-border, #E2E8F0);background:#fff;">
+        <!-- Service 1: TrustPass Standard -->
+        <div class="p-3 border-bottom">
+          <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+            <span class="fw-bold text-dark" style="font-size:0.95rem;line-height:1.3;">Clearance Certificate Application (TrustPass, Standard)</span>
+            <span class="badge bg-success flex-shrink-0" style="font-size:0.75rem;">1-Yr Validity</span>
+          </div>
+          <div class="text-muted small mb-3" style="font-size:0.8rem;line-height:1.35;">
+            Applicant Workplace Integrity Credential + NIN &amp; Fraud Check
+          </div>
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <span class="text-muted d-block" style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.04em;font-weight:600;">Rate</span>
+              <strong class="text-dark" style="font-size:1.15rem;line-height:1;">₦{{ site_settings.price_trustpass_1yr|floatformat:0 }}</strong>
+            </div>
+            <a href="{% url 'payments:service_checkout_review' 'certificate' %}?tier=employment" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold" style="font-size:0.8rem;">
+              Get Standard Pass &rarr;
+            </a>
+          </div>
+        </div>
+
+        <!-- Service 2: TrustPass Enhanced -->
+        <div class="p-3 border-bottom">
+          <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+            <span class="fw-bold text-dark" style="font-size:0.95rem;line-height:1.3;">Clearance Certificate Application (TrustPass, Enhanced)</span>
+            <span class="badge bg-primary flex-shrink-0" style="font-size:0.75rem;">3-Yr Validity</span>
+          </div>
+          <div class="text-muted small mb-3" style="font-size:0.8rem;line-height:1.35;">
+            Management &amp; Security Credential + Comprehensive multi-identifier screening
+          </div>
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <span class="text-muted d-block" style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.04em;font-weight:600;">Rate</span>
+              <strong class="text-dark" style="font-size:1.15rem;line-height:1;">₦{{ site_settings.price_trustpass_3yr|floatformat:0 }}</strong>
+            </div>
+            <a href="{% url 'payments:service_checkout_review' 'certificate' %}?tier=enhanced" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold" style="font-size:0.8rem;">
+              Get Enhanced Pass &rarr;
+            </a>
+          </div>
+        </div>
+
+        <!-- Service 3: Staff Check Standard -->
+        <div class="p-3 border-bottom">
+          <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+            <span class="fw-bold text-dark" style="font-size:0.95rem;line-height:1.3;">Staff Background Investigation (Standard)</span>
+            <span class="badge bg-secondary flex-shrink-0" style="font-size:0.75rem;">Single Check</span>
+          </div>
+          <div class="text-muted small mb-3" style="font-size:0.8rem;line-height:1.35;">
+            Employer single staff check (NIN + Phone + Fraud Registry)
+          </div>
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <span class="text-muted d-block" style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.04em;font-weight:600;">Rate</span>
+              <strong class="text-dark" style="font-size:1.15rem;line-height:1;">₦{{ site_settings.price_staff_check_standard|floatformat:0 }}</strong>
+            </div>
+            <a href="{% url 'payments:service_checkout_review' 'staff_check' %}?tier=standard" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold" style="font-size:0.8rem;">
+              Order Staff Check &rarr;
+            </a>
+          </div>
+        </div>
+
+        <!-- Service 4: Staff Check Enhanced -->
+        <div class="p-3 border-bottom">
+          <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+            <span class="fw-bold text-dark" style="font-size:0.95rem;line-height:1.3;">Staff Background Investigation (Enhanced)</span>
+            <span class="badge bg-secondary flex-shrink-0" style="font-size:0.75rem;">Single Check</span>
+          </div>
+          <div class="text-muted small mb-3" style="font-size:0.8rem;line-height:1.35;">
+            Executive / High-risk background diligence report
+          </div>
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <span class="text-muted d-block" style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.04em;font-weight:600;">Rate</span>
+              <strong class="text-dark" style="font-size:1.15rem;line-height:1;">₦{{ site_settings.price_staff_check_enhanced|floatformat:0 }}</strong>
+            </div>
+            <a href="{% url 'payments:service_checkout_review' 'staff_check' %}?tier=enhanced" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold" style="font-size:0.8rem;">
+              Order Enhanced Check &rarr;
+            </a>
+          </div>
+        </div>
+
+        <!-- Service 5: Public Search -->
+        <div class="p-3 border-bottom">
+          <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+            <span class="fw-bold text-dark" style="font-size:0.95rem;line-height:1.3;">Public Trust &amp; Safety Search</span>
+            <span class="badge bg-secondary flex-shrink-0" style="font-size:0.75rem;">Single Check</span>
+          </div>
+          <div class="text-muted small mb-3" style="font-size:0.8rem;line-height:1.35;">
+            Check with phone, NIN, bank account, CAC or certificate ID &amp; background query
+          </div>
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <span class="text-muted d-block" style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.04em;font-weight:600;">Rate</span>
+              <strong class="text-dark" style="font-size:1.15rem;line-height:1;">₦{{ site_settings.price_public_check|floatformat:0 }}</strong>
+            </div>
+            <a href="{% url 'payments:service_checkout_review' 'public_check' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold" style="font-size:0.8rem;">
+              Pay &amp; Search &rarr;
+            </a>
+          </div>
+        </div>
+
+        <!-- Service 6: Person Quick-Check -->
+        <div class="p-3 border-bottom">
+          <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+            <span class="fw-bold text-dark" style="font-size:0.95rem;line-height:1.3;">Person Quick-Check / Tenant</span>
+            <span class="badge bg-secondary flex-shrink-0" style="font-size:0.75rem;">Single Query</span>
+          </div>
+          <div class="text-muted small mb-3" style="font-size:0.8rem;line-height:1.35;">
+            Instant phone / NIN reputation &amp; trust query
+          </div>
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <span class="text-muted d-block" style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.04em;font-weight:600;">Rate</span>
+              <strong class="text-dark" style="font-size:1.15rem;line-height:1;">₦{{ site_settings.price_person_check|floatformat:0 }}</strong>
+            </div>
+            <a href="{% url 'payments:service_checkout_review' 'person_check' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold" style="font-size:0.8rem;">
+              Pay &amp; Quick-Check &rarr;
+            </a>
+          </div>
+        </div>
+
+        <!-- Service 7: Workforce Certificate Verification -->
+        <div class="p-3 border-bottom">
+          <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+            <span class="fw-bold text-dark" style="font-size:0.95rem;line-height:1.3;">Workforce Certificate Verification</span>
+            <span class="badge bg-secondary flex-shrink-0" style="font-size:0.75rem;">Single Check</span>
+          </div>
+          <div class="text-muted small mb-3" style="font-size:0.8rem;line-height:1.35;">
+            Employer 3-point credential validity confirmation
+          </div>
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <span class="text-muted d-block" style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.04em;font-weight:600;">Rate</span>
+              <strong class="text-dark" style="font-size:1.15rem;line-height:1;">₦{{ site_settings.price_certificate_verify|floatformat:0 }}</strong>
+            </div>
+            <a href="{% url 'payments:service_checkout_review' 'certificate_verify' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold" style="font-size:0.8rem;">
+              Verify Cert &rarr;
+            </a>
+          </div>
+        </div>
+
+        <!-- Service 8: Document & Identity Verification -->
+        <div class="p-3 border-bottom">
+          <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+            <span class="fw-bold text-dark" style="font-size:0.95rem;line-height:1.3;">Document &amp; Identity Verification</span>
+            <span class="badge bg-secondary flex-shrink-0" style="font-size:0.75rem;">Per Request</span>
+          </div>
+          <div class="text-muted small mb-3" style="font-size:0.8rem;line-height:1.35;">
+            Basic National Identity &amp; Address Proof Document Diligence
+          </div>
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <span class="text-muted d-block" style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.04em;font-weight:600;">Rate</span>
+              <strong class="text-dark" style="font-size:1.15rem;line-height:1;">₦{{ site_settings.price_verification_basic|floatformat:0 }}</strong>
+            </div>
+            <a href="{% url 'payments:service_checkout_review' 'verification' %}?tier=basic" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold" style="font-size:0.8rem;">
+              Order Basic Check &rarr;
+            </a>
+          </div>
+        </div>
+
+        <!-- Service 9: Corporate & CAC Business Due Diligence -->
+        <div class="p-3 border-bottom">
+          <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+            <span class="fw-bold text-dark" style="font-size:0.95rem;line-height:1.3;">Corporate &amp; CAC Business Diligence</span>
+            <span class="badge bg-secondary flex-shrink-0" style="font-size:0.75rem;">Per Request</span>
+          </div>
+          <div class="text-muted small mb-3" style="font-size:0.8rem;line-height:1.35;">
+            Company registration, director vetting &amp; corporate diligence verification
+          </div>
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <span class="text-muted d-block" style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.04em;font-weight:600;">Rate</span>
+              <strong class="text-dark" style="font-size:1.15rem;line-height:1;">₦{{ site_settings.price_verification_business|floatformat:0 }}</strong>
+            </div>
+            <a href="{% url 'payments:service_checkout_review' 'verification' %}?tier=business" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold" style="font-size:0.8rem;">
+              Order CAC Check &rarr;
+            </a>
+          </div>
+        </div>
+
+        <!-- Service 10: Full Comprehensive Due Diligence -->
+        <div class="p-3 border-bottom">
+          <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+            <span class="fw-bold text-dark" style="font-size:0.95rem;line-height:1.3;">Full Comprehensive Due Diligence</span>
+            <span class="badge bg-primary flex-shrink-0" style="font-size:0.75rem;">Deep Diligence</span>
+          </div>
+          <div class="text-muted small mb-3" style="font-size:0.8rem;line-height:1.35;">
+            Officer registry inspection for land titles, C of O, VIN chassis, &amp; commercial  verification.
+          </div>
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <span class="text-muted d-block" style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.04em;font-weight:600;">Rate</span>
+              <strong class="text-dark" style="font-size:1.15rem;line-height:1;">₦{{ site_settings.price_verification_business|floatformat:0 }}</strong>
+            </div>
+            <a href="{% url 'payments:service_checkout_review' 'verification' %}?tier=full_check" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold" style="font-size:0.8rem;">
+              Order Full Check &rarr;
+            </a>
+          </div>
+        </div>
+
+        <!-- Service 11: Certificate Monitoring (TrustPass) -->
+        <div class="p-3 border-bottom">
+          <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+            <span class="fw-bold text-dark" style="font-size:0.95rem;line-height:1.3;">Certificate Monitoring (TrustPass)</span>
+            <span class="badge bg-info text-dark flex-shrink-0" style="font-size:0.75rem;">Annual Watcher</span>
+          </div>
+          <div class="text-muted small mb-3" style="font-size:0.8rem;line-height:1.35;">
+            {% if request.user.is_authenticated and request.user.is_employer %}
+              Continuous workforce trust assurance: real-time validation and active standing for your employed personnel
+            {% else %}
+              Enables employers &amp; landlords to easily verify your active certificate and build trust, without paying for repeat checks each time you prove your integrity for jobs or tenancy
+            {% endif %}
+          </div>
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <span class="text-muted d-block" style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.04em;font-weight:600;">Rate</span>
+              <strong class="text-dark" style="font-size:1.15rem;line-height:1;">₦{{ site_settings.price_monitoring_annual|floatformat:0 }}</strong>
+              <span class="text-muted small" style="font-size:0.75rem;">/ certificate / yr</span>
+            </div>
+            <a href="{% url 'payments:service_checkout_review' 'monitoring' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold" style="font-size:0.8rem;">
+              Join Monitoring &rarr;
+            </a>
+          </div>
+        </div>
+
+        <!-- Service 12: Bulk Candidate Screening -->
+        <div class="p-3 border-bottom">
+          <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+            <span class="fw-bold text-dark" style="font-size:0.95rem;line-height:1.3;">Bulk Candidate Screening</span>
+            <span class="badge bg-secondary flex-shrink-0" style="font-size:0.75rem;">Per Candidate</span>
+          </div>
+          <div class="text-muted small mb-3" style="font-size:0.8rem;line-height:1.35;">
+            Batch candidate verification &amp; multi-staff credential processing
+          </div>
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <span class="text-muted d-block" style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.04em;font-weight:600;">Rate</span>
+              <strong class="text-dark" style="font-size:1.15rem;line-height:1;">₦{{ site_settings.price_bulk_check_per_row|floatformat:0 }}</strong>
+              <span class="text-muted small" style="font-size:0.75rem;">/ ea</span>
+            </div>
+            <a href="{% url 'employer:bulk_upload_create' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold" style="font-size:0.8rem;">
+              Bulk Upload &rarr;
+            </a>
+          </div>
+        </div>
+
+        <!-- Service 13: Fraud Crime Reporting -->
+        <div class="p-3">
+          <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+            <span class="fw-bold text-dark" style="font-size:0.95rem;line-height:1.3;">Fraud Crime &amp; Whistleblower</span>
+            <span class="badge bg-success flex-shrink-0" style="font-size:0.75rem;">Complimentary</span>
+          </div>
+          <div class="text-muted small mb-3" style="font-size:0.8rem;line-height:1.35;">
+            Public crime reporting &amp; community protection
+          </div>
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <span class="text-muted d-block" style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.04em;font-weight:600;">Rate</span>
+              <strong class="text-success" style="font-size:1.15rem;line-height:1;">Free (₦0)</strong>
+            </div>
+            <a href="{% url 'reports:create' %}" class="btn btn-sm btn-success rounded-pill px-3 fw-semibold" style="font-size:0.8rem;">
+              Report Free &rarr;
+            </a>
+          </div>
         </div>
       </div>
     </div>

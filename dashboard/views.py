@@ -126,6 +126,48 @@ class DashboardIndexView(LoginRequiredMixin, TemplateView):
         all_user_certs = list(user_certs_qs)
         ctx['has_active_monitoring'] = any(c.is_monitoring_valid for c in all_user_certs)
         ctx['can_join_update_service'] = any(c.in_grace_period and not c.is_monitoring_valid for c in all_user_certs)
+
+        # Pre-paid unconsumed credits auto-detection (dismissible on dashboard)
+        if self.request.GET.get('dismiss_prepaid'):
+            self.request.session['dismissed_prepaid_banner'] = True
+
+        from payments.models import Transaction
+        unconsumed_orders = []
+        is_dismissed = self.request.session.get('dismissed_prepaid_banner', False)
+        if not is_dismissed:
+            for tx in Transaction.objects.filter(user=user, status='success', is_active=True).order_by('-created_at'):
+                meta = (tx.paystack_response or {}).get('data', {}).get('metadata', {})
+                serv = meta.get('service') or ''
+                tier = meta.get('tier') or ''
+                if serv in ('verification', 'business_verification'):
+                    unconsumed_orders.append({
+                        'title': 'Identity & Due Diligence Verification',
+                        'reference': tx.reference,
+                        'amount_naira': tx.amount_naira,
+                        'action_url': f"/verification/new/?paid_ref={tx.reference}&type={tier}",
+                        'service': serv,
+                        'created_at': tx.created_at,
+                    })
+                elif serv in ('certificate', 'certificate_apply'):
+                    unconsumed_orders.append({
+                        'title': 'TrustPass Background Clearance Certificate',
+                        'reference': tx.reference,
+                        'amount_naira': tx.amount_naira,
+                        'action_url': f"/verification/certificate/apply/?paid_ref={tx.reference}&level={tier}",
+                        'service': serv,
+                        'created_at': tx.created_at,
+                    })
+                elif serv == 'public_check':
+                    unconsumed_orders.append({
+                        'title': 'Public Record Lookup',
+                        'reference': tx.reference,
+                        'amount_naira': tx.amount_naira,
+                        'action_url': f"/check/?paid_ref={tx.reference}",
+                        'service': serv,
+                        'created_at': tx.created_at,
+                    })
+        ctx['unconsumed_orders'] = unconsumed_orders
+
         # Summary stat strip
         ctx.update(_get_user_summary_counts(user))
 

@@ -24,7 +24,7 @@
         <thead>
           <tr style="background:var(--vng-page-bg);">
             <th style="font-size:.75rem;font-weight:700;color:var(--vng-muted);text-transform:uppercase;letter-spacing:.05em;padding:1rem 1.25rem;border-color:var(--vng-border);">Date</th>
-            <th style="font-size:.75rem;font-weight:700;color:var(--vng-muted);text-transform:uppercase;letter-spacing:.05em;padding:1rem 1.25rem;border-color:var(--vng-border);">Plan</th>
+            <th style="font-size:.75rem;font-weight:700;color:var(--vng-muted);text-transform:uppercase;letter-spacing:.05em;padding:1rem 1.25rem;border-color:var(--vng-border);">Service / Plan</th>
             <th style="font-size:.75rem;font-weight:700;color:var(--vng-muted);text-transform:uppercase;letter-spacing:.05em;padding:1rem 1.25rem;border-color:var(--vng-border);">Reference</th>
             <th style="font-size:.75rem;font-weight:700;color:var(--vng-muted);text-transform:uppercase;letter-spacing:.05em;padding:1rem 1.25rem;border-color:var(--vng-border);">Amount</th>
             <th style="font-size:.75rem;font-weight:700;color:var(--vng-muted);text-transform:uppercase;letter-spacing:.05em;padding:1rem 1.25rem;border-color:var(--vng-border);">Status</th>
@@ -34,7 +34,7 @@
           {% for txn in page_obj %}
           <tr style="border-color:var(--vng-border);">
             <td style="padding:1rem 1.25rem;font-size:.875rem;vertical-align:middle;color:var(--vng-muted);">{{ txn.created_at|date:"j M Y" }}</td>
-            <td style="padding:1rem 1.25rem;font-size:.875rem;vertical-align:middle;font-weight:600;">{{ txn.plan.name|default:"—" }}</td>
+            <td style="padding:1rem 1.25rem;font-size:.875rem;vertical-align:middle;font-weight:600;">{{ txn.item_display_name }}</td>
             <td style="padding:1rem 1.25rem;vertical-align:middle;">
               <code style="font-size:.78rem;background:var(--vng-page-bg);padding:.2rem .5rem;border-radius:6px;">{{ txn.reference }}</code>
             </td>
@@ -61,7 +61,7 @@
       <div class="p-4 {% if not forloop.last %}border-bottom{% endif %}" style="border-color:var(--vng-border);">
         <div class="d-flex justify-content-between align-items-start mb-2">
           <div>
-            <div class="fw-700" style="font-size:.95rem;">{{ txn.plan.name|default:"Unknown Plan" }}</div>
+            <div class="fw-700" style="font-size:.95rem;">{{ txn.item_display_name }}</div>
             <div class="text-muted" style="font-size:.78rem;">{{ txn.created_at|date:"j M Y, g:i A" }}</div>
           </div>
           <div class="text-end">

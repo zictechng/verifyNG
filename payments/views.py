@@ -15,6 +15,7 @@ from core.rate_limiting import check_rate_limit
 from .models import FreeUsageQuota, Plan, SiteSettings, Subscription, Transaction, PaymentAuditLog
 from .services import (
     get_active_subscription,
+    get_user_prepaid_balance,
     initialize_transaction,
     process_webhook_event,
     verify_transaction,
@@ -48,19 +49,198 @@ def plans_list(request):
 
     active_subscription = None
     free_quota = None
+    user_balance = 0
 
     if request.user.is_authenticated:
         active_subscription = get_active_subscription(request.user)
         free_quota = FreeUsageQuota.for_user(request.user)
+        from .services import get_user_prepaid_balance
+        user_balance = get_user_prepaid_balance(request.user)
 
     context = {
         'plans': plans,
         'active_subscription': active_subscription,
         'free_quota': free_quota,
+        'user_balance': user_balance,
         'site_settings': site_settings,
         'page_title': 'Plans & Pricing',
     }
     return render(request, 'payments/plans.html', context)
+
+
+@login_required
+def dismiss_prepaid_banner(request):
+    """Marks the dashboard pre-paid reminder banner as dismissed in user session."""
+    request.session['dismissed_prepaid_banner'] = True
+    request.session['dismissed_employer_prepaid_banner'] = True
+    from django.http import JsonResponse
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.GET.get('format') == 'json':
+        return JsonResponse({'ok': True})
+    next_url = request.GET.get('next') or request.META.get('HTTP_REFERER') or '/'
+    return redirect(next_url)
+
+
+# ---------------------------------------------------------------------------
+# Authenticated — Checkout Review & Confirmation
+# ---------------------------------------------------------------------------
+
+
+# ---------------------------------------------------------------------------
+# Authenticated — Service-Level Pay-As-You-Go Review & Execution
+# ---------------------------------------------------------------------------
+
+@login_required
+def service_checkout_review(request, service_key):
+    """
+    Displays an Order Review & Confirmation screen for any Pay-As-You-Go service
+    before redirecting off-site to Paystack.
+    """
+    site_settings = SiteSettings.get()
+    tier = request.GET.get('tier', 'standard')
+
+    service_catalog = {
+        'public_check': {
+            'name': 'Public Trust & Safety Search / Record Lookup',
+            'badge': 'Single Record Search',
+            'description': 'Real-time cryptographic database check for Phone Numbers, NIN, Bank Accounts, or CAC Registration numbers.',
+            'coverage': 'Instant Search Result & Alert History',
+            'price': site_settings.price_public_check,
+            'tier': 'standard',
+        },
+        'person_check': {
+            'name': 'Person Quick-Check / Tenant Screening',
+            'badge': 'Single Person Query',
+            'description': 'Instant phone / NIN reputation check, fraud allegations history, and trust clearance query.',
+            'coverage': 'Instant Reputation & Alert Summary',
+            'price': site_settings.price_person_check,
+            'tier': 'standard',
+        },
+        'certificate_verify': {
+            'name': 'Workforce Certificate Status Verification',
+            'badge': 'Single Credential Check',
+            'description': 'Employer 3-point credential validity confirmation and revocation check.',
+            'coverage': 'Instant Verification Verdict',
+            'price': site_settings.price_certificate_verify,
+            'tier': 'standard',
+        },
+        'staff_check': {
+            'name': 'Staff Background Investigation (Enhanced)' if tier == 'enhanced' else 'Staff Background Investigation (Standard)',
+            'badge': 'Executive Due Diligence' if tier == 'enhanced' else 'Standard Pre-Employment Check',
+            'description': 'Comprehensive executive screening including multi-registry check and physical vetting.' if tier == 'enhanced' else 'Standard single staff check verifying NIN, phone, adverse employment history, and fraud alerts.',
+            'coverage': 'Official Officer Review & Downloadable Summary',
+            'price': site_settings.price_staff_check_enhanced if tier == 'enhanced' else site_settings.price_staff_check_standard,
+            'tier': tier,
+        },
+        'certificate': {
+            'name': 'TrustPass Clearance Certificate (Enhanced - 3 Years)' if tier == 'enhanced' else 'TrustPass Clearance Certificate (Standard - 1 Year)',
+            'badge': '3-Year Management Credential' if tier == 'enhanced' else '1-Year Workplace Credential',
+            'description': 'Multi-identifier integrity clearance certificate with continuous monitoring eligibility.' if tier == 'enhanced' else 'Official candidate workplace integrity credential with tamper-evident QR verification code.',
+            'coverage': 'Tamper-Evident Digital Certificate + PDF',
+            'price': site_settings.price_trustpass_3yr if tier == 'enhanced' else site_settings.price_trustpass_1yr,
+            'tier': tier,
+        },
+        'verification': {
+            'name': (
+                'Full Comprehensive Due Diligence (Property, Land & Vehicles)' if tier == 'full_check'
+                else ('Corporate & CAC Business Due Diligence' if tier == 'business'
+                else 'Document & Identity Verification (Basic)')
+            ),
+            'badge': (
+                'Fieldwork & Multi-Registry Vetting' if tier == 'full_check'
+                else ('CAC Company Investigation' if tier == 'business'
+                else 'Identity & Address Document Diligence')
+            ),
+            'description': (
+                'Officer search at Lands Bureau for C of O / Deeds, customs clearance status for vehicle VINs, or commercial contract vetting.' if tier == 'full_check'
+                else ('Official CAC registry inspection for status report, listed directors, registered office, and active standing.' if tier == 'business'
+                else 'Primary-source verification of government identity documents or utility address proof.')
+            ),
+            'coverage': 'Official Tamper-Evident Verification Report Issued by Officers',
+            'price': site_settings.price_verification_business if tier in ('business', 'full_check') else site_settings.price_verification_basic,
+            'tier': tier,
+        },
+        'monitoring': {
+            'name': 'Certificate Monitoring Services (TrustPass)',
+            'badge': '365-Day Active Verification Standing',
+            'description': (
+                'Continuous workforce trust assurance: real-time validation and active standing for your employed personnel.'
+                if (request.user.is_authenticated and getattr(request.user, 'is_employer', False))
+                else 'Enables employers and landlords to easily verify your active certificate and build trust, without paying for repeat checks each time you prove your integrity for jobs or tenancy.'
+            ),
+            'coverage': '1-Year Active Verification Standing',
+            'price': site_settings.price_monitoring_annual,
+            'tier': 'annual',
+        },
+    }
+
+    item = service_catalog.get(service_key)
+    if not item:
+        messages.error(request, "Selected service is not recognized.")
+        return redirect('payments:plans')
+
+    return render(request, 'payments/service_checkout_review.html', {
+        'service_key': service_key,
+        'item': item,
+        'tier': tier,
+        'site_settings': site_settings,
+        'page_title': f'Review Order: {item["name"]}',
+    })
+
+
+@login_required
+def service_checkout_execute(request, service_key):
+    """
+    Initiates Paystack checkout for a Pay-As-You-Go single service order
+    and redirects the customer to Paystack.
+    """
+    tier = request.GET.get('tier') or request.POST.get('tier') or 'standard'
+    site_settings = SiteSettings.get()
+    if site_settings.maintenance_mode:
+        messages.error(request, "Payments are temporarily unavailable. Please try again later.")
+        return redirect('payments:plans')
+
+    amount = site_settings.get_service_price(service_key, tier)
+    if not amount or amount <= 0:
+        messages.error(request, "Invalid service pricing.")
+        return redirect('payments:plans')
+
+    from payments.services import initialize_service_checkout
+    try:
+        checkout_data = initialize_service_checkout(
+            user=request.user,
+            service=service_key,
+            tier=tier,
+            amount_naira=amount,
+            metadata={
+                'service': service_key,
+                'tier': tier,
+            }
+        )
+        request.session['vng_pending_ref'] = checkout_data['reference']
+        return redirect(checkout_data['authorization_url'])
+    except Exception as exc:
+        logger.exception("Failed to initialize service checkout for %s: %s", service_key, exc)
+        messages.error(request, "We could not connect to Paystack payment gateway. Please try again.")
+        return redirect('payments:plans')
+
+@login_required
+def checkout_review(request, plan_slug):
+    """
+    Renders an Order Summary & Confirmation screen for the selected plan
+    before the user proceeds to Paystack.
+    """
+    plan = get_object_or_404(Plan, slug=plan_slug, is_active=True)
+    existing = get_active_subscription(request.user)
+    if existing and existing.plan_id == plan.id:
+        messages.info(request, f"You already have an active {plan.name} subscription.")
+        return redirect('payments:my_subscription')
+
+    site_settings = SiteSettings.get()
+    return render(request, 'payments/checkout_review.html', {
+        'plan': plan,
+        'site_settings': site_settings,
+        'page_title': f'Review Order: {plan.name}',
+    })
 
 
 # ---------------------------------------------------------------------------
@@ -146,58 +326,78 @@ def _activate_free_plan(user, plan: Plan):
 # ---------------------------------------------------------------------------
 
 
+def _get_service_display_name(service: str, tier: str, amount_naira: float) -> str:
+    if service in ('verification', 'business_verification'):
+        if tier in ('full_check', 'business', 'business_cac', 'cac', 'corporate', 'property', 'vehicle', 'contract') or amount_naira >= 3500:
+            return "Full Comprehensive Due Diligence Verification"
+        return "Standard Identity Verification"
+    elif service == 'certificate':
+        if tier in ('standard', 'comprehensive') or amount_naira >= 3500:
+            return "Comprehensive TrustPass Clearance Certificate"
+        return "Basic TrustPass Clearance Certificate"
+    elif service == 'staff_check':
+        if tier == 'comprehensive' or amount_naira >= 2500:
+            return "Comprehensive Staff Background Check"
+        return "Standard Staff Background Check"
+    elif service in ('public_check', 'check'):
+        return "Public Record Lookup"
+    elif service in ('person_check', 'quick_check'):
+        return "Quick Identity Check"
+    elif service == 'certificate_verify':
+        return "Certificate Status Verification"
+    return "Service Verification"
+
+
 def _route_payg_success(request, transaction):
     meta = (
         transaction.paystack_response.get('data', {}).get('metadata')
         or {}
     )
     service = meta.get('service', '')
+    tier = meta.get('tier', 'standard')
+
+    service_title = _get_service_display_name(service, tier, transaction.amount_naira)
+    success_msg = (
+        f"Payment Successful! Your payment Reference {transaction.reference} "
+        f"(₦{transaction.amount_naira:,.0f}) for {service_title} has been confirmed. "
+        "You may now proceed with your request."
+    )
+
     if service == 'certificate':
         cert_id = meta.get('certificate_id')
+        messages.success(request, success_msg)
         if cert_id:
-            messages.success(
-                request,
-                f"Payment of ₦{transaction.amount_naira:,.0f} verified successfully! "
-                f"Your TrustPass Clearance Application [{cert_id}] has been submitted for review."
-            )
             return redirect('verification:my_certificate', certificate_id=cert_id)
+        return redirect(f"/verification/certificate/apply/?paid_ref={transaction.reference}&level={tier}")
+
     elif service == 'staff_check':
         check_id = meta.get('staff_check_id')
+        messages.success(request, success_msg)
         if check_id:
-            messages.success(
-                request,
-                f"Payment of ₦{transaction.amount_naira:,.0f} verified successfully! "
-                "Your staff background check is now processing."
-            )
             return redirect('employer:staff_check_detail', check_id=check_id)
+        return redirect(f"/employer/checks/new/?paid_ref={transaction.reference}&tier={tier}")
+
     elif service in ('verification', 'business_verification'):
         req_ref = meta.get('verification_reference')
+        messages.success(request, success_msg)
         if req_ref:
-            messages.success(
-                request,
-                f"Payment of ₦{transaction.amount_naira:,.0f} verified successfully! "
-                f"Verification request [{req_ref}] is now pending officer review."
-            )
             return redirect('verification:detail', reference_number=req_ref)
+        return redirect(f"/verification/new/?paid_ref={transaction.reference}&type={tier}")
+
     elif service in ('person_check', 'quick_check'):
         from django.urls import reverse
         query = meta.get('query') or request.session.pop('pending_person_check_query', '')
-        messages.success(
-            request,
-            f"Payment of ₦{transaction.amount_naira:,.0f} verified successfully! Here is your quick-check result."
-        )
+        messages.success(request, success_msg)
         url = reverse('employer:person_check_search')
         if query:
             url += f"?paid_ref={transaction.reference}&query={query}"
         return redirect(url)
+
     elif service in ('public_check', 'check'):
         from django.urls import reverse
         id_type = meta.get('identifier_type', '')
         id_val = meta.get('identifier_value', '')
-        messages.success(
-            request,
-            f"Payment of ₦{transaction.amount_naira:,.0f} verified successfully! Here is your trust search result."
-        )
+        messages.success(request, success_msg)
         url = reverse('check')
         params = [f"paid_ref={transaction.reference}"]
         if id_type:
@@ -205,15 +405,13 @@ def _route_payg_success(request, transaction):
         if id_val:
             params.append(f"q={id_val}")
         return redirect(f"{url}?{'&'.join(params)}")
+
     elif service == 'certificate_verify':
         from django.urls import reverse
         cert_id = meta.get('certificate_id', '')
         surname = meta.get('surname', '')
         dob = meta.get('dob', '')
-        messages.success(
-            request,
-            f"Payment of ₦{transaction.amount_naira:,.0f} verified! Here is your certificate status check."
-        )
+        messages.success(request, success_msg)
         url = reverse('employer:certificate_verify')
         if cert_id:
             url += f"?paid_ref={transaction.reference}&certificate_id={cert_id}&surname={surname}&date_of_birth={dob}"
@@ -321,6 +519,10 @@ def payment_callback(request):
         })
 
     if transaction.status == 'failed':
+        messages.error(
+            request,
+            f"Payment Unsuccessful: Your payment Reference {transaction.reference} could not be completed. No charge has been made to your account."
+        )
         return render(request, 'payments/callback.html', {
             'success': False,
             'transaction': transaction,
@@ -358,6 +560,12 @@ def payment_callback(request):
         payg_redirect = _route_payg_success(request, transaction)
         if payg_redirect:
             return payg_redirect
+
+    if not success:
+        messages.error(
+            request,
+            f"Payment Unsuccessful: Your payment Reference {transaction.reference} could not be completed. No charge has been made to your account."
+        )
 
     context = {
         'success': success,
@@ -408,7 +616,7 @@ def paystack_webhook(request):
 
 @login_required
 def my_subscription(request):
-    """Dashboard page showing the user's current subscription and recent transactions."""
+    """Dashboard page showing the user's current subscription, available prepaid balance, and recent transactions."""
     active_sub = get_active_subscription(request.user)
     recent_transactions = (
         Transaction.objects.filter(user=request.user)
@@ -418,6 +626,7 @@ def my_subscription(request):
     free_quota = FreeUsageQuota.for_user(request.user)
     site_settings = SiteSettings.get()
     plans = Plan.objects.filter(is_active=True).order_by('display_order', 'price_kobo')
+    user_balance = get_user_prepaid_balance(request.user)
 
     context = {
         'active_subscription': active_sub,
@@ -425,6 +634,7 @@ def my_subscription(request):
         'free_quota': free_quota,
         'site_settings': site_settings,
         'plans': plans,
+        'user_balance': user_balance,
         'page_title': 'My Subscription',
     }
     return render(request, 'payments/my_subscription.html', context)

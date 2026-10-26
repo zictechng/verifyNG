@@ -12,6 +12,39 @@
     <div class="col-12 col-lg-7">
       <h2 class="fw-800 mb-4" style="font-size:1.5rem;">My Subscription</h2>
 
+      {% if user_balance > 0 %}
+      <!-- Available Pre-Paid Account Balance Card -->
+      <div class="vng-card p-4 mb-4 rounded-4" style="border:1.5px solid #16A34A;background:#fff;box-shadow:0 4px 16px rgba(22,163,74,0.08);">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+          <div class="d-flex align-items-start gap-3">
+            <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width:48px;height:48px;background:var(--vng-success-light);color:var(--vng-success);margin-top:2px;">
+              <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div>
+              <div class="text-uppercase small fw-bold text-success" style="letter-spacing:0.05em;font-size:0.75rem;">Pay-As-You-Go Credit</div>
+              <h4 class="fw-800 mb-1" style="font-size:1.25rem;color:var(--vng-ink);">Available Account Balance</h4>
+              <div class="fw-800 text-success mt-2" style="font-size:1.85rem;letter-spacing:-0.02em;line-height:1.1;">₦{{ user_balance|floatformat:0 }}</div>
+              <div class="text-muted small mt-1" style="font-size:0.825rem;">This credit is ready to be applied across any services</div>
+              <!-- Mobile Action Button: Indented & aligned under statement -->
+              <div class="mt-3 d-md-none">
+                <a href="{% url 'payments:plans' %}#payg-rates" class="btn btn-sm btn-outline-success rounded-pill fw-semibold px-3" style="font-size:0.8rem;">
+                  View Rates &amp; Services &rarr;
+                </a>
+              </div>
+            </div>
+          </div>
+          <!-- Desktop Action Button -->
+          <div class="d-none d-md-block text-end flex-shrink-0">
+            <a href="{% url 'payments:plans' %}#payg-rates" class="btn btn-sm btn-outline-success rounded-pill fw-semibold px-3 py-2" style="font-size:0.85rem;">
+              View Rates &amp; Services &rarr;
+            </a>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
       {% if active_subscription %}
       <!-- Active subscription card -->
       <div class="vng-card p-4 mb-4 rounded-4"
@@ -152,7 +185,7 @@
           </div>
           <!-- Details -->
           <div class="flex-grow-1 min-w-0">
-            <div class="fw-600 text-truncate" style="font-size:.875rem;">{{ txn.plan.name|default:"Unknown Plan" }}</div>
+            <div class="fw-600 text-truncate" style="font-size:.875rem;">{{ txn.item_display_name }}</div>
             <div class="text-muted" style="font-size:.75rem;">{{ txn.created_at|date:"j M Y" }}</div>
           </div>
           <!-- Amount -->

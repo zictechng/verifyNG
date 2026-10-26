@@ -75,10 +75,10 @@
                         <div class="fw-bold text-dark mb-1" style="font-size: 0.885rem; letter-spacing: -0.01em;">
                             Your report protects honest businesses and stops repeat scammers
                         </div>
-                        <div class="text-secondary" style="font-size: 0.88rem; line-height: 1.45;">
+                        <div class="text-secondary" style="font-size: 0.95rem; line-height: 1.45;">
                             Documenting fraud creates an official due-diligence record on VerifyNG that alerts 
                             future victims before they lose their hard-earned money. <br/>
-                            Report, stop scammers, and protect the next victims.
+                            <b>Report it, stop scammers, and protect the next victims.</b>
                         </div>
                     </div>
                 </div>
@@ -299,7 +299,7 @@
                     <div x-show="step === 1" x-transition>
                         <div class="d-flex align-items-center gap-2 mb-3">
                             <span class="badge bg-primary px-2 py-1">Step 1 of 4</span>
-                            <h5 class="fw-bold mb-0">Suspect Identity & Known Identifiers</h5>
+                            <h5 class="fw-bold mb-0">Suspect Details & Contact Information</h5>
                         </div>
                         <p class="small text-muted mb-4">
                             Provide known details regarding the alleged person or company. Providing phone numbers, account numbers, or CAC details allows other citizens to immediately detect this entity during verification checks.
@@ -307,7 +307,7 @@
 
                         <!-- Subject Name (Required) -->
                         <div class="mb-3">
-                            <label for="{{ form.subject_name.id_for_label }}" class="form-label small fw-semibold">Subject Name (Individual or Business) <span class="text-danger">*</span></label>
+                            <label for="{{ form.subject_name.id_for_label }}" class="form-label small fw-semibold">Suspect Full Name or Business Name <span class="text-danger">*</span></label>
                             <input type="text" name="subject_name" id="{{ form.subject_name.id_for_label }}" 
                                    class="form-control" 
                                    :class="{'is-invalid': errors.subjectName}"
@@ -322,7 +322,7 @@
                         </div>
                         <!-- Entity Type -->
                         <div class="mb-3">
-                            <label for="{{ form.subject_type.id_for_label }}" class="form-label small fw-semibold">Entity Type <span class="text-danger">*</span></label>
+                            <label for="{{ form.subject_type.id_for_label }}" class="form-label small fw-semibold">Target Type (Person or Business) <span class="text-danger">*</span></label>
                             <select name="subject_type" 
                                     id="{{ form.subject_type.id_for_label }}" 
                                     class="form-select" 
@@ -341,9 +341,9 @@
                         <div class="p-3 bg-light rounded border mb-4">
                             <div class="d-flex align-items-center gap-2 mb-2">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-primary"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                                <span class="fw-semibold small text-primary">Public Registry Matching Identifiers (Optional)</span>
+                                <span class="fw-semibold small text-primary">Contact & Financial Details to Flag (Optional)</span>
                             </div>
-                            <p class="text-muted small mb-3">All identifiers entered below are cryptographically peppered & hashed (HMAC-SHA256). Any citizen querying these exact details will be alerted to this record once published.</p>
+                            <p class="text-muted small mb-3">All details entered below are cryptographically peppered & hashed (HMAC-SHA256). Any citizen querying these exact details will be alerted to this record once published.</p>
                             <!-- Suspect Phone -->
                             <div class="mb-3">
                                 <label for="{{ form.suspect_phone.id_for_label }}" class="form-label small fw-semibold">Suspect Phone Number</label>
@@ -607,7 +607,7 @@
                                 <dt class="col-sm-4 text-muted">Suspect / Subject:</dt>
                                 <dd class="col-sm-8 fw-semibold" x-text="subjectName + (subjectType ? ' (' + subjectType + ')' : '')"></dd>
 
-                                <dt class="col-sm-4 text-muted">Suspect Identifiers:</dt>
+                                <dt class="col-sm-4 text-muted">Suspect Details / Accounts:</dt>
                                 <dd class="col-sm-8">
                                     <template x-if="phone"><span class="badge bg-secondary me-1" x-text="'Phone: ' + phone"></span></template>
                                     <template x-if="bankAccount"><span class="badge bg-secondary me-1" x-text="'Acct: ' + bankAccount + (bankName ? ' (' + bankName + ')' : '')"></span></template>

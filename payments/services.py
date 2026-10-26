@@ -769,3 +769,99 @@ def _fulfill_payg_transaction(transaction: Transaction, paystack_data: dict):
                 monitor.monitor_status = 'active'
                 monitor.save(update_fields=['monitor_status', 'updated_at'])
                 logger.info("Staff check monitor %s activated after payment %s", staff_check_id, transaction.reference)
+
+
+# ---------------------------------------------------------------------------
+# Dynamic Pre-Paid Account Balance & Multi-Service Credit Engine
+# ---------------------------------------------------------------------------
+
+def get_user_prepaid_balance(user) -> int:
+    """
+    Returns the user's total available pre-paid credit balance in Naira.
+    Calculated from active (unconsumed) successful Paystack PAYG transactions.
+    """
+    if not user or not user.is_authenticated:
+        return 0
+    from payments.models import Transaction
+    from django.db.models import Sum
+    res = Transaction.objects.filter(
+        user=user,
+        status='success',
+        is_active=True,
+    ).aggregate(total=Sum('amount_kobo'))
+    total_kobo = res.get('total') or 0
+    return int(total_kobo // 100)
+
+
+def deduct_user_prepaid_balance(user, amount_naira: int, service_name: str = '') -> tuple[bool, int]:
+    """
+    Atomically deducts amount_naira from the user's available active pre-paid transactions.
+    If the active transaction(s) exceed the required amount, it consumes them and generates
+    a change/credit transaction for the remaining balance.
+    
+    Returns (success: bool, remaining_balance_naira: int).
+    """
+    if not user or not user.is_authenticated or amount_naira <= 0:
+        return False, get_user_prepaid_balance(user)
+
+    from payments.models import Transaction
+    from django.db import transaction as db_transaction
+
+    with db_transaction.atomic():
+        active_txs = list(
+            Transaction.objects.select_for_update()
+            .filter(user=user, status='success', is_active=True)
+            .order_by('created_at')
+        )
+        total_kobo = sum(tx.amount_kobo for tx in active_txs)
+        needed_kobo = int(amount_naira * 100)
+
+        if total_kobo < needed_kobo:
+            return False, int(total_kobo // 100)
+
+        remaining_to_deduct = needed_kobo
+        for tx in active_txs:
+            if tx.amount_kobo <= remaining_to_deduct:
+                remaining_to_deduct -= tx.amount_kobo
+                tx.is_active = False
+                tx.save(update_fields=['is_active'])
+            else:
+                # This transaction covers the remainder and has change!
+                change_kobo = tx.amount_kobo - remaining_to_deduct
+                tx.is_active = False
+                tx.save(update_fields=['is_active'])
+
+                # Create change credit transaction
+                Transaction.objects.create(
+                    user=user,
+                    reference=f"VNG-BAL-{uuid.uuid4().hex[:12].upper()}",
+                    amount_kobo=change_kobo,
+                    currency='NGN',
+                    status='success',
+                    is_active=True,
+                    paystack_response={
+                        'data': {
+                            'metadata': {
+                                'type': 'balance_credit',
+                                'source': 'change_from_deduction',
+                                'deducted_for': service_name,
+                                'parent_ref': tx.reference,
+                            }
+                        }
+                    }
+                )
+                remaining_to_deduct = 0
+                break
+
+    return True, get_user_prepaid_balance(user)
+
+
+def get_topup_difference(user_balance_naira: int, service_price_naira: int) -> int:
+    """
+    Calculates the required top-up amount in Naira.
+    Enforces the minimum Paystack transaction constraint of ₦100.
+    """
+    needed = max(0, service_price_naira - user_balance_naira)
+    if 0 < needed < 100:
+        return 100
+    return needed

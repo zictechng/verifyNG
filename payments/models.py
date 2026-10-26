@@ -502,6 +502,44 @@ class Transaction(models.Model):
     def amount_naira(self):
         return self.amount_kobo / 100
 
+    @property
+    def item_display_name(self) -> str:
+        """
+        Human-friendly item or plan name for display across dashboards and transaction history.
+        Replaces 'Unknown Plan' with meaningful service descriptions or 'Direct Payment'.
+        """
+        if self.plan:
+            return self.plan.name
+
+        if self.reference and self.reference.startswith('VNG-BAL-'):
+            return "Pre-Paid Account Balance"
+
+        meta = (self.paystack_response or {}).get('data', {}).get('metadata', {})
+        if not meta and isinstance(self.paystack_response, dict):
+            meta = self.paystack_response.get('metadata', {})
+
+        service = meta.get('service')
+        tier = meta.get('tier', '')
+
+        if service in ('verification', 'business_verification'):
+            if tier in ('full_check', 'business', 'business_cac', 'cac', 'corporate', 'property', 'vehicle', 'contract') or self.amount_naira >= 3500:
+                return "Due Diligence Verification"
+            return "Identity Verification"
+        elif service == 'certificate':
+            return "TrustPass Clearance Certificate"
+        elif service == 'staff_check':
+            return "Staff Background Check"
+        elif service in ('public_check', 'check'):
+            return "Public Record Lookup"
+        elif service in ('person_check', 'quick_check'):
+            return "Quick Identity Check"
+        elif service == 'topup':
+            return "Account Top-Up"
+        elif service == 'certificate_verify':
+            return "Certificate Verification"
+
+        return "Direct Payment"
+
 
 class FreeUsageQuota(models.Model):
     """

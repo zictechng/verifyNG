@@ -103,12 +103,44 @@ class VerificationCreateView(LoginRequiredMixin, FormView):
                 return redirect(get_user_home_url(request.user))
         return super().dispatch(request, *args, **kwargs)
 
+    def get_initial(self):
+        initial = super().get_initial()
+        req_type = self.request.GET.get('type')
+        if req_type and req_type in dict(VerificationRequest.VERIFICATION_TYPES):
+            initial['verification_type'] = req_type
+        return initial
+
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        from payments.models import SiteSettings
+        from payments.models import SiteSettings, Transaction
+        from payments.services import get_user_prepaid_balance
         site_settings = SiteSettings.get()
         allowed, _, _ = check_user_entitlement(self.request.user, service='verification')
-        ctx['has_entitlement'] = allowed
+        user_balance = get_user_prepaid_balance(self.request.user)
+
+        paid_ref = self.request.GET.get('paid_ref') or self.request.POST.get('paid_ref')
+        paid_tx = None
+        if paid_ref:
+            paid_tx = Transaction.objects.filter(
+                reference=paid_ref,
+                user=self.request.user,
+                status='success',
+                is_active=True,
+            ).first()
+
+        ctx['user_balance'] = user_balance
+        ctx['has_balance'] = user_balance >= site_settings.price_verification_basic
+        if user_balance >= site_settings.price_verification_basic or paid_tx:
+            ctx['has_entitlement'] = True
+            if paid_tx:
+                ctx['prepaid_reference'] = paid_ref
+                ctx['prepaid_amount'] = paid_tx.amount_naira
+                ctx['is_comprehensive_prepaid'] = paid_tx.amount_kobo >= (site_settings.price_verification_business * 100)
+            elif user_balance >= site_settings.price_verification_business:
+                ctx['is_comprehensive_prepaid'] = True
+
+        if 'has_entitlement' not in ctx:
+            ctx['has_entitlement'] = allowed
         ctx['price_basic'] = site_settings.price_verification_basic
         ctx['price_business'] = site_settings.price_verification_business
         return ctx
@@ -123,8 +155,29 @@ class VerificationCreateView(LoginRequiredMixin, FormView):
         try:
             docs = form.cleaned_data.get('documents') or self.request.FILES.getlist('document')
             verification_type = form.cleaned_data['verification_type']
+            from payments.models import SiteSettings, Transaction
+            from payments.services import get_user_prepaid_balance, deduct_user_prepaid_balance, get_topup_difference, initialize_service_checkout
+            st_settings = SiteSettings.get()
+            high_tier = ('business', 'business_cac', 'cac', 'corporate', 'full_check', 'property', 'vehicle', 'contract')
+            req_price = st_settings.price_verification_business if verification_type in high_tier else st_settings.price_verification_basic
+            user_balance = get_user_prepaid_balance(self.request.user)
+
+            # Check for direct pre-paid reference in URL/POST
+            paid_ref = self.request.GET.get('paid_ref') or self.request.POST.get('paid_ref')
+            has_valid_prepayment = False
+            paid_tx = None
+            if paid_ref:
+                paid_tx = Transaction.objects.filter(
+                    reference=paid_ref,
+                    user=self.request.user,
+                    status='success',
+                    is_active=True,
+                ).first()
+                if paid_tx and paid_tx.amount_kobo >= (req_price * 100):
+                    has_valid_prepayment = True
 
             if allowed:
+                # Subscription entitlement
                 verif_request = create_verification_request(
                     requester=self.request.user,
                     subject_name=form.cleaned_data['subject_name'],
@@ -140,30 +193,79 @@ class VerificationCreateView(LoginRequiredMixin, FormView):
                 consume_user_entitlement(self.request.user, service='verification')
                 messages.success(
                     self.request,
-                    f"Verification request [{verif_request.reference_number}] submitted successfully."
+                    f"Verification request [{verif_request.reference_number}] submitted successfully using plan quota."
                 )
                 return redirect('verification:detail', reference_number=verif_request.reference_number)
-            else:
-                from payments.models import SiteSettings
-                from payments.services import initialize_service_checkout
-                site_settings = SiteSettings.get()
-                if verification_type in ('business_cac', 'cac', 'corporate'):
-                    tier = 'business'
-                    amount_naira = site_settings.price_verification_business
-                    service_key = 'business_verification'
-                else:
-                    tier = 'basic'
-                    amount_naira = site_settings.price_verification_basic
-                    service_key = 'verification'
 
+            elif has_valid_prepayment and paid_tx:
+                # Direct pre-paid transaction reference
+                paid_tx.is_active = False
+                paid_tx.save(update_fields=['is_active'])
+                notes = form.cleaned_data.get('notes', '')
+                if paid_tx.amount_kobo >= (st_settings.price_verification_business * 100):
+                    tier_note = "[Pre-paid: Comprehensive Due Diligence Tier (₦3,500)]"
+                    notes = f"{tier_note}\n{notes}".strip() if notes else tier_note
+
+                verif_request = create_verification_request(
+                    requester=self.request.user,
+                    subject_name=form.cleaned_data['subject_name'],
+                    subject_type=form.cleaned_data['subject_type'],
+                    verification_type=verification_type,
+                    notes=notes,
+                    identifier_type=form.cleaned_data.get('identifier_type') or None,
+                    identifier_value=form.cleaned_data.get('identifier_value') or None,
+                    ip_address=ip_addr,
+                    documents=docs,
+                    status='pending',
+                )
+                messages.success(
+                    self.request,
+                    f"Verification request [{verif_request.reference_number}] submitted successfully using pre-paid order {paid_ref}."
+                )
+                return redirect('verification:detail', reference_number=verif_request.reference_number)
+
+            elif user_balance >= req_price:
+                # Dynamic account balance deduction!
+                ok, rem_bal = deduct_user_prepaid_balance(self.request.user, req_price, f"Verification: {verification_type}")
+                notes = form.cleaned_data.get('notes', '')
+                if req_price >= st_settings.price_verification_business:
+                    tier_note = f"[Comprehensive Due Diligence Tier (₦{req_price:,.0f})]"
+                    notes = f"{tier_note}\n{notes}".strip() if notes else tier_note
+
+                verif_request = create_verification_request(
+                    requester=self.request.user,
+                    subject_name=form.cleaned_data['subject_name'],
+                    subject_type=form.cleaned_data['subject_type'],
+                    verification_type=verification_type,
+                    notes=notes,
+                    identifier_type=form.cleaned_data.get('identifier_type') or None,
+                    identifier_value=form.cleaned_data.get('identifier_value') or None,
+                    ip_address=ip_addr,
+                    documents=docs,
+                    status='pending',
+                )
+                messages.success(
+                    self.request,
+                    f"Verification request [{verif_request.reference_number}] submitted successfully! ₦{req_price:,.0f} paid from your balance (₦{rem_bal:,.0f} remaining)."
+                )
+                return redirect('verification:detail', reference_number=verif_request.reference_number)
+
+            else:
+                # Insufficient balance or no payment: top up difference or full price
+                topup_needed = get_topup_difference(user_balance, req_price)
                 action = self.request.POST.get('action', 'submit')
                 if action != 'payg':
                     ctx = self.get_context_data(form=form)
                     ctx['quota_exceeded'] = True
-                    ctx['selected_price'] = amount_naira
+                    ctx['selected_price'] = req_price
+                    ctx['user_balance'] = user_balance
+                    ctx['topup_needed'] = topup_needed
                     ctx['verification_type'] = verification_type
                     return self.render_to_response(ctx)
 
+                # Initialize Paystack checkout for topup_needed
+                service_key = 'business_verification' if verification_type in high_tier else 'verification'
+                tier_slug = 'business' if verification_type in high_tier else 'basic'
                 verif_request = create_verification_request(
                     requester=self.request.user,
                     subject_name=form.cleaned_data['subject_name'],
@@ -176,15 +278,18 @@ class VerificationCreateView(LoginRequiredMixin, FormView):
                     documents=docs,
                     status='pending_payment',
                 )
+                if user_balance > 0:
+                    deduct_user_prepaid_balance(self.request.user, user_balance, f"Partial top-up for {verif_request.reference_number}")
+
                 try:
                     checkout_data = initialize_service_checkout(
                         user=self.request.user,
                         service=service_key,
-                        tier=tier,
-                        amount_naira=amount_naira,
+                        tier=tier_slug,
+                        amount_naira=topup_needed,
                         metadata={
-                            'service': service_key,
                             'verification_reference': verif_request.reference_number,
+                            'service': service_key,
                         }
                     )
                     self.request.session['vng_pending_ref'] = checkout_data['reference']
@@ -193,7 +298,7 @@ class VerificationCreateView(LoginRequiredMixin, FormView):
                     logger.exception("Failed to initialize verification checkout: %s", exc)
                     ctx = self.get_context_data(form=form)
                     ctx['quota_exceeded'] = True
-                    ctx['selected_price'] = amount_naira
+                    ctx['selected_price'] = topup_needed
                     ctx['gateway_error'] = str(exc)
                     return self.render_to_response(ctx)
         
@@ -451,6 +556,21 @@ class CertificateApplyView(LoginRequiredMixin, View):
 
         site_settings = SiteSettings.get()
         user = request.user
+        from payments.services import get_user_prepaid_balance
+        user_balance = get_user_prepaid_balance(request.user)
+        paid_ref = request.GET.get('paid_ref')
+        paid_tx = None
+        if paid_ref:
+            from payments.models import Transaction
+            paid_tx = Transaction.objects.filter(
+                reference=paid_ref,
+                user=request.user,
+                status='success',
+                is_active=True,
+            ).first()
+
+        has_coverage = allowed or (user_balance >= site_settings.price_trustpass_1yr) or (paid_tx is not None)
+
         initial = {
             'full_name': user.get_full_name().strip() or user.username,
             'email': user.email or '',
@@ -459,7 +579,9 @@ class CertificateApplyView(LoginRequiredMixin, View):
         form = CertificateApplyForm(initial=initial)
         context = {
             'form': form,
-            'has_entitlement': allowed,
+            'has_entitlement': has_coverage,
+            'user_balance': user_balance,
+            'prepaid_reference': paid_ref if paid_tx else None,
             'entitlement_details': details,
             'price_trustpass_1yr': site_settings.price_trustpass_1yr,
             'price_trustpass_3yr': site_settings.price_trustpass_3yr,
@@ -477,23 +599,54 @@ class CertificateApplyView(LoginRequiredMixin, View):
 
         form = CertificateApplyForm(request.POST, request.FILES)
         site_settings = SiteSettings.get()
-        context = {
-            'form': form,
-            'has_entitlement': allowed,
-            'entitlement_details': details,
-            'price_trustpass_1yr': site_settings.price_trustpass_1yr,
-            'price_trustpass_3yr': site_settings.price_trustpass_3yr,
-        }
+        from payments.services import get_user_prepaid_balance, deduct_user_prepaid_balance, get_topup_difference, initialize_service_checkout
+        user_balance = get_user_prepaid_balance(request.user)
 
         if not form.is_valid():
+            context = {
+                'form': form,
+                'has_entitlement': allowed or (user_balance >= site_settings.price_trustpass_1yr),
+                'user_balance': user_balance,
+                'entitlement_details': details,
+                'price_trustpass_1yr': site_settings.price_trustpass_1yr,
+                'price_trustpass_3yr': site_settings.price_trustpass_3yr,
+            }
             return render(request, self.template_name, context)
 
         cd = form.cleaned_data
         ip_addr = get_client_ip(request)
         tier_choice = cd.get('check_level') or cd.get('certificate_type') or 'employment'
+        tier_slug = 'enhanced' if tier_choice == 'enhanced' else 'standard'
+        req_price = site_settings.get_service_price('certificate', tier_slug)
+
+        # Check for direct pre-paid Paystack reference
+        paid_ref = request.GET.get('paid_ref') or request.POST.get('paid_ref')
+        has_valid_prepayment = False
+        paid_tx = None
+        if paid_ref:
+            from payments.models import Transaction
+            paid_tx = Transaction.objects.filter(
+                reference=paid_ref,
+                user=request.user,
+                status='success',
+                is_active=True,
+            ).first()
+            if paid_tx and paid_tx.amount_kobo >= (req_price * 100):
+                has_valid_prepayment = True
+
+        context = {
+            'form': form,
+            'has_entitlement': allowed or has_valid_prepayment or (user_balance >= req_price),
+            'user_balance': user_balance,
+            'prepaid_reference': paid_ref if has_valid_prepayment else None,
+            'entitlement_details': details,
+            'price_trustpass_1yr': site_settings.price_trustpass_1yr,
+            'price_trustpass_3yr': site_settings.price_trustpass_3yr,
+        }
 
         try:
             if allowed:
+                # Subscription quota
                 certificate = create_trustpass_certificate_application(
                     holder=request.user,
                     full_name=cd['full_name'],
@@ -515,10 +668,68 @@ class CertificateApplyView(LoginRequiredMixin, View):
                 consume_user_entitlement(request.user, service='certificate')
                 messages.success(
                     request,
-                    f"Your TrustPass Clearance Application [{certificate.certificate_id}] has been submitted successfully for verification review."
+                    f"Your TrustPass Clearance Application [{certificate.certificate_id}] has been submitted successfully using plan quota."
                 )
                 return redirect('verification:my_certificate', certificate_id=certificate.certificate_id)
+
+            elif has_valid_prepayment and paid_tx:
+                # Direct pre-paid reference
+                paid_tx.is_active = False
+                paid_tx.save(update_fields=['is_active'])
+                certificate = create_trustpass_certificate_application(
+                    holder=request.user,
+                    full_name=cd['full_name'],
+                    check_level=tier_choice,
+                    date_of_birth=cd.get('date_of_birth'),
+                    gender=cd.get('gender', ''),
+                    phone_number=cd.get('phone_number', ''),
+                    email=cd.get('email', ''),
+                    nin=cd.get('nin', ''),
+                    id_document_type=cd.get('id_document_type', ''),
+                    id_document_file=cd.get('id_document_file'),
+                    employer_name=cd.get('employer_name', ''),
+                    job_role=cd.get('job_role', ''),
+                    residential_state=cd.get('residential_state', ''),
+                    residential_city=cd.get('residential_city', ''),
+                    ip_address=ip_addr,
+                    status='pending',
+                )
+                messages.success(
+                    request,
+                    f"Your TrustPass Clearance Application [{certificate.certificate_id}] has been submitted successfully using pre-paid order {paid_ref}."
+                )
+                return redirect('verification:my_certificate', certificate_id=certificate.certificate_id)
+
+            elif user_balance >= req_price:
+                # Deduct from dynamic account balance!
+                ok, rem_bal = deduct_user_prepaid_balance(request.user, req_price, f"TrustPass: {tier_choice}")
+                certificate = create_trustpass_certificate_application(
+                    holder=request.user,
+                    full_name=cd['full_name'],
+                    check_level=tier_choice,
+                    date_of_birth=cd.get('date_of_birth'),
+                    gender=cd.get('gender', ''),
+                    phone_number=cd.get('phone_number', ''),
+                    email=cd.get('email', ''),
+                    nin=cd.get('nin', ''),
+                    id_document_type=cd.get('id_document_type', ''),
+                    id_document_file=cd.get('id_document_file'),
+                    employer_name=cd.get('employer_name', ''),
+                    job_role=cd.get('job_role', ''),
+                    residential_state=cd.get('residential_state', ''),
+                    residential_city=cd.get('residential_city', ''),
+                    ip_address=ip_addr,
+                    status='pending',
+                )
+                messages.success(
+                    request,
+                    f"Your TrustPass Clearance Application [{certificate.certificate_id}] has been submitted successfully! ₦{req_price:,.0f} paid from your balance (₦{rem_bal:,.0f} remaining)."
+                )
+                return redirect('verification:my_certificate', certificate_id=certificate.certificate_id)
+
             else:
+                # Top up difference or pay full amount via Paystack
+                topup_amt = get_topup_difference(user_balance, req_price)
                 certificate = create_trustpass_certificate_application(
                     holder=request.user,
                     full_name=cd['full_name'],
@@ -537,14 +748,14 @@ class CertificateApplyView(LoginRequiredMixin, View):
                     ip_address=ip_addr,
                     status='pending_payment',
                 )
-                tier_slug = 'enhanced' if tier_choice == 'enhanced' else 'standard'
-                amount_naira = site_settings.get_service_price('certificate', tier_slug)
+                if user_balance > 0:
+                    deduct_user_prepaid_balance(request.user, user_balance, f"Partial top-up for certificate {certificate.certificate_id}")
 
                 checkout_data = initialize_service_checkout(
                     user=request.user,
                     service='certificate',
                     tier=tier_slug,
-                    amount_naira=amount_naira,
+                    amount_naira=topup_amt,
                     metadata={
                         'certificate_id': certificate.certificate_id,
                         'check_level': tier_choice,

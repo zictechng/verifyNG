@@ -75,12 +75,20 @@ def check(request):
                 logger.error("Public check PAYG checkout error (user=%s): %s", request.user.id, e)
                 messages.error(request, f"Payment gateway error: {e}")
 
-    # Check if user has a verified single query direct payment
+    # Check if user has a verified single query direct payment, unconsumed credit, or active account balance
     paid_ref = request.GET.get('paid_ref', '').strip()
     is_direct_paid = False
-    if paid_ref and request.user.is_authenticated:
-        trx = Transaction.objects.filter(reference=paid_ref, user=request.user, status='success').first()
-        if trx:
+    from payments.services import get_user_prepaid_balance
+    user_balance = get_user_prepaid_balance(request.user) if request.user.is_authenticated else 0
+
+    if request.user.is_authenticated:
+        if paid_ref:
+            trx = Transaction.objects.filter(reference=paid_ref, user=request.user, status='success', is_active=True).first()
+            if trx:
+                meta = (trx.paystack_response or {}).get('data', {}).get('metadata', {})
+                if meta.get('service') == 'public_check':
+                    is_direct_paid = True
+        if not is_direct_paid and user_balance >= payg_price:
             is_direct_paid = True
 
     user_entitlement = None

@@ -196,13 +196,13 @@
                         <dt class="col-sm-4 text-muted">Reference Number:</dt>
                         <dd class="col-sm-8 font-monospace fw-semibold">{{ verification_request.reference_number }}</dd>
 
-                        <dt class="col-sm-4 text-muted">Subject / Entity Name:</dt>
+                        <dt class="col-sm-4 text-muted">Full Name / Title:</dt>
                         <dd class="col-sm-8 fw-bold" style="color:var(--vng-ink);">{{ verification_request.target_subject.name }}</dd>
 
-                        <dt class="col-sm-4 text-muted">Entity Type:</dt>
+                        <dt class="col-sm-4 text-muted">Target Type:</dt>
                         <dd class="col-sm-8">{{ verification_request.target_subject.get_type_display }}</dd>
 
-                        <dt class="col-sm-4 text-muted">Verification Scope:</dt>
+                        <dt class="col-sm-4 text-muted">Verification Category:</dt>
                         <dd class="col-sm-8"><span class="badge bg-light text-dark border">{{ verification_request.get_verification_type_display }}</span></dd>
 
                         <dt class="col-sm-4 text-muted">Date Submitted:</dt>

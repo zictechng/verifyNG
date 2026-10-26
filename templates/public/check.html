@@ -279,7 +279,7 @@
                             <div class="fw-bold text-dark mb-1" style="font-size: 0.885rem; letter-spacing: -0.01em;">
                                 A 1-minute check can protect your hard-earned money
                             </div>
-                            <div class="text-secondary" style="font-size: 0.8825rem; line-height: 1.45;">
+                            <div class="text-secondary" style="font-size: 0.95rem; line-height: 1.45;">
                                 Before paying deposits, transferring funds, or closing deals, verify who you are dealing with. A quick search helps you avoid impersonators, fake sellers, and financial scams.
                             </div>
                         </div>
@@ -288,7 +288,7 @@
 
                 <div class="row g-2 mb-3">
                     <div class="col-sm-5">
-                        <label for="idTypeSelect" class="form-label small fw-semibold text-muted">Identifier Type</label>
+                        <label for="idTypeSelect" class="form-label small fw-semibold text-muted">Search Record By</label>
                         <select id="idTypeSelect" class="form-select py-2" x-model="idType" style="border-color: var(--vng-border);">
                             <option value="" disabled selected>— Choose what to check —</option>
                             <option value="phone">Phone Number</option>
@@ -301,13 +301,13 @@
                         </select>
                     </div>
                     <div class="col-sm-7">
-                        <label for="checkInput" class="form-label small fw-semibold text-muted">Identifier Value</label>
+                        <label for="checkInput" class="form-label small fw-semibold text-muted">Enter Number, Phone or Email</label>
                         <div class="input-group">
                             <input type="text" 
                                    id="checkInput"
                                    class="form-control py-2" 
                                    style="border-color: var(--vng-border);"
-                                   :placeholder="!idType ? 'First select an option on the left...' : (idType === 'phone' ? 'e.g. 08012345678' : (idType === 'account' ? 'e.g. 0123456789 (10 digits)' : (idType === 'cac' ? 'e.g. RC123456' : (idType === 'email' ? 'e.g. person@example.com' : (idType === 'nin' ? 'e.g. 12345678901' : (idType === 'certificate_id' ? 'e.g. VNG-2026-A7F2B9C1' : 'Enter identifier value...'))))))"
+                                   :placeholder="!idType ? 'First select an option on the left...' : (idType === 'phone' ? 'e.g. 08012345678' : (idType === 'account' ? 'e.g. 0123456789 (10 digits)' : (idType === 'cac' ? 'e.g. RC123456' : (idType === 'email' ? 'e.g. person@example.com' : (idType === 'nin' ? 'e.g. 12345678901' : (idType === 'certificate_id' ? 'e.g. VNG-2026-A7F2B9C1' : 'Enter details to verify...'))))))"
                                    x-model="identifier"
                                    @keydown.enter="performSearch()">
                         </div>

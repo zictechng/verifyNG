@@ -65,22 +65,38 @@
                 </p>
             </div>
 
-            {% if messages %}
-                {% for message in messages %}
-                    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show mb-3" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                {% endfor %}
+            {% if prepaid_reference and not messages %}
+            <div class="alert alert-success alert-dismissible fade show shadow-sm d-flex align-items-center justify-content-between py-2.5 px-3 mb-3" role="alert" style="border-radius:10px; font-size:0.9rem;">
+                <div class="d-flex align-items-center gap-2">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-success flex-shrink-0"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    <span>Payment Successful! Your payment Reference {{ prepaid_reference }}{% if prepaid_amount %} (₦{{ prepaid_amount|floatformat:0 }}){% endif %} for {% if is_comprehensive_prepaid %}Full Comprehensive Due Diligence Verification{% else %}Standard Identity Verification{% endif %} has been confirmed. You may now proceed with your request.</span>
+                </div>
+                <button type="button" class="btn-close ms-2" data-bs-dismiss="alert" aria-label="Close" style="font-size:0.8rem;"></button>
+            </div>
             {% endif %}
 
-            <!-- What You Get Callout -->
-            <div class="p-3 mb-4 rounded-3 d-flex align-items-start gap-3" style="background:#F8FAFC;border:1px solid #E2E8F0;">
-                <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width:36px;height:36px;background:#EFF6FF;color:#2563EB;">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-                </div>
-                <div class="small text-muted">
-                    <strong class="text-dark">Official Verification Report:</strong> Upon review by a VerifyNG Verification Officer, you receive a tamper-evident, printable <strong>Verification Report</strong> with verified registry findings, confirmation status, and advisory checkpoints.
+            <!-- Value & Financial Protection Callout Banner -->
+            <div class="position-relative p-3 mb-4 rounded-3" style="background: #F8FAFC; border: 1px solid #E2E8F0; border-left: 3.5px solid #2563EB;">
+                <div class="d-flex align-items-start gap-2 gap-sm-3">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                         style="width: 36px; height: 36px; background: #EEF2FF; color: #2563EB;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                            <polyline points="9 12 11 14 15 10"/>
+                        </svg>
+                    </div>
+                    <div class="flex-grow-1 min-w-0">
+                        <div class="fw-bold text-dark mb-1" style="font-size: 0.925rem; letter-spacing: -0.01em;">
+                            A 5-minute verification request can protect you from scammers or losing millions
+                        </div>
+                        <div class="text-secondary" style="font-size: 0.95rem; line-height: 1.45;">
+                            Before transferring funds, paying deposits, or signing agreements, 
+                            verify who you are dealing with. A single check helps protect you 
+                            from fake real-estate companies, disputed land and properties, 
+                            fraudulent vendors, and cloned identities. 
+                            <br/>You receive an official, tamper-evident <strong>Verification Report</strong> issued by compliance officers.
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -97,21 +113,32 @@
 
                 <form method="post" id="verificationRequestForm" enctype="multipart/form-data" novalidate>
                     {% csrf_token %}
+                    {% if prepaid_reference %}
+                    <input type="hidden" name="paid_ref" value="{{ prepaid_reference }}">
+                    {% elif user_balance and user_balance > 0 %}
+                    <div class="alert alert-success py-2.5 px-3 mb-4 rounded-3 border-0 d-flex align-items-center justify-content-between flex-wrap gap-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path fill="#15803D" d="M9 12l2 2 4-4m5-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            <span><strong>Account Balance Active:</strong> You have <strong>₦{{ user_balance|floatformat:0 }}</strong> available in your account balance. Your submission will be covered dynamically.</span>
+                        </div>
+                        <span class="badge bg-success">Pre-Paid Balance</span>
+                    </div>
+                    {% endif %}
 
                     <!-- Step 1: Verification Scope & Target Subject -->
                     <div class="mb-4 pb-4 border-bottom">
                         <div class="d-flex align-items-center gap-2 mb-3">
                             <span class="badge rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center" style="width:24px;height:24px;font-size:12px;">1</span>
-                            <h6 class="fw-bold mb-0 text-uppercase small text-muted letter-spacing-1">Verification Scope &amp; Target Entity</h6>
+                            <h6 class="fw-bold mb-0 text-uppercase small text-muted letter-spacing-1">1. What would you like to verify?</h6>
                         </div>
 
                         <div class="row g-3 mb-3">
                             <div class="col-md-6">
                                 <label for="{{ form.verification_type.id_for_label }}" class="form-label small fw-semibold">
-                                    Verification Scope <span class="text-danger">*</span>
+                                    Verification Category <span class="text-danger">*</span>
                                 </label>
                                 {{ form.verification_type }}
-                                <div class="form-text small">Select the category of check you want conducted.</div>
+                                <div class="form-text small">Select what you want our officers to investigate.</div>
                                 {% if form.verification_type.errors %}
                                     <div class="text-danger small mt-1">{{ form.verification_type.errors.0 }}</div>
                                 {% endif %}
@@ -119,10 +146,10 @@
 
                             <div class="col-md-6">
                                 <label for="{{ form.subject_type.id_for_label }}" class="form-label small fw-semibold">
-                                    Entity Type <span class="text-danger">*</span>
+                                    Target Type <span class="text-danger">*</span>
                                 </label>
                                 {{ form.subject_type }}
-                                <div class="form-text small">Type of legal subject being investigated.</div>
+                                <div class="form-text small">Is this an individual, registered business, vehicle, or land/property?</div>
                                 {% if form.subject_type.errors %}
                                     <div class="text-danger small mt-1">{{ form.subject_type.errors.0 }}</div>
                                 {% endif %}
@@ -131,7 +158,7 @@
 
                         <div class="mb-3">
                             <label for="{{ form.subject_name.id_for_label }}" class="form-label small fw-semibold" id="lblSubjectName">
-                                Subject Legal / Registered Name <span class="text-danger">*</span>
+                                Legal Full Name or Registered Title <span class="text-danger">*</span>
                             </label>
                             {{ form.subject_name }}
                             <div class="form-text small" id="hintSubjectName">
@@ -162,16 +189,16 @@
                     <div class="mb-4 pb-4 border-bottom">
                         <div class="d-flex align-items-center gap-2 mb-2">
                             <span class="badge rounded-circle bg-secondary text-white d-inline-flex align-items-center justify-content-center" style="width:24px;height:24px;font-size:12px;">2</span>
-                            <h6 class="fw-bold mb-0 text-uppercase small text-muted letter-spacing-1">Official Registry Identifier <span class="fw-normal text-muted">(Optional but Recommended)</span></h6>
+                            <h6 class="fw-bold mb-0 text-uppercase small text-muted letter-spacing-1">2. Document or Record Reference <span class="fw-normal text-muted">(Optional but Recommended)</span></h6>
                         </div>
                         <p class="small text-muted mb-3">
-                            Supplying an official number enables rapid cryptographic indexing against primary government and institutional registries.
+                            Providing an official document number (such as C of O, VIN, CAC RC, or Certificate No.) helps officers locate and verify records faster.
                         </p>
 
                         <div class="row g-3">
                             <div class="col-md-5">
                                 <label for="{{ form.identifier_type.id_for_label }}" class="form-label small fw-semibold">
-                                    Identifier Type
+                                    Document / Reference Type
                                 </label>
                                 {{ form.identifier_type }}
                                 {% if form.identifier_type.errors %}
@@ -180,7 +207,7 @@
                             </div>
                             <div class="col-md-7">
                                 <label for="{{ form.identifier_value.id_for_label }}" class="form-label small fw-semibold">
-                                    Identifier Value / Reference Number
+                                    Registration or Reference Number
                                 </label>
                                 {{ form.identifier_value }}
                                 {% if form.identifier_value.errors %}
@@ -294,6 +321,8 @@
                                 <p class="mb-3" style="color:#78350F;font-size:.9rem;line-height:1.5;">
                                     {% if gateway_error %}
                                         {{ gateway_error }}
+                                    {% elif user_balance and user_balance > 0 %}
+                                        You have <strong>₦{{ user_balance|floatformat:0 }}</strong> in your account balance. This <strong>{{ verification_type|title }}</strong> verification costs <strong>₦{{ selected_price|floatformat:0 }}</strong>. Top up the difference of <strong>₦{{ topup_needed|floatformat:0 }}</strong> via Paystack to proceed.
                                     {% else %}
                                         Your account requires an active subscription or single-request payment to submit this <strong>{{ verification_type|title }}</strong> verification for officer review.
                                     {% endif %}
@@ -302,10 +331,14 @@
                                 <div class="d-flex flex-column flex-sm-row gap-2 gap-sm-3 align-items-stretch align-items-sm-center pt-2">
                                     <button type="submit" name="action" value="payg" class="btn btn-primary fw-bold px-3 py-2 shadow-sm d-inline-flex align-items-center justify-content-center gap-2" style="border-radius:9999px;font-size:.875rem;">
                                         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                                        {% if user_balance and user_balance > 0 %}
+                                        <span>Top Up Difference (₦{{ topup_needed|floatformat:0 }}) &amp; Submit &rarr;</span>
+                                        {% else %}
                                         <span>Pay ₦{{ selected_price|floatformat:0 }} via Paystack &amp; Submit Request &rarr;</span>
+                                        {% endif %}
                                     </button>
                                     <a href="{% url 'payments:plans' %}" class="btn btn-outline-dark fw-semibold px-3 py-2 text-center" style="border-radius:9999px;font-size:.875rem;">
-                                        View Monthly Packages &rarr;
+                                        View Packages &rarr;
                                     </a>
                                 </div>
                             </div>
@@ -314,7 +347,7 @@
                     {% elif has_entitlement %}
                     <div class="alert alert-success py-2 px-3 mb-3 small rounded-3 border-0 d-flex align-items-center gap-2">
                         <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path fill="#15803D" d="M9 12l2 2 4-4m5-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        <span><strong>Plan Coverage Active:</strong> 1 verification check will be deducted from your subscription/free quota.</span>
+                        <span><strong>Plan Coverage Active:</strong> 1 verification request submission will be deducted from your subscription/free quota.</span>
                     </div>
                     {% endif %}
 
@@ -349,7 +382,8 @@ document.addEventListener('DOMContentLoaded', function () {
     function updatePayDisplay() {
         if (!payDisplay || !verifTypeSelect) return;
         const val = verifTypeSelect.value;
-        if (val === 'business' || val === 'business_cac' || val === 'cac') {
+        const highTierTypes = ['business', 'business_cac', 'cac', 'corporate', 'full_check', 'property', 'vehicle', 'contract'];
+        if (highTierTypes.includes(val)) {
             payDisplay.textContent = '₦' + priceBusiness.toLocaleString();
         } else {
             payDisplay.textContent = '₦' + priceBasic.toLocaleString();
@@ -363,6 +397,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const entitySelect = document.getElementById('id_entity_type');
     const subjectNameInput = document.getElementById('id_subject_name');
     const hintSubjectName = document.getElementById('hintSubjectName');
+    const idTypeSelect = document.getElementById('id_identifier_type');
+    const idValueInput = document.getElementById('id_identifier_value');
     const guidanceTitle = document.getElementById('scopeGuidanceTitle');
     const guidanceText = document.getElementById('scopeGuidanceText');
     const form = document.getElementById('verificationRequestForm');
@@ -372,9 +408,23 @@ document.addEventListener('DOMContentLoaded', function () {
     const fileSelectedList = document.getElementById('fileSelectedList');
     const fileNamesUl = document.getElementById('fileNamesUl');
 
+    const idTypePlaceholders = {
+        'property_ref': 'e.g. C of O No, Survey Plan No, or Registered Deed Ref',
+        'plate_vin': 'e.g. 17-digit Chassis VIN or Vehicle Plate Number (e.g. KSF-123AA)',
+        'cert_no': 'e.g. Degree / Diploma Certificate Serial No or Matriculation No',
+        'cac': 'e.g. RC-123456 or BN-654321',
+        'phone': 'e.g. 08012345678 or +2348012345678',
+        'nin': 'e.g. 11-digit National Identity Number (NIN)',
+        'bvn': 'e.g. 11-digit Bank Verification Number (BVN)',
+        'email': 'e.g. person@example.com or info@company.com',
+        'account': 'e.g. 10-digit NUBAN Account Number'
+    };
+
     const guidanceData = {
         'property': {
             entity: 'property',
+            idType: 'property_ref',
+            idPlaceholder: 'e.g. C of O No, Survey Plan No, or Deed Ref',
             placeholder: 'e.g. Plot 14, Block 2, Victoria Garden City, Lekki / Developer: Prime Oak Estates',
             hint: 'Enter property address, plot number, estate name, or declared title holder name.',
             title: 'Property, Land & Real Estate Due Diligence:',
@@ -383,6 +433,8 @@ document.addEventListener('DOMContentLoaded', function () {
         },
         'vehicle': {
             entity: 'vehicle',
+            idType: 'plate_vin',
+            idPlaceholder: 'e.g. 17-digit Chassis VIN or Plate Number (e.g. KSF-123AA)',
             placeholder: 'e.g. 2021 Toyota Camry / Declared Owner: Chinedu Okafor',
             hint: 'Enter vehicle make, model, year, and declared owner name.',
             title: 'Vehicle & Automobile Ownership Check:',
@@ -391,6 +443,8 @@ document.addEventListener('DOMContentLoaded', function () {
         },
         'credential': {
             entity: 'person',
+            idType: 'cert_no',
+            idPlaceholder: 'e.g. Degree / Diploma Certificate Serial No or Matriculation No',
             placeholder: 'e.g. Full Name on Certificate (e.g. Babatunde Olawale Adeleke)',
             hint: 'Enter the exact graduate or certificate holder name as written on the document.',
             title: 'Academic & Qualification Certificate Vetting:',
@@ -399,6 +453,8 @@ document.addEventListener('DOMContentLoaded', function () {
         },
         'business': {
             entity: 'business',
+            idType: 'cac',
+            idPlaceholder: 'e.g. RC-123456 or BN-654321',
             placeholder: 'e.g. Dangote Cement Plc / Acme Logistics Limited',
             hint: 'Enter the registered business name or trading name.',
             title: 'Business & Corporate Registration (CAC) Check:',
@@ -407,6 +463,8 @@ document.addEventListener('DOMContentLoaded', function () {
         },
         'contract': {
             entity: 'asset',
+            idType: '',
+            idPlaceholder: 'e.g. Contract ID, Agreement Reference, or Deed Ref',
             placeholder: 'e.g. Joint Venture Real Estate Agreement / Contract Ref #2026-081',
             hint: 'Enter the contract title, commercial deal reference, or agreement name.',
             title: 'Deal, Contract & Investment Vetting:',
@@ -415,6 +473,8 @@ document.addEventListener('DOMContentLoaded', function () {
         },
         'identity': {
             entity: 'person',
+            idType: 'nin',
+            idPlaceholder: 'e.g. 11-digit NIN or Phone Number',
             placeholder: 'e.g. Full Legal Name (First, Middle, Surname)',
             hint: 'Enter official full legal name of the person being verified.',
             title: 'Personal Identity & Background Check:',
@@ -423,6 +483,8 @@ document.addEventListener('DOMContentLoaded', function () {
         },
         'employment': {
             entity: 'person',
+            idType: 'phone',
+            idPlaceholder: 'e.g. Staff ID or Contact Phone',
             placeholder: 'e.g. Employee Full Legal Name',
             hint: 'Enter full legal name of current or prospective employee.',
             title: 'Employment & Workplace Record Check:',
@@ -431,6 +493,8 @@ document.addEventListener('DOMContentLoaded', function () {
         },
         'address': {
             entity: 'property',
+            idType: 'property_ref',
+            idPlaceholder: 'e.g. Utility Meter No, House Ref, or Title Plan',
             placeholder: 'e.g. 15 Admiralty Way, Lekki Phase 1, Lagos',
             hint: 'Enter full physical residential or business address.',
             title: 'Physical Address Verification:',
@@ -439,6 +503,8 @@ document.addEventListener('DOMContentLoaded', function () {
         },
         'full_check': {
             entity: 'person',
+            idType: 'nin',
+            idPlaceholder: 'e.g. 11-digit NIN or CAC RC Number',
             placeholder: 'e.g. Target Subject Legal Name or Business Name',
             hint: 'Enter full legal name of subject for multi-source comprehensive background investigation.',
             title: 'Full Comprehensive Due Diligence:',
@@ -455,7 +521,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!selected) {
             if (box) box.style.display = 'none';
             if (subjectNameInput && !subjectNameInput.value) {
-                subjectNameInput.placeholder = 'e.g. Legal name of person, registered company, property, vehicle, or contract';
+                subjectNameInput.placeholder = 'e.g. Legal name of person, registered company, land/property title, or vehicle model';
             }
             if (hintSubjectName) {
                 hintSubjectName.textContent = 'Full legal or registered name of the subject being investigated.';
@@ -471,6 +537,23 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (box) box.style.display = 'block';
 
+        // Auto-select Target Type if user hasn't explicitly chosen one or when scope changes
+        if (entitySelect && config.entity) {
+            entitySelect.value = config.entity;
+        }
+
+        // Auto-select Document Type and update Reference placeholder
+        if (idTypeSelect && config.idType !== undefined) {
+            idTypeSelect.value = config.idType;
+        }
+        if (idValueInput) {
+            if (config.idPlaceholder) {
+                idValueInput.placeholder = config.idPlaceholder;
+            } else if (idTypeSelect && idTypePlaceholders[idTypeSelect.value]) {
+                idValueInput.placeholder = idTypePlaceholders[idTypeSelect.value];
+            }
+        }
+
         if (subjectNameInput && !subjectNameInput.value) {
             subjectNameInput.placeholder = config.placeholder;
         }
@@ -484,13 +567,21 @@ document.addEventListener('DOMContentLoaded', function () {
             guidanceText.textContent = config.text;
         }
         if (docTipText && config.docTip) {
-            docTipText.innerHTML = '<strong class="text-dark">Recommended for ' + (scopeSelect.options[scopeSelect.selectedIndex] ? scopeSelect.options[scopeSelect.selectedIndex].text : 'Selected Scope') + ':</strong> ' + config.docTip;
+            docTipText.innerHTML = '<strong class="text-dark">Recommended for ' + (scopeSelect.options[scopeSelect.selectedIndex] ? scopeSelect.options[scopeSelect.selectedIndex].text : 'Selected Category') + ':</strong> ' + config.docTip;
         }
     }
 
     if (scopeSelect) {
         scopeSelect.addEventListener('change', updateGuidance);
         updateGuidance();
+    }
+
+    if (idTypeSelect) {
+        idTypeSelect.addEventListener('change', function() {
+            if (idValueInput && idTypePlaceholders[this.value]) {
+                idValueInput.placeholder = idTypePlaceholders[this.value];
+            }
+        });
     }
 
 

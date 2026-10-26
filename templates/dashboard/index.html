@@ -24,6 +24,38 @@
         </div>
     </div>
 
+    {# ── Active Pre-Paid Orders Callout (Dismissible) ─────────────────────── #}
+    {% if unconsumed_orders %}
+    <div id="prepaidBannerCard" class="card border-0 mb-4 shadow-sm position-relative" style="border-left: 4px solid #2563EB !important; background: #F8FAFC; border-radius: 10px;">
+        <div class="card-body py-3 px-4 pe-5">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-circle p-2 bg-primary-subtle text-primary flex-shrink-0">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <span class="badge bg-success-subtle text-success border border-success-subtle fw-semibold">Pre-Paid Payment Active</span>
+                            <span class="text-muted small">Ready to use anytime</span>
+                        </div>
+                        <h6 class="mb-0 fw-bold text-dark">You have {{ unconsumed_orders|length }} active payment{{ unconsumed_orders|length|pluralize }} ready to use</h6>
+                    </div>
+                </div>
+                <div class="d-flex flex-wrap gap-2 align-items-center">
+                    {% for order in unconsumed_orders %}
+                    <a href="{{ order.action_url }}" class="btn btn-outline-primary btn-sm px-3 fw-bold d-inline-flex align-items-center gap-1 shadow-sm" style="border-radius: 9999px;">
+                        Complete {{ order.title }} (₦{{ order.amount_naira|floatformat:0 }}) &rarr;
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <button type="button" class="btn-close position-absolute top-0 end-0 m-3" aria-label="Dismiss banner" title="Dismiss banner" onclick="fetch('{% url 'payments:dismiss_prepaid_banner' %}', {headers:{'X-Requested-With':'XMLHttpRequest'}}).then(() => { document.getElementById('prepaidBannerCard')?.remove(); });"></button>
+    </div>
+    {% endif %}
+
     {# ── Verification Status Banner ──────────────────────────────────────── #}
     {% if not request.user.identity_verified and request.user.id_verification_status != 'verified' %}
         {% if request.user.id_verification_status == 'pending' or request.user.has_id_document and request.user.id_verification_status != 'rejected' %}

@@ -184,7 +184,7 @@
                     <th class="px-3">Date</th>
                     <th>Reference</th>
                     <th>User</th>
-                    <th>Plan</th>
+                    <th>Plan / Service</th>
                     <th class="text-end">Amount (₦)</th>
                     <th class="text-end px-3">Status</th>
                 </tr>
@@ -195,7 +195,7 @@
                     <td class="px-3 small" style="color:var(--adm-muted);">{{ txn.created_at|date:"d M Y" }}</td>
                     <td class="font-monospace small">{{ txn.reference|truncatechars:22 }}</td>
                     <td class="small">{{ txn.user.get_full_name|default:txn.user.username|default:"—" }}</td>
-                    <td class="small">{{ txn.plan.name|default:"—" }}</td>
+                    <td class="small fw-semibold">{{ txn.item_display_name }}</td>
                     <td class="text-end fw-semibold">₦{{ txn.amount_naira|floatformat:2 }}</td>
                     <td class="text-end px-3">
                         <span class="badge {% if txn.status == 'success' %}bg-success{% elif txn.status == 'failed' %}bg-danger{% elif txn.status == 'refunded' %}bg-warning text-dark{% elif txn.status == 'pending' %}bg-secondary{% else %}bg-light text-dark{% endif %}">

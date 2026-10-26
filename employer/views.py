@@ -127,6 +127,51 @@ def employer_dashboard(request):
         .first()
     )
     allowed, entitlement_reason, entitlement_info = check_user_entitlement(request.user)
+
+    if request.GET.get('dismiss_prepaid'):
+        request.session['dismissed_employer_prepaid_banner'] = True
+
+    from payments.models import Transaction
+    unconsumed_employer_orders = []
+    is_dismissed = request.session.get('dismissed_employer_prepaid_banner', False)
+    if not is_dismissed:
+        for tx in Transaction.objects.filter(user=request.user, status='success', is_active=True).order_by('-created_at'):
+            meta = (tx.paystack_response or {}).get('data', {}).get('metadata', {})
+            serv = meta.get('service') or ''
+            tier = meta.get('tier') or ''
+            if serv == 'staff_check':
+                unconsumed_employer_orders.append({
+                    'title': 'Staff Background Check',
+                    'reference': tx.reference,
+                    'amount_naira': tx.amount_naira,
+                    'action_url': f"/employer/checks/new/?paid_ref={tx.reference}&tier={tier}",
+                    'created_at': tx.created_at,
+                })
+            elif serv == 'certificate_verify':
+                unconsumed_employer_orders.append({
+                    'title': 'Certificate Status Check',
+                    'reference': tx.reference,
+                    'amount_naira': tx.amount_naira,
+                    'action_url': f"/employer/certificate/verify/?paid_ref={tx.reference}",
+                    'created_at': tx.created_at,
+                })
+            elif serv in ('certificate', 'certificate_apply'):
+                unconsumed_employer_orders.append({
+                    'title': 'TrustPass Background Clearance',
+                    'reference': tx.reference,
+                    'amount_naira': tx.amount_naira,
+                    'action_url': f"/verification/certificate/apply/?paid_ref={tx.reference}&level={tier}",
+                    'created_at': tx.created_at,
+                })
+            elif serv in ('verification', 'business_verification'):
+                unconsumed_employer_orders.append({
+                    'title': 'Due Diligence Verification',
+                    'reference': tx.reference,
+                    'amount_naira': tx.amount_naira,
+                    'action_url': f"/verification/new/?paid_ref={tx.reference}&type={tier}",
+                    'created_at': tx.created_at,
+                })
+
     context = {
         'profile':                profile,
         'recent_uploads':         recent_uploads,
@@ -141,6 +186,7 @@ def employer_dashboard(request):
         'active_subscription':    active_subscription,
         'entitlement_reason':     entitlement_reason,
         'entitlement_info':       entitlement_info,
+        'unconsumed_employer_orders': unconsumed_employer_orders,
         'page_title':             'Employer Dashboard',
     }
     return render(request, 'employer/dashboard.html', context)
@@ -423,7 +469,27 @@ def staff_check_create(request):
             messages.error(request, details.get('message', "Your organization has been restricted from performing staff background checks by platform administration."))
             return redirect('employer:dashboard')
 
+        # Check for pre-paid Paystack reference or unconsumed credit
+        paid_ref = request.GET.get('paid_ref') or request.POST.get('paid_ref')
+        has_valid_prepayment = False
+        paid_tx = None
+        from payments.services import get_user_prepaid_balance, deduct_user_prepaid_balance, get_topup_difference
+        user_balance = get_user_prepaid_balance(request.user)
+        req_price = site_settings.price_staff_check_enhanced if check_type == 'enhanced' else site_settings.price_staff_check_standard
+
+        if paid_ref:
+            from payments.models import Transaction
+            paid_tx = Transaction.objects.filter(
+                reference=paid_ref,
+                user=request.user,
+                status='success',
+                is_active=True,
+            ).first()
+            if paid_tx and paid_tx.amount_kobo >= (req_price * 100):
+                has_valid_prepayment = True
+
         if allowed:
+            # Subscription entitlement
             check = StaffCheckRequest.objects.create(
                 employer     = profile,
                 requested_by = request.user,
@@ -435,24 +501,69 @@ def staff_check_create(request):
                 purpose      = purpose,
                 status       = 'pending',
             )
-            # Deduct 1 check entitlement
             consume_user_entitlement(request.user, service='staff_check', cost=1)
-
-            # Dispatch background check processing task
             try:
                 process_single_staff_check_task.delay(str(check.id))
             except Exception as exc:
-                logger.warning("Could not dispatch Celery task for check %s: %s", check.id, exc)
                 try:
                     process_single_staff_check_task(str(check.id))
-                except Exception as e:
-                    logger.exception("Inline execution failed for check %s: %s", check.id, e)
-
-            messages.success(request, f'Check request submitted for {full_name}. Reference: {str(check.id)[:8].upper()}')
+                except Exception:
+                    pass
+            messages.success(request, f'Check request submitted for {full_name} using plan quota.')
             return redirect('employer:staff_check_detail', check_id=check.id)
+
+        elif has_valid_prepayment and paid_tx:
+            # Direct pre-paid transaction reference
+            paid_tx.is_active = False
+            paid_tx.save(update_fields=['is_active'])
+            check = StaffCheckRequest.objects.create(
+                employer     = profile,
+                requested_by = request.user,
+                full_name    = full_name,
+                phone_number = phone_number,
+                nin_hash     = _hash_nin(raw_nin) if raw_nin else '',
+                email        = email,
+                check_type   = check_type,
+                purpose      = purpose,
+                status       = 'pending',
+            )
+            try:
+                process_single_staff_check_task.delay(str(check.id))
+            except Exception as exc:
+                try:
+                    process_single_staff_check_task(str(check.id))
+                except Exception:
+                    pass
+            messages.success(request, f'Check request submitted for {full_name} using pre-paid order {paid_ref}.')
+            return redirect('employer:staff_check_detail', check_id=check.id)
+
+        elif user_balance >= req_price:
+            # Dynamic account balance deduction!
+            ok, rem_bal = deduct_user_prepaid_balance(request.user, req_price, f"Staff Check: {check_type}")
+            check = StaffCheckRequest.objects.create(
+                employer     = profile,
+                requested_by = request.user,
+                full_name    = full_name,
+                phone_number = phone_number,
+                nin_hash     = _hash_nin(raw_nin) if raw_nin else '',
+                email        = email,
+                check_type   = check_type,
+                purpose      = purpose,
+                status       = 'pending',
+            )
+            try:
+                process_single_staff_check_task.delay(str(check.id))
+            except Exception as exc:
+                try:
+                    process_single_staff_check_task(str(check.id))
+                except Exception:
+                    pass
+            messages.success(request, f'Check request submitted for {full_name}! ₦{req_price:,.0f} paid from your balance (₦{rem_bal:,.0f} remaining).')
+            return redirect('employer:staff_check_detail', check_id=check.id)
+
         else:
             action = request.POST.get('action', 'submit')
-            amount_naira = site_settings.get_service_price('staff_check', check_type)
+            topup_needed = get_topup_difference(user_balance, req_price)
 
             if action != 'payg':
                 context = {
@@ -460,15 +571,17 @@ def staff_check_create(request):
                     'form_data':      request.POST,
                     'has_entitlement': False,
                     'quota_exceeded':  True,
+                    'user_balance':    user_balance,
+                    'topup_needed':    topup_needed,
                     'check_type':      check_type,
-                    'selected_price':  amount_naira,
+                    'selected_price':  req_price,
                     'price_standard': site_settings.price_staff_check_standard,
                     'price_enhanced': site_settings.price_staff_check_enhanced,
                     'page_title':     'New Staff Check',
                 }
                 return render(request, 'employer/staff_check_create.html', context)
 
-            # User clicked "Pay via Paystack" -> initialize checkout
+            # User clicked "Pay via Paystack" -> initialize checkout for difference
             check = StaffCheckRequest.objects.create(
                 employer     = profile,
                 requested_by = request.user,
@@ -480,12 +593,15 @@ def staff_check_create(request):
                 purpose      = purpose,
                 status       = 'pending_payment',
             )
+            if user_balance > 0:
+                deduct_user_prepaid_balance(request.user, user_balance, f"Partial top-up for check {check.id}")
+
             try:
                 checkout_data = initialize_service_checkout(
                     user=request.user,
                     service='staff_check',
                     tier=check_type,
-                    amount_naira=amount_naira,
+                    amount_naira=topup_needed,
                     metadata={
                         'staff_check_id': str(check.id),
                         'check_type': check_type,
@@ -503,16 +619,48 @@ def staff_check_create(request):
                     'has_entitlement': False,
                     'quota_exceeded':  True,
                     'check_type':      check_type,
-                    'selected_price':  amount_naira,
+                    'selected_price':  req_price,
                     'price_standard': site_settings.price_staff_check_standard,
                     'price_enhanced': site_settings.price_staff_check_enhanced,
                     'page_title':     'New Staff Check',
                 }
                 return render(request, 'employer/staff_check_create.html', context)
 
+    init_check_type = request.GET.get('check_type') or request.GET.get('tier') or 'standard'
+    if init_check_type not in ('standard', 'enhanced'):
+        init_check_type = 'standard'
+
+    paid_ref = request.GET.get('paid_ref')
+    prepaid_active = False
+    from payments.models import Transaction
+    if paid_ref:
+        tx = Transaction.objects.filter(
+            reference=paid_ref,
+            user=request.user,
+            status='success',
+            is_active=True,
+        ).first()
+        if tx:
+            prepaid_active = True
+    elif request.user.is_authenticated:
+        # Auto-detect unconsumed pre-paid staff check
+        for unconsumed in Transaction.objects.filter(user=request.user, status='success', is_active=True).order_by('-created_at'):
+            meta = (unconsumed.paystack_response or {}).get('data', {}).get('metadata', {})
+            if meta.get('service') == 'staff_check':
+                paid_ref = unconsumed.reference
+                prepaid_active = True
+                break
+
+    from payments.services import get_user_prepaid_balance
+    user_balance = get_user_prepaid_balance(request.user)
+    has_entitlement = allowed or prepaid_active or (user_balance >= site_settings.price_staff_check_standard)
+
     context = {
         'profile':        profile,
-        'has_entitlement': allowed,
+        'form_data':      {'check_type': init_check_type},
+        'has_entitlement': has_entitlement,
+        'user_balance':   user_balance,
+        'prepaid_reference': paid_ref if prepaid_active else None,
         'entitlement_details': details,
         'price_standard': site_settings.price_staff_check_standard,
         'price_enhanced': site_settings.price_staff_check_enhanced,
@@ -1566,12 +1714,22 @@ def employer_certificate_verify(request):
     surname_input = request.GET.get('surname', '').strip()
     dob_input = request.GET.get('date_of_birth', '').strip()
 
-    # Check if returning from a direct Paystack payment
+    # Check if returning from a direct Paystack payment, unconsumed credit, or active account balance
     paid_ref = request.GET.get('paid_ref', '').strip()
     is_direct_paid = False
-    if paid_ref and cert_id_input:
-        trx = Transaction.objects.filter(reference=paid_ref, user=request.user, status='success').first()
-        if trx:
+    paid_tx = None
+    from payments.services import get_user_prepaid_balance, deduct_user_prepaid_balance
+    user_balance = get_user_prepaid_balance(request.user)
+
+    if request.user.is_authenticated:
+        if paid_ref:
+            cand = Transaction.objects.filter(reference=paid_ref, user=request.user, status='success', is_active=True).first()
+            if cand:
+                meta = (cand.paystack_response or {}).get('data', {}).get('metadata', {})
+                if meta.get('service') == 'certificate_verify':
+                    paid_tx = cand
+                    is_direct_paid = True
+        if not is_direct_paid and user_balance >= payg_price:
             is_direct_paid = True
 
     allowed, reason, details = check_user_entitlement(request.user, service='certificate_verify', cost=1)
@@ -1697,8 +1855,13 @@ def employer_certificate_verify(request):
                     else:
                         lookup_state = 'ACTIVE_VALID'
 
-                # Consume entitlement upon successful query attempt if not direct paid
-                if not is_direct_paid:
+                # Consume entitlement upon successful query attempt if not direct paid, or consume direct pre-paid credit
+                if is_direct_paid and paid_tx:
+                    paid_tx.is_active = False
+                    paid_tx.save(update_fields=['is_active'])
+                elif is_direct_paid and user_balance >= payg_price:
+                    deduct_user_prepaid_balance(request.user, payg_price, "Certificate Verify")
+                elif not is_direct_paid:
                     consume_user_entitlement(request.user, service='certificate_verify', cost=1)
 
                 candidate_name = '—'

@@ -100,14 +100,14 @@
                 <!-- ── Section 1: Subject Details ── -->
                 <div class="vng-card p-4 mb-4">
                     <h6 class="fw-bold text-uppercase small text-muted mb-3 border-bottom pb-2">
-                        Subject Information
+                        Target Subject Details
                     </h6>
 
                     <div class="row g-3">
                         <!-- Subject Name -->
                         <div class="col-md-8">
                             <label for="{{ form.subject_name.id_for_label }}" class="form-label small fw-semibold">
-                                Full Name / Business Name <span class="text-danger">*</span>
+                                Full Legal Name or Business Title <span class="text-danger">*</span>
                             </label>
                             {{ form.subject_name }}
                             {% if form.subject_name.errors %}
@@ -118,7 +118,7 @@
                         <!-- Subject Type -->
                         <div class="col-md-4">
                             <label for="{{ form.subject_type.id_for_label }}" class="form-label small fw-semibold">
-                                Entity Type <span class="text-danger">*</span>
+                                Target Type <span class="text-danger">*</span>
                             </label>
                             {{ form.subject_type }}
                             {% if form.subject_type.errors %}
@@ -129,7 +129,7 @@
                         <!-- Verification Type -->
                         <div class="col-12">
                             <label for="{{ form.verification_type.id_for_label }}" class="form-label small fw-semibold">
-                                Verification Type <span class="text-danger">*</span>
+                                Verification Category <span class="text-danger">*</span>
                             </label>
                             {{ form.verification_type }}
                             <div class="form-text">
@@ -145,7 +145,7 @@
                 <!-- ── Section 2: Identifier (Optional) ── -->
                 <div class="vng-card p-4 mb-4">
                     <h6 class="fw-bold text-uppercase small text-muted mb-3 border-bottom pb-2">
-                        Known Identifier <span class="fw-normal text-muted">(Optional but recommended)</span>
+                        Official Document or Reference Number <span class="fw-normal text-muted">(Optional but recommended)</span>
                     </h6>
                     <p class="small text-muted mb-3">
                         Providing a known identifier (phone number, email, or CAC registration) allows
@@ -157,7 +157,7 @@
                         <!-- Identifier Type -->
                         <div class="col-md-5">
                             <label for="{{ form.identifier_type.id_for_label }}" class="form-label small fw-semibold">
-                                Identifier Type
+                                Document / Reference Type
                             </label>
                             <select id="{{ form.identifier_type.id_for_label }}"
                                     name="{{ form.identifier_type.html_name }}"
@@ -175,7 +175,7 @@
                         <!-- Identifier Value — visible only when a type is chosen -->
                         <div class="col-md-7" x-show="showIdentifier()" x-cloak>
                             <label for="{{ form.identifier_value.id_for_label }}" class="form-label small fw-semibold">
-                                Identifier Value
+                                Reference Number or Code
                             </label>
                             {{ form.identifier_value }}
                             {% if form.identifier_value.errors %}
