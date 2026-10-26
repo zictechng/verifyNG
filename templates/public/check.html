@@ -12,7 +12,7 @@
                 <span class="vng-badge-trust mb-2">Public Trust & Safety Search</span>
                 <h1 class="h3 fw-bold">Check Before You Trust: Individual & Business Lookup</h1>
                 <p class="mb-3" style="font-size: 15px; line-height: 1.55; color: #475569; max-width: 620px; margin: 0 auto;">
-                    Verify prospective tenants, contractors, sellers, real-estate dealer, or business partners. Check to confirmed identity, workplace certificates, business activities, before you commit money or property and report any misconduct.
+                    Verify prospective tenants, contractors, sellers, real-estate companies, or business partners. Check to confirmed identity, workplace certificates, business activities, before you commit money or property and report any misconduct.
                 </p>
                 <div class="d-flex flex-wrap justify-content-center gap-2">
                     <div class="d-inline-flex align-items-center gap-1.5 px-3 py-2 rounded-pill bg-white border shadow-sm" style="font-size: 13px; color: var(--vng-ink); border-color: #CBD5E1 !important;">
@@ -43,6 +43,7 @@
                 authRequired: false,
                 quotaExceeded: false,
                 serviceRestricted: {% if user_entitlement and user_entitlement.reason == 'service_restricted' %}true{% else %}false{% endif %},
+                trustNoticeDismissed: false,
                 performSearch() {
                     const paidQuery = this.paidRef ? ('?paid_ref=' + encodeURIComponent(this.paidRef)) : '';
                     if (!this.idType || !this.identifier.trim()) return;
@@ -234,6 +235,10 @@
                             <span class="badge bg-success-subtle text-success border"><i class="bi bi-patch-check-fill me-1"></i>Single Check Unlocked via Paystack</span>
                         {% elif is_public_check_free %}
                             <span class="badge bg-success-subtle text-success border">Complimentary Public Search</span>
+                        {% elif user_entitlement.reason in 'service_free_granted,organization_service_free_granted' %}
+                            <span class="badge bg-info-subtle text-info border"><i class="bi bi-gift-fill me-1"></i>Complimentary Access (Admin Waiver)</span>
+                        {% elif user_entitlement.reason == 'unlimited' %}
+                            <span class="badge bg-success-subtle text-success border">Unlimited Checks (Active Plan)</span>
                         {% elif user_entitlement.details.remaining == 'unlimited' %}
                             <span class="badge bg-success-subtle text-success border">Unlimited Checks Active</span>
                         {% elif user_entitlement.details.remaining == 0 %}
@@ -244,6 +249,42 @@
                     </span>
                 </div>
                 {% endif %}
+
+                <!-- ── 1-Minute Trust & Safety Advisory (Auto-hides when results are loaded) ── -->
+                <div x-show="!result && !certResult && !quotaExceeded && !serviceRestricted && !trustNoticeDismissed"
+                     x-transition:enter="transition ease-out duration-200"
+                     x-transition:enter-start="opacity-0 transform -translate-y-1"
+                     x-transition:enter-end="opacity-100 transform translate-y-0"
+                     x-transition:leave="transition ease-in duration-150"
+                     x-transition:leave-start="opacity-100 transform translate-y-0"
+                     x-transition:leave-end="opacity-0 transform -translate-y-1"
+                     class="mb-3 p-3 rounded-3 position-relative"
+                     style="background: linear-gradient(135deg, rgba(37,99,235,0.06) 0%, rgba(15,23,42,0.02) 100%); border: 1px solid #E2E8F0; border-left: 3.5px solid #2563EB;">
+                    
+                    <button type="button" 
+                            @click="trustNoticeDismissed = true"
+                            class="btn-close position-absolute top-0 end-0 m-2"
+                            style="font-size: 0.65rem;"
+                            aria-label="Dismiss notice"></button>
+
+                    <div class="d-flex align-items-start gap-2 gap-sm-3 pe-3">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                             style="width: 34px; height: 34px; background: #EEF2FF; color: #2563EB;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                                <polyline points="9 12 11 14 15 10"/>
+                            </svg>
+                        </div>
+                        <div class="flex-grow-1 min-w-0">
+                            <div class="fw-bold text-dark mb-1" style="font-size: 0.885rem; letter-spacing: -0.01em;">
+                                A 1-minute check can protect your hard-earned money
+                            </div>
+                            <div class="text-secondary" style="font-size: 0.8825rem; line-height: 1.45;">
+                                Before paying deposits, transferring funds, or closing deals, verify who you are dealing with. A quick search helps you avoid impersonators, fake sellers, and financial scams.
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
                 <div class="row g-2 mb-3">
                     <div class="col-sm-5">

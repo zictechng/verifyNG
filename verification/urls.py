@@ -21,6 +21,13 @@ urlpatterns = [
     path('certificate/<str:certificate_id>/activate/', views.CertificateActivateView.as_view(), name='certificate_activate'),
     path('certificate/<str:certificate_id>/revoke/', views.CertificateRevokeView.as_view(), name='certificate_revoke'),
 
+    # ── DBS Update Service (Dedicated routes) ───────────────────────────
+    path('update-service/', views.UpdateServiceLoginView.as_view(), name='update_service_login'),
+    path('update-service/portal/', views.UpdateServicePortalView.as_view(), name='update_service_portal'),
+    path('update-service/who-checked-me/', views.UpdateServiceAuditLogView.as_view(), name='update_service_audit_log'),
+    path('update-service/enroll/', views.UpdateServiceEnrollView.as_view(), name='update_service_enroll'),
+    path('update-service/logout/', views.UpdateServiceLogoutView.as_view(), name='update_service_logout'),
+
     # ── Existing catch-all (must remain LAST) ─────────────────────────
     path('<str:reference_number>/document/<int:doc_id>/', views.VerificationDocumentView.as_view(), name='document'),
     path('<str:reference_number>/document/', views.VerificationDocumentView.as_view(), name='primary_document'),

@@ -1,0 +1,108 @@
+{% extends 'public/base.html' %}
+{% load static %}
+
+{% block title %}Status Check Audit Log | {{ cert.certificate_id }} | {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-md-5">
+
+    <!-- Back to Update Service Portal -->
+    <div class="mb-3 btn-print-hide">
+        <a href="{% url 'verification:update_service_portal' %}" class="text-decoration-none small text-muted d-inline-flex align-items-center">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+            Back to Update Service Account
+        </a>
+    </div>
+
+    <!-- Header -->
+    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 mb-4">
+        <div>
+            <h1 class="h3 fw-bold text-dark mb-1">Status Check History</h1>
+            <p class="text-muted small mb-0">
+                Independent audit trail of all employers and organisations who have verified certificate <strong class="font-monospace text-dark">{{ cert.certificate_id }}</strong>.
+            </p>
+        </div>
+        <div class="btn-print-hide">
+            <button type="button" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1.5" onclick="window.print();">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6 9 6 2 18 2 18 9"/>
+                    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+                    <rect x="6" y="14" width="12" height="8"/>
+                </svg>
+                <span>Print Audit Log</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Audit Card -->
+    <div class="vng-card p-0 shadow-sm border mb-4" style="border-radius: 12px; overflow: hidden;">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4 py-3 fw-semibold small text-muted">Date &amp; Time (UTC)</th>
+                        <th class="py-3 fw-semibold small text-muted">Checking Organisation / Employer</th>
+                        <th class="py-3 fw-semibold small text-muted d-none d-md-table-cell">Check Type</th>
+                        <th class="pe-4 py-3 fw-semibold small text-muted text-end">Result</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in query_logs %}
+                        <tr>
+                            <td class="ps-4 py-3 small font-monospace text-dark">
+                                {{ log.queried_at|date:"d M Y, H:i" }}
+                            </td>
+                            <td class="py-3 small">
+                                <div class="fw-bold text-dark">
+                                    {% if log.organisation_name %}
+                                        {{ log.organisation_name }}
+                                    {% elif log.queried_by %}
+                                        {{ log.queried_by.get_full_name|default:log.queried_by.username }}
+                                    {% else %}
+                                        <span class="text-muted">Registered Employer</span>
+                                    {% endif %}
+                                </div>
+                                <div class="text-muted" style="font-size: 11.5px;">
+                                    Audit Verified &bull; Verified Online
+                                </div>
+                            </td>
+                            <td class="py-3 small d-none d-md-table-cell text-muted">
+                                {{ log.get_purpose_display|default:log.purpose }}
+                            </td>
+                            <td class="pe-4 py-3 text-end">
+                                <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                                    ✓ Status Checked
+                                </span>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center py-5 text-muted">
+                                <div class="mb-2">
+                                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="1.5">
+                                        <circle cx="12" cy="12" r="10"/>
+                                        <line x1="12" y1="8" x2="12" y2="12"/>
+                                        <line x1="12" y1="16" x2="12.01" y2="16"/>
+                                    </svg>
+                                </div>
+                                <div class="fw-semibold text-dark">No status checks recorded yet</div>
+                                <div class="small text-muted mt-1">
+                                    Whenever an employer or agency verifies your certificate reference online, the event is permanently logged here for your privacy.
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Regulatory Data Privacy Statement -->
+    <div class="p-3 rounded-3 border bg-light text-muted small" style="font-size: 12px; line-height: 1.5;">
+        <strong>Data Protection Notice:</strong> In accordance with the Nigeria Data Protection Act (NDPA) and international safeguarding regulations, you have the legal right to monitor every third party who accesses your workforce credentials.
+    </div>
+
+</div>
+{% endblock %}

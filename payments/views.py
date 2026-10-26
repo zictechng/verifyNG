@@ -219,8 +219,17 @@ def _route_payg_success(request, transaction):
             url += f"?paid_ref={transaction.reference}&certificate_id={cert_id}&surname={surname}&date_of_birth={dob}"
         return redirect(url)
     elif service == 'monitoring':
+        cert_id = meta.get('certificate_id')
         staff_check_id = meta.get('staff_check_id')
-        if staff_check_id:
+        if cert_id:
+            request.session['update_service_cert_id'] = cert_id
+            messages.success(
+                request,
+                f"Payment of ₦{transaction.amount_naira:,.0f} verified successfully! "
+                "Your certificate is now registered on the Continuous Update Service."
+            )
+            return redirect('verification:update_service_portal')
+        elif staff_check_id:
             messages.success(
                 request,
                 f"Payment of ₦{transaction.amount_naira:,.0f} verified successfully! "

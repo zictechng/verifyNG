@@ -369,6 +369,35 @@ class CertificateApplyForm(forms.Form):
             return validate_file_upload(file)
         return file
 
-
-
+class UpdateServiceLoginForm(forms.Form):
+    """
+    DBS-style credential login form for the Update Service.
+    Authenticates certificate holder by Certificate Reference ID, Surname, and Date of Birth.
+    """
+    certificate_id = forms.CharField(
+        max_length=64,
+        required=True,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control py-2 font-monospace',
+            'placeholder': 'e.g. VNG-2026-99E1E30C',
+            'autocomplete': 'off',
+            'style': 'text-transform: uppercase;',
+        })
+    )
+    surname = forms.CharField(
+        max_length=100,
+        required=True,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control py-2',
+            'placeholder': 'Enter your surname (as on certificate)',
+            'autocomplete': 'family-name',
+        })
+    )
+    date_of_birth = forms.DateField(
+        required=True,
+        widget=forms.DateInput(attrs={
+            'class': 'form-control py-2',
+            'type': 'date',
+        })
+    )
 

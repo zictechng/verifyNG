@@ -1113,3 +1113,246 @@ class VerificationDocumentView(LoginRequiredMixin, View):
         response['X-Frame-Options'] = 'SAMEORIGIN'
         opened_file.close()
         return response
+
+# ==============================================================================
+# DBS-Style Continuous Update Service Views
+# ==============================================================================
+
+def _get_update_service_cert(request):
+    """
+    Retrieves the certificate active in the current Update Service guest session,
+    or from the authenticated user's portfolio if logged in.
+    """
+    cert_id = request.session.get('update_service_cert_id')
+    if cert_id:
+        cert = VerificationCertificate.objects.filter(certificate_id=cert_id, is_active=True).first()
+        if cert:
+            return cert
+    if request.user.is_authenticated:
+        req_cert_id = request.GET.get('cert')
+        if req_cert_id:
+            cert = VerificationCertificate.objects.filter(certificate_id=req_cert_id, holder=request.user, is_active=True).first()
+            if cert:
+                return cert
+        return VerificationCertificate.objects.filter(holder=request.user, is_active=True).order_by('-created_at').first()
+    return None
+
+
+class UpdateServiceLoginView(View):
+    """
+    Public entry point for certificate holders to log into their Update Service portal.
+    Authenticates by Certificate ID + Surname + Date of Birth.
+    Strictly isolated: does NOT log user into main Django account.
+    """
+    template_name = 'verification/update_service_login.html'
+
+    def get(self, request):
+        from verification.forms import UpdateServiceLoginForm
+        initial = {}
+        if 'cert' in request.GET:
+            initial['certificate_id'] = request.GET.get('cert')
+        form = UpdateServiceLoginForm(initial=initial)
+        return render(request, self.template_name, {'form': form})
+
+    def post(self, request):
+        import re
+        from verification.forms import UpdateServiceLoginForm
+        form = UpdateServiceLoginForm(request.POST)
+        if not form.is_valid():
+            return render(request, self.template_name, {'form': form})
+
+        cert_id = form.cleaned_data['certificate_id'].strip().upper()
+        surname_input = form.cleaned_data['surname'].strip().lower()
+        dob_input = form.cleaned_data['date_of_birth']
+        dob_str = dob_input.strftime('%Y-%m-%d')
+
+        cert = VerificationCertificate.objects.filter(certificate_id__iexact=cert_id, is_active=True).first()
+        if not cert:
+            form.add_error(None, "No clearance certificate found with this Reference ID. Please verify the characters.")
+            return render(request, self.template_name, {'form': form})
+
+        # Retrieve application metadata from AuditLog or SubjectEntity
+        app_log = AuditLog.objects.filter(
+            action="TRUSTPASS_APPLICATION_SUBMITTED"
+        ).order_by('-timestamp')
+        det = {}
+        for l in app_log[:50]:
+            d = l.details if isinstance(l.details, dict) else {}
+            if d.get('certificate_id') == cert.certificate_id:
+                det = d
+                break
+
+        cand_name = (cert.subject.name if cert.subject else None) or det.get('full_name') or ''
+        if not cand_name and cert.holder:
+            cand_name = cert.holder.get_full_name() or cert.holder.username
+
+        # Tokenize and check surname
+        cand_tokens = [t.lower() for t in re.split(r'[\s,\.-]+', cand_name) if t]
+        holder_last = (cert.holder.last_name or '').lower() if cert.holder else ''
+        surname_matches = (
+            surname_input in cand_tokens
+            or surname_input == holder_last
+            or (len(surname_input) >= 3 and any(surname_input in tok or tok in surname_input for tok in cand_tokens))
+        )
+
+        reg_dob = str(det.get('date_of_birth', '')).strip()
+        if not reg_dob and getattr(cert.holder, 'date_of_birth', None):
+            reg_dob = cert.holder.date_of_birth.strftime('%Y-%m-%d')
+
+        dob_matches = True
+        if reg_dob:
+            dob_matches = (dob_str == reg_dob)
+
+        if not surname_matches or not dob_matches:
+            form.add_error(None, "The surname or date of birth entered does not match our records for this certificate.")
+            return render(request, self.template_name, {'form': form})
+
+        # Success: Store certificate ID in session (Update-Service scoped ONLY)
+        request.session['update_service_cert_id'] = cert.certificate_id
+        return redirect('verification:update_service_portal')
+
+
+class UpdateServicePortalView(View):
+    """
+    Dedicated Update Service applicant dashboard matching the UK DBS standard.
+    Displays:
+      - Candidate Contact Details (left)
+      - Applications and Certificates Table with Update Status (right)
+      - Link: 'View who has carried out a Status check on your Certificates'
+      - Active Subscription & Expiry Card
+    """
+    template_name = 'verification/update_service_portal.html'
+
+    def get(self, request):
+        cert = _get_update_service_cert(request)
+        if not cert:
+            messages.info(request, "Please enter your Certificate ID, Surname, and Date of Birth to access your Update Service.")
+            return redirect('verification:update_service_login')
+
+        # Retrieve application metadata
+        app_log = AuditLog.objects.filter(
+            action="TRUSTPASS_APPLICATION_SUBMITTED"
+        ).order_by('-timestamp')
+        det = {}
+        for l in app_log[:50]:
+            d = l.details if isinstance(l.details, dict) else {}
+            if d.get('certificate_id') == cert.certificate_id:
+                det = d
+                break
+
+        cand_name = (cert.subject.name if cert.subject else None) or det.get('full_name') or ''
+        if not cand_name and cert.holder:
+            cand_name = cert.holder.get_full_name() or cert.holder.username
+
+        # Contact info
+        contact_email = (cert.holder.email if cert.holder else '') or det.get('email', '')
+        contact_phone = (getattr(cert.holder, 'phone_number', '') if cert.holder else '') or det.get('phone_number', '')
+        contact_address = (getattr(cert.holder, 'address', '') if cert.holder else '') or det.get('residential_address') or det.get('address') or 'Nigeria'
+
+        # Check for any adverse reports
+        has_adverse = False
+        if cert.subject:
+            has_adverse = FraudReport.objects.filter(target_subject=cert.subject, state='published').exists()
+
+        try:
+            from employer.models import StaffMisconductReport
+            nin_val = getattr(cert.holder, 'id_number', None) if cert.holder else None
+            if nin_val and not has_adverse:
+                has_adverse = StaffMisconductReport.objects.filter(nin=nin_val, status='adjudicated_verified').exists()
+        except Exception:
+            pass
+
+        if has_adverse:
+            update_status_display = "New adverse record reported"
+            update_status_badge = "danger"
+        else:
+            update_status_display = "Blank, no new information"
+            update_status_badge = "success"
+
+        site_settings = SiteSettings.get()
+        annual_fee = site_settings.price_monitoring_annual
+
+        context = {
+            'cert': cert,
+            'candidate_name': cand_name,
+            'contact_email': contact_email,
+            'contact_phone': contact_phone,
+            'contact_address': contact_address,
+            'application_ref': getattr(cert, 'application_reference', '') or f"APP-{cert.certificate_id.split('-')[-1]}",
+            'update_status_display': update_status_display,
+            'update_status_badge': update_status_badge,
+            'is_monitoring_valid': cert.is_monitoring_valid,
+            'in_grace_period': cert.in_grace_period,
+            'grace_days_remaining': cert.grace_days_remaining,
+            'monitoring_expires_at': cert.monitoring_expires_at,
+            'annual_fee': annual_fee,
+            'query_logs_count': cert.query_logs.count(),
+        }
+        return render(request, self.template_name, context)
+
+
+class UpdateServiceAuditLogView(View):
+    """
+    'View who has carried out a Status check on your Certificates'
+    Displays all queries performed on this certificate by employers and organisations.
+    """
+    template_name = 'verification/update_service_audit_log.html'
+
+    def get(self, request):
+        cert = _get_update_service_cert(request)
+        if not cert:
+            messages.info(request, "Please enter your Certificate ID, Surname, and Date of Birth to access the query audit log.")
+            return redirect('verification:update_service_login')
+
+        query_logs = cert.query_logs.all().order_by('-queried_at')
+        return render(request, self.template_name, {
+            'cert': cert,
+            'query_logs': query_logs,
+        })
+
+
+class UpdateServiceEnrollView(View):
+    """
+    Initializes Paystack checkout to enroll / renew the certificate on the Update Service.
+    Annual Fee: SiteSettings.price_monitoring_annual (₦3,000/yr).
+    """
+    def get(self, request):
+        cert = _get_update_service_cert(request)
+        if not cert:
+            messages.info(request, "Please enter your Certificate ID, Surname, and Date of Birth first.")
+            return redirect('verification:update_service_login')
+
+        site_settings = SiteSettings.get()
+        amount_naira = site_settings.price_monitoring_annual
+
+        user = cert.holder if cert.holder else request.user
+        if not user or not user.is_authenticated:
+            # Fallback to certificate holder account for transaction attribution
+            user = cert.holder
+
+        try:
+            checkout_res = initialize_service_checkout(
+                user=user,
+                service='monitoring',
+                tier='annual',
+                amount_naira=amount_naira,
+                metadata={
+                    'service': 'monitoring',
+                    'certificate_id': cert.certificate_id,
+                }
+            )
+            return redirect(checkout_res['authorization_url'])
+        except Exception as e:
+            messages.error(request, f"Unable to initialize payment gateway: {e}")
+            return redirect('verification:update_service_portal')
+
+
+class UpdateServiceLogoutView(View):
+    """
+    Exits the Update Service guest session and redirects to the login screen.
+    """
+    def get(self, request):
+        request.session.pop('update_service_cert_id', None)
+        messages.success(request, "You have exited the Update Service.")
+        return redirect('verification:update_service_login')
+

@@ -1,0 +1,132 @@
+{% extends 'public/base.html' %}
+{% load static %}
+
+{% block title %}Applicant Update Service Login | {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-md-5">
+    <div class="row justify-content-center">
+        <div class="col-12 col-sm-10 col-md-8 col-lg-6 col-xl-5">
+
+            <!-- Back Link -->
+            <div class="mb-3">
+                <a href="{% url 'home' %}" class="text-decoration-none small text-muted d-inline-flex align-items-center">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1">
+                        <path d="M19 12H5M12 19l-7-7 7-7"/>
+                    </svg>
+                    Back to Home
+                </a>
+            </div>
+
+            <!-- Header Badge & Title -->
+            <div class="text-center mb-4">
+                <div class="d-inline-flex align-items-center gap-1 px-3 py-1 rounded-pill small fw-semibold mb-2"
+                     style="background: var(--vng-primary-light, #EEF2FF); color: var(--vng-primary, #2457D6);">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    </svg>
+                    DBS / TrustPass Update Service
+                </div>
+                <h1 class="h3 fw-bold text-dark mb-1">Applicant Update Service</h1>
+                <p class="text-muted small mb-0 px-2">
+                    Enter your certificate reference and personal details to access your live clearance record and see who has verified you.
+                </p>
+            </div>
+
+            <!-- Messages -->
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show small" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <!-- Login Card -->
+            <div class="vng-card p-3 p-sm-4 shadow-sm border" style="border-radius: 14px;">
+                <form method="post" action="{% url 'verification:update_service_login' %}" novalidate>
+                    {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger small p-2 px-3 mb-3" style="border-radius: 8px;">
+                            {% for error in form.non_field_errors %}
+                                <div>{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    <!-- Certificate ID -->
+                    <div class="mb-3">
+                        <label for="{{ form.certificate_id.id_for_label }}" class="form-label small fw-semibold text-dark mb-1">
+                            Certificate Reference ID <span class="text-danger">*</span>
+                        </label>
+                        {{ form.certificate_id }}
+                        {% if form.certificate_id.errors %}
+                            <div class="text-danger small mt-1">{{ form.certificate_id.errors.0 }}</div>
+                        {% endif %}
+                        <div class="form-text small text-muted" style="font-size: 11.5px;">
+                            Enter the 16-character code printed on your certificate (e.g. VNG-2026-99E1E30C).
+                        </div>
+                    </div>
+
+                    <!-- Surname -->
+                    <div class="mb-3">
+                        <label for="{{ form.surname.id_for_label }}" class="form-label small fw-semibold text-dark mb-1">
+                            Candidate Surname <span class="text-danger">*</span>
+                        </label>
+                        {{ form.surname }}
+                        {% if form.surname.errors %}
+                            <div class="text-danger small mt-1">{{ form.surname.errors.0 }}</div>
+                        {% endif %}
+                        <div class="form-text small text-muted" style="font-size: 11.5px;">
+                            Your family name exactly as recorded on the clearance certificate.
+                        </div>
+                    </div>
+
+                    <!-- Date of Birth -->
+                    <div class="mb-4">
+                        <label for="{{ form.date_of_birth.id_for_label }}" class="form-label small fw-semibold text-dark mb-1">
+                            Date of Birth <span class="text-danger">*</span>
+                        </label>
+                        {{ form.date_of_birth }}
+                        {% if form.date_of_birth.errors %}
+                            <div class="text-danger small mt-1">{{ form.date_of_birth.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" class="btn btn-vng-primary w-100 py-2 fw-semibold d-flex align-items-center justify-content-center gap-2">
+                        <span>Access Update Service Portal</span>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                            <path d="M5 12h14M12 5l7 7-7 7"/>
+                        </svg>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Security & Privacy Notice -->
+            <div class="p-3 mt-3 rounded-3 border bg-light text-muted small" style="font-size: 12px; line-height: 1.5;">
+                <div class="d-flex align-items-start gap-2">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-primary flex-shrink-0 mt-0.5">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                    <div>
+                        <strong>Private &amp; Restricted Session:</strong> Accessing this portal via your certificate credentials authenticates you strictly to the Update Service. It does not grant access to your main user portal or administrative account settings.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Help / Apply Link -->
+            <div class="text-center mt-4">
+                <span class="text-muted small">Don't have a clearance certificate yet?</span>
+                <a href="{% url 'verification:certificate_apply' %}" class="small text-primary fw-semibold text-decoration-none ms-1">
+                    Apply for TrustPass &rarr;
+                </a>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

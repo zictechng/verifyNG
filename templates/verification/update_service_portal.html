@@ -1,0 +1,326 @@
+{% extends 'public/base.html' %}
+{% load static %}
+
+{% block title %}Update Service | {{ candidate_name }} | {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .vng-dbs-header {
+        border-bottom: 2px solid #E2E8F0;
+        padding-bottom: 1rem;
+        margin-bottom: 2rem;
+    }
+    .vng-dbs-title {
+        font-size: 1.75rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        color: #0F172A;
+    }
+    .vng-dbs-subheading {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #1E293B;
+        margin-bottom: 0.75rem;
+    }
+    .vng-dbs-table th {
+        background-color: #E2E8F0 !important;
+        color: #334155 !important;
+        font-weight: 600;
+        font-size: 0.8125rem;
+        text-transform: capitalize;
+        border: 1px solid #CBD5E1 !important;
+        padding: 0.65rem 0.75rem;
+    }
+    .vng-dbs-table td {
+        border: 1px solid #E2E8F0 !important;
+        font-size: 0.85rem;
+        padding: 0.75rem;
+        vertical-align: middle;
+    }
+    .vng-dbs-sub-table th {
+        background-color: #E2E8F0 !important;
+        color: #334155 !important;
+        font-weight: 600;
+        font-size: 0.8125rem;
+        border: 1px solid #CBD5E1 !important;
+        padding: 0.5rem 0.75rem;
+    }
+    .vng-dbs-sub-table td {
+        border: 1px solid #E2E8F0 !important;
+        font-size: 0.85rem;
+        padding: 0.65rem 0.75rem;
+    }
+    @media print {
+        header, footer, nav, .btn-print-hide, .vng-avatar-wrapper {
+            display: none !important;
+        }
+        .container {
+            max-width: 100% !important;
+            padding: 0 !important;
+        }
+        .vng-card {
+            box-shadow: none !important;
+            border: none !important;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-md-5">
+
+    <!-- Top Action Strip -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 btn-print-hide">
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-1.5 rounded-pill small fw-semibold">
+                <i class="bi bi-shield-check me-1"></i>Continuous Update Service
+            </span>
+        </div>
+        <div class="d-flex align-items-center gap-2 ms-auto">
+            <button type="button" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1.5" onclick="window.print();">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6 9 6 2 18 2 18 9"/>
+                    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+                    <rect x="6" y="14" width="12" height="8"/>
+                </svg>
+                <span>Print</span>
+            </button>
+            <a href="{% url 'verification:update_service_logout' %}" class="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
+                </svg>
+                <span>Exit Portal</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Messages -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show small mb-4" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Main DBS Applicant Card -->
+    <div class="vng-card p-3 p-sm-4 p-md-5 shadow-sm border mb-4" style="border-radius: 12px; background: #ffffff;">
+
+        <!-- Header: Candidate Name -->
+        <div class="vng-dbs-header d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2">
+            <div>
+                <h1 class="vng-dbs-title mb-1 text-uppercase">{{ candidate_name }}</h1>
+                <div class="small text-muted font-monospace">
+                    Clearance Ref: <strong>{{ cert.certificate_id }}</strong>
+                </div>
+            </div>
+            <div class="text-sm-end">
+                {% if is_monitoring_valid %}
+                    <span class="badge bg-success px-3 py-2 fs-6 rounded-pill">
+                        ✓ Update Service Subscribed
+                    </span>
+                {% elif in_grace_period %}
+                    <span class="badge bg-warning text-dark px-3 py-2 fs-6 rounded-pill">
+                        30-Day Window ({{ grace_days_remaining }} day{{ grace_days_remaining|pluralize }} remaining)
+                    </span>
+                {% else %}
+                    <span class="badge bg-danger px-3 py-2 fs-6 rounded-pill">
+                        Subscription Expired
+                    </span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="row g-4 g-lg-5">
+
+            <!-- ── LEFT COLUMN: Contact Details ──────────────────────────────── -->
+            <div class="col-12 col-lg-4">
+                <h2 class="vng-dbs-subheading">Contact details</h2>
+
+                <!-- Email -->
+                <div class="mb-3 pb-2 border-bottom">
+                    <div class="text-muted small fw-semibold">Email address</div>
+                    <div class="fw-semibold text-dark text-break" style="font-size: 0.95rem;">
+                        {{ contact_email|default:"Not specified" }}
+                    </div>
+                </div>
+
+                <!-- Correspondence Address -->
+                <div class="mb-3 pb-2 border-bottom">
+                    <div class="text-muted small fw-semibold">Correspondence address</div>
+                    <div class="text-dark" style="font-size: 0.95rem; line-height: 1.5;">
+                        {{ contact_address|default:"Federal Republic of Nigeria" }}
+                    </div>
+                </div>
+
+                <!-- Phone -->
+                <div class="mb-4 pb-2 border-bottom">
+                    <div class="text-muted small fw-semibold">Mobile phone number</div>
+                    <div class="fw-semibold text-dark font-monospace" style="font-size: 0.95rem;">
+                        {{ contact_phone|default:"Not specified" }}
+                    </div>
+                </div>
+
+                <!-- Security & Identity Assurance -->
+                <div class="p-3 rounded-3 border bg-light">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                            <polyline points="9 12 11 14 15 10"/>
+                        </svg>
+                        <span class="fw-bold text-dark small">Identity Confirmed</span>
+                    </div>
+                    <p class="small text-muted mb-0" style="font-size: 12px; line-height: 1.45;">
+                        Biometric identity, national registry checks, and applicant credentials have been verified by compliance officers.
+                    </p>
+                </div>
+            </div>
+
+            <!-- ── RIGHT COLUMN: Applications & Subscription ────────────────── -->
+            <div class="col-12 col-lg-8">
+
+                <!-- 1. Applications and Certificates Section -->
+                <div class="mb-5">
+                    <h2 class="vng-dbs-subheading">Applications and Certificates</h2>
+
+                    <div class="table-responsive mb-3">
+                        <table class="table vng-dbs-table align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Application</th>
+                                    <th>Certificate</th>
+                                    <th>Certificate issue date</th>
+                                    <th>Level of check</th>
+                                    <th>Application status</th>
+                                    <th>Update status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="font-monospace fw-semibold small text-primary">
+                                        {{ application_ref }}
+                                    </td>
+                                    <td class="font-monospace fw-semibold small">
+                                        {{ cert.certificate_id }}
+                                    </td>
+                                    <td class="small text-nowrap">
+                                        {{ cert.issued_at|date:"d/m/Y"|default:"Official" }}
+                                    </td>
+                                    <td class="small fw-semibold">
+                                        {{ cert.get_check_level_display }}
+                                    </td>
+                                    <td class="small">
+                                        <span class="badge bg-light text-dark border">Issued</span>
+                                    </td>
+                                    <td class="small">
+                                        {% if update_status_badge == 'success' %}
+                                            <span class="fw-semibold text-success">
+                                                {{ update_status_display }}
+                                            </span>
+                                        {% else %}
+                                            <span class="fw-semibold text-danger">
+                                                {{ update_status_display }}
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Action Links below table (Exact DBS match) -->
+                    <div class="d-flex flex-column gap-2 mb-2 btn-print-hide">
+                        <div>
+                            <a href="{% url 'verification:certificate_apply' %}" class="text-primary text-decoration-none fw-semibold small d-inline-flex align-items-center gap-1">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="12" y1="5" x2="12" y2="19"/>
+                                    <line x1="5" y1="12" x2="19" y2="12"/>
+                                </svg>
+                                <span>Add a new Application or Certificate</span>
+                            </a>
+                        </div>
+                        <div>
+                            <a href="{% url 'verification:update_service_audit_log' %}" class="text-primary text-decoration-none fw-semibold small d-inline-flex align-items-center gap-1">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="11" cy="11" r="8"/>
+                                    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                                </svg>
+                                <span>View who has carried out a Status check on your Certificates ({{ query_logs_count }})</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Subscription Section (Exact DBS match) -->
+                <div>
+                    <h2 class="vng-dbs-subheading">Subscription</h2>
+
+                    <div class="table-responsive mb-3">
+                        <table class="table vng-dbs-sub-table align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Status</th>
+                                    <th>Expiry Date</th>
+                                    <th>Annual Fee</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>
+                                        {% if is_monitoring_valid %}
+                                            <span class="fw-bold text-success">Subscribed</span>
+                                        {% elif in_grace_period %}
+                                            <span class="fw-bold text-warning">Grace Window Active</span>
+                                        {% else %}
+                                            <span class="fw-bold text-danger">Expired</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="font-monospace small">
+                                        {% if is_monitoring_valid and monitoring_expires_at %}
+                                            {{ monitoring_expires_at|date:"d/m/Y" }}
+                                        {% elif in_grace_period %}
+                                            Window closes: {{ cert.issued_at|date:"d/m/Y" }} (+30 days)
+                                        {% else %}
+                                            Lapsed
+                                        {% endif %}
+                                    </td>
+                                    <td class="small fw-semibold text-dark">
+                                        ₦{{ annual_fee|floatformat:0 }} / year
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Subscription CTA Buttons -->
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 btn-print-hide">
+                        {% if is_monitoring_valid %}
+                            <div class="small text-muted">
+                                <span class="badge bg-success-subtle text-success border border-success-subtle me-1">✓ Active Coverage</span>
+                                Your certificate is currently live, searchable, and verified for all employers online.
+                            </div>
+                            <div>
+                                <a href="{% url 'verification:update_service_enroll' %}" class="btn btn-sm btn-outline-primary fw-semibold">
+                                    Renew Subscription &rarr;
+                                </a>
+                            </div>
+                        {% else %}
+                            <div class="small text-muted flex-grow-1">
+                                <strong class="text-dark">Enrollment Required:</strong> Join the Update Service to ensure employers can continue checking your clearance online beyond the initial 30 days.
+                            </div>
+                            <div>
+                                <a href="{% url 'verification:update_service_enroll' %}" class="btn btn-sm btn-primary fw-semibold px-4 py-2">
+                                    Enroll in Update Service (₦{{ annual_fee|floatformat:0 }}/yr) &rarr;
+                                </a>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
