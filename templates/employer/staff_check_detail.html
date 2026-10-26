@@ -191,6 +191,12 @@ function toggleMonitor(btn) {
     })
     .then(r => r.json())
     .then(data => {
+        if (data.payg_required && data.checkout_url) {
+            if (confirm(data.message + '\n\nProceed to secure Paystack checkout?')) {
+                window.location.href = data.checkout_url;
+            }
+            return;
+        }
         showToast(data.message, data.ok);
         if (data.ok) {
             const block = document.getElementById('monitor-status-block');
@@ -215,6 +221,12 @@ function cancelCheck(btn) {
     })
     .then(r => r.json())
     .then(data => {
+        if (data.payg_required && data.checkout_url) {
+            if (confirm(data.message + '\n\nProceed to secure Paystack checkout?')) {
+                window.location.href = data.checkout_url;
+            }
+            return;
+        }
         showToast(data.message, data.ok);
         if (data.ok) {
             btn.closest('.vng-card').innerHTML = '<p class="text-muted small p-4 mb-0">This check has been cancelled.</p>';

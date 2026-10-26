@@ -34,6 +34,7 @@
             <div class="vng-card p-4 mb-4" x-data="{ 
                 idType: new URLSearchParams(window.location.search).get('type') || '',
                 identifier: new URLSearchParams(window.location.search).get('q') || '', 
+                paidRef: new URLSearchParams(window.location.search).get('paid_ref') || '{{ paid_ref|default:'' }}',
                 result: null,
                 certResult: null,
                 loading: false, 
@@ -43,6 +44,7 @@
                 quotaExceeded: false,
                 serviceRestricted: {% if user_entitlement and user_entitlement.reason == 'service_restricted' %}true{% else %}false{% endif %},
                 performSearch() {
+                    const paidQuery = this.paidRef ? ('?paid_ref=' + encodeURIComponent(this.paidRef)) : '';
                     if (!this.idType || !this.identifier.trim()) return;
                     this.loading = true;
                     this.error = null;
@@ -51,7 +53,7 @@
                     if (this.idType === 'certificate_id') {
                         // Certificate direct lookup (subject to search monetization)
                         this.certResult = null;
-                        fetch('/api/v1/certificate/' + encodeURIComponent(this.identifier.trim().toUpperCase()))
+                        fetch('/api/v1/certificate/' + encodeURIComponent(this.identifier.trim().toUpperCase()) + paidQuery)
                             .then(res => {
                                 if (!res.ok) {
                                     return res.json().then(j => {
@@ -105,7 +107,7 @@
                             });
                     } else if (this.idType === 'hash') {
                         // Direct hash lookup
-                        fetch('/api/v1/check/' + encodeURIComponent(this.identifier.trim()))
+                        fetch('/api/v1/check/' + encodeURIComponent(this.identifier.trim()) + paidQuery)
                             .then(res => {
                                 if (!res.ok) {
                                     return res.json().then(j => {
@@ -158,12 +160,13 @@
                     } else {
                         // In-memory hashed query
                         this.certResult = null;
-                        fetch('/api/v1/check/lookup', {
+                        fetch('/api/v1/check/lookup' + paidQuery, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
                                 identifier_type: this.idType,
-                                identifier_value: this.identifier.trim()
+                                identifier_value: this.identifier.trim(),
+                                paid_ref: this.paidRef
                             })
                         })
                         .then(res => {
@@ -227,6 +230,8 @@
                     <span>
                         {% if user_entitlement.reason == 'service_restricted' %}
                             <span class="badge bg-danger-subtle text-danger border border-danger-subtle"><i class="bi bi-slash-circle me-1"></i>Search Access Restricted by Admin</span>
+                        {% elif user_entitlement.reason == 'direct_paid' %}
+                            <span class="badge bg-success-subtle text-success border"><i class="bi bi-patch-check-fill me-1"></i>Single Check Unlocked via Paystack</span>
                         {% elif is_public_check_free %}
                             <span class="badge bg-success-subtle text-success border">Complimentary Public Search</span>
                         {% elif user_entitlement.details.remaining == 'unlimited' %}
@@ -566,19 +571,30 @@
                     </div>
                 </div>
 
-                <!-- Free Quota Exceeded Callout -->
+                <!-- Free Quota Exceeded / Decision & Access Warning Card -->
                 <div class="mt-4 pt-3 border-top" x-show="quotaExceeded && searched && !loading" x-cloak>
-                    <div class="p-4 rounded-3 border bg-light text-center">
-                        <div class="rounded-circle bg-white shadow-sm d-inline-flex align-items-center justify-content-center p-3 mb-3 text-warning" style="width:56px;height:56px;">
+                    <div class="p-4 rounded-3 border border-warning-subtle text-center" style="background-color: #fffdf5;">
+                        <div class="rounded-circle bg-white shadow-sm d-inline-flex align-items-center justify-content-center p-3 mb-3 text-warning border border-warning-subtle" style="width:56px;height:56px;">
                             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                         </div>
-                        <h5 class="fw-bold mb-2" style="color:var(--vng-ink);">Free Check Quota Exceeded</h5>
-                        <p class="mb-3" style="max-width:520px;margin:0 auto;font-size:14px;line-height:1.6;color:#475569;">
-                            You have reached your complimentary check limit. Purchase a Pay-As-You-Go credit pack or subscribe to an active plan to continue searching.
+                        <h5 class="fw-bold mb-2" style="color:var(--vng-ink);">Check Limit Reached — Single Query or Plan Access Required</h5>
+                        <p class="mb-4" style="max-width:540px;margin:0 auto;font-size:14px;line-height:1.6;color:#475569;">
+                            You have used all complimentary starter checks on this account. You can unlock this single query result immediately with Pay-As-You-Go via Paystack, or upgrade to a monthly package for unlimited lookups.
                         </p>
-                        <div class="d-flex justify-content-center gap-2 flex-wrap">
-                            <a href="{% url 'payments:plans' %}" class="btn btn-vng-primary px-4 py-2">
-                                View Plans &amp; Check Packs &rarr;
+                        
+                        <!-- Mobile-friendly responsive decision action button group -->
+                        <div class="d-flex flex-column flex-sm-row justify-content-center align-items-stretch gap-2" style="max-width: 540px; margin: 0 auto;">
+                            <form method="post" action="{% url 'check' %}" class="w-100 flex-fill mb-2 mb-sm-0">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="payg">
+                                <input type="hidden" name="identifier_type" :value="idType">
+                                <input type="hidden" name="identifier_value" :value="identifier">
+                                <button type="submit" class="btn btn-vng-primary w-100 py-2.5 px-3 fw-bold text-nowrap">
+                                    Pay ₦{{ payg_price|default:site_settings.price_public_check|default:500 }} via Paystack &amp; View Result &rarr;
+                                </button>
+                            </form>
+                            <a href="{% url 'payments:plans' %}" class="btn btn-vng-outline w-100 flex-fill py-2.5 px-3 text-nowrap">
+                                View Monthly Packages &rarr;
                             </a>
                         </div>
                     </div>

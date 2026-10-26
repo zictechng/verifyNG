@@ -35,30 +35,64 @@
                 >
                 <div class="form-text">Enter exactly 11 digits. Nigerian phone numbers start 070 / 080 / 081 / 090 / 091.</div>
             </div>
-            <button type="submit" class="btn btn-vng-primary" data-loading-text="Searching…">Search</button>
-            {% if result %}
-            <button type="reset" class="btn btn-vng-outline ms-2"
-                    onclick="window.location='{% url 'employer:person_check_search' %}'">Clear</button>
-            {% endif %}
+            <div class="d-flex flex-column flex-sm-row gap-2 align-items-stretch align-items-sm-center">
+                <button type="submit" name="action" value="search" class="btn btn-vng-primary" data-loading-text="Searching…">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    Search
+                </button>
+                {% if result %}
+                <button type="button" class="btn btn-vng-outline"
+                        onclick="window.location='{% url 'employer:person_check_search' %}'">Clear</button>
+                {% endif %}
+            </div>
         </form>
     </div>
 
     {# ── Results ─────────────────────────────────────────────────────────── #}
     {% if result %}
 
-        {% if result.error %}
-        <div class="alert alert-danger" style="border-radius:var(--vng-radius-md);">
-            <div class="d-flex align-items-center gap-2">
-                <i class="bi bi-exclamation-octagon-fill fs-5 text-danger flex-shrink-0"></i>
-                <div>{{ result.error }}</div>
+        {% if result.subscription_required %}
+        <div class="vng-card p-4 mb-4 border-0 shadow-sm" style="border-radius:var(--vng-radius-lg);background:#FFFBEB;border:1px solid #FDE68A !important;">
+            <div class="d-flex align-items-start gap-3">
+                <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width:42px;height:42px;background:#FEF3C7;color:#D97706;">
+                    <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                </div>
+                <div class="flex-grow-1">
+                    <h5 class="fw-bold mb-1" style="color:#92400E;font-size:1.05rem;">Subscription or Single Check Required</h5>
+                    <p class="mb-3" style="color:#78350F;font-size:.9rem;line-height:1.5;">
+                        {{ result.error }}
+                    </p>
+
+                    <div class="d-flex flex-column flex-sm-row gap-2 gap-sm-3 align-items-stretch align-items-sm-center pt-2">
+                        {% if result.can_payg %}
+                        <form method="post" class="m-0 p-0 flex-grow-1 flex-sm-grow-0">
+                            {% csrf_token %}
+                            <input type="hidden" name="query" value="{{ result.query }}">
+                            <input type="hidden" name="action" value="payg">
+                            <button type="submit" class="btn btn-primary w-100 fw-bold px-3 py-2 shadow-sm d-inline-flex align-items-center justify-content-center gap-2" style="border-radius:9999px;font-size:.875rem;">
+                                <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                                <span>Pay ₦{{ result.payg_price|floatformat:0 }} via Paystack &amp; View Result &rarr;</span>
+                            </button>
+                        </form>
+                        {% endif %}
+                        <a href="{% url 'payments:plans' %}" class="btn btn-outline-dark fw-semibold px-3 py-2 text-center" style="border-radius:9999px;font-size:.875rem;">
+                            View Monthly Packages &rarr;
+                        </a>
+                    </div>
+                </div>
             </div>
-            {% if result.subscription_required %}
-            <div class="mt-3 pt-2 border-top border-danger border-opacity-25 d-flex gap-2">
-                <a href="{% url 'payments:plans' %}" class="btn btn-vng-primary btn-sm">
-                    View Plans &amp; Upgrade →
-                </a>
+        </div>
+
+        {% elif result.error %}
+        <div class="alert alert-danger d-flex align-items-center gap-2 p-3 rounded-3 mb-4">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2" class="flex-shrink-0">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <div class="small fw-semibold text-danger">
+                {{ result.error }}
             </div>
-            {% endif %}
         </div>
 
         {% elif not result.found %}

@@ -84,30 +84,44 @@
 
                 <hr class="my-4">
 
-                {% if has_entitlement %}
+                {% if quota_exceeded %}
+                <div class="vng-card p-4 mb-4 border-0 shadow-sm" style="border-radius:var(--vng-radius-lg);background:#FFFBEB;border:1px solid #FDE68A !important;">
+                    <div class="d-flex align-items-start gap-3">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width:42px;height:42px;background:#FEF3C7;color:#D97706;">
+                            <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                            </svg>
+                        </div>
+                        <div class="flex-grow-1">
+                            <h5 class="fw-bold mb-1" style="color:#92400E;font-size:1.05rem;">Subscription or Single Check Required</h5>
+                            <p class="mb-3" style="color:#78350F;font-size:.9rem;line-height:1.5;">
+                                Your organization requires an active subscription or single-check payment to run a <strong>{{ check_type|title }}</strong> staff background investigation.
+                            </p>
+
+                            <div class="d-flex flex-column flex-sm-row gap-2 gap-sm-3 align-items-stretch align-items-sm-center pt-2">
+                                <button type="submit" name="action" value="payg" class="btn btn-primary fw-bold px-3 py-2 shadow-sm d-inline-flex align-items-center justify-content-center gap-2" style="border-radius:9999px;font-size:.875rem;">
+                                    <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                                    <span>Pay ₦{{ selected_price|floatformat:0 }} via Paystack &amp; Run Check &rarr;</span>
+                                </button>
+                                <a href="{% url 'payments:plans' %}" class="btn btn-outline-dark fw-semibold px-3 py-2 text-center" style="border-radius:9999px;font-size:.875rem;">
+                                    View Monthly Packages &rarr;
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% elif has_entitlement %}
                 <div class="alert alert-success d-flex align-items-center gap-2 py-2 px-3 mb-3 small rounded-3 border-0">
                     <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path fill="#15803D" d="M9 12l2 2 4-4m5-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     <span><strong>Plan Coverage Active:</strong> 1 check will be deducted from your subscription/free quota.</span>
                 </div>
-                {% else %}
-                <div class="alert alert-info d-flex align-items-center justify-content-between flex-wrap gap-2 py-2 px-3 mb-3 small rounded-3 border-0" style="background:#EFF6FF;border-left:4px solid #2563EB !important;">
-                    <div>
-                        <strong>Pay-As-You-Go Check:</strong>
-                        No subscription quota available. You will be redirected to Paystack to complete single-check payment (<span id="paygPriceDisplay">₦{{ price_standard|floatformat:0 }}</span>).
-                    </div>
-                    <span class="badge bg-primary">Instant Paystack Checkout</span>
-                </div>
                 {% endif %}
 
-                <div class="d-flex gap-3">
-                    <button type="submit" class="btn btn-vng-primary" data-loading-text="Submitting check…">
-                        {% if has_entitlement %}
+                <div class="d-flex flex-column flex-sm-row gap-2 align-items-stretch align-items-sm-center">
+                    <button type="submit" name="action" value="submit" class="btn btn-vng-primary" data-loading-text="Submitting check…">
                         Submit Check Request
-                        {% else %}
-                        Pay & Run Check (<span id="btnPriceDisplay">₦{{ price_standard|floatformat:0 }}</span>) &rarr;
-                        {% endif %}
                     </button>
-                    <a href="{% url 'employer:staff_check_list' %}" class="btn btn-vng-outline">Cancel</a>
+                    <a href="{% url 'employer:staff_check_list' %}" class="btn btn-vng-outline text-center">Cancel</a>
                 </div>
 
                 <script>

@@ -638,3 +638,45 @@ class PayAsYouGoServiceTest(TestCase):
         check.refresh_from_db()
         self.assertEqual(check.status, 'pending')
         mock_delay.assert_called_once_with(str(check.id))
+
+    def test_payg_routing_urls(self):
+        from payments.views import _route_payg_success
+        from django.test import RequestFactory
+
+        rf = RequestFactory()
+        req = rf.get('/payments/callback/')
+        req.user = self.user
+
+        from django.contrib.sessions.middleware import SessionMiddleware
+        from django.contrib.messages.middleware import MessageMiddleware
+
+        SessionMiddleware(lambda r: None).process_request(req)
+        req.session.save()
+        MessageMiddleware(lambda r: None).process_request(req)
+
+        trx_pc = Transaction.objects.create(
+            user=self.user,
+            reference="VNG-TRX-PAYG-PC",
+            amount_kobo=50000,
+            status='success',
+            paystack_response={'data': {'metadata': {'service': 'person_check', 'query': '08012345678'}}}
+        )
+        res_pc = _route_payg_success(req, trx_pc)
+        self.assertIn('/employer/checks/person/?paid_ref=VNG-TRX-PAYG-PC', res_pc.url)
+        self.assertIn('query=08012345678', res_pc.url)
+
+        trx_cv = Transaction.objects.create(
+            user=self.user,
+            reference="VNG-TRX-PAYG-CV",
+            amount_kobo=50000,
+            status='success',
+            paystack_response={'data': {'metadata': {
+                'service': 'certificate_verify',
+                'certificate_id': 'VNG-2026-TEST',
+                'surname': 'Doe',
+                'date_of_birth': '1990-01-01'
+            }}}
+        )
+        res_cv = _route_payg_success(req, trx_cv)
+        self.assertIn('/employer/certificate/verify/?paid_ref=VNG-TRX-PAYG-CV', res_cv.url)
+        self.assertIn('certificate_id=VNG-2026-TEST', res_cv.url)

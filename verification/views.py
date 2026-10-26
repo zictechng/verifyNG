@@ -95,54 +95,107 @@ class VerificationCreateView(LoginRequiredMixin, FormView):
     def dispatch(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             allowed, reason, details = check_user_entitlement(request.user, service='verification')
-            if not allowed:
-                if reason == 'service_restricted':
-                    messages.error(
-                        request,
-                        details.get('message', "Access to Identity Verification has been restricted for your account by platform administration.")
-                    )
-                    return redirect(get_user_home_url(request.user))
-                if request.method == 'GET':
-                    messages.warning(
-                        request,
-                        "An active subscription or verified entitlement is required to request identity & document verifications. "
-                        "Please upgrade your plan to continue."
-                    )
-                    return redirect('payments:plans')
+            if not allowed and reason == 'service_restricted':
+                messages.error(
+                    request,
+                    details.get('message', "Access to Identity Verification has been restricted for your account by platform administration.")
+                )
+                return redirect(get_user_home_url(request.user))
         return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        from payments.models import SiteSettings
+        site_settings = SiteSettings.get()
+        allowed, _, _ = check_user_entitlement(self.request.user, service='verification')
+        ctx['has_entitlement'] = allowed
+        ctx['price_basic'] = site_settings.price_verification_basic
+        ctx['price_business'] = site_settings.price_verification_business
+        return ctx
 
     def form_valid(self, form):
         allowed, reason, details = check_user_entitlement(self.request.user, service='verification')
-        if not allowed:
-            if reason == 'service_restricted':
-                messages.error(self.request, details.get('message', "Your account has been restricted from requesting verifications."))
-                return redirect(get_user_home_url(self.request.user))
-            messages.error(
-                self.request,
-                "An active subscription or verified entitlement is required to request identity & document verifications. "
-                "Please upgrade your plan to continue."
-            )
-            return redirect('payments:plans')
+        if not allowed and reason == 'service_restricted':
+            messages.error(self.request, details.get('message', "Your account has been restricted from requesting verifications."))
+            return redirect(get_user_home_url(self.request.user))
+
         ip_addr = get_client_ip(self.request)
         try:
             docs = form.cleaned_data.get('documents') or self.request.FILES.getlist('document')
-            verif_request = create_verification_request(
-                requester=self.request.user,
-                subject_name=form.cleaned_data['subject_name'],
-                subject_type=form.cleaned_data['subject_type'],
-                verification_type=form.cleaned_data['verification_type'],
-                notes=form.cleaned_data.get('notes', ''),
-                identifier_type=form.cleaned_data.get('identifier_type') or None,
-                identifier_value=form.cleaned_data.get('identifier_value') or None,
-                ip_address=ip_addr,
-                documents=docs
-            )
-            consume_user_entitlement(self.request.user, service='verification')
-            messages.success(
-                self.request,
-                f"Verification request [{verif_request.reference_number}] submitted successfully."
-            )
-            return redirect('verification:detail', reference_number=verif_request.reference_number)
+            verification_type = form.cleaned_data['verification_type']
+
+            if allowed:
+                verif_request = create_verification_request(
+                    requester=self.request.user,
+                    subject_name=form.cleaned_data['subject_name'],
+                    subject_type=form.cleaned_data['subject_type'],
+                    verification_type=verification_type,
+                    notes=form.cleaned_data.get('notes', ''),
+                    identifier_type=form.cleaned_data.get('identifier_type') or None,
+                    identifier_value=form.cleaned_data.get('identifier_value') or None,
+                    ip_address=ip_addr,
+                    documents=docs,
+                    status='pending',
+                )
+                consume_user_entitlement(self.request.user, service='verification')
+                messages.success(
+                    self.request,
+                    f"Verification request [{verif_request.reference_number}] submitted successfully."
+                )
+                return redirect('verification:detail', reference_number=verif_request.reference_number)
+            else:
+                from payments.models import SiteSettings
+                from payments.services import initialize_service_checkout
+                site_settings = SiteSettings.get()
+                if verification_type in ('business_cac', 'cac', 'corporate'):
+                    tier = 'business'
+                    amount_naira = site_settings.price_verification_business
+                    service_key = 'business_verification'
+                else:
+                    tier = 'basic'
+                    amount_naira = site_settings.price_verification_basic
+                    service_key = 'verification'
+
+                action = self.request.POST.get('action', 'submit')
+                if action != 'payg':
+                    ctx = self.get_context_data(form=form)
+                    ctx['quota_exceeded'] = True
+                    ctx['selected_price'] = amount_naira
+                    ctx['verification_type'] = verification_type
+                    return self.render_to_response(ctx)
+
+                verif_request = create_verification_request(
+                    requester=self.request.user,
+                    subject_name=form.cleaned_data['subject_name'],
+                    subject_type=form.cleaned_data['subject_type'],
+                    verification_type=verification_type,
+                    notes=form.cleaned_data.get('notes', ''),
+                    identifier_type=form.cleaned_data.get('identifier_type') or None,
+                    identifier_value=form.cleaned_data.get('identifier_value') or None,
+                    ip_address=ip_addr,
+                    documents=docs,
+                    status='pending_payment',
+                )
+                try:
+                    checkout_data = initialize_service_checkout(
+                        user=self.request.user,
+                        service=service_key,
+                        tier=tier,
+                        amount_naira=amount_naira,
+                        metadata={
+                            'service': service_key,
+                            'verification_reference': verif_request.reference_number,
+                        }
+                    )
+                    self.request.session['vng_pending_ref'] = checkout_data['reference']
+                    return redirect(checkout_data['authorization_url'])
+                except Exception as exc:
+                    logger.exception("Failed to initialize verification checkout: %s", exc)
+                    ctx = self.get_context_data(form=form)
+                    ctx['quota_exceeded'] = True
+                    ctx['selected_price'] = amount_naira
+                    ctx['gateway_error'] = str(exc)
+                    return self.render_to_response(ctx)
         
         except ValidationError as e:
             form.add_error(None, e.message if hasattr(e, 'message') else str(e))

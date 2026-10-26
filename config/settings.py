@@ -218,7 +218,7 @@ DEFAULT_FROM_EMAIL = env('MAILTRAP_FROM_EMAIL', default='noreply@verifyng.com')
 # Payments & Subscriptions (Phase 12) — Paystack Configuration
 # ==============================================================================
 PAYSTACK_SECRET_KEY = env('PAYSTACK_SECRET_KEY', default='')
-PAYSTACK_PUBLIC_KEY = env('PAYSTACK_PUBLIC_KEY', default='')
+PAYSTACK_PUBLIC_KEY = env('PAYSTACK_PUBLIC_KEY', default=env('PAYSTACK_PULIC_KEY', default=''))
 
 # ==============================================================================
 # WhatsApp Business API (Meta Cloud API)

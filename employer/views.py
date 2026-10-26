@@ -451,7 +451,24 @@ def staff_check_create(request):
             messages.success(request, f'Check request submitted for {full_name}. Reference: {str(check.id)[:8].upper()}')
             return redirect('employer:staff_check_detail', check_id=check.id)
         else:
-            # Pay-As-You-Go single check checkout
+            action = request.POST.get('action', 'submit')
+            amount_naira = site_settings.get_service_price('staff_check', check_type)
+
+            if action != 'payg':
+                context = {
+                    'profile':        profile,
+                    'form_data':      request.POST,
+                    'has_entitlement': False,
+                    'quota_exceeded':  True,
+                    'check_type':      check_type,
+                    'selected_price':  amount_naira,
+                    'price_standard': site_settings.price_staff_check_standard,
+                    'price_enhanced': site_settings.price_staff_check_enhanced,
+                    'page_title':     'New Staff Check',
+                }
+                return render(request, 'employer/staff_check_create.html', context)
+
+            # User clicked "Pay via Paystack" -> initialize checkout
             check = StaffCheckRequest.objects.create(
                 employer     = profile,
                 requested_by = request.user,
@@ -463,7 +480,6 @@ def staff_check_create(request):
                 purpose      = purpose,
                 status       = 'pending_payment',
             )
-            amount_naira = site_settings.get_service_price('staff_check', check_type)
             try:
                 checkout_data = initialize_service_checkout(
                     user=request.user,
@@ -480,12 +496,14 @@ def staff_check_create(request):
                 return redirect(checkout_data['authorization_url'])
             except Exception as exc:
                 logger.exception("Failed to initialize staff check checkout: %s", exc)
-                messages.error(request, f"Unable to initialize payment: {exc}")
                 context = {
                     'profile':        profile,
-                    'errors':         [f"Payment gateway error: {exc}"],
+                    'errors':         [f"{exc}"],
                     'form_data':      request.POST,
-                    'has_entitlement': allowed,
+                    'has_entitlement': False,
+                    'quota_exceeded':  True,
+                    'check_type':      check_type,
+                    'selected_price':  amount_naira,
                     'price_standard': site_settings.price_staff_check_standard,
                     'price_enhanced': site_settings.price_staff_check_enhanced,
                     'page_title':     'New Staff Check',
@@ -593,10 +611,24 @@ def monitoring_toggle(request, check_id):
         else:
             allowed, reason, details = check_user_entitlement(request.user, service='monitoring')
             if not allowed:
-                msg = details.get('message', 'Active subscription or monitoring entitlement required to resume staff monitoring.')
                 if reason == 'service_restricted':
-                    msg = 'Staff monitoring has been restricted for your organization by platform administration.'
-                return JsonResponse({'ok': False, 'message': msg}, status=403)
+                    return JsonResponse({'ok': False, 'message': 'Staff monitoring has been restricted for your organization by platform administration.'}, status=403)
+                from payments.services import initialize_service_checkout
+                site_settings = SiteSettings.get()
+                amount = site_settings.price_monitoring_annual
+                checkout_res = initialize_service_checkout(
+                    user=request.user,
+                    service='monitoring',
+                    tier='annual',
+                    amount_naira=amount,
+                    metadata={'service': 'monitoring', 'staff_check_id': str(check.id)}
+                )
+                return JsonResponse({
+                    'ok': False,
+                    'payg_required': True,
+                    'checkout_url': checkout_res['authorization_url'],
+                    'message': f"Pay ₦{amount:,.0f}/yr to activate Certificate Monitoring for {check.full_name}."
+                }, status=200)
             monitor.monitor_status = 'active'
             monitor.save(update_fields=['monitor_status', 'updated_at'])
             msg = f'Monitoring resumed for {check.full_name}.'
@@ -605,10 +637,24 @@ def monitoring_toggle(request, check_id):
         allowed, reason, details = check_user_entitlement(request.user, service='monitoring')
         if not allowed:
             monitor.delete()
-            msg = details.get('message', 'Active subscription or monitoring entitlement required to enable staff monitoring.')
             if reason == 'service_restricted':
-                msg = 'Staff monitoring has been restricted for your organization by platform administration.'
-            return JsonResponse({'ok': False, 'message': msg}, status=403)
+                return JsonResponse({'ok': False, 'message': 'Staff monitoring has been restricted for your organization by platform administration.'}, status=403)
+            from payments.services import initialize_service_checkout
+            site_settings = SiteSettings.get()
+            amount = site_settings.price_monitoring_annual
+            checkout_res = initialize_service_checkout(
+                user=request.user,
+                service='monitoring',
+                tier='annual',
+                amount_naira=amount,
+                metadata={'service': 'monitoring', 'staff_check_id': str(check.id)}
+            )
+            return JsonResponse({
+                'ok': False,
+                'payg_required': True,
+                'checkout_url': checkout_res['authorization_url'],
+                'message': f"Pay ₦{amount:,.0f}/yr to activate Certificate Monitoring for {check.full_name}."
+            }, status=200)
         msg = f'Monitoring started for {check.full_name}.'
         new_status = 'active'
     return JsonResponse({'ok': True, 'message': msg, 'monitor_status': new_status})
@@ -1037,18 +1083,32 @@ def person_check_search(request):
     """
     Quick-check a person by phone number or NIN.
     Returns trust summary from SubjectEntity + TrustScore + FraudReport.
-    GET  — empty search form.
-    POST — run the lookup and display results on the same page.
+    Supports subscription quota AND direct Paystack Pay-As-You-Go checkout.
     """
+    from payments.models import Transaction
     profile = _get_or_create_employer_profile(request.user)
+    site_settings = SiteSettings.get()
+    payg_price = site_settings.get_service_price('person_check')
 
-    result    = None
-    query     = ''
+    allowed, reason, details = check_user_entitlement(request.user, service='person_check', cost=1)
+
+    result = None
+    query = request.GET.get('query', '').strip()
     query_type = ''
 
-    if request.method == 'POST':
-        raw_query = request.POST.get('query', '').strip()
+    # Check if returning from a verified direct PAYG payment
+    paid_ref = request.GET.get('paid_ref', '').strip()
+    is_direct_paid = False
+    if paid_ref and query:
+        trx = Transaction.objects.filter(reference=paid_ref, user=request.user, status='success').first()
+        if trx:
+            is_direct_paid = True
+            allowed = True
+
+    if request.method == 'POST' or (is_direct_paid and query):
+        raw_query = request.POST.get('query', query).strip()
         query = raw_query
+        action = request.POST.get('action', 'search')
 
         if not raw_query:
             result = {'error': 'Please enter a phone number or NIN to search.'}
@@ -1062,89 +1122,117 @@ def person_check_search(request):
                         '(e.g. 08012345678) or an 11-digit NIN.'
                     )
                 }
+            elif not allowed and reason == 'service_restricted':
+                result = {
+                    'error': details.get('message', 'Access to person quick-checks has been restricted for your account by platform administration.'),
+                    'subscription_required': False,
+                }
+            elif not allowed and action == 'payg':
+                # User initiated Pay-As-You-Go direct checkout
+                try:
+                    checkout_data = initialize_service_checkout(
+                        user=request.user,
+                        service='person_check',
+                        tier='standard',
+                        amount_naira=payg_price,
+                        metadata={
+                            'service': 'person_check',
+                            'query': digits_only,
+                        }
+                    )
+                    request.session['vng_pending_ref'] = checkout_data['reference']
+                    request.session['pending_person_check_query'] = digits_only
+                    return redirect(checkout_data['authorization_url'])
+                except Exception as exc:
+                    logger.exception("Failed to initialize person check checkout: %s", exc)
+                    result = {
+                        'error': f"Payment gateway error: {exc}",
+                        'subscription_required': True,
+                        'can_payg': True,
+                        'payg_price': payg_price,
+                        'query': raw_query,
+                    }
+            elif not allowed:
+                # Quota exhausted: display error with clear Pay-As-You-Go option
+                result = {
+                    'error': (
+                        'You have reached your check limit or require an active subscription '
+                        'to perform person quick-checks.'
+                    ),
+                    'subscription_required': True,
+                    'can_payg': True,
+                    'payg_price': payg_price,
+                    'query': raw_query,
+                }
             else:
-                # Check credit/subscription entitlement
-                allowed, reason, details = check_user_entitlement(request.user, service='person_check', cost=1)
-                if not allowed:
-                    if reason == 'service_restricted':
-                        result = {
-                            'error': details.get('message', 'Access to person quick-checks has been restricted for your account by platform administration.'),
-                            'subscription_required': False,
-                        }
-                    else:
-                        result = {
-                            'error': (
-                                'You have reached your check limit or require an active subscription '
-                                'to perform person quick-checks. Please upgrade your plan.'
-                            ),
-                            'subscription_required': True,
-                        }
+                # Execute search
+                phone_prefixes = ('070', '080', '081', '090', '091', '071', '091')
+                if digits_only[:3] in phone_prefixes:
+                    query_type = 'phone'
+                    id_type    = 'phone'
                 else:
-                    # Decide identifier type by prefix
-                    phone_prefixes = ('070', '080', '081', '090', '091', '071', '091')
-                    if digits_only[:3] in phone_prefixes:
-                        query_type = 'phone'
-                        id_type    = 'phone'
-                    else:
-                        query_type = 'nin'
-                        id_type    = 'nin'
-                    # Compute peppered HMAC-SHA256 digest matching identities database
-                    try:
-                        value_hash = hash_identifier_value(id_type, digits_only)
-                    except ValueError as val_err:
-                        result = {'error': str(val_err)}
-                        value_hash = None
-                    ident = None
-                    if value_hash:
-                        ident = (
-                            Identifier.objects
-                            .filter(type=id_type, value_hash=value_hash)
-                            .select_related('subject')
-                            .first()
-                        )
-                    # Deduct check entitlement after search succeeds
+                    query_type = 'nin'
+                    id_type    = 'nin'
+
+                try:
+                    value_hash = hash_identifier_value(id_type, digits_only)
+                except ValueError as val_err:
+                    result = {'error': str(val_err)}
+                    value_hash = None
+
+                ident = None
+                if value_hash:
+                    ident = (
+                        Identifier.objects
+                        .filter(type=id_type, value_hash=value_hash)
+                        .select_related('subject')
+                        .first()
+                    )
+
+                if not is_direct_paid:
                     consume_user_entitlement(request.user, service='person_check', cost=1)
-                    if ident is None:
-                        result = {
-                            'found':      False,
-                            'query':      raw_query,
-                            'query_type': query_type,
-                        }
-                    else:
-                        subject = ident.subject
-                        # Trust score (OneToOne relation on SubjectEntity)
-                        trust_score = getattr(subject, 'trust_score', None)
-                        # Published fraud reports only — never raw allegations
-                        fraud_reports = []
-                        fraud_count   = 0
-                        try:
-                            fraud_qs = (
-                                FraudReport.objects
-                                .filter(
-                                    target_subject=subject,
-                                    state='published',
-                                )
-                                .order_by('-created_at')[:5]
+
+                if ident is None:
+                    result = {
+                        'found':      False,
+                        'query':      raw_query,
+                        'query_type': query_type,
+                    }
+                else:
+                    subject = ident.subject
+                    trust_score = getattr(subject, 'trust_score', None)
+                    fraud_reports = []
+                    fraud_count   = 0
+                    try:
+                        fraud_qs = (
+                            FraudReport.objects
+                            .filter(
+                                target_subject=subject,
+                                state='published',
                             )
-                            fraud_count   = fraud_qs.count()
-                            fraud_reports = list(fraud_qs)
-                        except Exception:
-                            pass
-                        result = {
-                            'found':         True,
-                            'subject':       subject,
-                            'trust_score':   trust_score,
-                            'fraud_reports': fraud_reports,
-                            'fraud_count':   fraud_count,
-                            'query':         raw_query,
-                            'query_type':    query_type,
-                        }
+                            .order_by('-created_at')[:5]
+                        )
+                        fraud_count   = fraud_qs.count()
+                        fraud_reports = list(fraud_qs)
+                    except Exception:
+                        pass
+                    result = {
+                        'found':         True,
+                        'subject':       subject,
+                        'trust_score':   trust_score,
+                        'fraud_reports': fraud_reports,
+                        'fraud_count':   fraud_count,
+                        'query':         raw_query,
+                        'query_type':    query_type,
+                    }
 
     context = {
-        'profile':    profile,
-        'result':     result,
-        'query':      query,
-        'page_title': 'Person Quick-Check',
+        'profile':         profile,
+        'result':          result,
+        'query':           query,
+        'has_entitlement': allowed,
+        'payg_price':      payg_price,
+        'page_title':      'Person Quick-Check',
     }
     return render(request, 'employer/person_check.html', context)
 
@@ -1466,17 +1554,36 @@ def employer_certificate_verify(request):
     UK DBS Online Status Check equivalent for employers, agencies, and screening teams.
     Allows an employer to enter a candidate's Certificate ID (e.g. WCC-XXXX-YYYY / VNG-YYYY-XXXXXXXX)
     and candidate Surname and Date of Birth. All three fields are required.
+    Supports subscription quota AND direct Paystack Pay-As-You-Go checkout.
     """
+    from payments.models import Transaction
     profile = _get_or_create_employer_profile(request.user)
-    result = None
-    cert_id_input = ''
-    surname_input = ''
-    dob_input = ''
+    site_settings = SiteSettings.get()
+    payg_price = site_settings.get_service_price('certificate_verify')
 
-    if request.method == 'POST':
-        cert_id_input = request.POST.get('certificate_id', '').strip().upper()
-        surname_input = request.POST.get('surname', '').strip()
-        dob_input = request.POST.get('date_of_birth', '').strip()
+    result = None
+    cert_id_input = request.GET.get('certificate_id', '').strip().upper()
+    surname_input = request.GET.get('surname', '').strip()
+    dob_input = request.GET.get('date_of_birth', '').strip()
+
+    # Check if returning from a direct Paystack payment
+    paid_ref = request.GET.get('paid_ref', '').strip()
+    is_direct_paid = False
+    if paid_ref and cert_id_input:
+        trx = Transaction.objects.filter(reference=paid_ref, user=request.user, status='success').first()
+        if trx:
+            is_direct_paid = True
+
+    allowed, reason, details = check_user_entitlement(request.user, service='certificate_verify', cost=1)
+    if is_direct_paid:
+        allowed = True
+
+    if request.method == 'POST' or (is_direct_paid and cert_id_input):
+        if request.method == 'POST':
+            cert_id_input = request.POST.get('certificate_id', '').strip().upper()
+            surname_input = request.POST.get('surname', '').strip()
+            dob_input = request.POST.get('date_of_birth', '').strip()
+        action = request.POST.get('action', 'verify')
 
         missing = []
         if not cert_id_input:
@@ -1491,25 +1598,48 @@ def employer_certificate_verify(request):
                 'lookup_state': 'VALIDATION_ERROR',
                 'message': f"All three fields are required to match the record: {', '.join(missing)}.",
             }
+        elif not allowed and reason == 'service_restricted':
+            result = {
+                'lookup_state': 'ACCESS_RESTRICTED',
+                'message': details.get('message', 'Access to certificate verification has been restricted for your account by platform administration.'),
+            }
+        elif not allowed and action == 'payg':
+            try:
+                checkout_data = initialize_service_checkout(
+                    user=request.user,
+                    service='certificate_verify',
+                    tier='standard',
+                    amount_naira=payg_price,
+                    metadata={
+                        'service': 'certificate_verify',
+                        'certificate_id': cert_id_input,
+                        'surname': surname_input,
+                        'dob': dob_input,
+                    }
+                )
+                request.session['vng_pending_ref'] = checkout_data['reference']
+                return redirect(checkout_data['authorization_url'])
+            except Exception as exc:
+                logger.exception("Failed to initialize certificate verify checkout: %s", exc)
+                result = {
+                    'lookup_state': 'QUOTA_EXCEEDED',
+                    'message': f"Payment gateway error: {exc}",
+                    'subscription_required': True,
+                    'can_payg': True,
+                    'payg_price': payg_price,
+                }
+        elif not allowed:
+            result = {
+                'lookup_state': 'QUOTA_EXCEEDED',
+                'message': (
+                    'You have reached your verification check limit or require an active subscription '
+                    'to perform live certificate status checks.'
+                ),
+                'subscription_required': True,
+                'can_payg': True,
+                'payg_price': payg_price,
+            }
         else:
-            # Check entitlement before executing query
-            allowed, reason, details = check_user_entitlement(request.user, service='certificate_verify', cost=1)
-            if not allowed:
-                if reason == 'service_restricted':
-                    result = {
-                        'lookup_state': 'ACCESS_RESTRICTED',
-                        'message': details.get('message', 'Access to certificate verification has been restricted for your account by platform administration.'),
-                    }
-                else:
-                    result = {
-                        'lookup_state': 'QUOTA_EXCEEDED',
-                        'message': (
-                            'You have reached your verification check limit or require an active subscription '
-                            'to perform live certificate status checks. Please upgrade your plan.'
-                        ),
-                        'subscription_required': True,
-                    }
-            else:
                 # Query registry for certificate
                 cert = (
                     VerificationCertificate.objects
@@ -1567,8 +1697,9 @@ def employer_certificate_verify(request):
                     else:
                         lookup_state = 'ACTIVE_VALID'
 
-                # Consume entitlement upon successful query attempt
-                consume_user_entitlement(request.user, service='certificate_verify', cost=1)
+                # Consume entitlement upon successful query attempt if not direct paid
+                if not is_direct_paid:
+                    consume_user_entitlement(request.user, service='certificate_verify', cost=1)
 
                 candidate_name = '—'
                 nin_masked = 'Verified Record'
@@ -1664,6 +1795,8 @@ def employer_certificate_verify(request):
         'cert_id_input': cert_id_input,
         'surname_input': surname_input,
         'dob_input': dob_input,
+        'has_entitlement': allowed,
+        'payg_price': payg_price,
         'page_title': 'Verify Workforce Certificate (TrustPass)',
     }
     return render(request, 'employer/certificate_verify.html', context)

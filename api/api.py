@@ -50,6 +50,7 @@ class CheckResponse(Schema):
 class CheckLookupRequest(Schema):
     identifier_type: str
     identifier_value: str
+    paid_ref: str | None = None
 
 
 # Static route MUST be registered before parameterized route /check/{identifier_hash}
@@ -70,12 +71,23 @@ def check_lookup(request, payload: CheckLookupRequest):
     except ValueError as e:
         raise HttpError(400, str(e))
 
+    # Check if authorized via verified single-service direct payment
+    paid_ref = (payload.paid_ref or request.GET.get('paid_ref', '')).strip()
+    is_direct_paid = False
+    if paid_ref and request.user.is_authenticated:
+        from payments.models import Transaction
+        trx = Transaction.objects.filter(reference=paid_ref, user=request.user, status='success').first()
+        if trx:
+            is_direct_paid = True
+
     # Evaluate Global Entitlement & Paid Access for public check
     from payments.models import SiteSettings
     from payments.services import check_user_entitlement, consume_user_entitlement
     site_settings = SiteSettings.get()
 
-    if request.user.is_authenticated:
+    if is_direct_paid:
+        pass  # Query already paid for directly via Paystack
+    elif request.user.is_authenticated:
         allowed, reason, details = check_user_entitlement(request.user, service='public_check', cost=1)
         if not allowed:
             if reason == 'service_restricted':
@@ -105,12 +117,23 @@ def check_identifier(request, identifier_hash: str):
         response['Retry-After'] = str(retry_after)
         return response
 
+    # Check if authorized via verified single-service direct payment
+    paid_ref = request.GET.get('paid_ref', '').strip()
+    is_direct_paid = False
+    if paid_ref and request.user.is_authenticated:
+        from payments.models import Transaction
+        trx = Transaction.objects.filter(reference=paid_ref, user=request.user, status='success').first()
+        if trx:
+            is_direct_paid = True
+
     # Evaluate Global Entitlement & Paid Access for direct hash check
     from payments.models import SiteSettings
     from payments.services import check_user_entitlement, consume_user_entitlement
     site_settings = SiteSettings.get()
 
-    if request.user.is_authenticated:
+    if is_direct_paid:
+        pass  # Query already paid for directly via Paystack
+    elif request.user.is_authenticated:
         allowed, reason, details = check_user_entitlement(request.user, service='public_check', cost=1)
         if not allowed:
             if reason == 'service_restricted':
@@ -162,12 +185,23 @@ def certificate_lookup(request, certificate_id: str):
         response['Retry-After'] = str(retry_after)
         return response
 
+    # Check if authorized via verified single-service direct payment
+    paid_ref = request.GET.get('paid_ref', '').strip()
+    is_direct_paid = False
+    if paid_ref and request.user.is_authenticated:
+        from payments.models import Transaction
+        trx = Transaction.objects.filter(reference=paid_ref, user=request.user, status='success').first()
+        if trx:
+            is_direct_paid = True
+
     # Evaluate Global Entitlement & Paid Access when searched via web search
     from payments.models import SiteSettings
     from payments.services import check_user_entitlement, consume_user_entitlement
     site_settings = SiteSettings.get()
 
-    if request.user.is_authenticated:
+    if is_direct_paid:
+        pass  # Query already paid for directly via Paystack
+    elif request.user.is_authenticated:
         allowed, reason, details = check_user_entitlement(request.user, service='public_check', cost=1)
         if not allowed:
             if reason == 'service_restricted':

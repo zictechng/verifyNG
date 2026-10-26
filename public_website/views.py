@@ -38,23 +38,74 @@ def check(request):
         response['Retry-After'] = str(retry_after)
         return response
 
-    from payments.models import SiteSettings
-    from payments.services import check_user_entitlement
+    from payments.models import SiteSettings, Transaction
+    from payments.services import check_user_entitlement, initialize_service_checkout
+    from django.contrib import messages
+    from django.shortcuts import redirect
     site_settings = SiteSettings.get()
+    payg_price = site_settings.get_service_price('public_check')
+
+    # Handle direct Paystack Pay-As-You-Go checkout submission
+    if request.method == 'POST':
+        action = request.POST.get('action', 'search')
+        if action == 'payg':
+            if not request.user.is_authenticated:
+                messages.info(request, "Please sign in or create an account to proceed with checkout.")
+                from django.urls import reverse
+                return redirect(f"{reverse('users:login')}?next={request.get_full_path()}")
+
+            id_type = request.POST.get('identifier_type', '').strip()
+            id_val = request.POST.get('identifier_value', '').strip()
+
+            try:
+                checkout_data = initialize_service_checkout(
+                    user=request.user,
+                    service='public_check',
+                    tier='standard',
+                    amount_naira=payg_price,
+                    metadata={
+                        'service': 'public_check',
+                        'identifier_type': id_type,
+                        'identifier_value': id_val,
+                    }
+                )
+                request.session['vng_pending_ref'] = checkout_data['reference']
+                return redirect(checkout_data['authorization_url'])
+            except Exception as e:
+                logger.error("Public check PAYG checkout error (user=%s): %s", request.user.id, e)
+                messages.error(request, f"Payment gateway error: {e}")
+
+    # Check if user has a verified single query direct payment
+    paid_ref = request.GET.get('paid_ref', '').strip()
+    is_direct_paid = False
+    if paid_ref and request.user.is_authenticated:
+        trx = Transaction.objects.filter(reference=paid_ref, user=request.user, status='success').first()
+        if trx:
+            is_direct_paid = True
 
     user_entitlement = None
     if request.user.is_authenticated:
-        allowed, reason, details = check_user_entitlement(request.user, service='public_check', cost=1)
-        user_entitlement = {
-            'allowed': allowed,
-            'reason': reason,
-            'details': details,
-        }
+        if is_direct_paid:
+            user_entitlement = {
+                'allowed': True,
+                'reason': 'direct_paid',
+                'details': {'remaining': 'Single Query Paid', 'used': 0, 'limit': 1},
+            }
+        else:
+            allowed, reason, details = check_user_entitlement(request.user, service='public_check', cost=1)
+            user_entitlement = {
+                'allowed': allowed,
+                'reason': reason,
+                'details': details,
+            }
 
     context = {
         'site_settings': site_settings,
+        'payg_price': payg_price,
         'is_public_check_free': site_settings.is_service_free('public_check'),
         'user_entitlement': user_entitlement,
+        'is_direct_paid': is_direct_paid,
+        'paid_ref': paid_ref,
     }
     return render(request, 'public/check.html', context)
 

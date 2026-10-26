@@ -86,10 +86,17 @@ def initialize_transaction(user, plan: Plan) -> dict:
         data = response.json()
     except Exception as exc:
         transaction.status = 'failed'
-        transaction.failure_reason = str(exc)
+        err_msg = str(exc)
+        if hasattr(exc, 'response') and exc.response is not None and exc.response.status_code == 401:
+            err_msg = (
+                "Paystack API Authentication Failed (HTTP 401 Unauthorized): "
+                "The PAYSTACK_SECRET_KEY in your environment (.env) was rejected as invalid by Paystack. "
+                "Please update your .env with an active Secret Key from your Paystack Dashboard."
+            )
+        transaction.failure_reason = err_msg
         transaction.save(update_fields=['status', 'failure_reason', 'updated_at'])
-        logger.error("Paystack initialize failed (ref=%s): %s", reference, exc)
-        raise RuntimeError(f"Payment gateway unavailable: {exc}") from exc
+        logger.error("Paystack initialize failed (ref=%s): %s", reference, err_msg)
+        raise RuntimeError(f"Payment gateway error: {err_msg}") from exc
 
     if not data.get('status'):
         transaction.status = 'failed'
@@ -625,10 +632,17 @@ def initialize_service_checkout(
         data = response.json()
     except Exception as exc:
         transaction.status = 'failed'
-        transaction.failure_reason = str(exc)
+        err_msg = str(exc)
+        if hasattr(exc, 'response') and exc.response is not None and exc.response.status_code == 401:
+            err_msg = (
+                "Paystack API Authentication Failed (HTTP 401 Unauthorized): "
+                "The PAYSTACK_SECRET_KEY in your environment (.env) was rejected as invalid by Paystack. "
+                "Please update your .env with an active Secret Key from your Paystack Dashboard."
+            )
+        transaction.failure_reason = err_msg
         transaction.save(update_fields=['status', 'failure_reason', 'updated_at'])
-        logger.error("Paystack PAYG initialize failed (ref=%s, service=%s): %s", reference, service, exc)
-        raise RuntimeError(f"Payment gateway unavailable: {exc}") from exc
+        logger.error("Paystack PAYG initialize failed (ref=%s, service=%s): %s", reference, service, err_msg)
+        raise RuntimeError(f"Payment gateway error: {err_msg}") from exc
 
     if not data.get('status'):
         transaction.status = 'failed'
@@ -733,6 +747,7 @@ def _fulfill_payg_transaction(transaction: Transaction, paystack_data: dict):
     # 4. Continuous Monitoring
     elif service == 'monitoring':
         cert_id = meta.get('certificate_id')
+        staff_check_id = meta.get('staff_check_id')
         if cert_id:
             from verification.models import VerificationCertificate
             cert = VerificationCertificate.objects.filter(certificate_id=cert_id).first()
@@ -743,3 +758,14 @@ def _fulfill_payg_transaction(transaction: Transaction, paystack_data: dict):
                 cert.monitoring_expires_at = timezone.now() + relativedelta(years=1)
                 cert.save(update_fields=['is_monitoring_active', 'monitoring_activated_at', 'monitoring_expires_at', 'updated_at'])
                 logger.info("Monitoring activated for certificate %s after payment %s", cert_id, transaction.reference)
+        if staff_check_id:
+            from employer.models import StaffCheckRequest, StaffCheckMonitor
+            check = StaffCheckRequest.objects.filter(id=staff_check_id).first()
+            if check:
+                monitor, _ = StaffCheckMonitor.objects.get_or_create(
+                    check_request=check,
+                    defaults={'employer': check.employer, 'monitor_status': 'active'}
+                )
+                monitor.monitor_status = 'active'
+                monitor.save(update_fields=['monitor_status', 'updated_at'])
+                logger.info("Staff check monitor %s activated after payment %s", staff_check_id, transaction.reference)

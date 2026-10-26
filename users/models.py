@@ -252,7 +252,7 @@ class UserServiceAccess(models.Model):
         ('verification',       'Business / CAC Verification'),
         ('certificate',        'TrustPass Certificate Application'),
         ('certificate_verify', 'Verify Workforce Certificate (TrustPass)'),
-        ('monitoring',         'Continuous Staff Monitoring'),
+        ('monitoring',         'Certificate Monitoring Services (TrustPass)'),
         ('fraud_report',       'Fraud Crime Reporting'),
         ('misconduct_report',  'Staff Misconduct Reporting'),
     )

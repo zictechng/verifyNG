@@ -180,12 +180,54 @@ def _route_payg_success(request, transaction):
             )
             return redirect('verification:detail', reference_number=req_ref)
     elif service in ('person_check', 'quick_check'):
+        from django.urls import reverse
+        query = meta.get('query') or request.session.pop('pending_person_check_query', '')
         messages.success(
             request,
-            f"Payment of ₦{transaction.amount_naira:,.0f} verified! "
-            "You can now run your person quick-check."
+            f"Payment of ₦{transaction.amount_naira:,.0f} verified successfully! Here is your quick-check result."
         )
-        return redirect('employer:person_check_search')
+        url = reverse('employer:person_check_search')
+        if query:
+            url += f"?paid_ref={transaction.reference}&query={query}"
+        return redirect(url)
+    elif service in ('public_check', 'check'):
+        from django.urls import reverse
+        id_type = meta.get('identifier_type', '')
+        id_val = meta.get('identifier_value', '')
+        messages.success(
+            request,
+            f"Payment of ₦{transaction.amount_naira:,.0f} verified successfully! Here is your trust search result."
+        )
+        url = reverse('check')
+        params = [f"paid_ref={transaction.reference}"]
+        if id_type:
+            params.append(f"type={id_type}")
+        if id_val:
+            params.append(f"q={id_val}")
+        return redirect(f"{url}?{'&'.join(params)}")
+    elif service == 'certificate_verify':
+        from django.urls import reverse
+        cert_id = meta.get('certificate_id', '')
+        surname = meta.get('surname', '')
+        dob = meta.get('dob', '')
+        messages.success(
+            request,
+            f"Payment of ₦{transaction.amount_naira:,.0f} verified! Here is your certificate status check."
+        )
+        url = reverse('employer:certificate_verify')
+        if cert_id:
+            url += f"?paid_ref={transaction.reference}&certificate_id={cert_id}&surname={surname}&date_of_birth={dob}"
+        return redirect(url)
+    elif service == 'monitoring':
+        staff_check_id = meta.get('staff_check_id')
+        if staff_check_id:
+            messages.success(
+                request,
+                f"Payment of ₦{transaction.amount_naira:,.0f} verified successfully! "
+                "Certificate Monitoring Services (TrustPass) is now active."
+            )
+            return redirect('employer:staff_check_detail', check_id=staff_check_id)
+        return redirect('employer:monitoring_list')
     return None
 
 @login_required

@@ -82,7 +82,7 @@ class SiteSettings(models.Model):
         max_length=10,
         choices=SERVICE_ACCESS_CHOICES,
         default='paid',
-        help_text="Continuous Monitoring Services"
+        help_text="Certificate Monitoring Services (TrustPass)"
     )
 
     # Pay-As-You-Go Per-Service Pricing (in Naira ₦)
@@ -124,7 +124,7 @@ class SiteSettings(models.Model):
     )
     price_monitoring_annual = models.PositiveIntegerField(
         default=3000,
-        help_text="Annual continuous monitoring price per staff member in Naira"
+        help_text="Annual Certificate Monitoring Services (TrustPass) price per staff member in Naira"
     )
     price_bulk_check_per_row = models.PositiveIntegerField(
         default=350,
