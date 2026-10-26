@@ -116,12 +116,16 @@ class DashboardIndexView(LoginRequiredMixin, TemplateView):
         ctx["user_disputes"] = _paginate(self.request, disputes_qs, per_page=5, param="dpage")
         
         # User's certificates (most recent 5 for dashboard preview)
-        ctx['user_certificates'] = (
+        user_certs_qs = (
             VerificationCertificate.objects
-            .filter(holder=user)
+            .filter(holder=user, is_active=True)
             .select_related('subject')
-            .order_by('-created_at')[:5]
+            .order_by('-created_at')
         )
+        ctx['user_certificates'] = user_certs_qs[:5]
+        all_user_certs = list(user_certs_qs)
+        ctx['has_active_monitoring'] = any(c.is_monitoring_valid for c in all_user_certs)
+        ctx['can_join_update_service'] = any(c.in_grace_period and not c.is_monitoring_valid for c in all_user_certs)
         # Summary stat strip
         ctx.update(_get_user_summary_counts(user))
 

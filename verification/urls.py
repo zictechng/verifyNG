@@ -23,6 +23,7 @@ urlpatterns = [
 
     # ── DBS Update Service (Dedicated routes) ───────────────────────────
     path('update-service/', views.UpdateServiceLoginView.as_view(), name='update_service_login'),
+    path('update-service/join/', views.UpdateServiceJoinView.as_view(), name='update_service_join'),
     path('update-service/portal/', views.UpdateServicePortalView.as_view(), name='update_service_portal'),
     path('update-service/who-checked-me/', views.UpdateServiceAuditLogView.as_view(), name='update_service_audit_log'),
     path('update-service/enroll/', views.UpdateServiceEnrollView.as_view(), name='update_service_enroll'),

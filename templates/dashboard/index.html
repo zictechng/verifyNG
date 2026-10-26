@@ -141,7 +141,7 @@
                             <div class="small text-muted">Compliance officer review in progress</div>
                         </div>
                     </div>
-                    <a href="{% url 'users:profile' %}" class="btn btn-outline-primary btn-vng-sm w-100">
+                    <a href="{% url 'users:profile' %}" class="btn btn-vng-outline btn-sm w-100">
                         View Submission Status &rarr;
                     </a>
                 {% elif request.user.id_verification_status == 'rejected' %}
@@ -156,7 +156,7 @@
                             <div class="small text-muted">Document resubmission required</div>
                         </div>
                     </div>
-                    <a href="{% url 'users:profile' %}" class="btn btn-outline-danger btn-vng-sm w-100">
+                    <a href="{% url 'users:profile' %}" class="btn btn-vng-outline btn-sm w-100">
                         Resubmit ID Document &rarr;
                     </a>
                 {% else %}
@@ -171,7 +171,7 @@
                             <div class="small text-muted">Required to submit reports</div>
                         </div>
                     </div>
-                    <a href="{% url 'users:profile' %}" class="btn btn-vng-primary btn-vng-sm w-100">
+                    <a href="{% url 'users:profile' %}" class="btn btn-vng-outline btn-sm w-100">
                         Start Verification &rarr;
                     </a>
                 {% endif %}
@@ -184,31 +184,43 @@
             </div>
         </div>
 
-        {# ── Who Checked Me / Worker card ───────────────────────────────────── #}
+        {# ── Clearance Certificates & Update Service card ─────────────────────── #}
         <div class="col-md-4">
             <div class="vng-card p-4 h-100">
                 <div class="d-flex align-items-center justify-content-between mb-3">
-                    <span class="small fw-semibold text-muted">Background Checks</span>
+                    <span class="small fw-semibold text-muted">Clearance &amp; Verification</span>
                     <span class="badge" style="background:var(--vng-teal-light);color:var(--vng-teal);">TrustPass</span>
                 </div>
                 <div class="d-flex align-items-center gap-3 mb-3">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--vng-teal)" stroke-width="1.5">
-                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                        <circle cx="9" cy="7" r="4"/>
-                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--vng-primary, #2563EB)" stroke-width="1.8">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        <polyline points="9 12 11 14 15 10"/>
                     </svg>
                     <div>
-                        <div class="fw-semibold" style="font-size:14px;">Who Checked Me?</div>
-                        <div class="small text-muted">See employer background checks on your NIN</div>
+                        <div class="fw-semibold" style="font-size:14px;">Clearance Certificates</div>
+                        <div class="small text-muted">Verified background vetting &amp; TrustPass credentials</div>
                     </div>
                 </div>
-                <a href="{% url 'dashboard:who_checked_me' %}" class="btn btn-vng-outline btn-vng-sm w-100 mb-2">
-                    Check My Records
-                </a>
-                <a href="{% url 'verification:my_certificates' %}" class="btn btn-vng-primary btn-vng-sm w-100">
-                    My Certificates
-                </a>
+
+                {% if user_certificates %}
+                    <a href="{% url 'verification:my_certificates' %}" class="btn btn-vng-outline btn-sm w-100 mb-2">
+                        My Certificates &rarr;
+                    </a>
+                    {% if has_active_monitoring %}
+                        <a href="{% url 'verification:update_service_portal' %}" class="btn btn-vng-outline btn-sm w-100 d-inline-flex align-items-center justify-content-center gap-1.5">
+                            <span class="d-inline-block rounded-circle bg-success" style="width: 7px; height: 7px;"></span>
+                            <span>Update Service Portal &rarr;</span>
+                        </a>
+                    {% elif can_join_update_service %}
+                        <a href="{% url 'verification:update_service_join' %}" class="btn btn-vng-outline btn-sm w-100">
+                            Join Update Service &rarr;
+                        </a>
+                    {% endif %}
+                {% else %}
+                    <a href="{% url 'verification:certificate_apply' %}" class="btn btn-vng-outline btn-sm w-100">
+                        Apply for Certificate &rarr;
+                    </a>
+                {% endif %}
             </div>
         </div>
 
@@ -309,8 +321,17 @@
                             {% endif %}
                         </td>
                         <td class="text-end">
-                            <a href="{% url 'verification:my_certificate' cert.certificate_id %}"
-                            class="btn btn-sm btn-outline-secondary">View</a>
+                            <div class="d-flex align-items-center justify-content-end gap-1">
+                                {% if cert.is_monitoring_valid %}
+                                    <a href="{% url 'verification:update_service_portal' %}?cert={{ cert.certificate_id }}"
+                                       class="btn btn-sm btn-outline-success py-0 px-2" style="font-size:11.5px;">Update Service</a>
+                                {% elif cert.in_grace_period %}
+                                    <a href="{% url 'verification:update_service_join' %}?cert={{ cert.certificate_id }}"
+                                       class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size:11.5px;">Join Update</a>
+                                {% endif %}
+                                <a href="{% url 'verification:my_certificate' cert.certificate_id %}"
+                                   class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size:11.5px;">View</a>
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}

@@ -1209,7 +1209,207 @@ class UpdateServiceLoginView(View):
 
         # Success: Store certificate ID in session (Update-Service scoped ONLY)
         request.session['update_service_cert_id'] = cert.certificate_id
-        return redirect('verification:update_service_portal')
+        if cert.is_monitoring_valid:
+            messages.success(request, f"Welcome to your Continuous Update Service portal, {surname_input.title()}.")
+            return redirect('verification:update_service_portal')
+        elif cert.in_grace_period:
+            messages.info(
+                request,
+                f"Certificate {cert.certificate_id} is within its 30-day window ({cert.grace_days_remaining} days left). "
+                "Join the Continuous Update Service to activate your portal and keep your clearance searchable online."
+            )
+            return redirect(f"{reverse('verification:update_service_join')}?cert={cert.certificate_id}")
+        else:
+            request.session.pop('update_service_cert_id', None)
+            form.add_error(
+                None,
+                "This certificate was not registered in the Continuous Update Service within 30 days of issue. "
+                "The enrollment window has expired. A new clearance certificate is required."
+            )
+            return render(request, self.template_name, {'form': form})
+
+
+class UpdateServiceJoinView(View):
+    """
+    Candidate enrollment wizard to join the Continuous Update Service.
+    Enforces the 30-day initial window rule:
+      - Validates certificate reference
+      - When user has multiple eligible certificates, prompts selection
+      - Verifies days_since_issued <= 30
+      - Allows candidate to review and complete contact details (phone, residential address, email)
+      - Summary review (₦3,000/yr annual fee)
+      - Redirects to Paystack checkout to activate continuous monitoring
+    """
+    template_name = 'verification/update_service_join.html'
+
+    def get(self, request):
+        from verification.forms import UpdateServiceJoinForm
+        site_settings = SiteSettings.get()
+        annual_fee = site_settings.price_monitoring_annual
+
+        req_cert_id = request.GET.get('cert')
+        choose_mode = request.GET.get('choose') == '1'
+
+        user_certs = []
+        eligible_certs = []
+        if request.user.is_authenticated:
+            user_certs = list(
+                VerificationCertificate.objects.filter(holder=request.user, is_active=True).order_by('-created_at')
+            )
+            if not user_certs:
+                messages.info(request, "You do not have an active clearance certificate yet. Please apply for a TrustPass certificate first to join the Continuous Update Service.")
+                return redirect('verification:certificate_apply')
+
+            eligible_certs = [c for c in user_certs if c.in_grace_period and not c.is_monitoring_valid]
+
+            # If user has multiple eligible certificates and hasn't picked one (or wants to choose):
+            if (len(eligible_certs) > 1 and not req_cert_id) or (choose_mode and len(eligible_certs) > 1):
+                return render(request, self.template_name, {
+                    'choose_certificate': True,
+                    'eligible_certs': eligible_certs,
+                    'annual_fee': annual_fee,
+                })
+
+            if not eligible_certs and not req_cert_id:
+                if all(c.is_monitoring_valid for c in user_certs):
+                    messages.info(request, "All your certificates are already enrolled in the Continuous Update Service.")
+                    return redirect('verification:update_service_portal')
+                first_cert = user_certs[0]
+                return render(request, self.template_name, {
+                    'cert': first_cert,
+                    'window_expired': True,
+                    'days_since_issued': first_cert.days_since_issued,
+                })
+
+        # Resolve single certificate
+        cert = None
+        if req_cert_id:
+            cert = VerificationCertificate.objects.filter(certificate_id__iexact=req_cert_id.strip(), is_active=True).first()
+        elif request.user.is_authenticated:
+            if eligible_certs:
+                cert = eligible_certs[0]
+            elif user_certs:
+                cert = user_certs[0]
+        else:
+            session_cert_id = request.session.get('update_service_cert_id')
+            if session_cert_id:
+                cert = VerificationCertificate.objects.filter(certificate_id=session_cert_id, is_active=True).first()
+
+        if not cert:
+            return render(request, self.template_name, {'cert': None})
+
+        # If already subscribed, redirect to portal
+        if cert.is_monitoring_valid:
+            messages.info(request, f"Certificate {cert.certificate_id} is already enrolled in the Continuous Update Service.")
+            request.session['update_service_cert_id'] = cert.certificate_id
+            return redirect('verification:update_service_portal')
+
+        # Check 30-day eligibility window
+        if not cert.in_grace_period:
+            return render(request, self.template_name, {
+                'cert': cert,
+                'window_expired': True,
+                'days_since_issued': cert.days_since_issued,
+            })
+
+        # Eligible: Retrieve name, email, phone, residential address
+        app_log = AuditLog.objects.filter(
+            action="TRUSTPASS_APPLICATION_SUBMITTED"
+        ).order_by('-timestamp')
+        det = {}
+        for l in app_log[:50]:
+            d = l.details if isinstance(l.details, dict) else {}
+            if d.get('certificate_id') == cert.certificate_id:
+                det = d
+                break
+
+        cand_name = (cert.subject.name if cert.subject else None) or det.get('full_name') or ''
+        if not cand_name and cert.holder:
+            cand_name = cert.holder.get_full_name() or cert.holder.username
+
+        initial_email = (cert.holder.email if cert.holder else '') or det.get('email', '')
+        initial_phone = (getattr(cert.holder, 'phone_number', '') if cert.holder else '') or det.get('phone_number', '')
+        initial_address = (getattr(cert.holder, 'address', '') if cert.holder else '') or det.get('residential_address') or det.get('address') or ''
+
+        form = UpdateServiceJoinForm(initial={
+            'certificate_id': cert.certificate_id,
+            'full_name': cand_name,
+            'email': initial_email,
+            'phone_number': initial_phone,
+            'residential_address': initial_address,
+        })
+
+        has_multiple_eligible = (len(eligible_certs) > 1) if request.user.is_authenticated else False
+
+        return render(request, self.template_name, {
+            'cert': cert,
+            'form': form,
+            'cand_name': cand_name,
+            'annual_fee': annual_fee,
+            'days_remaining': cert.grace_days_remaining,
+            'window_expired': False,
+            'has_multiple_eligible': has_multiple_eligible,
+        })
+
+    def post(self, request):
+        from verification.forms import UpdateServiceJoinForm
+        form = UpdateServiceJoinForm(request.POST)
+        if not form.is_valid():
+            cert_id = request.POST.get('certificate_id')
+            cert = VerificationCertificate.objects.filter(certificate_id__iexact=cert_id, is_active=True).first() if cert_id else None
+            site_settings = SiteSettings.get()
+            return render(request, self.template_name, {
+                'cert': cert,
+                'form': form,
+                'annual_fee': site_settings.price_monitoring_annual,
+                'days_remaining': cert.grace_days_remaining if cert else 0,
+                'window_expired': False,
+            })
+
+        cert_id = form.cleaned_data['certificate_id'].strip().upper()
+        cert = VerificationCertificate.objects.filter(certificate_id__iexact=cert_id, is_active=True).first()
+        if not cert:
+            messages.error(request, "No active clearance certificate found matching this Reference ID.")
+            return redirect('verification:update_service_join')
+
+        if not cert.in_grace_period:
+            messages.error(request, "This certificate is beyond the 30-day enrollment window and cannot be added to the Update Service.")
+            return redirect('verification:update_service_join')
+
+        if cert.holder:
+            if form.cleaned_data.get('phone_number'):
+                cert.holder.phone_number = form.cleaned_data['phone_number']
+            if form.cleaned_data.get('residential_address'):
+                cert.holder.address = form.cleaned_data['residential_address']
+            cert.holder.save()
+
+        request.session['update_service_cert_id'] = cert.certificate_id
+
+        # Initiate checkout via Paystack
+        site_settings = SiteSettings.get()
+        amount_naira = site_settings.price_monitoring_annual
+        user = cert.holder if cert.holder else request.user
+        if not user or not user.is_authenticated:
+            user = cert.holder
+
+        try:
+            checkout_res = initialize_service_checkout(
+                user=user,
+                service='monitoring',
+                tier='annual',
+                amount_naira=amount_naira,
+                metadata={
+                    'service': 'monitoring',
+                    'certificate_id': cert.certificate_id,
+                    'phone': form.cleaned_data['phone_number'],
+                    'address': form.cleaned_data['residential_address'],
+                    'email': form.cleaned_data['email'],
+                }
+            )
+            return redirect(checkout_res['authorization_url'])
+        except Exception as e:
+            messages.error(request, f"Unable to initialize payment gateway: {e}")
+            return redirect(f"{reverse('verification:update_service_join')}?cert={cert.certificate_id}")
 
 
 class UpdateServicePortalView(View):
@@ -1226,8 +1426,26 @@ class UpdateServicePortalView(View):
     def get(self, request):
         cert = _get_update_service_cert(request)
         if not cert:
+            if request.user.is_authenticated:
+                messages.info(request, "You do not have an active clearance certificate yet. Please apply for a TrustPass certificate first to join the Continuous Update Service.")
+                return redirect('verification:certificate_apply')
             messages.info(request, "Please enter your Certificate ID, Surname, and Date of Birth to access your Update Service.")
             return redirect('verification:update_service_login')
+
+        if not cert.is_monitoring_valid:
+            if cert.in_grace_period:
+                messages.warning(
+                    request,
+                    f"Certificate {cert.certificate_id} has not been added to the Continuous Update Service yet. "
+                    f"Please complete registration below within your 30-day window ({cert.grace_days_remaining} days left) to activate your portal."
+                )
+                return redirect(f"{reverse('verification:update_service_join')}?cert={cert.certificate_id}")
+            else:
+                messages.error(
+                    request,
+                    f"Certificate {cert.certificate_id} was not enrolled in the Update Service within 30 days and has expired from online search. A new certificate is required."
+                )
+                return redirect('verification:my_certificates' if request.user.is_authenticated else 'verification:update_service_login')
 
         # Retrieve application metadata
         app_log = AuditLog.objects.filter(

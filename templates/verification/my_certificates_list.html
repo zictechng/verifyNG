@@ -94,8 +94,19 @@
                             {% if cert.expires_at %}{{ cert.expires_at|date:"j M Y" }}{% else %}—{% endif %}
                         </td>
                         <td class="pe-4 py-3 text-end">
-                            <a href="{% url 'verification:my_certificate' cert.certificate_id %}"
-                               class="btn btn-vng-outline btn-vng-sm">View</a>
+                            <div class="d-flex align-items-center justify-content-end gap-1 flex-wrap">
+                                {% if cert.status == 'active' %}
+                                    {% if cert.is_monitoring_valid %}
+                                        <a href="{% url 'verification:update_service_portal' %}?cert={{ cert.certificate_id }}"
+                                           class="btn btn-vng-outline btn-vng-sm text-success">Update Service</a>
+                                    {% elif cert.in_grace_period %}
+                                        <a href="{% url 'verification:update_service_join' %}?cert={{ cert.certificate_id }}"
+                                           class="btn btn-vng-outline btn-vng-sm text-primary">Join Update</a>
+                                    {% endif %}
+                                {% endif %}
+                                <a href="{% url 'verification:my_certificate' cert.certificate_id %}"
+                                   class="btn btn-vng-outline btn-vng-sm">View</a>
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}

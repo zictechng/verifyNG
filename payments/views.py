@@ -222,11 +222,42 @@ def _route_payg_success(request, transaction):
         cert_id = meta.get('certificate_id')
         staff_check_id = meta.get('staff_check_id')
         if cert_id:
+            from datetime import timedelta
+            from django.utils import timezone
+            from verification.models import VerificationCertificate
+            from audit.models import AuditLog
+            cert = VerificationCertificate.objects.filter(certificate_id=cert_id, is_active=True).first()
+            if cert:
+                cert.is_monitoring_active = True
+                cert.monitoring_activated_at = timezone.now()
+                cert.monitoring_expires_at = timezone.now() + timedelta(days=365)
+                cert.save(update_fields=['is_monitoring_active', 'monitoring_activated_at', 'monitoring_expires_at', 'updated_at'])
+
+                # Update candidate contact info if present in metadata
+                if meta.get('phone') and cert.holder and not getattr(cert.holder, 'phone_number', None):
+                    cert.holder.phone_number = meta['phone']
+                    cert.holder.save(update_fields=['phone_number'])
+                if meta.get('address') and cert.holder and not getattr(cert.holder, 'address', None):
+                    cert.holder.address = meta['address']
+                    cert.holder.save(update_fields=['address'])
+
+                AuditLog.objects.create(
+                    action='UPDATE_SERVICE_ENROLLED',
+                    user=cert.holder or request.user,
+                    ip_address=request.META.get('REMOTE_ADDR'),
+                    details={
+                        'certificate_id': cert.certificate_id,
+                        'transaction_reference': transaction.reference,
+                        'amount_naira': transaction.amount_naira,
+                        'expires_at': cert.monitoring_expires_at.isoformat(),
+                    }
+                )
+
             request.session['update_service_cert_id'] = cert_id
             messages.success(
                 request,
                 f"Payment of ₦{transaction.amount_naira:,.0f} verified successfully! "
-                "Your certificate is now registered on the Continuous Update Service."
+                "Your certificate is now registered on the Continuous Update Service for 1 year."
             )
             return redirect('verification:update_service_portal')
         elif staff_check_id:

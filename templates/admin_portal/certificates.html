@@ -8,7 +8,14 @@
     <h1 class="adm-page-title">TrustPass & DBS Clearance Certificates</h1>
     <p class="adm-page-sub">Manage candidate background clearance applications and issued credentials.</p>
   </div>
-  <span class="badge bg-secondary fs-6 fw-semibold">{{ total }} total</span>
+  <div class="d-flex align-items-center gap-2">
+    <span class="badge bg-secondary fs-6 fw-semibold">{{ total }} total</span>
+    {% if active_monitoring_count %}
+    <span class="badge bg-success-subtle text-success border border-success-subtle fs-6 fw-semibold">
+      <i class="bi bi-shield-check me-1"></i>{{ active_monitoring_count }} in Update Service
+    </span>
+    {% endif %}
+  </div>
 </div>
 <!-- Moderation Navigation Tabs -->
 <ul class="nav nav-pills mb-4 gap-2">
@@ -33,11 +40,11 @@
 <!-- Filters -->
 <form method="get" class="adm-filter-bar mb-4" style="position:relative;z-index:2;">
   <div class="row g-2 align-items-end w-100">
-    <div class="col-md-5">
+    <div class="col-md-4">
       <label class="form-label small fw-semibold mb-1" style="color:var(--adm-muted);">Search</label>
       <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Candidate name, Cert ID, employer name…" style="height:38px;">
     </div>
-    <div class="col-md-3">
+    <div class="col-md-2">
       <label class="form-label small fw-semibold mb-1" style="color:var(--adm-muted);">Status</label>
       <select name="status" class="form-select" style="height:38px;">
         <option value="">All Statuses</option>
@@ -56,10 +63,18 @@
       </select>
     </div>
     <div class="col-md-2">
+      <label class="form-label small fw-semibold mb-1" style="color:var(--adm-muted);">Update Service</label>
+      <select name="monitoring" class="form-select" style="height:38px;">
+        <option value="">All Statuses</option>
+        <option value="active" {% if monitoring_filter == 'active' %}selected{% endif %}>Subscribed (Active)</option>
+        <option value="inactive" {% if monitoring_filter == 'inactive' %}selected{% endif %}>Not Enrolled / Lapsed</option>
+      </select>
+    </div>
+    <div class="col-md-2">
       <label class="form-label small mb-1" style="color:transparent;">x</label>
       <div class="d-flex gap-2">
         <button type="submit" class="btn-adm-primary w-100" style="justify-content:center;height:38px;">Filter</button>
-        {% if q or status_filter or level_filter %}
+        {% if q or status_filter or level_filter or monitoring_filter %}
         <a href="{% url 'admin_portal:certificates' %}" class="btn-adm-outline" title="Clear filters" style="height:38px;padding:0 12px;display:flex;align-items:center;justify-content:center;">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </a>
@@ -80,6 +95,7 @@
           <th>Applied By (Employer)</th>
           <th>Check Level</th>
           <th>Status</th>
+          <th>Update Service</th>
           <th>Submitted</th>
           <th>Expires</th>
           <th class="text-end">Actions</th>
@@ -125,6 +141,19 @@
               <span class="badge bg-secondary">{{ cert.status }}</span>
             {% endif %}
           </td>
+          <td>
+            {% if cert.is_monitoring_valid %}
+              <span class="badge bg-success-subtle text-success border border-success-subtle py-1 px-2 font-monospace" style="font-size:11px;">
+                <i class="bi bi-shield-check me-1"></i>Active (exp. {{ cert.monitoring_expires_at|date:"d/m/Y" }})
+              </span>
+            {% elif cert.in_grace_period %}
+              <span class="badge bg-warning-subtle text-dark border py-1 px-2" style="font-size:11px;">
+                30-Day Window ({{ cert.grace_days_remaining }}d)
+              </span>
+            {% else %}
+              <span class="badge bg-light text-muted border py-1 px-2" style="font-size:11px;">Not Enrolled</span>
+            {% endif %}
+          </td>
           <td class="small">{{ cert.created_at|date:"d M Y, H:i" }}</td>
           <td class="small">
             {% if cert.expires_at %}
@@ -164,12 +193,21 @@
                 <i class="bi bi-x-circle"></i>
               </button>
               {% endif %}
+              {% if cert.is_monitoring_valid %}
+              <button class="btn btn-outline-danger btn-sm cert-action-btn"
+                      data-pk="{{ cert.public_id }}"
+                      data-action="remove_monitoring"
+                      data-cert-id="{{ cert.certificate_id }}"
+                      title="Remove / Unlist from Update Service">
+                <i class="bi bi-shield-slash"></i>
+              </button>
+              {% endif %}
             </div>
           </td>
         </tr>
         {% empty %}
         <tr>
-          <td colspan="7" class="text-center text-muted py-5">
+          <td colspan="8" class="text-center text-muted py-5">
             <i class="bi bi-award fs-2 d-block mb-2"></i>
             No certificates found{% if q or status_filter or level_filter %} matching your filters{% endif %}.
           </td>
@@ -232,8 +270,18 @@
       pendingAction = btn.dataset.action;
       pendingCertId = btn.dataset.certId;
 
-      const actionLabels = { activate: 'Activate', suspend: 'Suspend', revoke: 'Revoke' };
-      const actionColors = { activate: 'btn-success', suspend: 'btn-warning', revoke: 'btn-danger' };
+      const actionLabels = {
+        activate: 'Activate',
+        suspend: 'Suspend',
+        revoke: 'Revoke',
+        remove_monitoring: 'Remove from Update Service'
+      };
+      const actionColors = {
+        activate: 'btn-success',
+        suspend: 'btn-warning',
+        revoke: 'btn-danger',
+        remove_monitoring: 'btn-danger'
+      };
       const label = actionLabels[pendingAction] || pendingAction;
 
       document.getElementById('certModalTitle').textContent = label + ' Certificate';

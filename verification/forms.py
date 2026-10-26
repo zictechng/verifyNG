@@ -401,3 +401,58 @@ class UpdateServiceLoginForm(forms.Form):
         })
     )
 
+
+
+class UpdateServiceJoinForm(forms.Form):
+    """
+    Form to apply/join the Continuous Update Service for a certificate.
+    Confirms contact details (email, phone, residential address) before Paystack checkout.
+    """
+    certificate_id = forms.CharField(
+        max_length=64,
+        required=True,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control py-2 font-monospace fw-bold',
+            'placeholder': 'e.g. VNG-2026-99E1E30C',
+            'style': 'text-transform: uppercase;',
+            'readonly': 'readonly',
+        })
+    )
+    full_name = forms.CharField(
+        max_length=200,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control py-2 bg-light',
+            'readonly': 'readonly',
+        })
+    )
+    email = forms.EmailField(
+        required=True,
+        widget=forms.EmailInput(attrs={
+            'class': 'form-control py-2',
+            'placeholder': 'name@example.com',
+            'autocomplete': 'email',
+        })
+    )
+    phone_number = forms.CharField(
+        max_length=25,
+        required=True,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control py-2',
+            'placeholder': 'e.g. 08012345678',
+            'autocomplete': 'tel',
+        })
+    )
+    residential_address = forms.CharField(
+        max_length=300,
+        required=True,
+        widget=forms.Textarea(attrs={
+            'class': 'form-control py-2',
+            'rows': 2,
+            'placeholder': 'Enter your full residential address (Street, City, State)',
+        })
+    )
+    declaration = forms.BooleanField(
+        required=True,
+        label="I confirm the contact details above are correct and request enrollment of this certificate into the Continuous Update Service."
+    )

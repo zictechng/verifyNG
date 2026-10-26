@@ -100,52 +100,49 @@
         </div>
         {% endif %}
 
-        {# ── DBS Continuous Update Service Banner ── #}
+        {# ── Continuous Update Service Banner ── #}
         {% if certificate.status == 'active' %}
         <div class="mb-4 p-3 rounded-3 border d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3"
              style="background: linear-gradient(135deg, rgba(37,99,235,0.05) 0%, rgba(16,185,129,0.04) 100%); border-color: #E2E8F0 !important; border-left: 3.5px solid #2563EB !important;">
             <div>
                 <div class="d-flex align-items-center gap-2 mb-1">
-                    <span class="badge bg-primary text-white" style="font-size: 10px;">DBS / TrustPass</span>
+                    <span class="badge bg-primary text-white" style="font-size: 10px;">Certificate / TrustPass</span>
                     <strong class="text-dark" style="font-size: 0.95rem;">Continuous Update Service</strong>
                 </div>
                 <div class="text-muted small">
                     {% if certificate.is_monitoring_valid %}
                         <span class="text-success fw-semibold">✓ Subscribed &amp; Covered</span> &bull; Enrolled in live monitoring through {{ certificate.monitoring_expires_at|date:"d M Y" }}.
                     {% elif certificate.in_grace_period %}
-                        <span class="text-warning fw-semibold">30-Day Window Active ({{ certificate.grace_days_remaining }} day{{ certificate.grace_days_remaining|pluralize }} left)</span> &bull; Keep this certificate searchable beyond 30 days.
+                        <span class="text-warning fw-semibold">30-Day Window Active ({{ certificate.grace_days_remaining }} day{{ certificate.grace_days_remaining|pluralize }} left)</span> &bull; Add this certificate to the Update Service to keep it searchable online beyond 30 days.
                     {% else %}
-                        <span class="text-danger fw-semibold">Subscription Expired</span> &bull; Continuous live monitoring required for online employer verification.
+                        <span class="text-danger fw-semibold">Enrollment Window Closed</span> &bull; This certificate was not enrolled within 30 days and can no longer be added to the Update Service.
                     {% endif %}
                 </div>
             </div>
-            <div>
-                <a href="{% url 'verification:update_service_portal' %}?cert={{ certificate.certificate_id }}"
-                   class="btn btn-vng-primary btn-vng-sm text-nowrap d-inline-flex align-items-center gap-1">
-                    <span>Access Update Service Portal</span>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M5 12h14M12 5l7 7-7 7"/>
-                    </svg>
-                </a>
-            </div>
-        </div>
-        {% endif %}
-
-        {# ── Verification History / Access Audit Log (Candidates & Officers only) ── #}
-        {% if certificate.status == 'active' and not request.user.is_employer and request.user.role != 'employer' and request.user.role != 'business' %}
-        <div class="mb-3 pt-2 border-top">
-            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2">
-                <div>
-                    <div class="small fw-semibold text-dark">Verification Access History</div>
-                    <div class="text-muted" style="font-size: 0.8rem;">Audit log tracking third parties who have scanned or verified your credential.</div>
-                </div>
-                <a href="{% url 'verification:query_log' certificate.certificate_id %}" class="btn btn-vng-outline btn-vng-sm d-inline-flex align-items-center">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <polyline points="12 6 12 12 16 14"></polyline>
-                    </svg>
-                    View Access History
-                </a>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                {% if certificate.is_monitoring_valid %}
+                    <a href="{% url 'verification:update_service_portal' %}?cert={{ certificate.certificate_id }}"
+                       class="btn btn-vng-primary btn-vng-sm text-nowrap d-inline-flex align-items-center gap-1">
+                        <span>Access Update Service Portal</span>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M5 12h14M12 5l7 7-7 7"/>
+                        </svg>
+                    </a>
+                {% elif certificate.in_grace_period %}
+                    <a href="{% url 'verification:update_service_join' %}?cert={{ certificate.certificate_id }}"
+                       class="btn btn-vng-primary btn-vng-sm text-nowrap d-inline-flex align-items-center gap-1">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        <span>Join Update Service</span>
+                    </a>
+                {% else %}
+                    <a href="{% url 'verification:certificate_apply' %}"
+                       class="btn btn-outline-secondary btn-vng-sm text-nowrap">
+                        Apply for New Certificate &rarr;
+                    </a>
+                {% endif %}
             </div>
         </div>
         {% endif %}

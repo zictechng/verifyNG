@@ -1,0 +1,334 @@
+{% extends 'public/base.html' %}
+{% load static %}
+
+{% block title %}Join Continuous Update Service | {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-md-5">
+    <div class="row justify-content-center">
+        <div class="col-12 col-md-10 col-lg-8 col-xl-7">
+
+            <!-- Back Link -->
+            <div class="mb-3">
+                {% if request.user.is_authenticated %}
+                    <a href="{% url 'verification:my_certificates' %}" class="text-decoration-none small text-muted d-inline-flex align-items-center">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1">
+                            <path d="M19 12H5M12 19l-7-7 7-7"/>
+                        </svg>
+                        Back to My Certificates
+                    </a>
+                {% else %}
+                    <a href="{% url 'home' %}" class="text-decoration-none small text-muted d-inline-flex align-items-center">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1">
+                            <path d="M19 12H5M12 19l-7-7 7-7"/>
+                        </svg>
+                        Back to Home
+                    </a>
+                {% endif %}
+            </div>
+
+            <!-- Header Badge & Title -->
+            <div class="text-center mb-4">
+                <div class="d-inline-flex align-items-center gap-1.5 px-3 py-1 rounded-pill small fw-semibold mb-2"
+                     style="background: var(--vng-primary-light, #EEF2FF); color: var(--vng-primary, #2457D6);">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    </svg>
+                    Certificate / TrustPass
+                </div>
+                <h1 class="h3 fw-bold text-dark mb-1">Join Continuous Update Service</h1>
+                <p class="text-muted small mb-0 px-2">
+                    Keep your TrustPass certificate permanently searchable and verifiable online by employers without re-applying.
+                </p>
+            </div>
+
+            <!-- Messages -->
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show small" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            {% if choose_certificate %}
+                <!-- ── Multi-Certificate Selection Screen ── -->
+                <div class="vng-card p-3 p-sm-4 p-md-5 shadow-sm border mb-4" style="border-radius: 14px; background: #ffffff;">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="badge bg-primary rounded-circle px-2 py-1" style="font-size: 11px;">1</span>
+                        <h2 class="h5 fw-bold mb-0 text-dark">Select Certificate to Enroll</h2>
+                    </div>
+                    <p class="text-muted small mb-4">
+                        You have <strong>{{ eligible_certs|length }}</strong> clearance certificates eligible for the Update Service. Please select which certificate you wish to register:
+                    </p>
+
+                    <div class="d-flex flex-column gap-3 mb-4">
+                        {% for ec in eligible_certs %}
+                            <div class="p-3 rounded-3 border d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 bg-light"
+                                 style="transition: all 0.2s ease;">
+                                <div>
+                                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                                        <span class="font-monospace fw-bold text-dark fs-6">{{ ec.certificate_id }}</span>
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle">{{ ec.get_check_level_display }}</span>
+                                    </div>
+                                    <div class="small text-muted mt-1">
+                                        Issued: {{ ec.issued_at|date:"d M Y"|default:ec.created_at|date:"d M Y" }} &bull;
+                                        <span class="text-warning fw-semibold">{{ ec.grace_days_remaining }} day{{ ec.grace_days_remaining|pluralize }} left in 30-day window</span>
+                                    </div>
+                                </div>
+                                <a href="{% url 'verification:update_service_join' %}?cert={{ ec.certificate_id }}"
+                                   class="btn btn-vng-primary btn-sm text-nowrap px-3 py-1.5 fw-semibold">
+                                    Enroll This Certificate &rarr;
+                                </a>
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="p-3 rounded-3 border bg-light text-muted small" style="font-size: 12px; line-height: 1.5;">
+                        <i class="bi bi-info-circle me-1 text-primary"></i>
+                        Each certificate enrolled in the Update Service receives an independent annual subscription (₦{{ annual_fee|floatformat:0 }}/yr) with its own continuous verification audit trail.
+                    </div>
+                </div>
+
+            {% elif window_expired %}
+                <!-- ── 30-Day Window Expired State ── -->
+                <div class="vng-card p-4 p-md-5 shadow-sm border text-center" style="border-radius: 14px;">
+                    <div class="mb-3">
+                        <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-danger-subtle text-danger" style="width: 56px; height: 56px;">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="12" y1="8" x2="12" y2="12"/>
+                                <line x1="12" y1="16" x2="12.01" y2="16"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <h2 class="h5 fw-bold text-dark mb-2">30-Day Enrollment Window Closed</h2>
+                    <p class="text-muted small mb-4" style="line-height: 1.6;">
+                        Certificate <strong class="font-monospace text-dark">{{ cert.certificate_id }}</strong> was issued on 
+                        <strong>{{ cert.issued_at|date:"d M Y"|default:cert.created_at|date:"d M Y" }}</strong> ({{ days_since_issued }} days ago).<br>
+                        Under platform clearance regulations, certificates can only be enrolled into the Continuous Update Service within <strong>30 days of issuance</strong>. Because this window has closed, this certificate can no longer be added or searched online by employers.
+                    </p>
+                    <div class="d-flex justify-content-center gap-2 flex-wrap">
+                        <a href="{% url 'verification:certificate_apply' %}" class="btn btn-vng-primary btn-sm px-4 py-2">
+                            Apply for New Certificate &rarr;
+                        </a>
+                        <a href="{% url 'verification:my_certificates' %}" class="btn btn-outline-secondary btn-sm px-4 py-2">
+                            Return to My Certificates
+                        </a>
+                    </div>
+                </div>
+
+            {% elif cert %}
+                <!-- ── Eligible Enrollment Wizard ── -->
+                <div class="vng-card p-3 p-sm-4 p-md-5 shadow-sm border mb-4" style="border-radius: 14px; background: #ffffff;">
+
+                    <!-- Window Countdown Alert -->
+                    <div class="alert alert-info d-flex align-items-center gap-2 p-2.5 px-3 mb-4 small" style="border-radius: 10px;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="flex-shrink-0 text-primary">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                        <div class="flex-grow-1">
+                            <strong>Initial Window Active:</strong> You have <strong>{{ days_remaining }} day{{ days_remaining|pluralize }}</strong> remaining to add this certificate to the Update Service.
+                        </div>
+                        {% if has_multiple_eligible %}
+                            <a href="{% url 'verification:update_service_join' %}?choose=1" class="small fw-semibold text-primary text-decoration-none text-nowrap">
+                                Switch Cert &rarr;
+                            </a>
+                        {% endif %}
+                    </div>
+
+                    <form method="post" action="{% url 'verification:update_service_join' %}" novalidate>
+                        {% csrf_token %}
+
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger small p-2 px-3 mb-3" style="border-radius: 8px;">
+                                {% for error in form.non_field_errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+
+                        <!-- Step 1: Certificate Reference -->
+                        <div class="mb-4 pb-3 border-bottom">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="badge bg-primary rounded-circle px-2 py-1" style="font-size: 11px;">1</span>
+                                    <h2 class="h6 fw-bold mb-0 text-dark">Certificate Reference</h2>
+                                </div>
+                                {% if has_multiple_eligible %}
+                                    <a href="{% url 'verification:update_service_join' %}?choose=1" class="small text-muted text-decoration-none">
+                                        Choose different certificate &rarr;
+                                    </a>
+                                {% endif %}
+                            </div>
+                            <div class="row g-2">
+                                <div class="col-12 col-sm-6">
+                                    <label class="form-label small text-muted mb-1">Certificate Reference ID</label>
+                                    {{ form.certificate_id }}
+                                    {% if form.certificate_id.errors %}
+                                        <div class="text-danger small mt-1">{{ form.certificate_id.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-12 col-sm-6">
+                                    <label class="form-label small text-muted mb-1">Candidate Full Name</label>
+                                    {{ form.full_name }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 2: Confirm & Complete Contact Details -->
+                        <div class="mb-4 pb-3 border-bottom">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <span class="badge bg-primary rounded-circle px-2 py-1" style="font-size: 11px;">2</span>
+                                <h2 class="h6 fw-bold mb-0 text-dark">Confirm Contact Details</h2>
+                            </div>
+                            <p class="text-muted small mb-3" style="font-size: 12.5px;">
+                                These details form your private correspondence record in the Update Service portal. Employers will never see your address or phone number.
+                            </p>
+
+                            <!-- Email -->
+                            <div class="mb-3">
+                                <label for="{{ form.email.id_for_label }}" class="form-label small fw-semibold text-dark mb-1">
+                                    Email Address <span class="text-danger">*</span>
+                                </label>
+                                {{ form.email }}
+                                {% if form.email.errors %}
+                                    <div class="text-danger small mt-1">{{ form.email.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Mobile Phone -->
+                            <div class="mb-3">
+                                <label for="{{ form.phone_number.id_for_label }}" class="form-label small fw-semibold text-dark mb-1">
+                                    Mobile Phone Number <span class="text-danger">*</span>
+                                </label>
+                                {{ form.phone_number }}
+                                {% if form.phone_number.errors %}
+                                    <div class="text-danger small mt-1">{{ form.phone_number.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Residential Address -->
+                            <div class="mb-3">
+                                <label for="{{ form.residential_address.id_for_label }}" class="form-label small fw-semibold text-dark mb-1">
+                                    Residential / Correspondence Address <span class="text-danger">*</span>
+                                </label>
+                                {{ form.residential_address }}
+                                {% if form.residential_address.errors %}
+                                    <div class="text-danger small mt-1">{{ form.residential_address.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Step 3: Subscription Summary & Review -->
+                        <div class="mb-4">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <span class="badge bg-primary rounded-circle px-2 py-1" style="font-size: 11px;">3</span>
+                                <h2 class="h6 fw-bold mb-0 text-dark">Subscription Summary</h2>
+                            </div>
+
+                            <div class="p-3 rounded-3 border bg-light mb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="small text-muted">Service Plan</span>
+                                    <span class="small fw-bold text-dark">Continuous Update Service (1 Year)</span>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="small text-muted">Clearance Certificate</span>
+                                    <span class="small font-monospace fw-semibold">{{ cert.certificate_id }}</span>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="small text-muted">Status Check Audit Trail</span>
+                                    <span class="small text-success fw-semibold">✓ Included</span>
+                                </div>
+                                <div class="border-top pt-2 d-flex justify-content-between align-items-center">
+                                    <span class="fw-bold text-dark">Annual Subscription Fee</span>
+                                    <span class="h5 fw-bold text-primary mb-0">₦{{ annual_fee|floatformat:0 }} <small class="text-muted fw-normal" style="font-size: 12px;">/ yr</small></span>
+                                </div>
+                            </div>
+
+                            <!-- Interactive Declaration Checkbox Card -->
+                            <div class="p-3 rounded-3 border mb-3"
+                                 id="declarationBox"
+                                 style="cursor: pointer; background: #F8FAFC; border-color: #CBD5E1 !important; transition: all 0.2s ease;"
+                                 onclick="toggleDeclaration()">
+                                <div class="d-flex align-items-start gap-3">
+                                    <input class="form-check-input flex-shrink-0 mt-1 me-3"
+                                           type="checkbox"
+                                           name="declaration"
+                                           id="{{ form.declaration.id_for_label }}"
+                                           style="cursor: pointer; width: 1.25rem; height: 1.25rem; margin-right: 12px !important;"
+                                           onclick="event.stopPropagation(); syncDeclarationStyle();"
+                                           required>
+                                    <label class="form-check-label small text-dark mb-0 user-select-none"
+                                           for="{{ form.declaration.id_for_label }}"
+                                           style="cursor: pointer; line-height: 1.5;"
+                                           onclick="event.stopPropagation(); toggleDeclaration();">
+                                        <strong>Good-faith legal declaration:</strong> I confirm that the contact details above are accurate and represent my true personal record. I request enrollment of certificate <span class="font-monospace fw-bold">{{ cert.certificate_id }}</span> into the VerifyNG Continuous Update Service.
+                                    </label>
+                                </div>
+                                {% if form.declaration.errors %}
+                                    <div class="text-danger small mt-2">{{ form.declaration.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <script>
+                                function toggleDeclaration() {
+                                    const cb = document.getElementById('{{ form.declaration.id_for_label }}');
+                                    if (cb) {
+                                        cb.checked = !cb.checked;
+                                        syncDeclarationStyle();
+                                    }
+                                }
+                                function syncDeclarationStyle() {
+                                    const cb = document.getElementById('{{ form.declaration.id_for_label }}');
+                                    const box = document.getElementById('declarationBox');
+                                    if (cb && box) {
+                                        if (cb.checked) {
+                                            box.style.background = '#EFF6FF';
+                                            box.style.borderColor = '#2563EB';
+                                            box.style.boxShadow = '0 0 0 2px rgba(37,99,235,0.15)';
+                                        } else {
+                                            box.style.background = '#F8FAFC';
+                                            box.style.borderColor = '#CBD5E1';
+                                            box.style.boxShadow = 'none';
+                                        }
+                                    }
+                                }
+                            </script>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <button type="submit" class="btn btn-vng-primary w-100 py-2.5 fw-semibold d-flex align-items-center justify-content-center gap-2">
+                            <span>Proceed to Pay ₦{{ annual_fee|floatformat:0 }} via Paystack</span>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                                <path d="M5 12h14M12 5l7 7-7 7"/>
+                            </svg>
+                        </button>
+                    </form>
+                </div>
+
+            {% else %}
+                <!-- ── Certificate Lookup Form ── -->
+                <div class="vng-card p-4 p-md-5 shadow-sm border" style="border-radius: 14px;">
+                    <h2 class="h5 fw-bold text-dark mb-2">Enter Certificate Reference</h2>
+                    <p class="text-muted small mb-4">
+                        Please enter the 16-character certificate reference printed on your TrustPass clearance document to check eligibility.
+                    </p>
+                    <form method="get" action="{% url 'verification:update_service_join' %}">
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold text-dark mb-1">Certificate Reference ID</label>
+                            <input type="text" name="cert" class="form-control py-2 font-monospace" placeholder="e.g. VNG-2026-99E1E30C" style="text-transform: uppercase;" required>
+                        </div>
+                        <button type="submit" class="btn btn-vng-primary w-100 py-2 fw-semibold">
+                            Continue &rarr;
+                        </button>
+                    </form>
+                </div>
+            {% endif %}
+
+        </div>
+    </div>
+</div>
+{% endblock %}

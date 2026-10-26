@@ -2401,12 +2401,17 @@ class AdminCertificatesView(SuperAdminRequiredMixin, TemplateView):
         # Filters
         status_filter = self.request.GET.get('status', '')
         level_filter = self.request.GET.get('level', '')
+        monitoring_filter = self.request.GET.get('monitoring', '')
         q = self.request.GET.get('q', '').strip()
 
         if status_filter:
             qs = qs.filter(status=status_filter)
         if level_filter:
             qs = qs.filter(check_level=level_filter)
+        if monitoring_filter == 'active':
+            qs = qs.filter(is_monitoring_active=True, monitoring_expires_at__gt=timezone.now())
+        elif monitoring_filter == 'inactive':
+            qs = qs.filter(Q(is_monitoring_active=False) | Q(monitoring_expires_at__lte=timezone.now()))
         if q:
             qs = qs.filter(
                 Q(certificate_id__icontains=q) |
@@ -2419,11 +2424,13 @@ class AdminCertificatesView(SuperAdminRequiredMixin, TemplateView):
         ctx['certificates'] = paginator.get_page(page)
         ctx['status_filter'] = status_filter
         ctx['level_filter'] = level_filter
+        ctx['monitoring_filter'] = monitoring_filter
         ctx['q'] = q
         ctx['status_choices'] = VerificationCertificate.STATUS_CHOICES
         ctx['level_choices'] = VerificationCertificate.CHECK_LEVEL_CHOICES
         ctx['total'] = qs.count()
         ctx['pending_count'] = VerificationCertificate.objects.filter(status='pending').count()
+        ctx['active_monitoring_count'] = VerificationCertificate.objects.filter(is_monitoring_active=True, monitoring_expires_at__gt=timezone.now()).count()
         ctx['now'] = timezone.now()
         return ctx
 
@@ -2467,6 +2474,18 @@ class AdminCertificateActionView(SuperAdminRequiredMixin, View):
             cert.status = 'revoked'
             cert.revoked_at = now
             cert.revocation_reason = reason
+        elif action == 'remove_monitoring':
+            cert.is_monitoring_active = False
+            cert.save(update_fields=['is_monitoring_active', 'updated_at'])
+            log_admin_action(
+                admin_user=request.user,
+                action='UPDATE_SERVICE_UNLISTED',
+                target_model='VerificationCertificate',
+                target_id=cert.pk,
+                description=f"Admin removed certificate {cert.certificate_id} from Continuous Update Service. Reason: {reason}",
+                ip_address=request.META.get('REMOTE_ADDR'),
+            )
+            return JsonResponse({'ok': True, 'action': action, 'status': cert.status})
         else:
             return JsonResponse({'ok': False, 'error': 'Unknown action.'}, status=400)
 

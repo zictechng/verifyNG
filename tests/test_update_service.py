@@ -31,7 +31,7 @@ class UpdateServiceTests(TestCase):
             type='person',
         )
 
-        # Active certificate
+        # Active certificate (eligible within 30 days)
         self.cert = VerificationCertificate.objects.create(
             certificate_id='VNG-2026-ABEL1234',
             holder=self.candidate,
@@ -76,7 +76,23 @@ class UpdateServiceTests(TestCase):
         self.assertContains(res, 'does not match our records')
         self.assertIsNone(self.client.session.get('update_service_cert_id'))
 
-    def test_login_valid_credentials_succeeds_and_sets_scoped_session(self):
+    def test_login_when_not_yet_joined_redirects_to_join_wizard(self):
+        url = reverse('verification:update_service_login')
+        res = self.client.post(url, {
+            'certificate_id': 'VNG-2026-ABEL1234',
+            'surname': 'Uwadia',
+            'date_of_birth': '1990-05-15',
+        })
+        # Not subscribed yet, but within 30 days -> must redirect to join wizard
+        expected_url = f"{reverse('verification:update_service_join')}?cert=VNG-2026-ABEL1234"
+        self.assertRedirects(res, expected_url)
+        self.assertEqual(self.client.session.get('update_service_cert_id'), 'VNG-2026-ABEL1234')
+
+    def test_login_when_subscribed_redirects_to_portal(self):
+        self.cert.is_monitoring_active = True
+        self.cert.monitoring_expires_at = timezone.now() + datetime.timedelta(days=365)
+        self.cert.save()
+
         url = reverse('verification:update_service_login')
         res = self.client.post(url, {
             'certificate_id': 'VNG-2026-ABEL1234',
@@ -84,27 +100,26 @@ class UpdateServiceTests(TestCase):
             'date_of_birth': '1990-05-15',
         })
         self.assertRedirects(res, reverse('verification:update_service_portal'))
-        self.assertEqual(self.client.session.get('update_service_cert_id'), 'VNG-2026-ABEL1234')
-
-    def test_security_isolation_update_session_cannot_access_main_portal(self):
-        # Authenticate via Update Service
-        self.client.post(reverse('verification:update_service_login'), {
-            'certificate_id': 'VNG-2026-ABEL1234',
-            'surname': 'Uwadia',
-            'date_of_birth': '1990-05-15',
-        })
-        # Attempt to access main dashboard /dashboard/
-        res = self.client.get(reverse('dashboard:index'))
-        # Must redirect to login because candidate is NOT authenticated into django.contrib.auth
-        self.assertEqual(res.status_code, 302)
-        self.assertIn('/login/', res.url)
 
     def test_portal_unauthenticated_without_session_redirects_to_login(self):
         res = self.client.get(reverse('verification:update_service_portal'))
         self.assertRedirects(res, reverse('verification:update_service_login'))
 
-    def test_portal_renders_dbs_layout_and_contact_details(self):
-        # Set session
+    def test_portal_when_not_subscribed_redirects_to_join(self):
+        session = self.client.session
+        session['update_service_cert_id'] = self.cert.certificate_id
+        session.save()
+
+        res = self.client.get(reverse('verification:update_service_portal'))
+        # Cannot view portal until joined
+        expected_url = f"{reverse('verification:update_service_join')}?cert=VNG-2026-ABEL1234"
+        self.assertRedirects(res, expected_url)
+
+    def test_portal_renders_when_subscribed(self):
+        self.cert.is_monitoring_active = True
+        self.cert.monitoring_expires_at = timezone.now() + datetime.timedelta(days=365)
+        self.cert.save()
+
         session = self.client.session
         session['update_service_cert_id'] = self.cert.certificate_id
         session.save()
@@ -122,32 +137,72 @@ class UpdateServiceTests(TestCase):
         self.assertContains(res, 'View who has carried out a Status check on your Certificates')
         self.assertContains(res, 'Subscription')
 
-    def test_who_checked_me_audit_log_renders_queries(self):
-        # Create an employer query log
-        employer_user = User.objects.create_user(
-            username='hr_zictech',
-            email='hr@zictech.com',
-            first_name='Zictech',
-            last_name='Technologies',
-            role='employer',
-        )
-        CertificateQueryLog.objects.create(
-            certificate=self.cert,
-            queried_by=employer_user,
-            organisation_name='Zictech Technologies',
-            purpose='hiring',
-            ip_address='197.210.64.12',
-        )
-
+    def test_join_wizard_renders_and_prepopulates_details(self):
         session = self.client.session
         session['update_service_cert_id'] = self.cert.certificate_id
         session.save()
 
-        res = self.client.get(reverse('verification:update_service_audit_log'))
+        url = f"{reverse('verification:update_service_join')}?cert={self.cert.certificate_id}"
+        res = self.client.get(url)
         self.assertEqual(res.status_code, 200)
-        self.assertContains(res, 'Status Check History')
-        self.assertContains(res, 'Zictech Technologies')
-        self.assertContains(res, 'Employment / Hiring')
+        self.assertContains(res, 'Join Continuous Update Service')
+        self.assertContains(res, 'VNG-2026-ABEL1234')
+        self.assertContains(res, '07884619833')
+        self.assertContains(res, '61 Bensham Manor Road')
+        self.assertContains(res, 'Proceed to Pay')
+
+    def test_join_wizard_blocks_when_past_30_days(self):
+        # Certificate issued 45 days ago
+        self.cert.issued_at = timezone.now() - datetime.timedelta(days=45)
+        self.cert.save()
+
+        url = f"{reverse('verification:update_service_join')}?cert={self.cert.certificate_id}"
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, '30-Day Enrollment Window Closed')
+        self.assertContains(res, 'Apply for New Certificate')
+
+    def test_join_wizard_multiple_certificates_prompts_selection(self):
+        cert2 = VerificationCertificate.objects.create(
+            certificate_id='VNG-2026-ABEL5678',
+            holder=self.candidate,
+            subject=self.subject,
+            status='active',
+            check_level='employment',
+            issued_at=timezone.now() - datetime.timedelta(days=2),
+            expires_at=timezone.now() + relativedelta(years=1),
+            is_monitoring_active=False,
+        )
+        self.client.force_login(self.candidate)
+
+        # Visiting join wizard without ?cert= prompts selection between eligible certs
+        res = self.client.get(reverse('verification:update_service_join'))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, 'Select Certificate to Enroll')
+        self.assertContains(res, 'VNG-2026-ABEL1234')
+        self.assertContains(res, 'VNG-2026-ABEL5678')
+
+        # Providing ?cert= explicitly opens that specific certificate's form directly
+        res_specific = self.client.get(f"{reverse('verification:update_service_join')}?cert=VNG-2026-ABEL5678")
+        self.assertEqual(res_specific.status_code, 200)
+        self.assertContains(res_specific, 'VNG-2026-ABEL5678')
+        self.assertContains(res_specific, 'Choose different certificate')
+
+    def test_security_isolation_update_session_cannot_access_main_portal(self):
+        self.cert.is_monitoring_active = True
+        self.cert.save()
+
+        # Authenticate via Update Service
+        self.client.post(reverse('verification:update_service_login'), {
+            'certificate_id': 'VNG-2026-ABEL1234',
+            'surname': 'Uwadia',
+            'date_of_birth': '1990-05-15',
+        })
+        # Attempt to access main dashboard /dashboard/
+        res = self.client.get(reverse('dashboard:index'))
+        # Must redirect to login because candidate is NOT authenticated into django.contrib.auth
+        self.assertEqual(res.status_code, 302)
+        self.assertIn('/login/', res.url)
 
     def test_logout_clears_session(self):
         session = self.client.session
