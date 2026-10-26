@@ -179,6 +179,7 @@
         <div class="vng-menu-group shadow-sm">
             {% if request.user.role in 'employer,agency,business' %}
             <!-- ── EMPLOYER / AGENCY / BUSINESS ACTIONS ────────────────── -->
+            
             <!-- 1. Organization Dashboard -->
             <a href="{% url 'employer:dashboard' %}" class="vng-menu-item">
                 <div class="d-flex align-items-center gap-3">
@@ -300,6 +301,39 @@
                 </div>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="vng-chevron text-danger"><polyline points="9 18 15 12 9 6"/></svg>
             </a>
+            
+            <!-- Subscription & Billing (Employer) -->
+            <a href="{% url 'payments:my_subscription' %}" class="vng-menu-item">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="vng-menu-icon" style="color: #0D9488;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                    </div>
+                    <div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="vng-item-title">Subscription &amp; Quotas</span>
+                            {% if user_active_subscription %}
+                            <span class="badge bg-success rounded-pill" style="font-size:10px;">{{ user_active_subscription.plan.name }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="vng-item-desc">Organization check limits, pool quota and invoice history</div>
+                    </div>
+                </div>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="vng-chevron"><polyline points="9 18 15 12 9 6"/></svg>
+            </a>
+            <!-- Upgrade / Buy Plans (Employer) -->
+            <a href="{% url 'payments:plans' %}" class="vng-menu-item">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="vng-menu-icon" style="color: #2563EB;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                    </div>
+                    <div>
+                        <div class="vng-item-title">Upgrade Plan / Check Packages</div>
+                        <div class="vng-item-desc">Purchase enterprise monthly packages or bulk candidate packs</div>
+                    </div>
+                </div>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="vng-chevron"><polyline points="9 18 15 12 9 6"/></svg>
+            </a>
+
             <!-- Dispute (Available to all users/members) -->
             <a href="{% url 'reports:my_disputes' %}" class="vng-menu-item">
                 <div class="d-flex align-items-center gap-3">
@@ -360,6 +394,7 @@
             </a>
             {% else %}
             <!-- ── INDIVIDUAL CANDIDATE ACTIONS ─────────────────────────── -->
+            
             <!-- 1. My Dashboard -->
             <a href="{% url 'dashboard:index' %}" class="vng-menu-item">
                 <div class="d-flex align-items-center gap-3">
@@ -420,7 +455,7 @@
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>
                     </div>
                     <div>
-                        <div class="vng-item-title">Apply for Certificate</div>
+                        <div class="vng-item-title">TrustPass Application</div>
                         <div class="vng-item-desc">Issue a verifiable background credential</div>
                     </div>
                 </div>
@@ -435,6 +470,40 @@
                     <div>
                         <div class="vng-item-title">Fraud Reports</div>
                         <div class="vng-item-desc">Track filed fraud reports and provide additional evidence</div>
+                    </div>
+                </div>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="vng-chevron"><polyline points="9 18 15 12 9 6"/></svg>
+            </a>
+
+            <!-- Subscription & Billing -->
+            <a href="{% url 'payments:my_subscription' %}" class="vng-menu-item">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="vng-menu-icon" style="color: #0D9488;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                    </div>
+                    <div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="vng-item-title">My Subscription &amp; Billing</span>
+                            {% if user_active_subscription %}
+                            <span class="badge bg-success rounded-pill" style="font-size:10px;">{{ user_active_subscription.plan.name }}</span>
+                            {% else %}
+                            <span class="badge bg-light text-muted border rounded-pill" style="font-size:10px;">Free Tier</span>
+                            {% endif %}
+                        </div>
+                        <div class="vng-item-desc">View active plan, check quota, payment history &amp; invoices</div>
+                    </div>
+                </div>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="vng-chevron"><polyline points="9 18 15 12 9 6"/></svg>
+            </a>
+            <!-- Buy / Upgrade Plan -->
+            <a href="{% url 'payments:plans' %}" class="vng-menu-item">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="vng-menu-icon" style="color: #2563EB;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                    </div>
+                    <div>
+                        <div class="vng-item-title">Buy New Plan / Upgrade</div>
+                        <div class="vng-item-desc">Explore monthly subscription packages and Pay-As-You-Go rates</div>
                     </div>
                 </div>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="vng-chevron"><polyline points="9 18 15 12 9 6"/></svg>

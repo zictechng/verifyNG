@@ -299,7 +299,7 @@
         .vng-avatar-btn:hover .vng-avatar-circle { opacity: 0.85; }
         .vng-avatar-dropdown {
             position: absolute; top: calc(100% + 10px); right: 0;
-            width: 220px; background: #fff;
+            width: 235px; background: #fff;
             border: 1px solid var(--vng-border); border-radius: 12px;
             box-shadow: 0 8px 32px rgba(36,87,214,0.12), 0 2px 8px rgba(0,0,0,0.06);
             z-index: 1055; overflow: hidden;
@@ -425,6 +425,9 @@
                         <li class="nav-item">
                             <a class="nav-link vng-nav-link {% if request.resolver_match.app_name == 'reports' or request.resolver_match.url_name == 'report' %}active{% endif %}" href="{% url 'reports:create' %}">Report Fraud</a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link vng-nav-link {% if request.resolver_match.app_name == 'payments' %}active{% endif %}" href="{% url 'payments:plans' %}">Plans &amp; Pricing</a>
+                        </li>
                     </ul>
 
                     <!-- Auth Actions -->
@@ -517,15 +520,56 @@
                                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                                          Misconduct Report
                                      </a>
+                                     <a href="{% url 'verification:list' %}" class="vng-avatar-item">
+                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                         Verifications
+                                     </a>
+                                     <a href="{% url 'reports:my_disputes' %}" class="vng-avatar-item">
+                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                                         <span class="d-flex align-items-center justify-content-between flex-grow-1">
+                                             <span>Disputes</span>
+                                             {% if pending_allegations_count > 0 %}
+                                             <span class="badge bg-danger rounded-pill" style="font-size:9.5px;padding:2px 6px;">{{ pending_allegations_count }}</span>
+                                             {% endif %}
+                                         </span>
+                                     </a>
                                      
                                     {% else %}
                                     <a href="{% url 'dashboard:index' %}" class="vng-avatar-item">
                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-                                        My Dashboard
+                                        Dashboard
                                     </a>
                                     <a href="{% url 'verification:my_certificates' %}" class="vng-avatar-item">
                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
-                                        My Certificates
+                                        Certificates (TrustPass)
+                                    </a>
+                                    <a href="{% url 'verification:list' %}" class="vng-avatar-item">
+                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                        Verifications
+                                    </a>
+                                    <a href="{% url 'reports:my_disputes' %}" class="vng-avatar-item">
+                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                                        <span class="d-flex align-items-center justify-content-between flex-grow-1">
+                                            <span>Disputes</span>
+                                            {% if pending_allegations_count > 0 %}
+                                            <span class="badge bg-danger rounded-pill" style="font-size:9.5px;padding:2px 6px;">{{ pending_allegations_count }}</span>
+                                            {% endif %}
+                                        </span>
+                                    </a>
+                                    <a href="{% url 'payments:my_subscription' %}" class="vng-avatar-item">
+                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                                        <span class="d-flex align-items-center justify-content-between flex-grow-1">
+                                            <span>Subscription &amp; Plans</span>
+                                            {% if user_active_subscription %}
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size:9.5px;padding:2px 6px;">{{ user_active_subscription.plan.name }}</span>
+                                            {% else %}
+                                            <span class="badge bg-light text-muted border" style="font-size:9.5px;padding:2px 6px;">Free</span>
+                                            {% endif %}
+                                        </span>
+                                    </a>
+                                    <a href="{% url 'payments:plans' %}" class="vng-avatar-item">
+                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                                        <span>Buy / Upgrade Plan</span>
                                     </a>
                                     {% endif %}
                                     <a href="{% url 'reports:my_reports' %}" class="vng-avatar-item">
