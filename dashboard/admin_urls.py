@@ -53,6 +53,7 @@ from dashboard.admin_views import (
     AdminPlansView,
     AdminPlanCreateEditView,
     AdminCreditSubscriptionView,
+    AdminUserWalletTopupView,
     AdminCertificatesView,
     AdminCertificateActionView,
     AdminCertificateDocumentView,
@@ -126,6 +127,7 @@ urlpatterns = [
     path('plans/<int:pk>/edit/', AdminPlanCreateEditView.as_view(), name='plan_edit'),
     path('plans/<int:pk>/toggle/', AdminPlanToggleView.as_view(), name='plan_toggle'),
     path('users/<uuid:public_id>/credit-subscription/', AdminCreditSubscriptionView.as_view(), name='credit_subscription'),
+    path('users/<uuid:public_id>/wallet-topup/', AdminUserWalletTopupView.as_view(), name='wallet_topup'),
 
     # ── Logs ────────────────────────────────────────────────────────────────
     path('logs/system/', AdminSystemLogsView.as_view(), name='system_logs'),

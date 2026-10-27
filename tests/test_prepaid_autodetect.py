@@ -1,7 +1,7 @@
 from django.test import TestCase, Client
 from django.contrib.auth import get_user_model
 from django.urls import reverse
-from payments.models import Transaction, SiteSettings
+from payments.models import Transaction, SiteSettings, Plan
 from payments.services import get_user_prepaid_balance, deduct_user_prepaid_balance, get_topup_difference
 from verification.models import VerificationRequest
 
@@ -299,4 +299,94 @@ class PrepaidAutoDetectionTests(TestCase):
         csv_content = res_csv.content.decode('utf-8')
         self.assertIn('Plan / Service', csv_content)
         self.assertIn('TrustPass Clearance Certificate', csv_content)
+
+    def test_plan_monthly_wallet_credit_calculation(self):
+        """Plan.monthly_wallet_credit returns credit_value_naira if set, else price_naira."""
+        plan_custom = Plan.objects.create(
+            name="Pro Growth Test",
+            slug="pro-growth-test",
+            price_kobo=2500000,  # ₦25,000
+            credit_value_naira=40000,  # ₦40,000
+        )
+        self.assertEqual(plan_custom.price_naira, 25000)
+        self.assertEqual(plan_custom.monthly_wallet_credit, 40000)
+
+        plan_default = Plan.objects.create(
+            name="Standard Default Test",
+            slug="standard-default-test",
+            price_kobo=1500000,  # ₦15,000
+            credit_value_naira=0,
+        )
+        self.assertEqual(plan_default.monthly_wallet_credit, 15000)
+
+    def test_subscription_activation_loads_wallet_and_deducts_on_service(self):
+        """Activating a subscription loads the plan's dynamic wallet credit and allows service consumption."""
+        from payments.services import _activate_subscription, get_user_prepaid_balance, check_user_entitlement, consume_user_entitlement
+        plan = Plan.objects.create(
+            name="Executive Test Plan",
+            slug="executive-test-plan",
+            price_kobo=2500000,
+            credit_value_naira=40000,
+        )
+        tx = Transaction.objects.create(
+            user=self.user,
+            plan=plan,
+            reference="VNG-SUB-TEST-INVOICE",
+            amount_kobo=2500000,
+            status="success",
+            is_active=True,
+        )
+        _activate_subscription(tx, {'customer': {'customer_code': 'CUS_123'}, 'subscription_code': 'SUB_123'})
+
+        # 1. Invoice transaction is marked non-active for balance
+        tx.refresh_from_db()
+        self.assertFalse(tx.is_active)
+
+        # 2. User wallet now holds the ₦40,000 allowance
+        user_balance = get_user_prepaid_balance(self.user)
+        self.assertEqual(user_balance, 40000)
+
+        # 3. Entitlement check recognizes subscriber's dynamic wallet
+        allowed, reason, details = check_user_entitlement(self.user, service='certificate', cost=1)
+        self.assertTrue(allowed)
+        self.assertEqual(reason, 'subscribed')
+        self.assertTrue(details.get('is_wallet'))
+
+        # 4. Service consumption deducts from wallet
+        consumed = consume_user_entitlement(self.user, service='certificate', cost=1)
+        self.assertTrue(consumed)
+        new_balance = get_user_prepaid_balance(self.user)
+        price_cert = SiteSettings.get().get_service_price('certificate')
+        self.assertEqual(new_balance, 40000 - price_cert)
+
+    def test_admin_wallet_topup_view(self):
+        """Admin can top up PAYG wallet balance for user or employer via AdminUserWalletTopupView."""
+        admin = User.objects.create_superuser(
+            username='superadmin',
+            email='admin@example.com',
+            password='AdminPassword123!',
+        )
+        self.client.force_login(admin)
+
+        initial_bal = get_user_prepaid_balance(self.user)
+        url = reverse('admin_portal:wallet_topup', kwargs={'public_id': self.user.public_id})
+
+        # Post top-up of 15,000 NGN
+        response = self.client.post(url, {
+            'amount_naira': '15000',
+            'reason': 'Corporate bulk advance credit',
+        })
+        self.assertEqual(response.status_code, 302)
+
+        # Balance increased by 15,000
+        new_bal = get_user_prepaid_balance(self.user)
+        self.assertEqual(new_bal, initial_bal + 15000)
+
+        # Transaction exists with type admin_manual_topup
+        topup_tx = Transaction.objects.filter(user=self.user, reference__startswith='VNG-BAL-').latest('created_at')
+        self.assertEqual(topup_tx.amount_kobo, 1500000)
+        self.assertTrue(topup_tx.is_active)
+        self.assertEqual(topup_tx.item_display_name, "Admin Wallet Top-Up")
+
+
 

@@ -264,6 +264,17 @@ class CertificateApplyForm(forms.Form):
             'autocomplete': 'email',
         })
     )
+    residential_address = forms.CharField(
+        max_length=300,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'e.g. 14 Admiralty Way, Lekki Phase 1',
+            'autocomplete': 'street-address',
+        }),
+        help_text="Your residential contact street address."
+    )
+    contact_address = forms.CharField(max_length=300, required=False)
 
     # ── Step 2: National Identity & Document Proof 
     nin = forms.CharField(

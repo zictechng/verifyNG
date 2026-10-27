@@ -662,6 +662,7 @@ class CertificateApplyView(LoginRequiredMixin, View):
                     job_role=cd.get('job_role', ''),
                     residential_state=cd.get('residential_state', ''),
                     residential_city=cd.get('residential_city', ''),
+                    residential_address=cd.get('residential_address') or cd.get('contact_address') or '',
                     ip_address=ip_addr,
                     status='pending',
                 )
@@ -691,6 +692,7 @@ class CertificateApplyView(LoginRequiredMixin, View):
                     job_role=cd.get('job_role', ''),
                     residential_state=cd.get('residential_state', ''),
                     residential_city=cd.get('residential_city', ''),
+                    residential_address=cd.get('residential_address') or cd.get('contact_address') or '',
                     ip_address=ip_addr,
                     status='pending',
                 )
@@ -718,6 +720,7 @@ class CertificateApplyView(LoginRequiredMixin, View):
                     job_role=cd.get('job_role', ''),
                     residential_state=cd.get('residential_state', ''),
                     residential_city=cd.get('residential_city', ''),
+                    residential_address=cd.get('residential_address') or cd.get('contact_address') or '',
                     ip_address=ip_addr,
                     status='pending',
                 )
@@ -745,6 +748,7 @@ class CertificateApplyView(LoginRequiredMixin, View):
                     job_role=cd.get('job_role', ''),
                     residential_state=cd.get('residential_state', ''),
                     residential_city=cd.get('residential_city', ''),
+                    residential_address=cd.get('residential_address') or cd.get('contact_address') or '',
                     ip_address=ip_addr,
                     status='pending_payment',
                 )

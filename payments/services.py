@@ -201,9 +201,34 @@ def _activate_subscription(transaction: Transaction, paystack_data: dict):
         current_period_end=period_end,
     )
 
-    # Link subscription back to transaction
+    # Link subscription back to transaction and mark invoice as settled
     transaction.subscription = subscription
-    transaction.save(update_fields=['subscription', 'updated_at'])
+    transaction.is_active = False
+    transaction.save(update_fields=['subscription', 'is_active', 'updated_at'])
+
+    # Dynamic Monthly Value Credit Wallet:
+    # Load the plan's dynamic monthly credit allowance into the user's active wallet balance
+    if plan.monthly_wallet_credit > 0:
+        wallet_credit_kobo = int(plan.monthly_wallet_credit * 100)
+        Transaction.objects.create(
+            user=transaction.user,
+            reference=f"VNG-SUB-CREDIT-{uuid.uuid4().hex[:10].upper()}",
+            amount_kobo=wallet_credit_kobo,
+            currency='NGN',
+            status='success',
+            is_active=True,
+            paystack_response={
+                'data': {
+                    'metadata': {
+                        'type': 'subscription_wallet_credit',
+                        'plan_name': plan.name,
+                        'plan_id': plan.id,
+                        'subscription_id': str(subscription.id),
+                        'period_end': str(period_end.date()),
+                    }
+                }
+            }
+        )
 
     logger.info(
         "Subscription activated (user=%s, plan=%s, expires=%s)",
@@ -435,7 +460,19 @@ def check_user_entitlement(user, service: str = 'check', cost: int = 1) -> tuple
                 'plan': sub.plan.name,
                 'remaining': 'unlimited',
             }
-        # Capped Plan
+        # Dynamic Monthly Value Credit Wallet:
+        # If user has available pre-paid balance, they can spend it across any service
+        wallet_bal = get_user_prepaid_balance(user)
+        srv_price = site_settings.get_service_price(service)
+        if wallet_bal >= srv_price and srv_price > 0:
+            return True, 'subscribed', {
+                'plan': sub.plan.name,
+                'remaining': wallet_bal,
+                'is_wallet': True,
+                'balance': wallet_bal,
+            }
+
+        # Capped Plan by count (fallback if wallet empty or using check limit)
         current_used = getattr(sub, 'checks_used', 0)
         limit = sub.plan.check_limit
         remaining = max(0, limit - current_used)
@@ -547,7 +584,10 @@ def consume_user_entitlement(user, service: str = 'check', cost: int = 1) -> boo
     if sub:
         if sub.plan.has_unlimited_checks:
             return True
-       
+        srv_price = site_settings.get_service_price(service)
+        wallet_bal = get_user_prepaid_balance(user)
+        if wallet_bal >= srv_price and srv_price > 0:
+            deduct_user_prepaid_balance(user, srv_price, service_name=service)
         Subscription.objects.filter(pk=sub.pk).update(checks_used=F('checks_used') + cost)
         return True
     # Free tier deduction

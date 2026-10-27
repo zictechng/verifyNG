@@ -287,6 +287,10 @@ class Plan(models.Model):
         default=0,
         help_text="Price in kobo (100 kobo = ₦1). Set 0 for a free plan."
     )
+    credit_value_naira = models.PositiveIntegerField(
+        default=0,
+        help_text="Monthly service credit loaded into the user wallet in Naira (e.g. 40000 for a ₦25,000 plan). If 0, defaults to plan price."
+    )
     currency = models.CharField(max_length=3, default='NGN')
     interval = models.CharField(
         max_length=10,
@@ -335,6 +339,12 @@ class Plan(models.Model):
     @property
     def has_unlimited_checks(self):
         return self.check_limit == -1
+
+    @property
+    def monthly_wallet_credit(self) -> int:
+        if self.credit_value_naira and self.credit_value_naira > 0:
+            return self.credit_value_naira
+        return int(self.price_naira)
 
 
 class PlanFeature(models.Model):
@@ -511,12 +521,18 @@ class Transaction(models.Model):
         if self.plan:
             return self.plan.name
 
-        if self.reference and self.reference.startswith('VNG-BAL-'):
-            return "Pre-Paid Account Balance"
-
         meta = (self.paystack_response or {}).get('data', {}).get('metadata', {})
         if not meta and isinstance(self.paystack_response, dict):
             meta = self.paystack_response.get('metadata', {})
+
+        if self.reference and self.reference.startswith('VNG-SUB-CREDIT-'):
+            plan_name = meta.get('plan_name')
+            return f"{plan_name} Credit Allowance" if plan_name else "Subscription Credit Allowance"
+
+        if self.reference and self.reference.startswith('VNG-BAL-'):
+            if meta.get('type') == 'admin_manual_topup':
+                return "Admin Wallet Top-Up"
+            return "Pre-Paid Account Balance"
 
         service = meta.get('service')
         tier = meta.get('tier', '')

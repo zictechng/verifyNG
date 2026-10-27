@@ -658,6 +658,8 @@ class AdminUserDetailView(SuperAdminRequiredMixin, TemplateView):
             ctx['user_active_plan_id'] = None
         ctx['free_quota'] = FreeUsageQuota.for_user(target_user)
         ctx['site_settings'] = SiteSettings.get()
+        from payments.services import get_user_prepaid_balance
+        ctx['user_prepaid_balance'] = get_user_prepaid_balance(target_user)
         return ctx
 
 
@@ -1361,6 +1363,8 @@ class AdminEmployerDetailView(SuperAdminRequiredMixin, TemplateView):
             for r in service_rules
         ])
         ctx['service_choices'] = UserServiceAccess.SERVICE_CHOICES
+        from payments.services import get_user_prepaid_balance
+        ctx['employer_prepaid_balance'] = get_user_prepaid_balance(profile.user)
         return ctx
 
 
@@ -1617,6 +1621,7 @@ class AdminPlanCreateEditView(SuperAdminRequiredMixin, View):
         name         = request.POST.get('name', '').strip()
         description  = request.POST.get('description', '').strip()
         price_naira  = request.POST.get('price_naira', '0').strip()
+        credit_val   = request.POST.get('credit_value_naira', '0').strip()
         interval     = request.POST.get('interval', 'monthly').strip()
         check_limit  = request.POST.get('check_limit', '10').strip()
         paystack_code= request.POST.get('paystack_plan_code', '').strip()
@@ -1635,6 +1640,11 @@ class AdminPlanCreateEditView(SuperAdminRequiredMixin, View):
             price_kobo = int(float(price_naira) * 100)
         except (ValueError, TypeError):
             price_kobo = 0
+
+        try:
+            credit_val_int = int(float(credit_val))
+        except (ValueError, TypeError):
+            credit_val_int = 0
 
         try:
             check_limit_int = int(check_limit)
@@ -1659,6 +1669,7 @@ class AdminPlanCreateEditView(SuperAdminRequiredMixin, View):
         plan.name          = name
         plan.description   = description
         plan.price_kobo    = price_kobo
+        plan.credit_value_naira = credit_val_int
         plan.interval      = interval
         plan.check_limit   = check_limit_int
         plan.paystack_plan_code = paystack_code
@@ -1770,6 +1781,29 @@ class AdminCreditSubscriptionView(SuperAdminRequiredMixin, View):
             current_period_start=now,
             current_period_end=now + tz.timedelta(days=days),
         )
+
+        # Allocate monthly wallet credit if included in plan
+        if getattr(plan, 'credit_value_naira', 0) and plan.credit_value_naira > 0:
+            import uuid
+            from payments.models import Transaction
+            Transaction.objects.create(
+                user=user,
+                reference=f"VNG-SUB-CREDIT-{uuid.uuid4().hex[:10].upper()}",
+                amount_kobo=int(plan.credit_value_naira * 100),
+                currency='NGN',
+                status='success',
+                is_active=True,
+                paystack_response={
+                    'data': {
+                        'metadata': {
+                            'subscription_id': str(sub.pk),
+                            'plan_name': plan.name,
+                            'type': 'plan_credit_allowance',
+                        }
+                    }
+                }
+            )
+
         log_admin_action(
             action='SUBSCRIPTION_CREDITED',
             action_type='ADMIN',
@@ -1786,6 +1820,90 @@ class AdminCreditSubscriptionView(SuperAdminRequiredMixin, View):
         messages.success(
             request,
             f"Plan '{plan.name}' credited to {user.username} for {days} days."
+        )
+        return _redirect_response()
+
+
+class AdminUserWalletTopupView(SuperAdminRequiredMixin, View):
+    """
+    POST: Manually top up / credit Pay-As-You-Go wallet balance in Naira (₦) for a user or employer.
+    Creates an active, successful Transaction and logs the audit event.
+    """
+    def post(self, request, public_id):
+        import uuid
+        from payments.models import Transaction, PaymentAuditLog
+
+        user = get_object_or_404(User, public_id=public_id)
+        amount_str = request.POST.get('amount_naira', '').strip()
+        reason = request.POST.get('reason', '').strip() or 'Admin manual wallet credit'
+        next_url = request.POST.get('next', '').strip()
+
+        def _redirect_response():
+            if next_url:
+                return redirect(next_url)
+            return redirect('admin_portal:user_detail', public_id=public_id)
+
+        try:
+            amount_naira = float(amount_str)
+            if amount_naira <= 0:
+                raise ValueError()
+        except (ValueError, TypeError):
+            messages.error(request, "Please enter a valid positive Naira amount to top up.")
+            return _redirect_response()
+
+        amount_kobo = int(round(amount_naira * 100))
+        ref = f"VNG-BAL-{uuid.uuid4().hex[:12].upper()}"
+
+        tx = Transaction.objects.create(
+            user=user,
+            reference=ref,
+            amount_kobo=amount_kobo,
+            currency='NGN',
+            status='success',
+            is_active=True,
+            paystack_response={
+                'data': {
+                    'metadata': {
+                        'type': 'admin_manual_topup',
+                        'service': 'topup',
+                        'credited_by': request.user.username,
+                        'reason': reason,
+                        'amount_naira': amount_naira,
+                    }
+                }
+            }
+        )
+
+        PaymentAuditLog.objects.create(
+            action='PAYMENT_SUCCESS',
+            user=user,
+            transaction=tx,
+            details={
+                'amount_naira': amount_naira,
+                'amount_kobo': amount_kobo,
+                'reference': ref,
+                'credited_by': request.user.username,
+                'reason': reason,
+                'type': 'admin_manual_topup',
+            }
+        )
+
+        log_admin_action(
+            action='USER_WALLET_TOPUP',
+            action_type='ADMIN',
+            performed_by=request.user,
+            target_user=user,
+            request=request,
+            details={
+                'amount_naira': amount_naira,
+                'reference': ref,
+                'reason': reason,
+            }
+        )
+
+        messages.success(
+            request,
+            f"Successfully credited ₦{amount_naira:,.2f} to {user.get_full_name() or user.username}'s PAYG wallet."
         )
         return _redirect_response()
     

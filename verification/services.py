@@ -507,6 +507,8 @@ def create_trustpass_certificate_application(
     job_role: str = '',
     residential_state: str = '',
     residential_city: str = '',
+    residential_address: str = '',
+    contact_address: str = '',
     ip_address: str = None,
     status: str = 'pending',
 ):
@@ -638,6 +640,8 @@ def create_trustpass_certificate_application(
                 "job_role": job_role,
                 "residential_state": residential_state,
                 "residential_city": residential_city,
+                "residential_address": residential_address or contact_address,
+                "contact_address": residential_address or contact_address,
             }
         )
     return certificate

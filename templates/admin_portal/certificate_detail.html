@@ -91,10 +91,10 @@
         <dd class="col-7">{{ app_log.details.phone_number|default:"—" }}</dd>
         <dt class="col-5 text-muted">Candidate Email</dt>
         <dd class="col-7">{{ app_log.details.email|default:"—" }}</dd>
-        <dt class="col-5 text-muted">Location</dt>
+        <dt class="col-5 text-muted">Contact Address</dt>
         <dd class="col-7">
-          {% if app_log.details.residential_city or app_log.details.residential_state %}
-            {{ app_log.details.residential_city|default:"" }}{% if app_log.details.residential_state %}, {{ app_log.details.residential_state }}{% endif %}
+          {% if app_log.details.residential_address or app_log.details.contact_address or app_log.details.residential_city or app_log.details.residential_state %}
+            {{ app_log.details.residential_address|default:app_log.details.contact_address|default:"" }}{% if app_log.details.residential_address and app_log.details.residential_city %}, {% endif %}{{ app_log.details.residential_city|default:"" }}{% if app_log.details.residential_state %}, {{ app_log.details.residential_state }}{% endif %}
           {% else %}—{% endif %}
         </dd>
         <dt class="col-5 text-muted">Employer / Org</dt>
