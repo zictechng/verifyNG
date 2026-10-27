@@ -171,6 +171,14 @@ def service_checkout_review(request, service_key):
             'price': site_settings.price_monitoring_annual,
             'tier': 'annual',
         },
+        'bulk_upload': {
+            'name': 'Bulk Candidate Screening (CSV Upload)',
+            'badge': 'Per-Candidate Batch Screening',
+            'description': 'Upload a CSV of candidates for batch background verification, NIN checks, and fraud alert screening.',
+            'coverage': 'Bulk Verification Report per Uploaded Candidate',
+            'price': site_settings.price_bulk_check_per_row,
+            'tier': 'standard',
+        },
     }
 
     item = service_catalog.get(service_key)
@@ -483,6 +491,20 @@ def _route_payg_success(request, transaction):
             )
             return redirect('employer:staff_check_detail', check_id=staff_check_id)
         return redirect('employer:monitoring_list')
+
+    elif service in ('bulk_upload', 'bulk_check'):
+        from django.urls import reverse
+        from core.permissions import is_employer
+        messages.success(request, success_msg)
+        if is_employer(request.user):
+            return redirect(f"{reverse('employer:bulk_upload_create')}?paid_ref={transaction.reference}")
+        else:
+            messages.info(
+                request,
+                "Your bulk screening credit has been loaded. An employer account is required to use the bulk CSV upload feature."
+            )
+            return redirect('dashboard:index')
+
     return None
 
 @login_required

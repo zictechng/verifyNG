@@ -1,5 +1,6 @@
 {% extends "admin_portal/base_admin.html" %}
 {% load static %}
+{% load humanize %}
 
 {% block title %}Financial Reports — VerifyNG Admin{% endblock %}
 
@@ -27,13 +28,27 @@
                     <label class="form-label small fw-semibold mb-1" style="color:var(--adm-muted);">To</label>
                     <input type="date" name="date_to" class="form-control form-control-sm" value="{{ date_to_str }}">
                 </div>
-                <div class="col-6 col-md-2">
-                    <label class="form-label small fw-semibold mb-1" style="color:var(--adm-muted);">Plan</label>
+                <div class="col-6 col-md-3">
+                    <label class="form-label small fw-semibold mb-1" style="color:var(--adm-muted);">Payment Type / Plan</label>
                     <select name="plan" class="form-select form-select-sm">
-                        <option value="">All Plans</option>
-                        {% for p in all_plans %}
-                        <option value="{{ p.pk }}" {% if plan_filter == p.pk|stringformat:"s" %}selected{% endif %}>{{ p.name }}</option>
-                        {% endfor %}
+                        <option value="">All Payment Types</option>
+                        <optgroup label="Subscription Plans">
+                            <option value="subscriptions" {% if plan_filter == 'subscriptions' %}selected{% endif %}>All Subscriptions</option>
+                            {% for p in all_plans %}
+                            <option value="{{ p.pk }}" {% if plan_filter == p.pk|stringformat:"s" %}selected{% endif %}>{{ p.name }}</option>
+                            {% endfor %}
+                        </optgroup>
+                        <optgroup label="Pay-As-You-Go / Direct Services">
+                            <option value="payg" {% if plan_filter == 'payg' %}selected{% endif %}>All Pay-As-You-Go Payments</option>
+                            <option value="bulk_upload" {% if plan_filter == 'bulk_upload' %}selected{% endif %}>Bulk Candidate Screening</option>
+                            <option value="monitoring" {% if plan_filter == 'monitoring' %}selected{% endif %}>Certificate Monitoring Services (TrustPass)</option>
+                            <option value="certificate" {% if plan_filter == 'certificate' %}selected{% endif %}>TrustPass Clearance Certificate</option>
+                            <option value="staff_check" {% if plan_filter == 'staff_check' %}selected{% endif %}>Staff Background Investigation</option>
+                            <option value="verification" {% if plan_filter == 'verification' %}selected{% endif %}>Due Diligence Verification</option>
+                            <option value="certificate_verify" {% if plan_filter == 'certificate_verify' %}selected{% endif %}>Workforce Certificate Verification</option>
+                            <option value="public_check" {% if plan_filter == 'public_check' %}selected{% endif %}>Public Record &amp; Quick Check</option>
+                            <option value="topup" {% if plan_filter == 'topup' %}selected{% endif %}>Account / Wallet Balance Top-Up</option>
+                        </optgroup>
                     </select>
                 </div>
                 <div class="col-6 col-md-2">
@@ -46,7 +61,7 @@
                         <option value="pending"  {% if status_filter == 'pending'  %}selected{% endif %}>Pending</option>
                     </select>
                 </div>
-                <div class="col-12 col-md-4">
+                <div class="col-12 col-md-3">
                     <label class="form-label small fw-semibold mb-1 d-none d-md-block" style="color:transparent;">.</label>
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-adm-primary btn-sm flex-fill">Apply Filter</button>
@@ -70,7 +85,7 @@
     <div class="col-6 col-xl-3">
         <div class="adm-card p-3 h-100">
             <p class="small fw-semibold mb-2" style="color:var(--adm-muted);">Total Revenue</p>
-            <p class="h4 fw-bold text-success mb-1">₦{{ total_revenue_naira|floatformat:2 }}</p>
+            <p class="h4 fw-bold text-success mb-1">₦{{ total_revenue_naira|floatformat:2|intcomma }}</p>
             <p class="small mb-0" style="color:var(--adm-muted);">{{ date_from_str }} – {{ date_to_str }}</p>
         </div>
     </div>
@@ -78,14 +93,14 @@
         <div class="adm-card p-3 h-100">
             <p class="small fw-semibold mb-2" style="color:var(--adm-muted);">Successful Transactions</p>
             <p class="h4 fw-bold text-primary mb-1">{{ total_transactions }}</p>
-            <p class="small mb-0" style="color:var(--adm-muted);">Avg ₦{{ avg_transaction_naira|floatformat:2 }} each</p>
+            <p class="small mb-0" style="color:var(--adm-muted);">Avg ₦{{ avg_transaction_naira|floatformat:2|intcomma }} each</p>
         </div>
     </div>
     <div class="col-6 col-xl-3">
         <div class="adm-card p-3 h-100">
             <p class="small fw-semibold mb-2" style="color:var(--adm-muted);">Net Revenue</p>
-            <p class="h4 fw-bold mb-1">₦{{ net_revenue_naira|floatformat:2 }}</p>
-            <p class="small text-danger mb-0">Refunds: ₦{{ total_refunds_naira|floatformat:2 }}</p>
+            <p class="h4 fw-bold mb-1">₦{{ net_revenue_naira|floatformat:2|intcomma }}</p>
+            <p class="small text-danger mb-0">Refunds: ₦{{ total_refunds_naira|floatformat:2|intcomma }}</p>
         </div>
     </div>
     <div class="col-6 col-xl-3">
@@ -119,9 +134,9 @@
                 <tr>
                     <td class="px-3 fw-semibold">{{ row.month }}</td>
                     <td class="text-end">{{ row.count }}</td>
-                    <td class="text-end text-success">₦{{ row.revenue|floatformat:2 }}</td>
-                    <td class="text-end text-danger">₦{{ row.refunds|floatformat:2 }}</td>
-                    <td class="text-end fw-bold px-3">₦{{ row.net|floatformat:2 }}</td>
+                    <td class="text-end text-success">₦{{ row.revenue|floatformat:2|intcomma }}</td>
+                    <td class="text-end text-danger">₦{{ row.refunds|floatformat:2|intcomma }}</td>
+                    <td class="text-end fw-bold px-3">₦{{ row.net|floatformat:2|intcomma }}</td>
                 </tr>
                 {% empty %}
                 <tr><td colspan="5" class="text-center py-4" style="color:var(--adm-muted);">No transactions in the selected period</td></tr>
@@ -132,9 +147,9 @@
                 <tr>
                     <td class="px-3 fw-bold" style="color:#fff;">TOTAL</td>
                     <td class="text-end fw-bold" style="color:#fff;">{{ total_transactions }}</td>
-                    <td class="text-end fw-bold" style="color:#fff;">₦{{ total_revenue_naira|floatformat:2 }}</td>
-                    <td class="text-end fw-bold" style="color:#ffc0c0;">₦{{ total_refunds_naira|floatformat:2 }}</td>
-                    <td class="text-end fw-bold px-3" style="color:#fff;">₦{{ net_revenue_naira|floatformat:2 }}</td>
+                    <td class="text-end fw-bold" style="color:#fff;">₦{{ total_revenue_naira|floatformat:2|intcomma }}</td>
+                    <td class="text-end fw-bold" style="color:#ffc0c0;">₦{{ total_refunds_naira|floatformat:2|intcomma }}</td>
+                    <td class="text-end fw-bold px-3" style="color:#fff;">₦{{ net_revenue_naira|floatformat:2|intcomma }}</td>
                 </tr>
             </tfoot>
             {% endif %}
@@ -142,16 +157,16 @@
     </div>
 </div>
 
-<!-- Revenue by Plan -->
+<!-- Revenue by Service & Plan -->
 <div class="adm-card mb-4">
     <div class="adm-card-header">
-        <span class="adm-card-title">Revenue by Plan</span>
+        <span class="adm-card-title">Revenue by Service &amp; Plan</span>
     </div>
     <div class="table-responsive">
         <table class="table table-sm table-hover mb-0">
             <thead class="table-light">
                 <tr>
-                    <th class="px-3">Plan</th>
+                    <th class="px-3">Service / Plan</th>
                     <th class="text-end">Transactions</th>
                     <th class="text-end px-3">Revenue (₦)</th>
                 </tr>
@@ -161,7 +176,7 @@
                 <tr>
                     <td class="px-3 fw-semibold">{{ row.plan_name }}</td>
                     <td class="text-end">{{ row.count }}</td>
-                    <td class="text-end fw-bold px-3 text-success">₦{{ row.revenue|floatformat:2 }}</td>
+                    <td class="text-end fw-bold px-3 text-success">₦{{ row.revenue|floatformat:2|intcomma }}</td>
                 </tr>
                 {% empty %}
                 <tr><td colspan="3" class="text-center py-3" style="color:var(--adm-muted);">No plan data available</td></tr>
@@ -201,7 +216,7 @@
                             <div class="text-muted extra-small" style="font-size:0.75rem;">Note: {{ txn.reason }}</div>
                         {% endif %}
                     </td>
-                    <td class="text-end fw-semibold">₦{{ txn.amount_naira|floatformat:2 }}</td>
+                    <td class="text-end fw-semibold">₦{{ txn.amount_naira|floatformat:2|intcomma }}</td>
                     <td class="text-end px-3">
                         <span class="badge {% if txn.status == 'success' %}bg-success{% elif txn.status == 'failed' %}bg-danger{% elif txn.status == 'refunded' %}bg-warning text-dark{% elif txn.status == 'pending' %}bg-secondary{% else %}bg-light text-dark{% endif %}">
                             {{ txn.get_status_display }}

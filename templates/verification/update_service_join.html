@@ -1,5 +1,6 @@
 {% extends 'public/base.html' %}
 {% load static %}
+{% load humanize %}
 
 {% block title %}Join Continuous Update Service | {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
 
@@ -87,7 +88,7 @@
 
                     <div class="p-3 rounded-3 border bg-light text-muted small mb-3" style="font-size: 12px; line-height: 1.5;">
                         <i class="bi bi-info-circle me-1 text-primary"></i>
-                        Each certificate enrolled in the Update Service receives an independent annual subscription (₦{{ annual_fee|floatformat:0 }}/yr) with its own continuous verification audit trail.
+                        Each certificate enrolled in the Update Service receives an independent annual subscription (₦{{ annual_fee|floatformat:0|intcomma }}/yr) with its own continuous verification audit trail.
                     </div>
                     <div class="text-center pt-2 border-top">
                         <a href="{% url 'verification:update_service_join' %}?manual=1" class="small text-muted text-decoration-none">
@@ -260,21 +261,21 @@
                                 </div>
                                 <div class="border-top pt-2 d-flex justify-content-between align-items-center mb-1">
                                     <span class="small text-muted">Annual Subscription Fee</span>
-                                    <span class="small fw-bold text-dark">&#8358;{{ annual_fee|floatformat:0 }}</span>
+                                    <span class="small fw-bold text-dark">&#8358;{{ annual_fee|floatformat:0|intcomma }}</span>
                                 </div>
                                 {% if user_balance and user_balance > 0 and user_balance < annual_fee %}
                                 <div class="d-flex justify-content-between align-items-center mb-2 text-success">
                                     <span class="small"><i class="bi bi-wallet2 me-1"></i>Available Account Balance Applied</span>
-                                    <span class="small fw-semibold">-&#8358;{{ user_balance|floatformat:0 }}</span>
+                                    <span class="small fw-semibold">-&#8358;{{ user_balance|floatformat:0|intcomma }}</span>
                                 </div>
                                 <div class="border-top pt-2 d-flex justify-content-between align-items-center">
                                     <span class="fw-bold text-dark">Amount to Pay via Paystack</span>
-                                    <span class="h5 fw-bold text-primary mb-0">&#8358;{{ topup_needed|floatformat:0 }}</span>
+                                    <span class="h5 fw-bold text-primary mb-0">&#8358;{{ topup_needed|floatformat:0|intcomma }}</span>
                                 </div>
                                 {% elif user_balance and user_balance >= annual_fee %}
                                 <div class="d-flex justify-content-between align-items-center mb-2 text-success">
                                     <span class="small"><i class="bi bi-wallet2 me-1"></i>Covered by Account Balance</span>
-                                    <span class="small fw-semibold">-&#8358;{{ annual_fee|floatformat:0 }}</span>
+                                    <span class="small fw-semibold">-&#8358;{{ annual_fee|floatformat:0|intcomma }}</span>
                                 </div>
                                 <div class="border-top pt-2 d-flex justify-content-between align-items-center">
                                     <span class="fw-bold text-dark">Amount to Pay via Paystack</span>
@@ -283,7 +284,7 @@
                                 {% else %}
                                 <div class="border-top pt-2 d-flex justify-content-between align-items-center">
                                     <span class="fw-bold text-dark">Annual Subscription Fee</span>
-                                    <span class="h5 fw-bold text-primary mb-0">&#8358;{{ annual_fee|floatformat:0 }} <small class="text-muted fw-normal" style="font-size: 12px;">/ yr</small></span>
+                                    <span class="h5 fw-bold text-primary mb-0">&#8358;{{ annual_fee|floatformat:0|intcomma }} <small class="text-muted fw-normal" style="font-size: 12px;">/ yr</small></span>
                                 </div>
                                 {% endif %}
                             </div>
@@ -294,7 +295,7 @@
                                             <i class="bi bi-wallet2 me-1"></i> Account Balance Available
                                         </div>
                                         <div class="text-muted" style="font-size: 13px;">
-                                            You have <strong>&#8358;{{ user_balance|floatformat:0 }}</strong> in your account balance. The <strong>&#8358;{{ annual_fee|floatformat:0 }}</strong> registration fee will be deducted directly from your available balance.
+                                            You have <strong>&#8358;{{ user_balance|floatformat:0|intcomma }}</strong> in your account balance. The <strong>&#8358;{{ annual_fee|floatformat:0|intcomma }}</strong> registration fee will be deducted directly from your available balance.
                                         </div>
                                     </div>
                                     <span class="badge bg-success text-white px-2.5 py-1.5 small">Covered by Balance</span>
@@ -306,7 +307,7 @@
                                             <i class="bi bi-wallet2 me-1"></i> Partial Balance Applied
                                         </div>
                                         <div class="text-muted" style="font-size: 13px;">
-                                            You have <strong>&#8358;{{ user_balance|floatformat:0 }}</strong> in your account balance. This has been applied as credit, so you only pay the difference of <strong>&#8358;{{ topup_needed|floatformat:0 }}</strong> via Paystack to complete your 1-year registration.
+                                            You have <strong>&#8358;{{ user_balance|floatformat:0|intcomma }}</strong> in your account balance. This has been applied as credit, so you only pay the difference of <strong>&#8358;{{ topup_needed|floatformat:0|intcomma }}</strong> via Paystack to complete your 1-year registration.
                                         </div>
                                     </div>
                                     <span class="badge bg-primary text-white px-2.5 py-1.5 small">Partial Credit</span>
@@ -368,18 +369,18 @@
                         {% if user_balance and user_balance >= annual_fee %}
                             <button type="submit" class="btn btn-success w-100 py-2.5 fw-semibold d-flex align-items-center justify-content-center gap-2" style="background:#059669; border-color:#059669;">
                                 <i class="bi bi-wallet2"></i>
-                                <span>Deduct &#8358;{{ annual_fee|floatformat:0 }} from Account Balance & Join</span>
+                                <span>Deduct &#8358;{{ annual_fee|floatformat:0|intcomma }} from Account Balance & Join</span>
                             </button>
                         {% elif user_balance and user_balance > 0 %}
                             <button type="submit" class="btn btn-vng-primary w-100 py-2.5 fw-semibold d-flex align-items-center justify-content-center gap-2">
-                                <span>Pay &#8358;{{ topup_needed|floatformat:0 }} via Paystack (&#8358;{{ user_balance|floatformat:0 }} covered by balance)</span>
+                                <span>Pay &#8358;{{ topup_needed|floatformat:0|intcomma }} via Paystack (&#8358;{{ user_balance|floatformat:0|intcomma }} covered by balance)</span>
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
                                     <path d="M5 12h14M12 5l7 7-7 7"/>
                                 </svg>
                             </button>
                         {% else %}
                             <button type="submit" class="btn btn-vng-primary w-100 py-2.5 fw-semibold d-flex align-items-center justify-content-center gap-2">
-                                <span>Proceed to Pay &#8358;{{ annual_fee|floatformat:0 }} via Paystack</span>
+                                <span>Proceed to Pay &#8358;{{ annual_fee|floatformat:0|intcomma }} via Paystack</span>
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
                                     <path d="M5 12h14M12 5l7 7-7 7"/>
                                 </svg>

@@ -246,7 +246,7 @@ class PrepaidAutoDetectionTests(TestCase):
         self.assertEqual(res_sub.status_code, 200)
         self.assertEqual(res_sub.context['user_balance'], 3500)
         self.assertContains(res_sub, 'Available Account Balance')
-        self.assertContains(res_sub, '3500')
+        self.assertContains(res_sub, '3,500')
         self.assertContains(res_sub, 'This credit is ready to be applied across any services')
         self.assertNotContains(res_sub, 'Unknown Plan')
 
@@ -582,3 +582,98 @@ class PrepaidAutoDetectionTests(TestCase):
         # Balance must NOT be inflated by the monitoring payment
         after_balance = get_user_prepaid_balance(self.user)
         self.assertEqual(after_balance, initial_balance)
+
+    def test_bulk_upload_checkout_review_accessible_to_individual_user(self):
+        """A non-employer user can access bulk_upload checkout review without 403."""
+        self.client.force_login(self.user)  # Individual user (not employer)
+        res = self.client.get(reverse('payments:service_checkout_review', args=['bulk_upload']))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, 'Bulk Candidate Screening (CSV Upload)')
+        self.assertContains(res, 'Per-Candidate Batch Screening')
+
+    def test_bulk_upload_payment_routing_by_role(self):
+        """After bulk_upload payment, employer redirects to bulk upload tool, individual to dashboard."""
+        from payments.views import _route_payg_success
+        from django.test import RequestFactory
+        from django.contrib.messages.storage.fallback import FallbackStorage
+
+        tx = Transaction.objects.create(
+            user=self.user,
+            reference='VNG-BULK-TEST-001',
+            amount_kobo=25000,
+            status='success',
+            is_active=True,
+            paystack_response={
+                'data': {
+                    'metadata': {
+                        'service': 'bulk_upload',
+                    }
+                }
+            }
+        )
+
+        factory = RequestFactory()
+        req = factory.get('/payments/callback/')
+        req.user = self.user  # individual
+        setattr(req, 'session', {})
+        setattr(req, '_messages', FallbackStorage(req))
+
+        res_ind = _route_payg_success(req, tx)
+        self.assertEqual(res_ind.status_code, 302)
+        self.assertEqual(res_ind.url, reverse('dashboard:index'))
+
+        # Employer user
+        self.user.role = 'employer'
+        self.user.save(update_fields=['role'])
+
+        req2 = factory.get('/payments/callback/')
+        req2.user = self.user
+        setattr(req2, 'session', {})
+        setattr(req2, '_messages', FallbackStorage(req2))
+
+        res_emp = _route_payg_success(req2, tx)
+        self.assertEqual(res_emp.status_code, 302)
+        self.assertIn(reverse('employer:bulk_upload_create'), res_emp.url)
+        self.assertIn(tx.reference, res_emp.url)
+
+    def test_admin_financial_report_filters_payment_types(self):
+        """Admin can filter financial reports by specific payment types and plans."""
+        self.user.is_staff = True
+        self.user.is_superuser = True
+        self.user.save(update_fields=['is_staff', 'is_superuser'])
+        self.client.force_login(self.user)
+
+        # Create transactions of different types
+        tx_bulk = Transaction.objects.create(
+            user=self.user,
+            reference='VNG-TX-BULK-01',
+            amount_kobo=50000,
+            status='success',
+            paystack_response={'data': {'metadata': {'service': 'bulk_upload'}}}
+        )
+        tx_mon = Transaction.objects.create(
+            user=self.user,
+            reference='VNG-TX-MON-01',
+            amount_kobo=260000,
+            status='success',
+            paystack_response={'data': {'metadata': {'service': 'monitoring'}}}
+        )
+
+        # Filter bulk_upload
+        res_bulk = self.client.get(reverse('admin_portal:financial_report') + '?plan=bulk_upload')
+        self.assertEqual(res_bulk.status_code, 200)
+        self.assertContains(res_bulk, 'VNG-TX-BULK-01')
+        self.assertNotContains(res_bulk, 'VNG-TX-MON-01')
+
+        # Filter monitoring
+        res_mon = self.client.get(reverse('admin_portal:financial_report') + '?plan=monitoring')
+        self.assertEqual(res_mon.status_code, 200)
+        self.assertContains(res_mon, 'VNG-TX-MON-01')
+        self.assertNotContains(res_mon, 'VNG-TX-BULK-01')
+
+        # CSV Export with filter
+        res_csv = self.client.get(reverse('admin_portal:financial_report') + '?plan=monitoring&download=csv')
+        self.assertEqual(res_csv.status_code, 200)
+        self.assertEqual(res_csv['Content-Type'], 'text/csv')
+        self.assertIn('VNG-TX-MON-01', res_csv.content.decode())
+        self.assertNotIn('VNG-TX-BULK-01', res_csv.content.decode())

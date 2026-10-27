@@ -1,6 +1,7 @@
 
 {% extends "public/base.html" %}
 {% load static %}
+{% load humanize %}
 
 {% block title %}My Subscription — VerifyNG{% endblock %}
 
@@ -25,7 +26,7 @@
             <div>
               <div class="text-uppercase small fw-bold text-success" style="letter-spacing:0.05em;font-size:0.75rem;">Pay-As-You-Go Credit</div>
               <h4 class="fw-800 mb-1" style="font-size:1.25rem;color:var(--vng-ink);">Available Account Balance</h4>
-              <div class="fw-800 text-success mt-2" style="font-size:1.85rem;letter-spacing:-0.02em;line-height:1.1;">₦{{ user_balance|floatformat:0 }}</div>
+              <div class="fw-800 text-success mt-2" style="font-size:1.85rem;letter-spacing:-0.02em;line-height:1.1;">₦{{ user_balance|floatformat:0|intcomma }}</div>
               <div class="text-muted small mt-1" style="font-size:0.825rem;">This credit is ready to be applied across any services</div>
               <!-- Mobile Action Button: Indented & aligned under statement -->
               <div class="mt-3 d-md-none">
@@ -57,7 +58,7 @@
           </div>
           <div class="text-end">
             <div class="fw-800" style="font-size:1.75rem;color:var(--vng-ink);">
-              {% if active_subscription.plan.is_free %}Free{% else %}₦{{ active_subscription.plan.price_naira|floatformat:0 }}{% endif %}
+              {% if active_subscription.plan.is_free %}Free{% else %}₦{{ active_subscription.plan.price_naira|floatformat:0|intcomma }}{% endif %}
             </div>
             <div class="text-muted" style="font-size:.8rem;">/{{ active_subscription.plan.get_interval_display|lower }}</div>
           </div>
@@ -191,7 +192,7 @@
           <!-- Amount -->
           <div class="text-end flex-shrink-0">
             <div class="fw-700" style="font-size:.9rem;color:{% if txn.status == 'success' %}var(--vng-success){% else %}var(--vng-muted){% endif %};">
-              ₦{{ txn.amount_naira|floatformat:0 }}
+              ₦{{ txn.amount_naira|floatformat:0|intcomma }}
             </div>
             <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;
                         color:{% if txn.status == 'success' %}var(--vng-success){% elif txn.status == 'pending' %}var(--vng-primary){% else %}#DC2626{% endif %};font-weight:600;">

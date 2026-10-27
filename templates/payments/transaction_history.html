@@ -2,6 +2,7 @@
 
 {% extends "public/base.html" %}
 {% load static %}
+{% load humanize %}
 
 {% block title %}Transaction History — VerifyNG{% endblock %}
 
@@ -44,7 +45,7 @@
               <code style="font-size:.78rem;background:var(--vng-page-bg);padding:.2rem .5rem;border-radius:6px;">{{ txn.reference }}</code>
             </td>
             <td style="padding:1rem 1.25rem;font-size:.9rem;vertical-align:middle;font-weight:700;color:{% if txn.status == 'success' %}var(--vng-success){% else %}var(--vng-muted){% endif %};">
-              ₦{{ txn.amount_naira|floatformat:0 }}
+              ₦{{ txn.amount_naira|floatformat:0|intcomma }}
             </td>
             <td style="padding:1rem 1.25rem;vertical-align:middle;">
               <span class="badge"
@@ -74,7 +75,7 @@
           </div>
           <div class="text-end">
             <div class="fw-800" style="font-size:1rem;color:{% if txn.status == 'success' %}var(--vng-success){% else %}var(--vng-muted){% endif %};">
-              ₦{{ txn.amount_naira|floatformat:0 }}
+              ₦{{ txn.amount_naira|floatformat:0|intcomma }}
             </div>
             <span class="badge mt-1"
                   style="font-size:.7rem;font-weight:700;border-radius:9999px;padding:.25rem .6rem;

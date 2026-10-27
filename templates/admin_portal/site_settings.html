@@ -1,5 +1,6 @@
 {% extends "admin_portal/base_admin.html" %}
 {% load static %}
+{% load humanize %}
 
 {% block title %}Site Settings & Global Service Entitlements — Admin{% endblock %}
 
@@ -587,7 +588,7 @@
             {% if plan.price_kobo == 0 %}
               <span class="text-success">Free</span>
             {% else %}
-              ₦{{ plan.price_naira|floatformat:0 }}
+              ₦{{ plan.price_naira|floatformat:0|intcomma }}
             {% endif %}
           </td>
           <td>

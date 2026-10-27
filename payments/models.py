@@ -569,6 +569,8 @@ class Transaction(models.Model):
             if cert_id:
                 return f"Certificate Monitoring — {cert_id}"
             return "Certificate Monitoring Service"
+        elif service in ('bulk_upload', 'bulk_check'):
+            return "Bulk Candidate Screening"
 
         return "Direct Payment"
 

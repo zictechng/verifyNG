@@ -1,5 +1,6 @@
 {% extends 'public/base.html' %}
 {% load static %}
+{% load humanize %}
 
 {% block title %}Submit Verification Request | {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
 
@@ -69,7 +70,7 @@
             <div class="alert alert-success alert-dismissible fade show shadow-sm d-flex align-items-center justify-content-between py-2.5 px-3 mb-3" role="alert" style="border-radius:10px; font-size:0.9rem;">
                 <div class="d-flex align-items-center gap-2">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-success flex-shrink-0"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                    <span>Payment Successful! Your payment Reference {{ prepaid_reference }}{% if prepaid_amount %} (₦{{ prepaid_amount|floatformat:0 }}){% endif %} for {% if is_comprehensive_prepaid %}Full Comprehensive Due Diligence Verification{% else %}Standard Identity Verification{% endif %} has been confirmed. You may now proceed with your request.</span>
+                    <span>Payment Successful! Your payment Reference {{ prepaid_reference }}{% if prepaid_amount %} (₦{{ prepaid_amount|floatformat:0|intcomma }}){% endif %} for {% if is_comprehensive_prepaid %}Full Comprehensive Due Diligence Verification{% else %}Standard Identity Verification{% endif %} has been confirmed. You may now proceed with your request.</span>
                 </div>
                 <button type="button" class="btn-close ms-2" data-bs-dismiss="alert" aria-label="Close" style="font-size:0.8rem;"></button>
             </div>
@@ -119,7 +120,7 @@
                     <div class="alert alert-success py-2.5 px-3 mb-4 rounded-3 border-0 d-flex align-items-center justify-content-between flex-wrap gap-2">
                         <div class="d-flex align-items-center gap-2">
                             <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path fill="#15803D" d="M9 12l2 2 4-4m5-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                            <span><strong>Account Balance Active:</strong> You have <strong>₦{{ user_balance|floatformat:0 }}</strong> available in your account balance. Your submission will be covered dynamically.</span>
+                            <span><strong>Account Balance Active:</strong> You have <strong>₦{{ user_balance|floatformat:0|intcomma }}</strong> available in your account balance. Your submission will be covered dynamically.</span>
                         </div>
                         <span class="badge bg-success">Pre-Paid Balance</span>
                     </div>
@@ -322,7 +323,7 @@
                                     {% if gateway_error %}
                                         {{ gateway_error }}
                                     {% elif user_balance and user_balance > 0 %}
-                                        You have <strong>₦{{ user_balance|floatformat:0 }}</strong> in your account balance. This <strong>{{ verification_type|title }}</strong> verification costs <strong>₦{{ selected_price|floatformat:0 }}</strong>. Top up the difference of <strong>₦{{ topup_needed|floatformat:0 }}</strong> via Paystack to proceed.
+                                        You have <strong>₦{{ user_balance|floatformat:0|intcomma }}</strong> in your account balance. This <strong>{{ verification_type|title }}</strong> verification costs <strong>₦{{ selected_price|floatformat:0|intcomma }}</strong>. Top up the difference of <strong>₦{{ topup_needed|floatformat:0|intcomma }}</strong> via Paystack to proceed.
                                     {% else %}
                                         Your account requires an active subscription or single-request payment to submit this <strong>{{ verification_type|title }}</strong> verification for officer review.
                                     {% endif %}
@@ -332,9 +333,9 @@
                                     <button type="submit" name="action" value="payg" class="btn btn-primary fw-bold px-3 py-2 shadow-sm d-inline-flex align-items-center justify-content-center gap-2" style="border-radius:9999px;font-size:.875rem;">
                                         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
                                         {% if user_balance and user_balance > 0 %}
-                                        <span>Top Up Difference (₦{{ topup_needed|floatformat:0 }}) &amp; Submit &rarr;</span>
+                                        <span>Top Up Difference (₦{{ topup_needed|floatformat:0|intcomma }}) &amp; Submit &rarr;</span>
                                         {% else %}
-                                        <span>Pay ₦{{ selected_price|floatformat:0 }} via Paystack &amp; Submit Request &rarr;</span>
+                                        <span>Pay ₦{{ selected_price|floatformat:0|intcomma }} via Paystack &amp; Submit Request &rarr;</span>
                                         {% endif %}
                                     </button>
                                     <a href="{% url 'payments:plans' %}" class="btn btn-outline-dark fw-semibold px-3 py-2 text-center" style="border-radius:9999px;font-size:.875rem;">

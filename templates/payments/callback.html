@@ -1,6 +1,7 @@
 
 {% extends "public/base.html" %}
 {% load static %}
+{% load humanize %}
 
 {% block title %}{% if success %}Payment Successful{% else %}Payment Failed{% endif %} — VerifyNG{% endblock %}
 
@@ -51,7 +52,7 @@
           </div>
           <div class="d-flex justify-content-between mb-2">
             <span class="text-muted" style="font-size:.85rem;">Amount</span>
-            <span class="fw-700" style="font-size:.85rem;color:var(--vng-success);">₦{{ transaction.amount_naira|floatformat:0 }}</span>
+            <span class="fw-700" style="font-size:.85rem;color:var(--vng-success);">₦{{ transaction.amount_naira|floatformat:0|intcomma }}</span>
           </div>
           <div class="d-flex justify-content-between">
             <span class="text-muted" style="font-size:.85rem;">Reference</span>

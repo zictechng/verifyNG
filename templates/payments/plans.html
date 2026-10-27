@@ -1,6 +1,7 @@
 
 {% extends "public/base.html" %}
 {% load static %}
+{% load humanize %}
 
 {% block title %}Plans & Pricing — VerifyNG{% endblock %}
 {% block meta_description %}Choose the right VerifyNG plan for background checks and fraud reports in Nigeria.{% endblock %}
@@ -84,7 +85,7 @@
                 <span style="font-size:2.5rem;font-weight:800;color:var(--vng-ink);line-height:1;">Free</span>
               {% else %}
                 <span style="font-size:1.1rem;font-weight:600;color:var(--vng-muted);align-self:flex-start;padding-top:.4rem;">₦</span>
-                <span style="font-size:2.5rem;font-weight:800;color:var(--vng-ink);line-height:1;">{{ plan.price_naira|floatformat:0 }}</span>
+                <span style="font-size:2.5rem;font-weight:800;color:var(--vng-ink);line-height:1;">{{ plan.price_naira|floatformat:0|intcomma }}</span>
                 <span style="font-size:.9rem;color:var(--vng-muted);padding-bottom:.25rem;">/{{ plan.get_interval_display|lower }}</span>
               {% endif %}
             </div>
@@ -92,7 +93,7 @@
             <div class="mt-2">
               {% if plan.credit_value_naira and plan.credit_value_naira > 0 %}
                 <span class="badge" style="background:#ECFDF5;color:#047857;border:1px solid #A7F3D0;font-size:.78rem;font-weight:700;border-radius:9999px;padding:.35rem .85rem;">
-                  ₦{{ plan.credit_value_naira|floatformat:0 }} Service Credit Included
+                  ₦{{ plan.credit_value_naira|floatformat:0|intcomma }} Service Credit Included
                 </span>
               {% elif plan.has_unlimited_checks %}
                 <span class="badge" style="background:var(--vng-teal-light);color:var(--vng-teal);font-size:.75rem;font-weight:600;border-radius:9999px;padding:.3rem .75rem;">Unlimited checks</span>
@@ -187,8 +188,8 @@
                   <div class="text-muted small">Applicant Workplace Integrity Credential & Fraud Check Clearance</div>
                 </td>
                 <td class="py-3"><span class="badge bg-success">1-Year Validity</span></td>
-                <td class="py-3"><strong class="text-dark">₦{{ site_settings.price_trustpass_1yr|floatformat:0 }}</strong></td>
-                <td class="pe-4 py-3 text-end"><a href="{% url 'payments:service_checkout_review' 'certificate' %}?tier=employment" class="btn btn-sm btn-outline-primary rounded-pill px-3">Get Standard Pass (₦{{ site_settings.price_trustpass_1yr|floatformat:0 }})</a></td>
+                <td class="py-3"><strong class="text-dark">₦{{ site_settings.price_trustpass_1yr|floatformat:0|intcomma }}</strong></td>
+                <td class="pe-4 py-3 text-end"><a href="{% url 'payments:service_checkout_review' 'certificate' %}?tier=employment" class="btn btn-sm btn-outline-primary rounded-pill px-3">Get Standard Pass (₦{{ site_settings.price_trustpass_1yr|floatformat:0|intcomma }})</a></td>
               </tr>
               <tr>
                 <td class="ps-4 py-3">
@@ -196,8 +197,8 @@
                   <div class="text-muted small">Management & Security Credential + Comprehensive multi-identifier screening</div>
                 </td>
                 <td class="py-3"><span class="badge bg-primary">3-Year Validity</span></td>
-                <td class="py-3"><strong class="text-dark">₦{{ site_settings.price_trustpass_3yr|floatformat:0 }}</strong></td>
-                <td class="pe-4 py-3 text-end"><a href="{% url 'payments:service_checkout_review' 'certificate' %}?tier=enhanced" class="btn btn-sm btn-outline-primary rounded-pill px-3">Get Enhanced Pass (₦{{ site_settings.price_trustpass_3yr|floatformat:0 }})</a></td>
+                <td class="py-3"><strong class="text-dark">₦{{ site_settings.price_trustpass_3yr|floatformat:0|intcomma }}</strong></td>
+                <td class="pe-4 py-3 text-end"><a href="{% url 'payments:service_checkout_review' 'certificate' %}?tier=enhanced" class="btn btn-sm btn-outline-primary rounded-pill px-3">Get Enhanced Pass (₦{{ site_settings.price_trustpass_3yr|floatformat:0|intcomma }})</a></td>
               </tr>
               <tr>
                 <td class="ps-4 py-3">
@@ -205,8 +206,8 @@
                   <div class="text-muted small">Employer single staff check (NIN + Phone + Fraud Registry)</div>
                 </td>
                 <td class="py-3"><span class="badge bg-secondary">Single Check</span></td>
-                <td class="py-3"><strong class="text-dark">₦{{ site_settings.price_staff_check_standard|floatformat:0 }}</strong></td>
-                <td class="pe-4 py-3 text-end"><a href="{% url 'payments:service_checkout_review' 'staff_check' %}?tier=standard" class="btn btn-sm btn-outline-primary rounded-pill px-3">Order Staff Check (₦{{ site_settings.price_staff_check_standard|floatformat:0 }})</a></td>
+                <td class="py-3"><strong class="text-dark">₦{{ site_settings.price_staff_check_standard|floatformat:0|intcomma }}</strong></td>
+                <td class="pe-4 py-3 text-end"><a href="{% url 'payments:service_checkout_review' 'staff_check' %}?tier=standard" class="btn btn-sm btn-outline-primary rounded-pill px-3">Order Staff Check (₦{{ site_settings.price_staff_check_standard|floatformat:0|intcomma }})</a></td>
               </tr>
               <tr>
                 <td class="ps-4 py-3">
@@ -214,8 +215,8 @@
                   <div class="text-muted small">Executive / High-risk background diligence report</div>
                 </td>
                 <td class="py-3"><span class="badge bg-secondary">Single Check</span></td>
-                <td class="py-3"><strong class="text-dark">₦{{ site_settings.price_staff_check_enhanced|floatformat:0 }}</strong></td>
-                <td class="pe-4 py-3 text-end"><a href="{% url 'payments:service_checkout_review' 'staff_check' %}?tier=enhanced" class="btn btn-sm btn-outline-primary rounded-pill px-3">Order Enhanced Check (₦{{ site_settings.price_staff_check_enhanced|floatformat:0 }})</a></td>
+                <td class="py-3"><strong class="text-dark">₦{{ site_settings.price_staff_check_enhanced|floatformat:0|intcomma }}</strong></td>
+                <td class="pe-4 py-3 text-end"><a href="{% url 'payments:service_checkout_review' 'staff_check' %}?tier=enhanced" class="btn btn-sm btn-outline-primary rounded-pill px-3">Order Enhanced Check (₦{{ site_settings.price_staff_check_enhanced|floatformat:0|intcomma }})</a></td>
               </tr>
               <tr>
                 <td class="ps-4 py-3">
@@ -223,8 +224,8 @@
                   <div class="text-muted small">Check With Phone, NIN, Bank Account, CAC or Certificate ID Against Fraud &amp; background query</div>
                 </td>
                 <td class="py-3"><span class="badge bg-secondary">Single Check</span></td>
-                <td class="py-3"><strong class="text-dark">₦{{ site_settings.price_public_check|floatformat:0 }}</strong></td>
-                <td class="pe-4 py-3 text-end"><a href="{% url 'payments:service_checkout_review' 'public_check' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">Pay &amp; Search (₦{{ site_settings.price_public_check|floatformat:0 }})</a></td>
+                <td class="py-3"><strong class="text-dark">₦{{ site_settings.price_public_check|floatformat:0|intcomma }}</strong></td>
+                <td class="pe-4 py-3 text-end"><a href="{% url 'payments:service_checkout_review' 'public_check' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">Pay &amp; Search (₦{{ site_settings.price_public_check|floatformat:0|intcomma }})</a></td>
               </tr>
               <tr>
                 <td class="ps-4 py-3">
@@ -232,8 +233,8 @@
                   <div class="text-muted small">Instant Check With Phone / NIN reputation & trust query</div>
                 </td>
                 <td class="py-3"><span class="badge bg-secondary">Single Query</span></td>
-                <td class="py-3"><strong class="text-dark">₦{{ site_settings.price_person_check|floatformat:0 }}</strong></td>
-                <td class="pe-4 py-3 text-end"><a href="{% url 'payments:service_checkout_review' 'person_check' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">Pay &amp; Quick-Check (₦{{ site_settings.price_person_check|floatformat:0 }})</a></td>
+                <td class="py-3"><strong class="text-dark">₦{{ site_settings.price_person_check|floatformat:0|intcomma }}</strong></td>
+                <td class="pe-4 py-3 text-end"><a href="{% url 'payments:service_checkout_review' 'person_check' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">Pay &amp; Quick-Check (₦{{ site_settings.price_person_check|floatformat:0|intcomma }})</a></td>
               </tr>
               <tr>
                 <td class="ps-4 py-3">
@@ -241,8 +242,8 @@
                   <div class="text-muted small">verify candidate certificate authenticity, expiration date, and post-issuance fraud or misconduct flags.</div>
                 </td>
                 <td class="py-3"><span class="badge bg-secondary">Single Check</span></td>
-                <td class="py-3"><strong class="text-dark">₦{{ site_settings.price_certificate_verify|floatformat:0 }}</strong></td>
-                <td class="pe-4 py-3 text-end"><a href="{% url 'payments:service_checkout_review' 'certificate_verify' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">Verify Cert (₦{{ site_settings.price_certificate_verify|floatformat:0 }})</a></td>
+                <td class="py-3"><strong class="text-dark">₦{{ site_settings.price_certificate_verify|floatformat:0|intcomma }}</strong></td>
+                <td class="pe-4 py-3 text-end"><a href="{% url 'payments:service_checkout_review' 'certificate_verify' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">Verify Cert (₦{{ site_settings.price_certificate_verify|floatformat:0|intcomma }})</a></td>
               </tr>
               <tr>
                 <td class="ps-4 py-3">
@@ -250,8 +251,8 @@
                   <div class="text-muted small">Basic national identity & address proof document diligence verification check</div>
                 </td>
                 <td class="py-3"><span class="badge bg-secondary">Per Request</span></td>
-                <td class="py-3"><strong class="text-dark">₦{{ site_settings.price_verification_basic|floatformat:0 }}</strong></td>
-                <td class="pe-4 py-3 text-end"><a href="{% url 'payments:service_checkout_review' 'verification' %}?tier=basic" class="btn btn-sm btn-outline-primary rounded-pill px-3">Order Basic Check (₦{{ site_settings.price_verification_basic|floatformat:0 }})</a></td>
+                <td class="py-3"><strong class="text-dark">₦{{ site_settings.price_verification_basic|floatformat:0|intcomma }}</strong></td>
+                <td class="pe-4 py-3 text-end"><a href="{% url 'payments:service_checkout_review' 'verification' %}?tier=basic" class="btn btn-sm btn-outline-primary rounded-pill px-3">Order Basic Check (₦{{ site_settings.price_verification_basic|floatformat:0|intcomma }})</a></td>
               </tr>
               <tr>
                 <td class="ps-4 py-3">
@@ -259,8 +260,8 @@
                   <div class="text-muted small">Company registration, director vetting, business activities status & corporate diligence check</div>
                 </td>
                 <td class="py-3"><span class="badge bg-secondary">Per Request</span></td>
-                <td class="py-3"><strong class="text-dark">₦{{ site_settings.price_verification_business|floatformat:0 }}</strong></td>
-                <td class="pe-4 py-3 text-end"><a href="{% url 'payments:service_checkout_review' 'verification' %}?tier=business" class="btn btn-sm btn-outline-primary rounded-pill px-3">Order CAC Check (₦{{ site_settings.price_verification_business|floatformat:0 }})</a></td>
+                <td class="py-3"><strong class="text-dark">₦{{ site_settings.price_verification_business|floatformat:0|intcomma }}</strong></td>
+                <td class="pe-4 py-3 text-end"><a href="{% url 'payments:service_checkout_review' 'verification' %}?tier=business" class="btn btn-sm btn-outline-primary rounded-pill px-3">Order CAC Check (₦{{ site_settings.price_verification_business|floatformat:0|intcomma }})</a></td>
               </tr>
               <tr>
                 <td class="ps-4 py-3">
@@ -268,8 +269,8 @@
                   <div class="text-muted small">Officer registry inspection for land titles, C of O, VIN chassis, genuine ownership & commercial contracts verification</div>
                 </td>
                 <td class="py-3"><span class="badge bg-primary">Deep Investigation</span></td>
-                <td class="py-3"><strong class="text-dark">₦{{ site_settings.price_verification_business|floatformat:0 }}</strong></td>
-                <td class="pe-4 py-3 text-end"><a href="{% url 'payments:service_checkout_review' 'verification' %}?tier=full_check" class="btn btn-sm btn-outline-primary rounded-pill px-3">Order Full Check (₦{{ site_settings.price_verification_business|floatformat:0 }})</a></td>
+                <td class="py-3"><strong class="text-dark">₦{{ site_settings.price_verification_business|floatformat:0|intcomma }}</strong></td>
+                <td class="pe-4 py-3 text-end"><a href="{% url 'payments:service_checkout_review' 'verification' %}?tier=full_check" class="btn btn-sm btn-outline-primary rounded-pill px-3">Order Full Check (₦{{ site_settings.price_verification_business|floatformat:0|intcomma }})</a></td>
               </tr>
               <tr>
                 <td class="ps-4 py-3">
@@ -283,8 +284,8 @@
                   </div>
                 </td>
                 <td class="py-3"><span class="badge bg-info text-dark">Annual Watcher</span></td>
-                <td class="py-3"><strong class="text-dark">₦{{ site_settings.price_monitoring_annual|floatformat:0 }}</strong> <span class="text-muted small">/ certificate / yr</span></td>
-                <td class="pe-4 py-3 text-end"><a href="{% url 'payments:service_checkout_review' 'monitoring' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">Join Monitoring (₦{{ site_settings.price_monitoring_annual|floatformat:0 }}/yr)</a></td>
+                <td class="py-3"><strong class="text-dark">₦{{ site_settings.price_monitoring_annual|floatformat:0|intcomma }}</strong> <span class="text-muted small">/ certificate / yr</span></td>
+                <td class="pe-4 py-3 text-end"><a href="{% url 'payments:service_checkout_review' 'monitoring' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">Join Monitoring (₦{{ site_settings.price_monitoring_annual|floatformat:0|intcomma }}/yr)</a></td>
               </tr>
               <tr>
                 <td class="ps-4 py-3">
@@ -292,8 +293,8 @@
                   <div class="text-muted small">Batch candidate verification & multi-staff credential processing</div>
                 </td>
                 <td class="py-3"><span class="badge bg-secondary">Per Candidate</span></td>
-                <td class="py-3"><strong class="text-dark">₦{{ site_settings.price_bulk_check_per_row|floatformat:0 }}</strong></td>
-                <td class="pe-4 py-3 text-end"><a href="{% url 'employer:bulk_upload_create' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">Bulk Upload (₦{{ site_settings.price_bulk_check_per_row|floatformat:0 }}/ea)</a></td>
+                <td class="py-3"><strong class="text-dark">₦{{ site_settings.price_bulk_check_per_row|floatformat:0|intcomma }}</strong></td>
+                <td class="pe-4 py-3 text-end"><a href="{% url 'payments:service_checkout_review' 'bulk_upload' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">Bulk Upload (₦{{ site_settings.price_bulk_check_per_row|floatformat:0|intcomma }}/ea)</a></td>
               </tr>
               <tr>
                 <td class="ps-4 py-3">
@@ -323,7 +324,7 @@
           <div class="d-flex justify-content-between align-items-center">
             <div>
               <span class="text-muted d-block" style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.04em;font-weight:600;">Rate</span>
-              <strong class="text-dark" style="font-size:1.15rem;line-height:1;">₦{{ site_settings.price_trustpass_1yr|floatformat:0 }}</strong>
+              <strong class="text-dark" style="font-size:1.15rem;line-height:1;">₦{{ site_settings.price_trustpass_1yr|floatformat:0|intcomma }}</strong>
             </div>
             <a href="{% url 'payments:service_checkout_review' 'certificate' %}?tier=employment" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold" style="font-size:0.8rem;">
               Get Standard Pass &rarr;
@@ -343,7 +344,7 @@
           <div class="d-flex justify-content-between align-items-center">
             <div>
               <span class="text-muted d-block" style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.04em;font-weight:600;">Rate</span>
-              <strong class="text-dark" style="font-size:1.15rem;line-height:1;">₦{{ site_settings.price_trustpass_3yr|floatformat:0 }}</strong>
+              <strong class="text-dark" style="font-size:1.15rem;line-height:1;">₦{{ site_settings.price_trustpass_3yr|floatformat:0|intcomma }}</strong>
             </div>
             <a href="{% url 'payments:service_checkout_review' 'certificate' %}?tier=enhanced" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold" style="font-size:0.8rem;">
               Get Enhanced Pass &rarr;
@@ -363,7 +364,7 @@
           <div class="d-flex justify-content-between align-items-center">
             <div>
               <span class="text-muted d-block" style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.04em;font-weight:600;">Rate</span>
-              <strong class="text-dark" style="font-size:1.15rem;line-height:1;">₦{{ site_settings.price_staff_check_standard|floatformat:0 }}</strong>
+              <strong class="text-dark" style="font-size:1.15rem;line-height:1;">₦{{ site_settings.price_staff_check_standard|floatformat:0|intcomma }}</strong>
             </div>
             <a href="{% url 'payments:service_checkout_review' 'staff_check' %}?tier=standard" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold" style="font-size:0.8rem;">
               Order Staff Check &rarr;
@@ -383,7 +384,7 @@
           <div class="d-flex justify-content-between align-items-center">
             <div>
               <span class="text-muted d-block" style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.04em;font-weight:600;">Rate</span>
-              <strong class="text-dark" style="font-size:1.15rem;line-height:1;">₦{{ site_settings.price_staff_check_enhanced|floatformat:0 }}</strong>
+              <strong class="text-dark" style="font-size:1.15rem;line-height:1;">₦{{ site_settings.price_staff_check_enhanced|floatformat:0|intcomma }}</strong>
             </div>
             <a href="{% url 'payments:service_checkout_review' 'staff_check' %}?tier=enhanced" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold" style="font-size:0.8rem;">
               Order Enhanced Check &rarr;
@@ -403,7 +404,7 @@
           <div class="d-flex justify-content-between align-items-center">
             <div>
               <span class="text-muted d-block" style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.04em;font-weight:600;">Rate</span>
-              <strong class="text-dark" style="font-size:1.15rem;line-height:1;">₦{{ site_settings.price_public_check|floatformat:0 }}</strong>
+              <strong class="text-dark" style="font-size:1.15rem;line-height:1;">₦{{ site_settings.price_public_check|floatformat:0|intcomma }}</strong>
             </div>
             <a href="{% url 'payments:service_checkout_review' 'public_check' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold" style="font-size:0.8rem;">
               Pay &amp; Search &rarr;
@@ -423,7 +424,7 @@
           <div class="d-flex justify-content-between align-items-center">
             <div>
               <span class="text-muted d-block" style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.04em;font-weight:600;">Rate</span>
-              <strong class="text-dark" style="font-size:1.15rem;line-height:1;">₦{{ site_settings.price_person_check|floatformat:0 }}</strong>
+              <strong class="text-dark" style="font-size:1.15rem;line-height:1;">₦{{ site_settings.price_person_check|floatformat:0|intcomma }}</strong>
             </div>
             <a href="{% url 'payments:service_checkout_review' 'person_check' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold" style="font-size:0.8rem;">
               Pay &amp; Quick-Check &rarr;
@@ -443,7 +444,7 @@
           <div class="d-flex justify-content-between align-items-center">
             <div>
               <span class="text-muted d-block" style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.04em;font-weight:600;">Rate</span>
-              <strong class="text-dark" style="font-size:1.15rem;line-height:1;">₦{{ site_settings.price_certificate_verify|floatformat:0 }}</strong>
+              <strong class="text-dark" style="font-size:1.15rem;line-height:1;">₦{{ site_settings.price_certificate_verify|floatformat:0|intcomma }}</strong>
             </div>
             <a href="{% url 'payments:service_checkout_review' 'certificate_verify' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold" style="font-size:0.8rem;">
               Verify Cert &rarr;
@@ -463,7 +464,7 @@
           <div class="d-flex justify-content-between align-items-center">
             <div>
               <span class="text-muted d-block" style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.04em;font-weight:600;">Rate</span>
-              <strong class="text-dark" style="font-size:1.15rem;line-height:1;">₦{{ site_settings.price_verification_basic|floatformat:0 }}</strong>
+              <strong class="text-dark" style="font-size:1.15rem;line-height:1;">₦{{ site_settings.price_verification_basic|floatformat:0|intcomma }}</strong>
             </div>
             <a href="{% url 'payments:service_checkout_review' 'verification' %}?tier=basic" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold" style="font-size:0.8rem;">
               Order Basic Check &rarr;
@@ -483,7 +484,7 @@
           <div class="d-flex justify-content-between align-items-center">
             <div>
               <span class="text-muted d-block" style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.04em;font-weight:600;">Rate</span>
-              <strong class="text-dark" style="font-size:1.15rem;line-height:1;">₦{{ site_settings.price_verification_business|floatformat:0 }}</strong>
+              <strong class="text-dark" style="font-size:1.15rem;line-height:1;">₦{{ site_settings.price_verification_business|floatformat:0|intcomma }}</strong>
             </div>
             <a href="{% url 'payments:service_checkout_review' 'verification' %}?tier=business" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold" style="font-size:0.8rem;">
               Order CAC Check &rarr;
@@ -503,7 +504,7 @@
           <div class="d-flex justify-content-between align-items-center">
             <div>
               <span class="text-muted d-block" style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.04em;font-weight:600;">Rate</span>
-              <strong class="text-dark" style="font-size:1.15rem;line-height:1;">₦{{ site_settings.price_verification_business|floatformat:0 }}</strong>
+              <strong class="text-dark" style="font-size:1.15rem;line-height:1;">₦{{ site_settings.price_verification_business|floatformat:0|intcomma }}</strong>
             </div>
             <a href="{% url 'payments:service_checkout_review' 'verification' %}?tier=full_check" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold" style="font-size:0.8rem;">
               Order Full Check &rarr;
@@ -527,7 +528,7 @@
           <div class="d-flex justify-content-between align-items-center">
             <div>
               <span class="text-muted d-block" style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.04em;font-weight:600;">Rate</span>
-              <strong class="text-dark" style="font-size:1.15rem;line-height:1;">₦{{ site_settings.price_monitoring_annual|floatformat:0 }}</strong>
+              <strong class="text-dark" style="font-size:1.15rem;line-height:1;">₦{{ site_settings.price_monitoring_annual|floatformat:0|intcomma }}</strong>
               <span class="text-muted small" style="font-size:0.75rem;">/ certificate / yr</span>
             </div>
             <a href="{% url 'payments:service_checkout_review' 'monitoring' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold" style="font-size:0.8rem;">
@@ -548,10 +549,10 @@
           <div class="d-flex justify-content-between align-items-center">
             <div>
               <span class="text-muted d-block" style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.04em;font-weight:600;">Rate</span>
-              <strong class="text-dark" style="font-size:1.15rem;line-height:1;">₦{{ site_settings.price_bulk_check_per_row|floatformat:0 }}</strong>
+              <strong class="text-dark" style="font-size:1.15rem;line-height:1;">₦{{ site_settings.price_bulk_check_per_row|floatformat:0|intcomma }}</strong>
               <span class="text-muted small" style="font-size:0.75rem;">/ record</span>
             </div>
-            <a href="{% url 'employer:bulk_upload_create' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold" style="font-size:0.8rem;">
+            <a href="{% url 'payments:service_checkout_review' 'bulk_upload' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold" style="font-size:0.8rem;">
               Bulk Upload &rarr;
             </a>
           </div>

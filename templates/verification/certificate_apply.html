@@ -1,5 +1,6 @@
 {% extends 'public/base.html' %}
 {% load static %}
+{% load humanize %}
 
 {% block title %}Apply for TrustPass Clearance Certificate | {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
 
@@ -443,7 +444,7 @@
                                         </div>
                                         <div class="d-flex justify-content-between align-items-center mt-2 mb-2">
                                             <span class="badge bg-success">1-Year Validity</span>
-                                            <span class="fw-bold text-success fs-6">₦{{ price_trustpass_1yr|floatformat:0 }}</span>
+                                            <span class="fw-bold text-success fs-6">₦{{ price_trustpass_1yr|floatformat:0|intcomma }}</span>
                                         </div>
                                         <p class="small text-muted mb-0">
                                             National identity confirmation + Fraud & Theft Registry check. Ideal for drivers, retail store cashiers, sales staff, and domestic workers.
@@ -460,7 +461,7 @@
                                         </div>
                                         <div class="d-flex justify-content-between align-items-center mt-2 mb-2">
                                             <span class="badge bg-primary">3-Year Validity</span>
-                                            <span class="fw-bold text-primary fs-6">₦{{ price_trustpass_3yr|floatformat:0 }}</span>
+                                            <span class="fw-bold text-primary fs-6">₦{{ price_trustpass_3yr|floatformat:0|intcomma }}</span>
                                         </div>
                                         <p class="small text-muted mb-0">
                                             Comprehensive background vetting + multi-identifier integrity screening. Recommended for management, healthcare, accountants, and armed security.
@@ -555,7 +556,7 @@
                                     {% if has_entitlement %}
                                         <span class="text-success">Covered by active credit / Wallet Balance</span>
                                     {% else %}
-                                        <span class="text-primary" x-text="checkLevel === 'employment' ? '₦{{ price_trustpass_1yr|floatformat:0 }} (Pay-As-You-Go)' : '₦{{ price_trustpass_3yr|floatformat:0 }} (Pay-As-You-Go)'"></span>
+                                        <span class="text-primary" x-text="checkLevel === 'employment' ? '₦{{ price_trustpass_1yr|floatformat:0|intcomma }} (Pay-As-You-Go)' : '₦{{ price_trustpass_3yr|floatformat:0|intcomma }} (Pay-As-You-Go)'"></span>
                                     {% endif %}
                                 </dd>
                             </dl>
@@ -570,7 +571,7 @@
                         <div class="alert alert-info d-flex align-items-center justify-content-between flex-wrap gap-2 py-2 px-3 mb-4 small rounded-3 border-0" style="background:#EFF6FF;border-left:4px solid #2563EB !important;">
                             <div>
                                 <strong>Direct Paystack Checkout:</strong>
-                                Upon clicking submit, you will be redirected to Paystack to complete the <span class="fw-bold" x-text="checkLevel === 'employment' ? '₦{{ price_trustpass_1yr|floatformat:0 }}' : '₦{{ price_trustpass_3yr|floatformat:0 }}'"></span> clearance fee.
+                                Upon clicking submit, you will be redirected to Paystack to complete the <span class="fw-bold" x-text="checkLevel === 'employment' ? '₦{{ price_trustpass_1yr|floatformat:0|intcomma }}' : '₦{{ price_trustpass_3yr|floatformat:0|intcomma }}'"></span> clearance fee.
                             </div>
                             <span class="badge bg-primary">Secure Paystack Gateway</span>
                         </div>
@@ -597,7 +598,7 @@
                                 {% elif has_entitlement %}
                                 <span x-show="!submitting">Submit Clearance Application &rarr;</span>
                                 {% else %}
-                                <span x-show="!submitting">Pay &amp; Submit Clearance (<span x-text="checkLevel === 'employment' ? '₦{{ price_trustpass_1yr|floatformat:0 }}' : '₦{{ price_trustpass_3yr|floatformat:0 }}'"></span>) &rarr;</span>
+                                <span x-show="!submitting">Pay &amp; Submit Clearance (<span x-text="checkLevel === 'employment' ? '₦{{ price_trustpass_1yr|floatformat:0|intcomma }}' : '₦{{ price_trustpass_3yr|floatformat:0|intcomma }}'"></span>) &rarr;</span>
                                 {% endif %}
                                 <span x-show="submitting" x-cloak class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
                                 <span x-show="submitting" x-cloak>Submitting Application...</span>

@@ -2907,11 +2907,70 @@ class AdminFinancialReportView(SuperAdminRequiredMixin, TemplateView):
             date_to = now
         return date_from, date_to
 
+    @classmethod
+    def _apply_filters(cls, qs, request):
+        status_filter = request.GET.get('status', '').strip()
+        type_filter = request.GET.get('plan', '').strip() or request.GET.get('type', '').strip()
+
+        if status_filter:
+            qs = qs.filter(status=status_filter)
+
+        if type_filter:
+            if type_filter == 'payg':
+                qs = qs.filter(plan__isnull=True)
+            elif type_filter in ('subscription', 'subscriptions'):
+                qs = qs.filter(plan__isnull=False)
+            elif type_filter in ('bulk_upload', 'bulk_check'):
+                qs = qs.filter(
+                    Q(paystack_response__data__metadata__service__in=['bulk_upload', 'bulk_check']) |
+                    Q(paystack_response__metadata__service__in=['bulk_upload', 'bulk_check'])
+                )
+            elif type_filter in ('monitoring', 'update_service'):
+                qs = qs.filter(
+                    Q(paystack_response__data__metadata__service='monitoring') |
+                    Q(paystack_response__metadata__service='monitoring')
+                )
+            elif type_filter == 'certificate':
+                qs = qs.filter(
+                    Q(paystack_response__data__metadata__service='certificate') |
+                    Q(paystack_response__metadata__service='certificate')
+                )
+            elif type_filter == 'certificate_verify':
+                qs = qs.filter(
+                    Q(paystack_response__data__metadata__service='certificate_verify') |
+                    Q(paystack_response__metadata__service='certificate_verify')
+                )
+            elif type_filter == 'staff_check':
+                qs = qs.filter(
+                    Q(paystack_response__data__metadata__service='staff_check') |
+                    Q(paystack_response__metadata__service='staff_check')
+                )
+            elif type_filter in ('verification', 'business_verification'):
+                qs = qs.filter(
+                    Q(paystack_response__data__metadata__service__in=['verification', 'business_verification']) |
+                    Q(paystack_response__metadata__service__in=['verification', 'business_verification'])
+                )
+            elif type_filter in ('public_check', 'person_check', 'check'):
+                qs = qs.filter(
+                    Q(paystack_response__data__metadata__service__in=['public_check', 'check', 'person_check', 'quick_check']) |
+                    Q(paystack_response__metadata__service__in=['public_check', 'check', 'person_check', 'quick_check'])
+                )
+            elif type_filter == 'topup':
+                qs = qs.filter(
+                    Q(paystack_response__data__metadata__service='topup') |
+                    Q(paystack_response__metadata__service='topup') |
+                    Q(reference__startswith='VNG-BAL-')
+                )
+            elif type_filter.isdigit():
+                qs = qs.filter(plan__pk=type_filter)
+            elif type_filter.startswith('plan_'):
+                qs = qs.filter(plan__pk=type_filter.replace('plan_', ''))
+
+        return qs, status_filter, type_filter
+
     def _build_context(self, request):
 
         date_from, date_to = self._get_date_range(request)
-        status_filter = request.GET.get('status', '')
-        plan_filter = request.GET.get('plan', '')
 
         qs = Transaction.objects.filter(
             created_at__gte=date_from,
@@ -2922,17 +2981,14 @@ class AdminFinancialReportView(SuperAdminRequiredMixin, TemplateView):
             # is still a real payment that admin must see in financial reports.
         ).select_related('user', 'plan').order_by('-created_at')
 
-        if status_filter:
-            qs = qs.filter(status=status_filter)
-        if plan_filter:
-            qs = qs.filter(plan__pk=plan_filter)
+        qs, status_filter, plan_filter = self._apply_filters(qs, request)
 
         all_plans = Plan.objects.filter(is_active=True).order_by('name')
         platform = PlatformConfiguration.get()
 
         # KPI aggregates (success only for revenue)
         success_qs = qs.filter(status='success')
-        refund_qs  = qs.filter(status='refunded')
+        refund_qs  = refund_qs_full = qs.filter(status='refunded')
 
         agg = success_qs.aggregate(
             total=Sum('amount_kobo'),
@@ -2970,20 +3026,24 @@ class AdminFinancialReportView(SuperAdminRequiredMixin, TemplateView):
             for month, data in monthly_data.items()
         ]
 
-        # Plan breakdown
-        plan_agg = (
-            success_qs
-            .values('plan__name')
-            .annotate(count=Count('id'), total=Sum('amount_kobo'))
-            .order_by('-total')
-        )
+        # Service & Plan breakdown (granular so admin can see every product's performance)
+        breakdown_dict = {}
+        for txn in success_qs:
+            name = txn.plan.name if txn.plan else txn.item_display_name
+            if name.startswith('Certificate Monitoring'):
+                name = 'Certificate Monitoring Services (TrustPass)'
+            if name not in breakdown_dict:
+                breakdown_dict[name] = {'count': 0, 'revenue': 0}
+            breakdown_dict[name]['count'] += 1
+            breakdown_dict[name]['revenue'] += txn.amount_kobo / 100
+
         plan_breakdown = [
             {
-                'plan_name': row['plan__name'] or 'Pay-As-You-Go / Direct Services',
-                'count':     row['count'],
-                'revenue':   (row['total'] or 0) / 100,
+                'plan_name': name,
+                'count':     data['count'],
+                'revenue':   data['revenue'],
             }
-            for row in plan_agg
+            for name, data in sorted(breakdown_dict.items(), key=lambda x: -x[1]['revenue'])
         ]
 
         # Paginated ledger (all statuses matching filter)
@@ -3029,7 +3089,6 @@ class AdminFinancialReportView(SuperAdminRequiredMixin, TemplateView):
     def _export_csv(self, request):
         
         date_from, date_to = self._get_date_range(request)
-        status_filter = request.GET.get('status', '')
         qs = Transaction.objects.filter(
             created_at__gte=date_from,
             created_at__lte=date_to,
@@ -3037,8 +3096,7 @@ class AdminFinancialReportView(SuperAdminRequiredMixin, TemplateView):
             # whether a pre-paid credit is still unspent. Remove the filter
             # so consumed/fulfilled payments remain visible in the CSV export.
         ).select_related('user', 'plan').order_by('-created_at')
-        if status_filter:
-            qs = qs.filter(status=status_filter)
+        qs, status_filter, plan_filter = self._apply_filters(qs, request)
 
         response = HttpResponse(content_type='text/csv')
         fname = f"verifyng_financial_{date_from.strftime('%Y%m%d')}_{date_to.strftime('%Y%m%d')}.csv"
@@ -3224,8 +3282,6 @@ class AdminFinancialReportView(SuperAdminRequiredMixin, TemplateView):
 
         # ── 4. TRANSACTION LEDGER (Ocean blue header, clean styling matching f_good) ──
         date_from_pdf, date_to_pdf = self._get_date_range(request)
-        status_filter_pdf = request.GET.get('status', '')
-        plan_filter_pdf   = request.GET.get('plan', '')
         txn_qs = TxnModel.objects.filter(
             created_at__gte=date_from_pdf,
             created_at__lte=date_to_pdf,
@@ -3233,10 +3289,7 @@ class AdminFinancialReportView(SuperAdminRequiredMixin, TemplateView):
             # whether a pre-paid credit is still unspent. Remove filter so
             # consumed/fulfilled payments appear in the PDF export too.
         ).select_related('user', 'plan').order_by('-created_at')
-        if status_filter_pdf:
-            txn_qs = txn_qs.filter(status=status_filter_pdf)
-        if plan_filter_pdf:
-            txn_qs = txn_qs.filter(plan__pk=plan_filter_pdf)
+        txn_qs, status_filter_pdf, plan_filter_pdf = self._apply_filters(txn_qs, request)
         txn_qs = txn_qs[:200]
 
         ledger_rows = [[

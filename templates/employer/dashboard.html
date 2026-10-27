@@ -1,5 +1,6 @@
 {% extends 'public/base.html' %}
 {% load static %}
+{% load humanize %}
 
 {% block title %}Employer Dashboard | {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
 
@@ -64,7 +65,7 @@
                 <div class="d-flex flex-wrap gap-2 align-items-center">
                     {% for order in unconsumed_employer_orders %}
                     <a href="{{ order.action_url }}" class="btn btn-outline-primary btn-sm px-3 fw-bold d-inline-flex align-items-center gap-1 shadow-sm" style="border-radius: 9999px;">
-                        Complete {{ order.title }} (₦{{ order.amount_naira|floatformat:0 }}) &rarr;
+                        Complete {{ order.title }} (₦{{ order.amount_naira|floatformat:0|intcomma }}) &rarr;
                     </a>
                     {% endfor %}
                 </div>

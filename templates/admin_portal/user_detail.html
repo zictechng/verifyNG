@@ -1,3 +1,4 @@
+{% load humanize %}
 {% extends "admin_portal/base_admin.html" %}
 {% block title %}User: {{ target_user.username }} — Admin{% endblock %}
 
@@ -330,7 +331,7 @@
           <span class="small fw-semibold text-secondary" style="font-size:0.78rem;">
             <i class="bi bi-wallet2 text-primary me-1"></i>PAYG Wallet Balance
           </span>
-          <span class="fw-bold text-dark" style="font-size:0.85rem;">₦{{ user_prepaid_balance|default:0|floatformat:0 }}</span>
+          <span class="fw-bold text-dark" style="font-size:0.85rem;">₦{{ user_prepaid_balance|default:0|floatformat:0|intcomma }}</span>
         </div>
 
         <form method="post" action="{% url 'admin_portal:user_detail' target_user.public_id %}">
@@ -520,7 +521,7 @@
                   <option value="{{ plan.pk }}"
                     {% if plan.pk == user_active_plan_id %}data-active="true"{% endif %}>
                     {{ plan.name }}
-                    {% if plan.price_kobo == 0 %}(Free){% else %}— ₦{{ plan.price_naira|floatformat:0 }}/{{ plan.get_interval_display }}{% endif %}
+                    {% if plan.price_kobo == 0 %}(Free){% else %}— ₦{{ plan.price_naira|floatformat:0|intcomma }}/{{ plan.get_interval_display }}{% endif %}
                     {% if plan.pk == user_active_plan_id %} ✓ Already Active{% endif %}
                   </option>
                   {% endfor %}
@@ -627,7 +628,7 @@
 
             <div class="p-2.5 rounded-2 d-flex justify-content-between align-items-center mb-3" style="background:#f0fdf4; border:1px solid #bbf7d0;">
               <span class="small fw-semibold text-success" style="font-size:0.8rem;">Current PAYG Balance:</span>
-              <span class="fw-bold text-success" style="font-size:0.95rem;">₦{{ user_prepaid_balance|default:0|floatformat:2 }}</span>
+              <span class="fw-bold text-success" style="font-size:0.95rem;">₦{{ user_prepaid_balance|default:0|floatformat:2|intcomma }}</span>
             </div>
 
             <form id="topupWalletForm"
@@ -901,7 +902,7 @@
     <div class="adm-card mb-4">
       <div class="adm-card-header d-flex justify-content-between align-items-center">
         <span><i class="bi bi-wallet2 text-primary me-2"></i>Recent Wallet &amp; Payment Transactions</span>
-        <span class="adm-badge blue">Balance: ₦{{ user_prepaid_balance|default:0|floatformat:0 }}</span>
+        <span class="adm-badge blue">Balance: ₦{{ user_prepaid_balance|default:0|floatformat:0|intcomma }}</span>
       </div>
       <div class="table-responsive">
         <table class="adm-table">
@@ -926,7 +927,7 @@
                 {% endif %}
               </td>
               <td class="fw-bold {% if txn.status == 'success' %}text-success{% else %}text-muted{% endif %}">
-                ₦{{ txn.amount_naira|floatformat:0 }}
+                ₦{{ txn.amount_naira|floatformat:0|intcomma }}
               </td>
               <td>
                 {% if txn.status == 'success' %}

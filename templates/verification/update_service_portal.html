@@ -1,5 +1,6 @@
 {% extends 'public/base.html' %}
 {% load static %}
+{% load humanize %}
 
 {% block title %}Update Service | {{ candidate_name }} | {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
 
@@ -286,7 +287,7 @@
                                         {% endif %}
                                     </td>
                                     <td class="small fw-semibold text-dark">
-                                        ₦{{ annual_fee|floatformat:0 }} / year
+                                        ₦{{ annual_fee|floatformat:0|intcomma }} / year
                                     </td>
                                 </tr>
                             </tbody>
@@ -311,7 +312,7 @@
                             </div>
                             <div>
                                 <a href="{% url 'verification:update_service_enroll' %}" class="btn btn-sm btn-primary fw-semibold px-4 py-2">
-                                    Enroll in Update Service (₦{{ annual_fee|floatformat:0 }}/yr) &rarr;
+                                    Enroll in Update Service (₦{{ annual_fee|floatformat:0|intcomma }}/yr) &rarr;
                                 </a>
                             </div>
                         {% endif %}
