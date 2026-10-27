@@ -128,11 +128,9 @@
         </div>
     </div>
 
-    <!-- Audit Card Container -->
-    <div class="vng-card p-0 shadow-sm border mb-4" style="border-radius: 12px; overflow: hidden;">
-
-        <!-- Desktop View (md and up) -->
-        <div class="table-responsive d-none d-md-block">
+    <!-- Desktop View (md and up) -->
+    <div class="vng-card p-0 shadow-sm border mb-4 d-none d-md-block" style="border-radius: 12px; overflow: hidden;">
+        <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light">
                     <tr>
@@ -206,55 +204,54 @@
                 </tbody>
             </table>
         </div>
+    </div>
 
-        <!-- Mobile View (< md screens, 100% mobile-friendly cards) -->
-        <div class="d-md-none p-3">
-            {% for item in query_logs %}
-                <div class="p-3 mb-3 bg-white border rounded-3 shadow-xs">
-                    <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
-                        <div>
-                            <div class="fw-bold text-dark fs-6">{{ item.name }}</div>
-                            <div class="text-muted" style="font-size: 11px;">Audit Verified &bull; Verified Online</div>
-                        </div>
-                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill fw-semibold">
-                            {{ item.count }} check{{ item.count|pluralize }}
+    <!-- Mobile View (< md screens, 100% mobile-friendly cards) -->
+    <div class="d-md-none mb-4">
+        {% for item in query_logs %}
+            <div class="vng-card p-3 p-sm-4 mb-3 border shadow-sm" style="border-radius: 14px; background: #ffffff;">
+                <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
+                    <div class="pe-2">
+                        <div class="fw-bold text-dark fs-6" style="line-height: 1.35;">{{ item.name }}</div>
+                        <div class="text-muted mt-0.5" style="font-size: 11.5px;">Audit Verified &bull; Verified Online</div>
+                    </div>
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2.5 py-1 fw-bold flex-shrink-0" style="font-size: 11px;">
+                        {{ item.count }} check{{ item.count|pluralize }}
+                    </span>
+                </div>
+
+                <div class="rounded-3 p-3 mb-3 border" style="background: #F8FAFC;">
+                    <div class="d-flex justify-content-between align-items-center pb-2 mb-2 border-bottom" style="border-color: #E2E8F0 !important;">
+                        <span class="text-muted small">Latest Check</span>
+                        <span class="font-monospace text-dark fw-bold small">{{ item.latest_log.queried_at|date:"d M Y, H:i" }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center pb-2 mb-2 border-bottom" style="border-color: #E2E8F0 !important;">
+                        <span class="text-muted small">Check Type</span>
+                        <span class="text-dark small fw-medium">{{ item.latest_log.get_purpose_display|default:item.latest_log.purpose }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center pt-0.5">
+                        <span class="text-muted small">Result</span>
+                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1" style="font-size: 11px;">
+                            ✓ Status Checked
                         </span>
                     </div>
-
-                    <div class="p-2.5 rounded bg-light border mb-2.5" style="font-size: 12px;">
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <span class="text-muted">Latest Check:</span>
-                            <span class="font-monospace text-dark fw-bold">{{ item.latest_log.queried_at|date:"d M Y, H:i" }}</span>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <span class="text-muted">Check Type:</span>
-                            <span class="text-dark">{{ item.latest_log.get_purpose_display|default:item.latest_log.purpose }}</span>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span class="text-muted">Result:</span>
-                            <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 11px;">
-                                ✓ Status Checked
-                            </span>
-                        </div>
-                    </div>
-
-                    {% if item.count > 1 %}
-                        <button type="button" class="btn btn-sm btn-outline-primary w-100 rounded-pill py-2 fw-semibold d-flex align-items-center justify-content-center gap-1.5" data-bs-toggle="modal" data-bs-target="#auditModal-{{ forloop.counter }}">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                            <span>View All {{ item.count }} Check Dates &rarr;</span>
-                        </button>
-                    {% endif %}
                 </div>
-            {% empty %}
-                <div class="text-center py-4 text-muted">
-                    <div class="fw-semibold text-dark">No status checks recorded yet</div>
-                    <div class="small text-muted mt-1">
-                        Whenever an employer or agency verifies your certificate reference online, the event is permanently logged here.
-                    </div>
-                </div>
-            {% endfor %}
-        </div>
 
+                {% if item.count > 1 %}
+                    <button type="button" class="btn btn-outline-primary w-100 rounded-pill py-2.5 px-3 fw-semibold d-flex align-items-center justify-content-center gap-2" style="font-size: 13.5px; border-width: 1.5px;" data-bs-toggle="modal" data-bs-target="#auditModal-{{ forloop.counter }}">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="flex-shrink-0"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        <span>View All {{ item.count }} Check Dates &rarr;</span>
+                    </button>
+                {% endif %}
+            </div>
+        {% empty %}
+            <div class="vng-card p-4 text-center text-muted border rounded-3 mb-3">
+                <div class="fw-semibold text-dark">No status checks recorded yet</div>
+                <div class="small text-muted mt-1">
+                    Whenever an employer or agency verifies your certificate reference online, the event is permanently logged here.
+                </div>
+            </div>
+        {% endfor %}
     </div>
 
     <!-- Modals for Full Audit Date History (Rendered cleanly outside the table for perfect mobile & desktop display) -->
