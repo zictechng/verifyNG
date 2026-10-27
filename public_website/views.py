@@ -164,13 +164,11 @@ def check(request):
 
     user_entitlement = None
     if request.user.is_authenticated:
-        if is_direct_paid:
-            reason = 'balance_covered' if (not paid_ref and user_balance >= payg_price) else 'direct_paid'
-            remaining_text = f"Covered by ₦{user_balance:,.0f} Balance" if reason == 'balance_covered' else "Single Query Paid"
+        if paid_ref and is_direct_paid:
             user_entitlement = {
                 'allowed': True,
-                'reason': reason,
-                'details': {'remaining': remaining_text, 'used': 0, 'limit': 1},
+                'reason': 'direct_paid',
+                'details': {'remaining': 'Single Query Paid', 'used': 0, 'limit': 1},
             }
         else:
             allowed, reason, details = check_user_entitlement(request.user, service='public_check', cost=1)
