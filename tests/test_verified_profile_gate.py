@@ -115,10 +115,25 @@ class VerifiedProfileGateTests(TestCase):
         self.assertEqual(res.status_code, 200)
 
     def test_unverified_employer_can_verify_candidate_certificate(self):
-        """Unverified employer can verify candidate certificates."""
+        """
+        Unverified employer can access the certificate verify page (200 OK)
+        and sees persistent company verification banner. However, any verification
+        attempt is locked (COMPANY_VERIFICATION_REQUIRED) and never discloses candidate data.
+        """
         self.client.force_login(self.unverified_employer)
         res = self.client.get(reverse('employer:certificate_verify'))
         self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "Company Profile Verification Required")
+
+        # Attempt verification check
+        res_post = self.client.post(reverse('employer:certificate_verify'), {
+            'certificate_id': 'VNG-2026-TEST1234',
+            'surname': 'Doe',
+            'date_of_birth': '1990-01-01',
+        })
+        self.assertEqual(res_post.status_code, 200)
+        self.assertEqual(res_post.context['result']['lookup_state'], 'COMPANY_VERIFICATION_REQUIRED')
+        self.assertContains(res_post, "Candidate Clearance Record Locked")
 
     # ── GATED ACTIVE OPERATIONS FOR INDIVIDUALS ───────────────────────────────
 

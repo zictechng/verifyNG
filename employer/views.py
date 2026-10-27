@@ -1847,6 +1847,9 @@ def employer_certificate_verify(request):
     if is_direct_paid:
         allowed = True
 
+    from core.permissions import is_profile_verified
+    is_company_verified, _ = is_profile_verified(request.user)
+
     if request.method == 'POST' or (is_direct_paid and cert_id_input):
         if request.method == 'POST':
             cert_id_input = request.POST.get('certificate_id', '').strip().upper()
@@ -1876,7 +1879,21 @@ def employer_certificate_verify(request):
             import uuid
             # 1. Full coverage from user available account balance
             if user_balance >= payg_price:
-                ok, rem_bal = deduct_user_prepaid_balance(request.user, payg_price, "Certificate Verification")
+                if not is_company_verified:
+                    result = {
+                        'lookup_state': 'COMPANY_VERIFICATION_REQUIRED',
+                        'certificate_id': cert_id_input,
+                        'message': (
+                            "Company Profile Verification Required: Candidate workforce clearance records cannot be revealed "
+                            "until your company's CAC incorporation documents are verified by platform compliance officers. "
+                            "No funds were deducted from your wallet balance."
+                        ),
+                        'wallet_credited': False,
+                        'payg_price': payg_price,
+                        'user_balance': user_balance,
+                    }
+                elif True:
+                    ok, rem_bal = deduct_user_prepaid_balance(request.user, payg_price, "Certificate Verification")
                 if ok:
                     paid_token = f"VNG-BAL-{uuid.uuid4().hex[:12].upper()}"
                     Transaction.objects.create(
@@ -1972,6 +1989,27 @@ def employer_certificate_verify(request):
                 'topup_needed': topup_needed,
             }
         else:
+            if not is_company_verified:
+                # Unverified employers cannot inspect candidate clearance records.
+                # If Paystack payment was made, ensure it remains active to credit wallet.
+                if is_direct_paid and paid_tx:
+                    paid_tx.is_active = True
+                    paid_tx.save(update_fields=['is_active'])
+
+                current_balance = get_user_prepaid_balance(request.user)
+                result = {
+                    'lookup_state': 'COMPANY_VERIFICATION_REQUIRED',
+                    'certificate_id': cert_id_input,
+                    'message': (
+                        "Company Profile Verification Required: Candidate workforce clearance records cannot be revealed "
+                        "until your company's CAC incorporation documents are verified by platform compliance officers. "
+                        + ("Your payment of ₦{:,.0f} has been credited to your account wallet balance.".format(payg_price) if is_direct_paid else "")
+                    ),
+                    'wallet_credited': bool(is_direct_paid),
+                    'payg_price': payg_price,
+                    'user_balance': current_balance,
+                }
+            else:
                 # Query registry for certificate
                 cert = (
                     VerificationCertificate.objects
@@ -2135,5 +2173,8 @@ def employer_certificate_verify(request):
         'has_entitlement': allowed,
         'payg_price': payg_price,
         'page_title': 'Verify Workforce Certificate (TrustPass)',
+        'is_company_verified': is_company_verified,
+        'user_balance': user_balance,
+        'topup_needed': topup_needed,
     }
     return render(request, 'employer/certificate_verify.html', context)
