@@ -94,6 +94,13 @@ class VerificationCreateView(LoginRequiredMixin, FormView):
 
     def dispatch(self, request, *args, **kwargs):
         if request.user.is_authenticated:
+            from core.permissions import is_profile_verified, is_employer
+            verified, v_msg = is_profile_verified(request.user)
+            if not verified:
+                messages.warning(request, v_msg or "Profile verification required before requesting a background check.")
+                if is_employer(request.user):
+                    return redirect(reverse('employer:profile') + '?tab=verification')
+                return redirect(reverse('users:profile') + '?tab=verification')
             allowed, reason, details = check_user_entitlement(request.user, service='verification')
             if not allowed and reason == 'service_restricted':
                 messages.error(
@@ -544,6 +551,17 @@ class CertificateApplyView(LoginRequiredMixin, View):
     Supports both active subscription quota and direct Paystack Pay-As-You-Go checkout.
     """
     template_name = 'verification/certificate_apply.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            from core.permissions import is_profile_verified, is_employer
+            verified, v_msg = is_profile_verified(request.user)
+            if not verified:
+                messages.warning(request, v_msg or "Identity verification required before applying for a clearance certificate.")
+                if is_employer(request.user):
+                    return redirect(reverse('employer:profile') + '?tab=verification')
+                return redirect(reverse('users:profile') + '?tab=verification')
+        return super().dispatch(request, *args, **kwargs)
 
     def get(self, request):
         allowed, reason, details = check_user_entitlement(request.user, service='certificate')

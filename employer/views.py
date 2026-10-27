@@ -27,7 +27,7 @@ from django.views.decorators.http import require_POST
 
 from core.audit_utils import log_admin_action
 from core.email_utils import render_email
-from core.permissions import employer_required
+from core.permissions import employer_required, verified_profile_required
 from core.rate_limiting import get_client_ip
 from identities.models import Identifier, SubjectEntity
 from identities.utils import hash_identifier_value
@@ -425,6 +425,7 @@ def staff_check_list(request):
 
 @login_required
 @employer_required
+@verified_profile_required
 def staff_check_create(request):
     profile = _get_or_create_employer_profile(request.user)
 
@@ -734,6 +735,7 @@ def monitoring_list(request):
 
 @login_required
 @employer_required
+@verified_profile_required
 @require_POST
 def monitoring_toggle(request, check_id):
     """
@@ -821,6 +823,7 @@ def monitoring_toggle(request, check_id):
 
 @login_required
 @employer_required
+@verified_profile_required
 def bulk_upload_create(request):
     """
     GET  — render the upload form with CSV template download link.
@@ -1054,6 +1057,7 @@ def bulk_csv_template(request):
 
 @login_required
 @employer_required
+@verified_profile_required
 @require_POST
 def team_invite_send(request):
     """
@@ -1495,6 +1499,7 @@ def person_check_search(request):
 # ---------------------------------------------------------------------------
 @login_required
 @employer_required
+@verified_profile_required
 def staff_misconduct_report(request):
     """
     Legally-grounded 4-step wizard for an employer to report workplace misconduct

@@ -21,10 +21,14 @@ from verification.services import (
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
-def make_user(username='testuser', email='test@example.com'):
-    return User.objects.create_user(
+def make_user(username='testuser', email='test@example.com', identity_verified=True):
+    u = User.objects.create_user(
         username=username, email=email, password='StrongPass123!'
     )
+    if identity_verified:
+        u.identity_verified = True
+        u.save(update_fields=['identity_verified'])
+    return u
 
 
 def make_subject(name='Jane Doe', entity_type='person'):

@@ -4,6 +4,7 @@ from django.urls import reverse
 from payments.models import Transaction, SiteSettings, Plan
 from payments.services import get_user_prepaid_balance, deduct_user_prepaid_balance, get_topup_difference
 from verification.models import VerificationRequest
+from employer.models import EmployerProfile
 
 User = get_user_model()
 
@@ -25,6 +26,8 @@ class PrepaidAutoDetectionTests(TestCase):
             password='TestPassword123!',
             role='individual'
         )
+        self.user.identity_verified = True
+        self.user.save(update_fields=['identity_verified'])
         self.client.force_login(self.user)
 
     def test_topup_difference_calculation(self):
@@ -843,6 +846,7 @@ class PrepaidAutoDetectionTests(TestCase):
             password='TestPassword123!',
             role='employer'
         )
+        EmployerProfile.objects.create(user=employer, company_name='CSV Corp', is_verified=True, verification_status='verified')
         self.client.force_login(employer)
         res = self.client.get(reverse('employer:bulk_upload_create'))
         self.assertEqual(res.status_code, 200)
@@ -858,6 +862,7 @@ class PrepaidAutoDetectionTests(TestCase):
             password='TestPassword123!',
             role='employer'
         )
+        EmployerProfile.objects.create(user=employer, company_name='Gate Corp', is_verified=True, verification_status='verified')
         self.client.force_login(employer)
 
         # 1. Without credits or subscription: has_entitlement is False, shows required card and CTA

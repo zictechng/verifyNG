@@ -6,18 +6,22 @@ User = get_user_model()
 
 class RoleNavigationMatrixTestCase(TestCase):
     def setUp(self):
+        from employer.models import EmployerProfile
         self.employer_user = User.objects.create_user(
             username='employer_corp',
             email='hr@corp.ng',
             password='Password123!',
             role='employer',
         )
+        EmployerProfile.objects.create(user=self.employer_user, company_name='Corp NG', is_verified=True, verification_status='verified')
         self.individual_user = User.objects.create_user(
             username='individual_john',
             email='john@example.com',
             password='Password123!',
             role='individual',
         )
+        self.individual_user.identity_verified = True
+        self.individual_user.save(update_fields=['identity_verified'])
 
     def test_employer_can_access_certificate_apply_and_my_certificates(self):
         self.client.force_login(self.employer_user)

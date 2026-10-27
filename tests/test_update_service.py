@@ -24,6 +24,8 @@ class UpdateServiceTests(TestCase):
             password='testpassword123',
             role='user',
         )
+        self.candidate.identity_verified = True
+        self.candidate.save(update_fields=['identity_verified'])
 
         # Subject entity
         self.subject = SubjectEntity.objects.create(

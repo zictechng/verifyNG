@@ -49,13 +49,14 @@ class ReportCreateView(LoginRequiredMixin, FormView):
                 )
                 return redirect(get_user_home_url(request.user))
 
-            if not request.user.identity_verified:
+            from core.permissions import is_profile_verified
+            verified, v_msg = is_profile_verified(request.user)
+            if not verified:
                 messages.warning(
                     request,
-                    "You must verify your identity (NIN or BVN) before submitting a fraud report. "
-                    "Please complete identity verification first."
+                    v_msg or "You must verify your identity (NIN or BVN) before submitting a fraud report."
                 )
-                return redirect('verification:create')
+                return redirect(reverse('users:profile') + '?tab=verification')
         return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
@@ -453,6 +454,15 @@ class DisputeCreateView(LoginRequiredMixin, FormView):
     template_name = 'reports/dispute_form.html'
 
     def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            from core.permissions import is_profile_verified
+            verified, v_msg = is_profile_verified(request.user)
+            if not verified:
+                messages.warning(
+                    request,
+                    v_msg or "You must verify your identity before submitting an official dispute affidavit."
+                )
+                return redirect(reverse('users:profile') + '?tab=verification')
         self.report = get_object_or_404(FraudReport, reference_number=kwargs['reference_number'])
         # Disallow reporter from disputing their own report
         if request.user.is_authenticated and self.report.reporter == request.user:
@@ -601,6 +611,15 @@ class RebuttalCreateView(LoginRequiredMixin, FormView):
     template_name = 'reports/rebuttal_form.html'
 
     def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            from core.permissions import is_profile_verified
+            verified, v_msg = is_profile_verified(request.user)
+            if not verified:
+                messages.warning(
+                    request,
+                    v_msg or "You must verify your identity before submitting an official dispute affidavit."
+                )
+                return redirect(reverse('users:profile') + '?tab=verification')
         self.report = get_object_or_404(FraudReport, reference_number=kwargs['reference_number'])
         if self.report.reporter != request.user:
             messages.warning(request, "Only the original complainant can submit a rebuttal on this report.")

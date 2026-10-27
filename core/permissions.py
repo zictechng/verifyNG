@@ -206,3 +206,166 @@ def is_superadmin(user):
         return False
     return user.is_superuser or user.is_staff
 
+
+
+def is_account_blocked(user) -> bool:
+    """
+    Returns True if user is unauthenticated, deactivated (is_active=False),
+    or suspended by administration (is_suspended=True).
+    """
+    if not user or not user.is_authenticated:
+        return True
+    if not getattr(user, 'is_active', True):
+        return True
+    if getattr(user, 'is_suspended', False):
+        return True
+    return False
+
+
+def is_profile_verified(user) -> tuple[bool, str]:
+    """
+    Central, reusable verification check for active platform operations.
+    Returns (is_verified: bool, reason_message: str).
+
+    Rules:
+    1. Unauthenticated or blocked/suspended users -> (False, reason)
+    2. Superusers, staff, verification officers, and moderators -> (True, "") [Administrative bypass]
+    3. Employers / Agencies / Businesses:
+       - Must have verified company CAC profile (employer_profile.is_verified=True or verification_status='verified')
+       - Or active membership in a verified employer organization
+    4. Individuals / Candidates:
+       - Must have verified personal identity (user.identity_verified=True or id_verification_status='verified')
+    """
+    if not user or not user.is_authenticated:
+        return False, "Authentication is required to access this resource."
+
+    # Recursively unwrap SimpleLazyObject and OTPMiddleware partials
+    while hasattr(user, '_wrapped'):
+        if hasattr(user, '_is_setup') and not user._is_setup():
+            user._setup()
+        user = getattr(user, '_wrapped', user)
+    if callable(user):
+        try:
+            user = user()
+        except Exception:
+            pass
+    while hasattr(user, '_wrapped'):
+        if hasattr(user, '_is_setup') and not user._is_setup():
+            user._setup()
+        user = getattr(user, '_wrapped', user)
+
+    if not getattr(user, 'is_active', True):
+        return False, "Your account has been deactivated. Please contact platform support."
+
+    if getattr(user, 'is_suspended', False) is True:
+        return False, "Your account is suspended. Platform actions are restricted."
+
+    # Administrative bypass: Superusers, staff, verification officers, and moderators
+    if (
+        getattr(user, 'is_superuser', False) is True
+        or getattr(user, 'is_staff', False) is True
+        or getattr(user, 'role', None) in ('officer', 'moderator')
+    ):
+        return True, ""
+
+    # Check Employer / Organization accounts
+    if is_employer(user):
+        profile = getattr(user, 'employer_profile', None)
+        if profile and (getattr(profile, 'is_verified', False) is True or getattr(profile, 'verification_status', None) == 'verified'):
+            return True, ""
+
+        # Check if user is an active team member of a verified employer organization
+        try:
+            active_verified_org = user.employer_memberships.filter(
+                is_active=True,
+                employer__employer_profile__is_verified=True
+            ).exists()
+            if active_verified_org:
+                return True, ""
+        except Exception:
+            pass
+
+        return False, "Company verification required. Please submit your CAC incorporation document to access this service."
+
+    # Individual / Candidate accounts
+    if getattr(user, 'id_verification_status', None) == 'verified':
+        return True, ""
+
+    raw_verified = getattr(user, 'identity_verified', False)
+    if isinstance(raw_verified, bool) and raw_verified is True:
+        return True, ""
+
+    # Handle case where OTPMiddleware attached a partial to identity_verified
+    if getattr(user, 'pk', None):
+        try:
+            from django.contrib.auth import get_user_model
+            UserModel = get_user_model()
+            if UserModel.objects.filter(pk=user.pk, identity_verified=True).exists():
+                return True, ""
+            if UserModel.objects.filter(pk=user.pk, id_verification_status='verified').exists():
+                return True, ""
+        except Exception:
+            pass
+
+    return False, "Identity verification required. Please submit your official government ID (NIN, BVN, PVC, or Passport) to verify your profile."
+
+
+def verified_profile_required(view_func=None, redirect_url=None):
+    """
+    View decorator requiring authenticated user with an active, verified profile.
+    Unauthenticated users are redirected to login.
+    Unverified users are flashed a warning and redirected to their profile verification page.
+    """
+    def decorator(func):
+        @wraps(func)
+        def wrapper(request, *args, **kwargs):
+            if not request.user.is_authenticated:
+                from django.contrib.auth.views import redirect_to_login
+                return redirect_to_login(request.get_full_path())
+
+            verified, message = is_profile_verified(request.user)
+            if not verified:
+                from django.contrib import messages
+                from django.shortcuts import redirect
+                messages.warning(request, message)
+
+                if redirect_url:
+                    return redirect(redirect_url)
+                if is_employer(request.user):
+                    return redirect('employer:profile')
+                return redirect('users:profile')
+
+            return func(request, *args, **kwargs)
+        return wrapper
+
+    if view_func is not None:
+        return decorator(view_func)
+    return decorator
+
+
+class VerifiedProfileRequiredMixin:
+    """
+    CBV mixin that enforces that the user's account is active and verified.
+    Unauthenticated users are redirected to login.
+    Unverified users receive an alert message and are redirected to their profile verification page.
+    """
+    verified_redirect_url = None
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            from django.contrib.auth.views import redirect_to_login
+            return redirect_to_login(request.get_full_path())
+
+        verified, message = is_profile_verified(request.user)
+        if not verified:
+            from django.contrib import messages
+            from django.shortcuts import redirect
+            messages.warning(request, message)
+
+            if self.verified_redirect_url:
+                return redirect(self.verified_redirect_url)
+            if is_employer(request.user):
+                return redirect('employer:profile')
+            return redirect('users:profile')
+
+        return super().dispatch(request, *args, **kwargs)
