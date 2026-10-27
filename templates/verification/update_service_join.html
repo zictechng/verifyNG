@@ -43,16 +43,6 @@
                 </p>
             </div>
 
-            <!-- Messages -->
-            {% if messages %}
-                {% for message in messages %}
-                    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show small" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                {% endfor %}
-            {% endif %}
-
             {% if choose_certificate %}
                 <!-- ── Multi-Certificate Selection Screen ── -->
                 <div class="vng-card p-3 p-sm-4 p-md-5 shadow-sm border mb-4" style="border-radius: 14px; background: #ffffff;">

@@ -149,16 +149,6 @@
         </div>
     </div>
 
-    <!-- Messages -->
-    {% if messages %}
-        {% for message in messages %}
-            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show small mb-4" role="alert">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        {% endfor %}
-    {% endif %}
-
     <!-- Main DBS Applicant Card -->
     <div class="vng-card p-3 p-sm-4 p-md-5 shadow-sm border mb-4" style="border-radius: 12px; background: #ffffff;">
 
