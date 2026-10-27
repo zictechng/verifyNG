@@ -536,6 +536,56 @@
   </div>
 </div>
 
+{# ── PAYG Wallet & Payment Transactions ── #}
+{% if employer_transactions %}
+<div class="adm-card mt-4">
+  <div class="adm-card-header d-flex justify-content-between align-items-center">
+    <h2 class="adm-card-title d-flex align-items-center gap-2 mb-0">
+      <i class="bi bi-wallet2 text-primary"></i>
+      Recent Wallet &amp; Payment Transactions
+    </h2>
+    <span class="adm-badge blue">Balance: ₦{{ employer_prepaid_balance|default:0|floatformat:0 }}</span>
+  </div>
+  <div class="table-responsive">
+    <table class="adm-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Reference</th>
+          <th>Item / Note</th>
+          <th>Amount</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for txn in employer_transactions %}
+        <tr>
+          <td class="mono td-muted" style="white-space:nowrap;">{{ txn.created_at|date:"d M Y, H:i" }}</td>
+          <td class="mono small"><code>{{ txn.reference|truncatechars:18 }}</code></td>
+          <td>
+            <span class="fw-semibold small">{{ txn.item_display_name }}</span>
+            {% if txn.reason and txn.reason != txn.item_display_name %}
+              <div class="text-muted extra-small" style="font-size:0.75rem;">Note: {{ txn.reason }}</div>
+            {% endif %}
+          </td>
+          <td class="fw-bold {% if txn.status == 'success' %}text-success{% else %}text-muted{% endif %}">
+            ₦{{ txn.amount_naira|floatformat:0 }}
+          </td>
+          <td>
+            {% if txn.status == 'success' %}
+              <span class="adm-badge green"><span class="dot"></span>Success</span>
+            {% else %}
+              <span class="adm-badge gray">{{ txn.get_status_display }}</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
 {# ── Service Access Restrictions ──────────────────────────────────────── #}
 <div class="adm-card mt-4" id="serviceAccessCard">
   <div class="adm-card-header d-flex justify-content-between align-items-center">
@@ -956,7 +1006,6 @@
           <div class="mb-2">
             <label class="form-label fw-semibold small" for="topupReason">Reason / Reference Note</label>
             <input type="text" id="topupReason" name="reason"
-                  value="Admin top-up — {{ profile.company_name }}"
                   class="form-control form-control-sm"
                   placeholder="e.g. Corporate advance deposit, offline invoice payment, trial balance">
             <div class="form-text">Recorded in the audit log and organization billing history.</div>

@@ -650,7 +650,6 @@
               <div class="mb-2">
                 <label class="form-label fw-semibold small" for="topupReason">Reason / Reference Note</label>
                 <input type="text" id="topupReason" name="reason"
-                      value="Admin wallet top-up"
                       class="form-control form-control-sm"
                       placeholder="e.g. Complimentary top-up, offline bank payment, promo credit">
                 <div class="form-text">Recorded in the audit log and user transaction history.</div>
@@ -894,6 +893,53 @@
           {% endfor %}
         </tbody>
       </table>
+    </div>
+    {% endif %}
+
+    <!-- ── PAYG Wallet & Payment Transactions ── -->
+    {% if user_transactions %}
+    <div class="adm-card mb-4">
+      <div class="adm-card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-wallet2 text-primary me-2"></i>Recent Wallet &amp; Payment Transactions</span>
+        <span class="adm-badge blue">Balance: ₦{{ user_prepaid_balance|default:0|floatformat:0 }}</span>
+      </div>
+      <div class="table-responsive">
+        <table class="adm-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Reference</th>
+              <th>Item / Note</th>
+              <th>Amount</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for txn in user_transactions %}
+            <tr>
+              <td class="mono td-muted" style="white-space:nowrap;">{{ txn.created_at|date:"d M Y, H:i" }}</td>
+              <td class="mono small"><code>{{ txn.reference|truncatechars:18 }}</code></td>
+              <td>
+                <span class="fw-semibold small">{{ txn.item_display_name }}</span>
+                {% if txn.reason and txn.reason != txn.item_display_name %}
+                  <div class="text-muted extra-small" style="font-size:0.75rem;">Note: {{ txn.reason }}</div>
+                {% endif %}
+              </td>
+              <td class="fw-bold {% if txn.status == 'success' %}text-success{% else %}text-muted{% endif %}">
+                ₦{{ txn.amount_naira|floatformat:0 }}
+              </td>
+              <td>
+                {% if txn.status == 'success' %}
+                  <span class="adm-badge green"><span class="dot"></span>Success</span>
+                {% else %}
+                  <span class="adm-badge gray">{{ txn.get_status_display }}</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
     {% endif %}
 

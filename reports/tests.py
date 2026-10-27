@@ -772,8 +772,18 @@ class DueProcessRebuttalCycleTestCase(TestCase):
         )
         self.assertIsNotNone(self.report.complainant_rebuttal)
         self.assertEqual(self.report.complainant_rebuttal['statement'], 'Final rebuttal explaining bank transaction details.')
-        # Pleadings closed: can_submit_rebuttal becomes False
+        # Pleadings closed: can_submit_rebuttal becomes False and are_pleadings_closed is True
         self.assertFalse(self.report.can_submit_rebuttal)
+        self.assertTrue(self.report.are_pleadings_closed)
+
+        # Attempt to file additional dispute/defense after rebuttal should be blocked
+        self.client.force_login(self.respondent)
+        detail_resp = self.client.get(reverse('reports:detail', kwargs={'reference_number': self.report.reference_number}))
+        self.assertFalse(detail_resp.context['can_dispute'])
+
+        dispute_resp = self.client.get(reverse('reports:create_dispute', kwargs={'reference_number': self.report.reference_number}))
+        self.assertEqual(dispute_resp.status_code, 302)
+        self.assertRedirects(dispute_resp, reverse('reports:detail', kwargs={'reference_number': self.report.reference_number}))
 
         # Moderator issues information request to respondent
         req_log = issue_moderator_info_request(

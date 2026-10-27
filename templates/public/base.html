@@ -414,6 +414,36 @@
                             {% endif %}
                         </li>
                         {% endif %}
+                        {% if user.is_authenticated and user.role in 'employer,agency,business' %}
+                        <li class="nav-item">
+                            <a class="nav-link vng-nav-link {% if request.resolver_match.app_name == 'employer' and 'staff_check' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'employer:staff_check_list' %}">Staff Checks</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link vng-nav-link {% if request.resolver_match.url_name == 'check' %}active{% endif %}" href="{% url 'check' %}">Verify</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link vng-nav-link {% if request.resolver_match.app_name == 'employer' and 'certificate_verify' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'employer:certificate_verify' %}">Verify Certificate</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link vng-nav-link {% if request.resolver_match.app_name == 'reports' or request.resolver_match.url_name == 'report' %}active{% endif %}" href="{% url 'reports:create' %}">Report Fraud</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link vng-nav-link {% if request.resolver_match.app_name == 'employer' and 'misconduct' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'employer:staff_misconduct_list' %}">Misconduct</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link vng-nav-link {% if request.resolver_match.app_name == 'payments' %}active{% endif %}" href="{% url 'payments:plans' %}">Plans &amp; Pricing</a>
+                        </li>
+                        {% elif user.is_authenticated and user.is_staff or user.is_superuser or user.role in 'moderator,officer' %}
+                        <li class="nav-item">
+                            <a class="nav-link vng-nav-link {% if request.resolver_match.app_name == 'admin_portal' %}active{% endif %}" href="{% url 'admin_portal:overview' %}">Admin Portal</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link vng-nav-link {% if request.resolver_match.app_name == 'verification' %}active{% endif %}" href="{% url 'verification:officer_queue' %}">Officer Queue</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link vng-nav-link {% if request.resolver_match.app_name == 'reports' %}active{% endif %}" href="{% url 'reports:moderation_queue' %}">Moderation Desk</a>
+                        </li>
+                        {% else %}
                         {% if user.is_authenticated %}
                         <li class="nav-item">
                             <a class="nav-link vng-nav-link {% if request.resolver_match.app_name == 'verification' and request.resolver_match.url_name != 'certificate_public_verify' %}active{% endif %}" href="{% url 'verification:list' %}">Verifications</a>
@@ -428,6 +458,7 @@
                         <li class="nav-item">
                             <a class="nav-link vng-nav-link {% if request.resolver_match.app_name == 'payments' %}active{% endif %}" href="{% url 'payments:plans' %}">Plans &amp; Pricing</a>
                         </li>
+                        {% endif %}
                     </ul>
 
                     <!-- Auth Actions -->
@@ -500,17 +531,33 @@
                                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                                          Staff Checks
                                      </a>
+                                     <a href="{% url 'verification:certificate_apply' %}" class="vng-avatar-item">
+                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+                                         Sponsor Certificate
+                                     </a>
+                                     <a href="{% url 'verification:my_certificates' %}" class="vng-avatar-item">
+                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                                         Sponsored Certificates
+                                     </a>
                                      <a href="{% url 'employer:bulk_upload_list' %}" class="vng-avatar-item">
                                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                                          Bulk Upload
                                      </a>
-                                     <a href="{% url 'verification:my_certificates' %}" class="vng-avatar-item">
-                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
-                                         TrustPass Applications
-                                     </a>
                                      <a href="{% url 'employer:certificate_verify' %}" class="vng-avatar-item">
                                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                                          Verify Certificate
+                                     </a>
+                                     <a href="{% url 'check' %}" class="vng-avatar-item">
+                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21L16.65 16.65"/></svg>
+                                         Public Search (Verify)
+                                     </a>
+                                     <a href="{% url 'reports:create' %}" class="vng-avatar-item">
+                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                                         Report Fraud
+                                     </a>
+                                     <a href="{% url 'reports:my_reports' %}" class="vng-avatar-item">
+                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                                         My Fraud Reports
                                      </a>
                                      <a href="{% url 'employer:person_check_search' %}" class="vng-avatar-item">
                                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -518,11 +565,24 @@
                                      </a>
                                      <a href="{% url 'employer:staff_misconduct_list' %}" class="vng-avatar-item text-danger">
                                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                                         Misconduct Report
+                                         Misconduct Reports
                                      </a>
-                                     <a href="{% url 'verification:list' %}" class="vng-avatar-item">
-                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                         Verifications
+                                     <a href="{% url 'employer:team_list' %}" class="vng-avatar-item">
+                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                                         Team Management
+                                     </a>
+                                     <a href="{% url 'payments:my_subscription' %}" class="vng-avatar-item">
+                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                                         <span class="d-flex align-items-center justify-content-between flex-grow-1">
+                                             <span>Subscription &amp; Quotas</span>
+                                             {% if user_active_subscription %}
+                                             <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size:9.5px;padding:2px 6px;">{{ user_active_subscription.plan.name }}</span>
+                                             {% endif %}
+                                         </span>
+                                     </a>
+                                     <a href="{% url 'payments:plans' %}" class="vng-avatar-item">
+                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                                         <span>Upgrade / Buy Packages</span>
                                      </a>
                                      <a href="{% url 'reports:my_disputes' %}" class="vng-avatar-item">
                                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
@@ -535,48 +595,51 @@
                                      </a>
                                      
                                     {% else %}
-                                    <a href="{% url 'dashboard:index' %}" class="vng-avatar-item">
-                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-                                        Dashboard
-                                    </a>
-                                    <a href="{% url 'verification:my_certificates' %}" class="vng-avatar-item">
-                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
-                                        Certificates (TrustPass)
-                                    </a>
-                                    <a href="{% url 'verification:list' %}" class="vng-avatar-item">
-                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                        Verifications
-                                    </a>
-                                    <a href="{% url 'reports:my_disputes' %}" class="vng-avatar-item">
-                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                                        <span class="d-flex align-items-center justify-content-between flex-grow-1">
-                                            <span>Disputes</span>
-                                            {% if pending_allegations_count > 0 %}
-                                            <span class="badge bg-danger rounded-pill" style="font-size:9.5px;padding:2px 6px;">{{ pending_allegations_count }}</span>
-                                            {% endif %}
-                                        </span>
-                                    </a>
-                                    <a href="{% url 'payments:my_subscription' %}" class="vng-avatar-item">
-                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-                                        <span class="d-flex align-items-center justify-content-between flex-grow-1">
-                                            <span>Subscription &amp; Plans</span>
-                                            {% if user_active_subscription %}
-                                            <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size:9.5px;padding:2px 6px;">{{ user_active_subscription.plan.name }}</span>
-                                            {% else %}
-                                            <span class="badge bg-light text-muted border" style="font-size:9.5px;padding:2px 6px;">Free</span>
-                                            {% endif %}
-                                        </span>
-                                    </a>
-                                    <a href="{% url 'payments:plans' %}" class="vng-avatar-item">
-                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                                        <span>Buy / Upgrade Plan</span>
-                                    </a>
+                                     <a href="{% url 'dashboard:index' %}" class="vng-avatar-item">
+                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                                         Dashboard
+                                     </a>
+                                     <a href="{% url 'verification:my_certificates' %}" class="vng-avatar-item">
+                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+                                         Certificates (TrustPass)
+                                     </a>
+                                     <a href="{% url 'dashboard:who_checked_me' %}" class="vng-avatar-item">
+                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                         Who Checked Me
+                                     </a>
+                                     <a href="{% url 'verification:list' %}" class="vng-avatar-item">
+                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                         Verifications
+                                     </a>
+                                     <a href="{% url 'reports:my_reports' %}" class="vng-avatar-item">
+                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                                         Fraud Reports
+                                     </a>
+                                     <a href="{% url 'reports:my_disputes' %}" class="vng-avatar-item">
+                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                                         <span class="d-flex align-items-center justify-content-between flex-grow-1">
+                                             <span>Disputes</span>
+                                             {% if pending_allegations_count > 0 %}
+                                             <span class="badge bg-danger rounded-pill" style="font-size:9.5px;padding:2px 6px;">{{ pending_allegations_count }}</span>
+                                             {% endif %}
+                                         </span>
+                                     </a>
+                                     <a href="{% url 'payments:my_subscription' %}" class="vng-avatar-item">
+                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                                         <span class="d-flex align-items-center justify-content-between flex-grow-1">
+                                             <span>Subscription &amp; Plans</span>
+                                             {% if user_active_subscription %}
+                                             <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size:9.5px;padding:2px 6px;">{{ user_active_subscription.plan.name }}</span>
+                                             {% else %}
+                                             <span class="badge bg-light text-muted border" style="font-size:9.5px;padding:2px 6px;">Free</span>
+                                             {% endif %}
+                                         </span>
+                                     </a>
+                                     <a href="{% url 'payments:plans' %}" class="vng-avatar-item">
+                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                                         <span>Buy / Upgrade Plan</span>
+                                     </a>
                                     {% endif %}
-                                    <a href="{% url 'reports:my_reports' %}" class="vng-avatar-item">
-                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-                                        Fraud Reports
-                                    </a>
-
                                     <a href="{% url 'notifications:list' %}" class="vng-avatar-item">
                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
                                         Notifications
@@ -733,6 +796,34 @@
             <span>Home</span>
         </a>
 
+        {% if user.is_authenticated and user.role in 'employer,agency,business' %}
+        <!-- Employer Navigation: 5 Dedicated Tabs -->
+        <!-- Tab 2: Staff Checks -->
+        
+        <!-- Tab 3: Public Verify -->
+        <a href="{% url 'check' %}" class="vng-bottom-tab {% if request.resolver_match.url_name == 'check' %}active{% endif %}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <circle cx="11" cy="11" r="8"/>
+                <path d="M21 21L16.65 16.65"/>
+            </svg>
+            <span>Verify</span>
+        </a>
+        <!-- Tab 4: Report Fraud -->
+        <a href="{% url 'reports:create' %}" class="vng-bottom-tab {% if request.resolver_match.app_name == 'reports' or request.resolver_match.url_name == 'report' %}active{% endif %}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                <path d="M12 8v4M12 16h.01"/>
+            </svg>
+            <span>Report</span>
+        </a>
+        <!-- Tab 5: Account Hub -->
+        <a href="{% url 'users:account_hub' %}" class="vng-bottom-tab {% if request.resolver_match.url_name in 'account_hub,profile,password_change,delete_account' %}active{% endif %}">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="7" r="4"/><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/></svg>
+            <span>Account</span>
+        </a>
+
+        {% else %}
+        <!-- Individuals, Admins, and Guests: 4 Standard Tabs -->
         <!-- Tab 2: Verify -->
         <a href="{% url 'check' %}" class="vng-bottom-tab {% if request.resolver_match.url_name == 'check' %}active{% endif %}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -741,8 +832,7 @@
             </svg>
             <span>Verify</span>
         </a>
-
-        <!-- Tab 3: Report -->
+        <!-- Tab 3: Report Fraud -->
         <a href="{% url 'reports:create' %}" class="vng-bottom-tab {% if request.resolver_match.app_name == 'reports' or request.resolver_match.url_name == 'report' %}active{% endif %}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
@@ -750,16 +840,13 @@
             </svg>
             <span>Report Fraud</span>
         </a>
-
-        <!-- Tab 5: Account -->
+        <!-- Tab 4: Account (or Log In) -->
         {% if user.is_authenticated %}
             <a href="{% url 'users:account_hub' %}" class="vng-bottom-tab {% if request.resolver_match.url_name in 'account_hub,profile,password_change,delete_account' %}active{% endif %}">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="7" r="4"/><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/></svg>
                 <span>Account</span>
             </a>
         {% else %}
-            
-            <!-- Tab 5: Log In (Logged out) -->
             <a href="{% url 'users:login' %}" class="vng-bottom-tab {% if request.resolver_match.url_name == 'login' %}active{% endif %}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
@@ -768,6 +855,7 @@
                 </svg>
                 <span>Log In</span>
             </a>
+        {% endif %}
         {% endif %}
     </nav>
     {% endif %}

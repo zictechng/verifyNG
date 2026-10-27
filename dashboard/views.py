@@ -212,6 +212,11 @@ class WhoCheckedMeView(LoginRequiredMixin, FormView):
     template_name = 'dashboard/who_checked_me.html'
     form_class = WhoCheckedMeForm
 
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated and is_employer(request.user) and not (request.user.is_staff or request.user.is_superuser):
+            return redirect('employer:dashboard')
+        return super().dispatch(request, *args, **kwargs)
+
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx['checked_by'] = None   # results not shown until form submitted

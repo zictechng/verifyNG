@@ -659,7 +659,9 @@ class AdminUserDetailView(SuperAdminRequiredMixin, TemplateView):
         ctx['free_quota'] = FreeUsageQuota.for_user(target_user)
         ctx['site_settings'] = SiteSettings.get()
         from payments.services import get_user_prepaid_balance
+        from payments.models import Transaction
         ctx['user_prepaid_balance'] = get_user_prepaid_balance(target_user)
+        ctx['user_transactions'] = Transaction.objects.filter(user=target_user).order_by('-created_at')[:10]
         return ctx
 
 
@@ -1364,7 +1366,9 @@ class AdminEmployerDetailView(SuperAdminRequiredMixin, TemplateView):
         ])
         ctx['service_choices'] = UserServiceAccess.SERVICE_CHOICES
         from payments.services import get_user_prepaid_balance
+        from payments.models import Transaction
         ctx['employer_prepaid_balance'] = get_user_prepaid_balance(profile.user)
+        ctx['employer_transactions'] = Transaction.objects.filter(user=profile.user).order_by('-created_at')[:10]
         return ctx
 
 
@@ -1835,7 +1839,7 @@ class AdminUserWalletTopupView(SuperAdminRequiredMixin, View):
 
         user = get_object_or_404(User, public_id=public_id)
         amount_str = request.POST.get('amount_naira', '').strip()
-        reason = request.POST.get('reason', '').strip() or 'Admin manual wallet credit'
+        reason = request.POST.get('reason', '').strip() or 'Admin Wallet Top-Up'
         next_url = request.POST.get('next', '').strip()
 
         def _redirect_response():
@@ -1903,7 +1907,7 @@ class AdminUserWalletTopupView(SuperAdminRequiredMixin, View):
 
         messages.success(
             request,
-            f"Successfully credited ₦{amount_naira:,.2f} to {user.get_full_name() or user.username}'s PAYG wallet."
+            f"Successfully credited ₦{amount_naira:,.2f} to {user.get_full_name() or user.username}'s PAYG wallet ({reason})."
         )
         return _redirect_response()
     

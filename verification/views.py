@@ -38,7 +38,7 @@ from verification.services import (
     log_certificate_query,
     generate_certificate_pdf_bytes
 )
-from core.permissions import officer_required, is_verification_officer, get_user_home_url
+from core.permissions import officer_required, is_verification_officer, get_user_home_url, is_employer
 from core.rate_limiting import get_client_ip
 from reports.models import FraudReport
 from payments.models import Transaction, SiteSettings
@@ -1361,6 +1361,13 @@ class UpdateServiceLoginView(View):
     """
     template_name = 'verification/update_service_login.html'
 
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated and not (request.user.is_staff or request.user.is_superuser):
+            if is_employer(request.user):
+                messages.info(request, "Employers verify candidate certificates via the Verify Certificate tool. The Continuous Update Service is managed directly by the individual certificate holder.")
+                return redirect('employer:certificate_verify')
+        return super().dispatch(request, *args, **kwargs)
+
     def get(self, request):
         from verification.forms import UpdateServiceLoginForm
         initial = {}
@@ -1456,6 +1463,13 @@ class UpdateServiceJoinView(View):
       - Redirects to Paystack checkout to activate continuous monitoring
     """
     template_name = 'verification/update_service_join.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated and not (request.user.is_staff or request.user.is_superuser):
+            if is_employer(request.user):
+                messages.info(request, "Employers verify candidate certificates via the Verify Certificate tool. The Continuous Update Service is managed directly by the individual certificate holder.")
+                return redirect('employer:certificate_verify')
+        return super().dispatch(request, *args, **kwargs)
 
     def get(self, request):
         from verification.forms import UpdateServiceJoinForm
@@ -1638,6 +1652,13 @@ class UpdateServicePortalView(View):
     """
     template_name = 'verification/update_service_portal.html'
 
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated and not (request.user.is_staff or request.user.is_superuser):
+            if is_employer(request.user):
+                messages.info(request, "Employers verify candidate certificates via the Verify Certificate tool. The Continuous Update Service is managed directly by the individual certificate holder.")
+                return redirect('employer:certificate_verify')
+        return super().dispatch(request, *args, **kwargs)
+
     def get(self, request):
         cert = _get_update_service_cert(request)
         if not cert:
@@ -1731,6 +1752,13 @@ class UpdateServiceAuditLogView(View):
     """
     template_name = 'verification/update_service_audit_log.html'
 
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated and not (request.user.is_staff or request.user.is_superuser):
+            if is_employer(request.user):
+                messages.info(request, "Employers verify candidate certificates via the Verify Certificate tool. The Continuous Update Service is managed directly by the individual certificate holder.")
+                return redirect('employer:certificate_verify')
+        return super().dispatch(request, *args, **kwargs)
+
     def get(self, request):
         cert = _get_update_service_cert(request)
         if not cert:
@@ -1749,6 +1777,13 @@ class UpdateServiceEnrollView(View):
     Initializes Paystack checkout to enroll / renew the certificate on the Update Service.
     Annual Fee: SiteSettings.price_monitoring_annual (₦3,000/yr).
     """
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated and not (request.user.is_staff or request.user.is_superuser):
+            if is_employer(request.user):
+                messages.info(request, "Employers verify candidate certificates via the Verify Certificate tool. The Continuous Update Service is managed directly by the individual certificate holder.")
+                return redirect('employer:certificate_verify')
+        return super().dispatch(request, *args, **kwargs)
+
     def get(self, request):
         cert = _get_update_service_cert(request)
         if not cert:

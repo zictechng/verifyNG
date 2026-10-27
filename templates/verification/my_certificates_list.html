@@ -31,13 +31,20 @@
                 {% endif %}
             </p>
         </div>
-        <a href="{% url 'verification:certificate_apply' %}" class="btn btn-vng-primary btn-vng-sm">
-            {% if request.user.role == 'employer' or request.user.is_employer or request.user.role == 'business' %}
-                + Apply
-            {% else %}
+        {% if request.user.role in 'employer,agency,business' or request.user.is_employer %}
+            <div class="d-flex gap-2">
+                <a href="{% url 'verification:certificate_apply' %}" class="btn btn-vng-primary btn-vng-sm">
+                    + Sponsor Certificate
+                </a>
+                <a href="{% url 'employer:certificate_verify' %}" class="btn btn-outline-primary btn-vng-sm">
+                    Verify a Certificate &rarr;
+                </a>
+            </div>
+        {% else %}
+            <a href="{% url 'verification:certificate_apply' %}" class="btn btn-vng-primary btn-vng-sm">
                 + Apply for Certificate
-            {% endif %}
-        </a>
+            </a>
+        {% endif %}
     </div>
     {% if messages %}
         {% for message in messages %}
@@ -95,7 +102,7 @@
                         </td>
                         <td class="pe-4 py-3 text-end">
                             <div class="d-flex align-items-center justify-content-end gap-1 flex-wrap">
-                                {% if cert.status == 'active' %}
+                                {% if cert.status == 'active' and not request.user.role in 'employer,agency,business' and not request.user.is_employer %}
                                     {% if cert.is_monitoring_valid %}
                                         <a href="{% url 'verification:update_service_portal' %}?cert={{ cert.certificate_id }}"
                                            class="btn btn-vng-outline btn-vng-sm text-success">Update Service</a>

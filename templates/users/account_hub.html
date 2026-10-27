@@ -236,20 +236,33 @@
                 </div>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="vng-chevron"><polyline points="9 18 15 12 9 6"/></svg>
             </a>
-            <!-- 3. WCC Applications -->
-            <a href="{% url 'verification:my_certificates' %}" class="vng-menu-item">
+            <!-- 2d. Sponsor Certificate -->
+            <a href="{% url 'verification:certificate_apply' %}" class="vng-menu-item">
                 <div class="d-flex align-items-center gap-3">
-                    <div class="vng-menu-icon">
+                    <div class="vng-menu-icon" style="color: #2563EB;">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
                     </div>
                     <div>
-                        <div class="vng-item-title">WCC Applications</div>
-                        <div class="vng-item-desc">Track and download Workplace Clearance Certificates</div>
+                        <div class="vng-item-title">Sponsor Certificate (TrustPass)</div>
+                        <div class="vng-item-desc">Apply and pay for a staff or candidate clearance certificate</div>
                     </div>
                 </div>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="vng-chevron"><polyline points="9 18 15 12 9 6"/></svg>
             </a>
-            <!-- 3b. Verify Certificate (DBS) -->
+            <!-- 2e. Sponsored Certificates List -->
+            <a href="{% url 'verification:my_certificates' %}" class="vng-menu-item">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="vng-menu-icon" style="color: #0284C7;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                    </div>
+                    <div>
+                        <div class="vng-item-title">Sponsored Certificates</div>
+                        <div class="vng-item-desc">View and manage staff certificates sponsored by your company</div>
+                    </div>
+                </div>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="vng-chevron"><polyline points="9 18 15 12 9 6"/></svg>
+            </a>
+            <!-- 3. Verify Certificate (TrustPass) -->
             <a href="{% url 'employer:certificate_verify' %}" class="vng-menu-item">
                 <div class="d-flex align-items-center gap-3">
                     <div class="vng-menu-icon" style="color: #059669;">
@@ -258,6 +271,45 @@
                     <div>
                         <div class="vng-item-title">Verify Certificate (TrustPass)</div>
                         <div class="vng-item-desc">Instant online clearance check by Certificate ID</div>
+                    </div>
+                </div>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="vng-chevron"><polyline points="9 18 15 12 9 6"/></svg>
+            </a>
+            <!-- 3b. Public Trust Search -->
+            <a href="{% url 'check' %}" class="vng-menu-item">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="vng-menu-icon" style="color: #16A34A;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21L16.65 16.65"/></svg>
+                    </div>
+                    <div>
+                        <div class="vng-item-title">Public Check (Verify)</div>
+                        <div class="vng-item-desc">Search phone, bank account, CAC or NIN registry</div>
+                    </div>
+                </div>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="vng-chevron"><polyline points="9 18 15 12 9 6"/></svg>
+            </a>
+            <!-- 3c. Report Fraud -->
+            <a href="{% url 'reports:create' %}" class="vng-menu-item">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="vng-menu-icon" style="color: #EA580C;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    </div>
+                    <div>
+                        <div class="vng-item-title">Report Fraud</div>
+                        <div class="vng-item-desc">Report scams, bad contractors, or vendor fraud</div>
+                    </div>
+                </div>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="vng-chevron"><polyline points="9 18 15 12 9 6"/></svg>
+            </a>
+            <!-- 3d. My Fraud Reports -->
+            <a href="{% url 'reports:my_reports' %}" class="vng-menu-item">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="vng-menu-icon" style="color: #64748B;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                    </div>
+                    <div>
+                        <div class="vng-item-title">My Fraud Reports</div>
+                        <div class="vng-item-desc">Track status and moderation of filed fraud reports</div>
                     </div>
                 </div>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="vng-chevron"><polyline points="9 18 15 12 9 6"/></svg>
@@ -275,19 +327,6 @@
                 </div>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="vng-chevron"><polyline points="9 18 15 12 9 6"/></svg>
             </a>
-            <!-- 4B. Fraud Report Requests -->
-            <a href="{% url 'reports:my_reports' %}" class="vng-menu-item">
-                <div class="d-flex align-items-center gap-3">
-                    <div class="vng-menu-icon" style="color: #4F46E5;">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                    </div>
-                    <div>
-                        <div class="vng-item-title">Fraud Report</div>
-                        <div class="vng-item-desc">Report, Track &amp; manage all submitted fraud incident cases</div>
-                    </div>
-                </div>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="vng-chevron"><polyline points="9 18 15 12 9 6"/></svg>
-            </a>
             <!-- 5. Misconduct Report -->
             <a href="{% url 'employer:staff_misconduct_list' %}" class="vng-menu-item">
                 <div class="d-flex align-items-center gap-3">
@@ -300,6 +339,19 @@
                     </div>
                 </div>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="vng-chevron text-danger"><polyline points="9 18 15 12 9 6"/></svg>
+            </a>
+            <!-- 6. Team Members -->
+            <a href="{% url 'employer:team_list' %}" class="vng-menu-item">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="vng-menu-icon" style="color: #0F766E;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    </div>
+                    <div>
+                        <div class="vng-item-title">Team Management</div>
+                        <div class="vng-item-desc">Manage team access and permissions</div>
+                    </div>
+                </div>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="vng-chevron"><polyline points="9 18 15 12 9 6"/></svg>
             </a>
             
             <!-- Subscription & Billing (Employer) -->

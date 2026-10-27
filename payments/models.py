@@ -513,6 +513,14 @@ class Transaction(models.Model):
         return self.amount_kobo / 100
 
     @property
+    def reason(self) -> str:
+        """User or admin provided reason / note associated with this transaction."""
+        meta = (self.paystack_response or {}).get('data', {}).get('metadata', {})
+        if not meta and isinstance(self.paystack_response, dict):
+            meta = self.paystack_response.get('metadata', {})
+        return meta.get('reason', '')
+
+    @property
     def item_display_name(self) -> str:
         """
         Human-friendly item or plan name for display across dashboards and transaction history.
@@ -531,6 +539,9 @@ class Transaction(models.Model):
 
         if self.reference and self.reference.startswith('VNG-BAL-'):
             if meta.get('type') == 'admin_manual_topup':
+                topup_reason = (meta.get('reason') or '').strip()
+                if topup_reason and topup_reason.lower() not in ('admin wallet top-up', 'admin manual wallet credit'):
+                    return topup_reason
                 return "Admin Wallet Top-Up"
             return "Pre-Paid Account Balance"
 

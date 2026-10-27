@@ -382,11 +382,20 @@ class PrepaidAutoDetectionTests(TestCase):
         new_bal = get_user_prepaid_balance(self.user)
         self.assertEqual(new_bal, initial_bal + 15000)
 
-        # Transaction exists with type admin_manual_topup
+        # Transaction exists with type admin_manual_topup and custom reason
         topup_tx = Transaction.objects.filter(user=self.user, reference__startswith='VNG-BAL-').latest('created_at')
         self.assertEqual(topup_tx.amount_kobo, 1500000)
         self.assertTrue(topup_tx.is_active)
-        self.assertEqual(topup_tx.item_display_name, "Admin Wallet Top-Up")
+        self.assertEqual(topup_tx.item_display_name, "Corporate bulk advance credit")
+        self.assertEqual(topup_tx.reason, "Corporate bulk advance credit")
+
+        # Top-up with blank reason defaults to "Admin Wallet Top-Up"
+        self.client.post(url, {
+            'amount_naira': '5000',
+            'reason': '',
+        })
+        default_tx = Transaction.objects.filter(user=self.user, reference__startswith='VNG-BAL-').latest('created_at')
+        self.assertEqual(default_tx.item_display_name, "Admin Wallet Top-Up")
 
 
 

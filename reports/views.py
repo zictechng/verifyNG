@@ -185,9 +185,16 @@ class ReportDetailView(DetailView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx['is_moderator'] = is_moderator(self.request.user)
+        user_has_disputed = (
+            self.request.user.is_authenticated
+            and self.object.disputes.filter(disputant=self.request.user).exists()
+        )
+        ctx['user_has_disputed'] = user_has_disputed
         ctx['can_dispute'] = (
             self.request.user.is_authenticated
             and self.request.user != self.object.reporter
+            and self.object.complainant_rebuttal is None
+            and not user_has_disputed
             and (
                 self.object.state in ('published', 'submitted', 'under_review', 'disputed')
             )
@@ -450,6 +457,22 @@ class DisputeCreateView(LoginRequiredMixin, FormView):
         # Disallow reporter from disputing their own report
         if request.user.is_authenticated and self.report.reporter == request.user:
             messages.warning(request, "You cannot file a right-of-response dispute against a report you submitted.")
+            return redirect('reports:detail', reference_number=self.report.reference_number)
+        # Disallow dispute if pleadings are closed following complainant final rebuttal
+        if self.report.complainant_rebuttal is not None:
+            messages.warning(
+                request,
+                "Pleadings are officially closed on this report following the complainant's final rebuttal. "
+                "The case is currently under compliance adjudication."
+            )
+            return redirect('reports:detail', reference_number=self.report.reference_number)
+        # Disallow second dispute if respondent already submitted their defense (Strict 1-shot)
+        if request.user.is_authenticated and self.report.disputes.filter(disputant=request.user).exists():
+            messages.warning(
+                request,
+                "You have already submitted your defense statement for this report. "
+                "Additional evidence can only be submitted if requested by a compliance moderator."
+            )
             return redirect('reports:detail', reference_number=self.report.reference_number)
         # Allow employee response/dispute during 7-day fair-hearing notice, when published, or subsequent addenda while disputed
         if self.report.state not in ('published', 'submitted', 'under_review', 'disputed'):

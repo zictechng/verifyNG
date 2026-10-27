@@ -34,7 +34,12 @@
           {% for txn in page_obj %}
           <tr style="border-color:var(--vng-border);">
             <td style="padding:1rem 1.25rem;font-size:.875rem;vertical-align:middle;color:var(--vng-muted);">{{ txn.created_at|date:"j M Y" }}</td>
-            <td style="padding:1rem 1.25rem;font-size:.875rem;vertical-align:middle;font-weight:600;">{{ txn.item_display_name }}</td>
+            <td style="padding:1rem 1.25rem;font-size:.875rem;vertical-align:middle;font-weight:600;">
+              {{ txn.item_display_name }}
+              {% if txn.reason and txn.reason != txn.item_display_name %}
+                <div class="text-muted extra-small" style="font-size:0.75rem;font-weight:normal;">Note: {{ txn.reason }}</div>
+              {% endif %}
+            </td>
             <td style="padding:1rem 1.25rem;vertical-align:middle;">
               <code style="font-size:.78rem;background:var(--vng-page-bg);padding:.2rem .5rem;border-radius:6px;">{{ txn.reference }}</code>
             </td>
@@ -62,6 +67,9 @@
         <div class="d-flex justify-content-between align-items-start mb-2">
           <div>
             <div class="fw-700" style="font-size:.95rem;">{{ txn.item_display_name }}</div>
+            {% if txn.reason and txn.reason != txn.item_display_name %}
+              <div class="text-muted small" style="font-size:.78rem;">Note: {{ txn.reason }}</div>
+            {% endif %}
             <div class="text-muted" style="font-size:.78rem;">{{ txn.created_at|date:"j M Y, g:i A" }}</div>
           </div>
           <div class="text-end">

@@ -178,6 +178,12 @@ def service_checkout_review(request, service_key):
         messages.error(request, "Selected service is not recognized.")
         return redirect('payments:plans')
 
+    if service_key == 'monitoring' and request.user.is_authenticated and not (request.user.is_staff or request.user.is_superuser):
+        from core.permissions import is_employer
+        if is_employer(request.user):
+            messages.info(request, "Employers verify candidate certificates via the Verify Certificate tool. The Continuous Update Service is managed directly by the individual certificate holder.")
+            return redirect('employer:certificate_verify')
+
     return render(request, 'payments/service_checkout_review.html', {
         'service_key': service_key,
         'item': item,
@@ -203,6 +209,12 @@ def service_checkout_execute(request, service_key):
     if not amount or amount <= 0:
         messages.error(request, "Invalid service pricing.")
         return redirect('payments:plans')
+
+    if service_key == 'monitoring' and not (request.user.is_staff or request.user.is_superuser):
+        from core.permissions import is_employer
+        if is_employer(request.user):
+            messages.info(request, "Employers verify candidate certificates via the Verify Certificate tool. The Continuous Update Service is managed directly by the individual certificate holder.")
+            return redirect('employer:certificate_verify')
 
     from payments.services import initialize_service_checkout
     try:

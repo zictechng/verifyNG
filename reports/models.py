@@ -164,6 +164,11 @@ class FraudReport(models.Model):
         )
 
     @property
+    def are_pleadings_closed(self):
+        """Pleadings close when complainant submits final rebuttal or report reaches final decision."""
+        return self.complainant_rebuttal is not None or self.state in ('resolved', 'dismissed', 'closed', 'rejected')
+
+    @property
     def moderator_info_requests(self):
         """Returns all interlocutory information requests issued by compliance moderators."""
         if not self.pk:
