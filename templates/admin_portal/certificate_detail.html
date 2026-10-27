@@ -274,6 +274,15 @@
         </button>
         {% endif %}
 
+        {% if cert.is_monitoring_valid %}
+        <button type="button" class="btn btn-outline-danger btn-sm fw-semibold py-2 cert-detail-action-btn"
+                data-action="remove_monitoring"
+                data-cert-id="{{ cert.certificate_id }}"
+                data-pk="{{ cert.pk }}">
+          <i class="bi bi-shield-slash me-2"></i>Remove from Update Service
+        </button>
+        {% endif %}
+
         {% if cert.status == 'active' or cert.status == 'suspended' or cert.status == 'revoked' %}
         <hr class="my-1">
         <p class="small text-muted mb-0">All actions are permanent and logged with your officer ID.</p>
@@ -295,6 +304,7 @@
 
 <!-- ── Action Modal ── -->
 <div class="modal fade" id="certDetailActionModal" tabindex="-1" aria-hidden="true">
+  {% csrf_token %}
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content border-0 shadow">
       <div class="modal-header py-3 px-4" style="background:#1e2a3a;">
@@ -324,8 +334,13 @@
 {% block admin_scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-  const csrfTokenEl = document.querySelector('[name=csrfmiddlewaretoken]');
-  const csrfToken = csrfTokenEl ? csrfTokenEl.value : '';
+  function getCsrfToken() {
+    const el = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (el && el.value) return el.value;
+    const cookie = document.cookie.split('; ').find(function (row) { return row.startsWith('csrftoken='); });
+    return cookie ? decodeURIComponent(cookie.split('=')[1]) : '';
+  }
+
   let pendingAction = null;
   let pendingPk = null;
   let pendingCertId = null;
@@ -337,8 +352,18 @@ document.addEventListener('DOMContentLoaded', function () {
       pendingAction = btn.dataset.action;
       pendingPk = btn.dataset.pk;
       pendingCertId = btn.dataset.certId;
-      const labels = { activate: 'Activate', suspend: 'Suspend', revoke: 'Revoke' };
-      const colors = { activate: 'btn-success', suspend: 'btn-warning', revoke: 'btn-danger' };
+      const labels = {
+        activate: 'Activate',
+        suspend: 'Suspend',
+        revoke: 'Revoke',
+        remove_monitoring: 'Remove from Update Service'
+      };
+      const colors = {
+        activate: 'btn-success',
+        suspend: 'btn-warning',
+        revoke: 'btn-danger',
+        remove_monitoring: 'btn-danger'
+      };
       const label = labels[pendingAction] || pendingAction;
       document.getElementById('certDetailModalTitle').textContent = label + ' Certificate';
       let msg = '';
@@ -348,6 +373,8 @@ document.addEventListener('DOMContentLoaded', function () {
         msg = 'Are you sure you want to <strong>suspend</strong> certificate <code>' + pendingCertId + '</code>? The holder will temporarily lose active verification status.';
       } else if (pendingAction === 'revoke') {
         msg = '<span class="text-danger fw-bold">Critical Warning:</span> Are you sure you want to <strong>irrevocably revoke</strong> certificate <code>' + pendingCertId + '</code>? This cannot be undone.';
+      } else if (pendingAction === 'remove_monitoring') {
+        msg = 'Are you sure you want to <strong>remove</strong> certificate <code>' + pendingCertId + '</code> from the Continuous Update Service? The certificate will no longer be continuously updated.';
       }
       document.getElementById('certDetailModalMsg').innerHTML = msg;
       document.getElementById('certDetailModalReason').value = '';
@@ -355,7 +382,7 @@ document.addEventListener('DOMContentLoaded', function () {
       document.getElementById('certDetailReasonWrap').style.display = pendingAction === 'activate' ? 'none' : 'block';
       const confirmBtn = document.getElementById('certDetailModalConfirmBtn');
       confirmBtn.className = 'btn btn-sm px-4 fw-semibold ' + (colors[pendingAction] || 'btn-primary');
-      confirmBtn.textContent = 'Yes, ' + label + ' Certificate';
+      confirmBtn.textContent = 'Yes, ' + label;
       confirmBtn.disabled = false;
       // Safe Bootstrap modal trigger
       if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
@@ -374,23 +401,36 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!pendingPk || !pendingAction) return;
     const reason = document.getElementById('certDetailModalReason').value.trim();
     const btn = this;
+    const initialText = btn.textContent;
     btn.disabled = true;
-    btn.textContent = 'Processing…';
+    btn.textContent = 'Processing...';
+
+    const token = getCsrfToken();
     const fd = new FormData();
     fd.append('action', pendingAction);
     fd.append('reason', reason);
-    fd.append('csrfmiddlewaretoken', csrfToken);
+    if (token) {
+      fd.append('csrfmiddlewaretoken', token);
+    }
+
     fetch('/admin-portal/certificates/' + pendingPk + '/action/', {
       method: 'POST',
+      headers: {
+        'X-CSRFToken': token
+      },
       body: fd
     })
-      .then(function (r) { return r.json(); })
+      .then(function (r) {
+        return r.json().catch(function () {
+          return { ok: false, error: 'Server returned error ' + r.status };
+        });
+      })
       .then(function (data) {
         const modal = typeof bootstrap !== 'undefined' && bootstrap.Modal ?
           bootstrap.Modal.getInstance(modalEl) : null;
         if (data.ok) {
           const banner = document.getElementById('certDetailSuccessBanner');
-          banner.textContent = data.message;
+          banner.textContent = data.message || 'Action completed successfully.';
           banner.classList.remove('d-none');
           document.getElementById('certDetailReasonWrap').style.display = 'none';
           document.getElementById('certDetailModalMsg').style.display = 'none';
@@ -402,16 +442,15 @@ document.addEventListener('DOMContentLoaded', function () {
         } else {
           alert(data.error || 'Action failed. Please try again.');
           btn.disabled = false;
-          btn.textContent = 'Confirm';
+          btn.textContent = initialText;
         }
       })
       .catch(function () {
         alert('Network error. Please try again.');
         btn.disabled = false;
-        btn.textContent = 'Confirm';
+        btn.textContent = initialText;
       });
   });
 });
 </script>
 {% endblock admin_scripts %}
-

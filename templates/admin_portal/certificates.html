@@ -224,6 +224,7 @@
 
 <!-- Action Modal -->
 <div class="modal fade" id="certActionModal" tabindex="-1" aria-hidden="true">
+  {% csrf_token %}
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content border-0 shadow">
       <div class="modal-header py-3 px-4" style="background:#1e2a3a;">
@@ -234,7 +235,7 @@
         <p class="small mb-3 text-muted" id="certModalMsg"></p>
         <div id="certReasonWrap">
           <label class="form-label fw-semibold small">Reason <span class="text-muted">(optional)</span></label>
-          <textarea id="certModalReason" class="form-control form-control-sm" rows="3" placeholder="State reason…"></textarea>
+          <textarea id="certModalReason" class="form-control form-control-sm" rows="3" placeholder="State reason..."></textarea>
         </div>
       </div>
       <div class="modal-footer border-top px-4 py-3 gap-2">
@@ -250,8 +251,13 @@
 
 <script>
 (function () {
-  const csrfTokenEl = document.querySelector('[name=csrfmiddlewaretoken]');
-  const csrfToken = csrfTokenEl ? csrfTokenEl.value : '';
+  function getCsrfToken() {
+    const el = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (el && el.value) return el.value;
+    const cookie = document.cookie.split('; ').find(function (row) { return row.startsWith('csrftoken='); });
+    return cookie ? decodeURIComponent(cookie.split('=')[1]) : '';
+  }
+
   let pendingPk = null;
   let pendingAction = null;
   let pendingCertId = null;
@@ -303,35 +309,50 @@
     if (!pendingPk || !pendingAction) return;
     const reason = document.getElementById('certModalReason').value.trim();
     const btn = this;
+    const initialText = btn.textContent;
     btn.disabled = true;
-    btn.textContent = 'Processing…';
+    btn.textContent = 'Processing...';
 
+    const token = getCsrfToken();
     const fd = new FormData();
     fd.append('action', pendingAction);
     fd.append('reason', reason);
-    fd.append('csrfmiddlewaretoken', csrfToken);
+    if (token) {
+      fd.append('csrfmiddlewaretoken', token);
+    }
 
     const url = '/admin-portal/certificates/' + pendingPk + '/action/';
 
     bootstrap.Modal.getInstance(document.getElementById('certActionModal')).hide();
 
-    fetch(url, { method: 'POST', body: fd })
-      .then(function (r) { return r.json(); })
+    fetch(url, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': token
+      },
+      body: fd
+    })
+      .then(function (r) {
+        return r.json().catch(function () {
+          return { ok: false, error: 'Server returned status ' + r.status };
+        });
+      })
       .then(function (data) {
         if (data.ok) {
-          showToast(true, data.message);
+          showToast(true, data.message || 'Action completed successfully.');
           setTimeout(function () { location.reload(); }, 1200);
         } else {
           showToast(false, data.error || 'Action failed.');
           btn.disabled = false;
+          btn.textContent = initialText;
         }
       })
       .catch(function () {
         showToast(false, 'Network error. Please try again.');
         btn.disabled = false;
+        btn.textContent = initialText;
       });
   });
 })();
 </script>
 {% endblock %}
-

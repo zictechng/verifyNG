@@ -248,3 +248,50 @@ class AdminPortalOperationsTestCase(TestCase):
         )
 
 
+
+    def test_admin_remove_certificate_from_update_service(self):
+        """Admin can remove a certificate from Continuous Update Service without network/server error."""
+        from django.utils import timezone
+        from datetime import timedelta
+        from verification.models import VerificationCertificate
+        from reports.models import AuditLog
+
+        from identities.models import SubjectEntity
+        subject = SubjectEntity.objects.create(
+            name="Test Candidate",
+            type="person"
+        )
+        cert = VerificationCertificate.objects.create(
+            certificate_id='VNG-CERT-TEST-999',
+            holder=self.individual,
+            subject=subject,
+            check_level='standard',
+            status='active',
+            is_monitoring_active=True,
+            monitoring_activated_at=timezone.now(),
+            monitoring_expires_at=timezone.now() + timedelta(days=365)
+        )
+        self.assertTrue(cert.is_monitoring_valid)
+
+        action_url = reverse('admin_portal:certificate_action', kwargs={'public_id': cert.public_id})
+        res = self.client.post(action_url, {
+            'action': 'remove_monitoring',
+            'reason': 'Candidate requested delisting'
+        })
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertTrue(data.get('ok'))
+        self.assertIn('removed from Continuous Update Service', data.get('message', ''))
+
+        cert.refresh_from_db()
+        self.assertFalse(cert.is_monitoring_active)
+        self.assertFalse(cert.is_monitoring_valid)
+
+        # Verify audit log was recorded
+        audit = AuditLog.objects.filter(
+            action='UPDATE_SERVICE_UNLISTED',
+            performed_by=self.superuser
+        ).first()
+        self.assertIsNotNone(audit)
+        self.assertEqual(audit.details.get('certificate_id'), cert.certificate_id)
+        self.assertIn('Candidate requested delisting', audit.details.get('reason', ''))

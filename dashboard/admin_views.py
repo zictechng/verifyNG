@@ -2600,14 +2600,21 @@ class AdminCertificateActionView(SuperAdminRequiredMixin, View):
             cert.is_monitoring_active = False
             cert.save(update_fields=['is_monitoring_active', 'updated_at'])
             log_admin_action(
-                admin_user=request.user,
                 action='UPDATE_SERVICE_UNLISTED',
-                target_model='VerificationCertificate',
-                target_id=cert.pk,
+                action_type='CERTIFICATE_MGMT',
+                performed_by=request.user,
+                target_user=cert.holder,
+                request=request,
+                details={'certificate_id': cert.certificate_id, 'reason': reason},
                 description=f"Admin removed certificate {cert.certificate_id} from Continuous Update Service. Reason: {reason}",
-                ip_address=request.META.get('REMOTE_ADDR'),
             )
-            return JsonResponse({'ok': True, 'action': action, 'status': cert.status})
+            return JsonResponse({
+                'ok': True,
+                'action': action,
+                'status': cert.status,
+                'certificate_id': cert.certificate_id,
+                'message': f'Certificate {cert.certificate_id} removed from Continuous Update Service successfully.',
+            })
         else:
             return JsonResponse({'ok': False, 'error': 'Unknown action.'}, status=400)
 

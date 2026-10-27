@@ -71,6 +71,7 @@ def log_admin_action(
     request=None,
     details: dict | None = None,
     description: str = '',
+    **extra,
 ) -> None:
     """
     Write a single immutable row to AuditLog.
@@ -108,13 +109,22 @@ def log_admin_action(
             os_name = parsed.get('os', 'Unknown')
             location_city, location_country = resolve_ip_location(ip_address)
 
+        merged_details = dict(details or {})
+        if description and 'description' not in merged_details:
+            merged_details['description'] = description
+        for k, v in extra.items():
+            if k not in merged_details and k not in ('admin_user', 'ip_address'):
+                merged_details[k] = str(v)
+
+        actor = performed_by or extra.get('admin_user')
+
         AuditLog.objects.create(
             action=action,
             action_type=action_type,
-            performed_by=performed_by,
+            performed_by=actor,
             target_user=target_user,
             report=report,
-            ip_address=ip_address,
+            ip_address=ip_address or extra.get('ip_address'),
             url_path=url_path,
             http_method=http_method,
             user_agent=user_agent,
@@ -123,7 +133,7 @@ def log_admin_action(
             os=os_name,
             location_country=location_country,
             location_city=location_city,
-            details=details or {},
+            details=merged_details,
         )
     except Exception:
         # Audit logging must never crash the main request
