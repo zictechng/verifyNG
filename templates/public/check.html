@@ -227,10 +227,15 @@
                 <div class="mb-3 d-flex flex-wrap align-items-center justify-content-between p-2 px-3 rounded-2 bg-light border small gap-2">
                     <span class="text-muted">
                         Signed in as <strong class="text-dark">{{ request.user.username }}</strong>
+                        {% if user_balance and user_balance > 0 %}
+                        &bull; <span class="text-success fw-semibold"><i class="bi bi-wallet2 me-1"></i>Balance: &#8358;{{ user_balance|floatformat:0 }}</span>
+                        {% endif %}
                     </span>
                     <span>
                         {% if user_entitlement.reason == 'service_restricted' %}
                             <span class="badge bg-danger-subtle text-danger border border-danger-subtle"><i class="bi bi-slash-circle me-1"></i>Search Access Restricted by Admin</span>
+                        {% elif user_entitlement.reason == 'balance_covered' %}
+                            <span class="badge bg-success-subtle text-success border"><i class="bi bi-wallet-fill me-1"></i>Unlocked via Account Balance (&#8358;{{ user_balance|floatformat:0 }} available)</span>
                         {% elif user_entitlement.reason == 'direct_paid' %}
                             <span class="badge bg-success-subtle text-success border"><i class="bi bi-patch-check-fill me-1"></i>Single Check Unlocked via Paystack</span>
                         {% elif is_public_check_free %}
@@ -619,10 +624,21 @@
                             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                         </div>
                         <h5 class="fw-bold mb-2" style="color:var(--vng-ink);">Check Limit Reached — Single Query or Plan Access Required</h5>
-                        <p class="mb-4" style="max-width:540px;margin:0 auto;font-size:14px;line-height:1.6;color:#475569;">
+                        <p class="mb-3" style="max-width:540px;margin:0 auto;font-size:14px;line-height:1.6;color:#475569;">
                             You have used all complimentary starter checks on this account. You can unlock this single query result immediately with Pay-As-You-Go via Paystack, or upgrade to a monthly package for unlimited lookups.
                         </p>
                         
+                        {% if user_balance and user_balance > 0 and user_balance < payg_price %}
+                        <div class="alert alert-info py-2 px-3 mb-3 d-inline-block text-start border-0 shadow-sm" style="background:#e0f2fe;color:#0369a1;font-size:0.85rem;border-radius:8px;max-width:540px;">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="bi bi-wallet2 fs-5 flex-shrink-0"></i>
+                                <div>
+                                    <strong>Account Balance Applied:</strong> &#8358;{{ user_balance|floatformat:0 }} will be deducted from your account. You only need to pay the remaining <strong>&#8358;{{ topup_needed|floatformat:0 }}</strong> via Paystack.
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
                         <!-- Mobile-friendly responsive decision action button group -->
                         <div class="d-flex flex-column flex-sm-row justify-content-center align-items-stretch gap-2" style="max-width: 540px; margin: 0 auto;">
                             <form method="post" action="{% url 'check' %}" class="w-100 flex-fill mb-2 mb-sm-0">
@@ -631,7 +647,13 @@
                                 <input type="hidden" name="identifier_type" :value="idType">
                                 <input type="hidden" name="identifier_value" :value="identifier">
                                 <button type="submit" class="btn btn-vng-primary w-100 py-2.5 px-3 fw-bold text-nowrap">
-                                    Pay ₦{{ payg_price|default:site_settings.price_public_check|default:500 }} via Paystack &amp; View Result &rarr;
+                                    {% if user_balance and user_balance >= payg_price %}
+                                        Unlock Result using &#8358;{{ payg_price|floatformat:0 }} Account Balance (&#8358;{{ user_balance|floatformat:0 }} available) &rarr;
+                                    {% elif user_balance and user_balance > 0 %}
+                                        Pay &#8358;{{ topup_needed|floatformat:0 }} via Paystack (&#8358;{{ user_balance|floatformat:0 }} covered by balance) &rarr;
+                                    {% else %}
+                                        Pay &#8358;{{ payg_price|default:site_settings.price_public_check|default:250 }} via Paystack &amp; View Result &rarr;
+                                    {% endif %}
                                 </button>
                             </form>
                             <a href="{% url 'payments:plans' %}" class="btn btn-vng-outline w-100 flex-fill py-2.5 px-3 text-nowrap">

@@ -84,12 +84,13 @@ def check_lookup(request, payload: CheckLookupRequest):
     if request.user.is_authenticated:
         from payments.models import Transaction
         if paid_ref:
-            cand = Transaction.objects.filter(reference=paid_ref, user=request.user, status='success', is_active=True).first()
+            cand = Transaction.objects.filter(reference=paid_ref, user=request.user, status='success').first()
             if cand:
                 meta = (cand.paystack_response or {}).get('data', {}).get('metadata', {})
                 if meta.get('service') == 'public_check':
-                    paid_tx = cand
-                    is_direct_paid = True
+                    if cand.is_active or meta.get('payment_method') == 'account_balance':
+                        paid_tx = cand
+                        is_direct_paid = True
         if not is_direct_paid:
             for cand in Transaction.objects.filter(user=request.user, status='success', is_active=True).order_by('-created_at'):
                 meta = (cand.paystack_response or {}).get('data', {}).get('metadata', {})
@@ -156,12 +157,13 @@ def check_identifier(request, identifier_hash: str):
     if request.user.is_authenticated:
         from payments.models import Transaction
         if paid_ref:
-            cand = Transaction.objects.filter(reference=paid_ref, user=request.user, status='success', is_active=True).first()
+            cand = Transaction.objects.filter(reference=paid_ref, user=request.user, status='success').first()
             if cand:
                 meta = (cand.paystack_response or {}).get('data', {}).get('metadata', {})
                 if meta.get('service') == 'public_check':
-                    paid_tx = cand
-                    is_direct_paid = True
+                    if cand.is_active or meta.get('payment_method') == 'account_balance':
+                        paid_tx = cand
+                        is_direct_paid = True
         if not is_direct_paid:
             for cand in Transaction.objects.filter(user=request.user, status='success', is_active=True).order_by('-created_at'):
                 meta = (cand.paystack_response or {}).get('data', {}).get('metadata', {})
@@ -250,12 +252,13 @@ def certificate_lookup(request, certificate_id: str):
     if request.user.is_authenticated:
         from payments.models import Transaction
         if paid_ref:
-            cand = Transaction.objects.filter(reference=paid_ref, user=request.user, status='success', is_active=True).first()
+            cand = Transaction.objects.filter(reference=paid_ref, user=request.user, status='success').first()
             if cand:
                 meta = (cand.paystack_response or {}).get('data', {}).get('metadata', {})
                 if meta.get('service') == 'public_check':
-                    paid_tx = cand
-                    is_direct_paid = True
+                    if cand.is_active or meta.get('payment_method') == 'account_balance':
+                        paid_tx = cand
+                        is_direct_paid = True
         if not is_direct_paid:
             for cand in Transaction.objects.filter(user=request.user, status='success', is_active=True).order_by('-created_at'):
                 meta = (cand.paystack_response or {}).get('data', {}).get('metadata', {})

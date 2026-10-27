@@ -38,12 +38,22 @@ def check(request):
         response['Retry-After'] = str(retry_after)
         return response
 
+    import uuid
     from payments.models import SiteSettings, Transaction
-    from payments.services import check_user_entitlement, initialize_service_checkout
+    from payments.services import (
+        check_user_entitlement,
+        initialize_service_checkout,
+        get_user_prepaid_balance,
+        deduct_user_prepaid_balance,
+        get_topup_difference,
+    )
     from django.contrib import messages
     from django.shortcuts import redirect
     site_settings = SiteSettings.get()
     payg_price = site_settings.get_service_price('public_check')
+
+    user_balance = get_user_prepaid_balance(request.user) if request.user.is_authenticated else 0
+    topup_needed = get_topup_difference(user_balance, payg_price) if request.user.is_authenticated else payg_price
 
     # Handle direct Paystack Pay-As-You-Go checkout submission
     if request.method == 'POST':
@@ -57,47 +67,110 @@ def check(request):
             id_type = request.POST.get('identifier_type', '').strip()
             id_val = request.POST.get('identifier_value', '').strip()
 
+            # 1. Full coverage from user available account balance
+            if user_balance >= payg_price:
+                ok, rem_bal = deduct_user_prepaid_balance(request.user, payg_price, "Public Record Lookup")
+                if ok:
+                    paid_token = f"VNG-BAL-{uuid.uuid4().hex[:12].upper()}"
+                    Transaction.objects.create(
+                        user=request.user,
+                        reference=paid_token,
+                        amount_kobo=payg_price * 100,
+                        status='success',
+                        is_active=False,
+                        paystack_response={
+                            'data': {
+                                'metadata': {
+                                    'service': 'public_check',
+                                    'identifier_type': id_type,
+                                    'identifier_value': id_val,
+                                    'payment_method': 'account_balance',
+                                }
+                            }
+                        }
+                    )
+                    messages.success(
+                        request,
+                        f"₦{payg_price:,.0f} deducted from your account balance (Remaining balance: ₦{rem_bal:,.0f}). "
+                        "Query unlocked."
+                    )
+                    from django.urls import reverse
+                    url = reverse('check')
+                    params = [f"paid_ref={paid_token}"]
+                    if id_type:
+                        params.append(f"type={id_type}")
+                    if id_val:
+                        params.append(f"q={id_val}")
+                    return redirect(f"{url}?{'&'.join(params)}")
+
+            # 2. Partial coverage from balance + top-up difference via Paystack
+            checkout_amount = payg_price
+            covered_amount = 0
+            if 0 < user_balance < payg_price:
+                covered_amount = user_balance
+                checkout_amount = topup_needed
+                deduct_user_prepaid_balance(request.user, user_balance, "Partial top-up for Public Search")
+
             try:
                 checkout_data = initialize_service_checkout(
                     user=request.user,
                     service='public_check',
                     tier='standard',
-                    amount_naira=payg_price,
+                    amount_naira=checkout_amount,
                     metadata={
                         'service': 'public_check',
                         'identifier_type': id_type,
                         'identifier_value': id_val,
+                        'covered_by_balance': covered_amount,
                     }
                 )
                 request.session['vng_pending_ref'] = checkout_data['reference']
                 return redirect(checkout_data['authorization_url'])
             except Exception as e:
+                # Refund partially deducted balance on checkout initialization failure
+                if covered_amount > 0:
+                    Transaction.objects.create(
+                        user=request.user,
+                        reference=f"VNG-REFUND-{uuid.uuid4().hex[:12].upper()}",
+                        amount_kobo=covered_amount * 100,
+                        status='success',
+                        is_active=True,
+                        paystack_response={
+                            'data': {
+                                'metadata': {
+                                    'service': 'topup',
+                                    'reason': 'Checkout initialization failure refund'
+                                }
+                            }
+                        }
+                    )
                 logger.error("Public check PAYG checkout error (user=%s): %s", request.user.id, e)
                 messages.error(request, f"Payment gateway error: {e}")
 
     # Check if user has a verified single query direct payment, unconsumed credit, or active account balance
     paid_ref = request.GET.get('paid_ref', '').strip()
     is_direct_paid = False
-    from payments.services import get_user_prepaid_balance
-    user_balance = get_user_prepaid_balance(request.user) if request.user.is_authenticated else 0
 
     if request.user.is_authenticated:
         if paid_ref:
-            trx = Transaction.objects.filter(reference=paid_ref, user=request.user, status='success', is_active=True).first()
+            trx = Transaction.objects.filter(reference=paid_ref, user=request.user, status='success').first()
             if trx:
                 meta = (trx.paystack_response or {}).get('data', {}).get('metadata', {})
                 if meta.get('service') == 'public_check':
-                    is_direct_paid = True
+                    if trx.is_active or meta.get('payment_method') == 'account_balance':
+                        is_direct_paid = True
         if not is_direct_paid and user_balance >= payg_price:
             is_direct_paid = True
 
     user_entitlement = None
     if request.user.is_authenticated:
         if is_direct_paid:
+            reason = 'balance_covered' if (not paid_ref and user_balance >= payg_price) else 'direct_paid'
+            remaining_text = f"Covered by ₦{user_balance:,.0f} Balance" if reason == 'balance_covered' else "Single Query Paid"
             user_entitlement = {
                 'allowed': True,
-                'reason': 'direct_paid',
-                'details': {'remaining': 'Single Query Paid', 'used': 0, 'limit': 1},
+                'reason': reason,
+                'details': {'remaining': remaining_text, 'used': 0, 'limit': 1},
             }
         else:
             allowed, reason, details = check_user_entitlement(request.user, service='public_check', cost=1)
@@ -110,6 +183,8 @@ def check(request):
     context = {
         'site_settings': site_settings,
         'payg_price': payg_price,
+        'user_balance': user_balance,
+        'topup_needed': topup_needed,
         'is_public_check_free': site_settings.is_service_free('public_check'),
         'user_entitlement': user_entitlement,
         'is_direct_paid': is_direct_paid,

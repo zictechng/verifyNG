@@ -181,7 +181,6 @@
               </tr>
             </thead>
             <tbody>
-              {% if not request.user.is_authenticated or not request.user.role in 'employer,agency,business' or request.user.is_staff or request.user.is_superuser %}
               <tr>
                 <td class="ps-4 py-3">
                   <div class="fw-bold text-dark">Clearance Certificate (TrustPass, Standard)</div>
@@ -200,8 +199,6 @@
                 <td class="py-3"><strong class="text-dark">₦{{ site_settings.price_trustpass_3yr|floatformat:0 }}</strong></td>
                 <td class="pe-4 py-3 text-end"><a href="{% url 'payments:service_checkout_review' 'certificate' %}?tier=enhanced" class="btn btn-sm btn-outline-primary rounded-pill px-3">Get Enhanced Pass (₦{{ site_settings.price_trustpass_3yr|floatformat:0 }})</a></td>
               </tr>
-              {% endif %}
-              {% if not request.user.is_authenticated or request.user.role in 'employer,agency,business' or request.user.is_staff or request.user.is_superuser %}
               <tr>
                 <td class="ps-4 py-3">
                   <div class="fw-bold text-dark">Staff Background Investigation (Standard)</div>
@@ -220,7 +217,6 @@
                 <td class="py-3"><strong class="text-dark">₦{{ site_settings.price_staff_check_enhanced|floatformat:0 }}</strong></td>
                 <td class="pe-4 py-3 text-end"><a href="{% url 'payments:service_checkout_review' 'staff_check' %}?tier=enhanced" class="btn btn-sm btn-outline-primary rounded-pill px-3">Order Enhanced Check (₦{{ site_settings.price_staff_check_enhanced|floatformat:0 }})</a></td>
               </tr>
-              {% endif %}
               <tr>
                 <td class="ps-4 py-3">
                   <div class="fw-bold text-dark">Public Trust &amp; Safety Check / Record Lookup</div>
@@ -275,20 +271,21 @@
                 <td class="py-3"><strong class="text-dark">₦{{ site_settings.price_verification_business|floatformat:0 }}</strong></td>
                 <td class="pe-4 py-3 text-end"><a href="{% url 'payments:service_checkout_review' 'verification' %}?tier=full_check" class="btn btn-sm btn-outline-primary rounded-pill px-3">Order Full Check (₦{{ site_settings.price_verification_business|floatformat:0 }})</a></td>
               </tr>
-              {% if not request.user.is_authenticated or not request.user.role in 'employer,agency,business' or request.user.is_staff or request.user.is_superuser %}
               <tr>
                 <td class="ps-4 py-3">
                   <div class="fw-bold text-dark">Certificate Monitoring Services (TrustPass)</div>
                   <div class="text-muted small">
-                    Enables employers &amp; landlords to easily verify your active certificate and build trust, without paying for repeat checks each time you prove your integrity for jobs or tenancy
+                    {% if request.user.is_authenticated and request.user.is_employer %}
+                      Continuous workforce trust assurance: real-time validation and active standing for your employed personnel
+                    {% else %}
+                      Enables employers &amp; landlords to easily verify your active certificate and build trust, without paying for repeat checks each time you prove your integrity for jobs or tenancy
+                    {% endif %}
                   </div>
                 </td>
                 <td class="py-3"><span class="badge bg-info text-dark">Annual Watcher</span></td>
                 <td class="py-3"><strong class="text-dark">₦{{ site_settings.price_monitoring_annual|floatformat:0 }}</strong> <span class="text-muted small">/ certificate / yr</span></td>
                 <td class="pe-4 py-3 text-end"><a href="{% url 'payments:service_checkout_review' 'monitoring' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">Join Monitoring (₦{{ site_settings.price_monitoring_annual|floatformat:0 }}/yr)</a></td>
               </tr>
-              {% endif %}
-              {% if not request.user.is_authenticated or request.user.role in 'employer,agency,business' or request.user.is_staff or request.user.is_superuser %}
               <tr>
                 <td class="ps-4 py-3">
                   <div class="fw-bold text-dark">Bulk Candidate Screening (CSV Upload)</div>
@@ -296,15 +293,8 @@
                 </td>
                 <td class="py-3"><span class="badge bg-secondary">Per Candidate</span></td>
                 <td class="py-3"><strong class="text-dark">₦{{ site_settings.price_bulk_check_per_row|floatformat:0 }}</strong></td>
-                <td class="pe-4 py-3 text-end">
-                  {% if request.user.is_authenticated and request.user.role in 'employer,agency,business' %}
-                  <a href="{% url 'employer:bulk_upload_create' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">Bulk Upload (₦{{ site_settings.price_bulk_check_per_row|floatformat:0 }}/ea)</a>
-                  {% else %}
-                  <a href="{% url 'users:register_employer' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">For Organizations</a>
-                  {% endif %}
-                </td>
+                <td class="pe-4 py-3 text-end"><a href="{% url 'employer:bulk_upload_create' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">Bulk Upload (₦{{ site_settings.price_bulk_check_per_row|floatformat:0 }}/ea)</a></td>
               </tr>
-              {% endif %}
               <tr>
                 <td class="ps-4 py-3">
                   <div class="fw-bold text-dark">Fraud Crime & Whistleblower Reporting</div>
@@ -321,7 +311,6 @@
 
       <!-- Mobile & Small Devices View: Clean Service Cards List -->
       <div class="d-md-none vng-card p-0 overflow-hidden shadow-sm mb-4" style="border-radius:var(--vng-radius-lg, 12px);border:1px solid var(--vng-border, #E2E8F0);background:#fff;">
-        {% if not request.user.is_authenticated or not request.user.role in 'employer,agency,business' or request.user.is_staff or request.user.is_superuser %}
         <!-- Service 1: TrustPass Standard -->
         <div class="p-3 border-bottom">
           <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
@@ -361,9 +350,7 @@
             </a>
           </div>
         </div>
-        {% endif %}
 
-        {% if not request.user.is_authenticated or request.user.role in 'employer,agency,business' or request.user.is_staff or request.user.is_superuser %}
         <!-- Service 3: Staff Check Standard -->
         <div class="p-3 border-bottom">
           <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
@@ -403,7 +390,6 @@
             </a>
           </div>
         </div>
-        {% endif %}
 
         <!-- Service 5: Public Search -->
         <div class="p-3 border-bottom">
@@ -525,7 +511,6 @@
           </div>
         </div>
 
-        {% if not request.user.is_authenticated or not request.user.role in 'employer,agency,business' or request.user.is_staff or request.user.is_superuser %}
         <!-- Service 11: Certificate Monitoring (TrustPass) -->
         <div class="p-3 border-bottom">
           <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
@@ -533,7 +518,11 @@
             <span class="badge bg-info text-dark flex-shrink-0" style="font-size:0.75rem;">Annual Watcher</span>
           </div>
           <div class="text-muted small mb-3" style="font-size:0.8rem;line-height:1.35;">
-            Enables employers &amp; landlords to easily verify your active certificate and build trust, without paying for repeat checks each time you prove your integrity for jobs or tenancy
+            {% if request.user.is_authenticated and request.user.is_employer %}
+              Continuous workforce trust assurance: real-time validation and active standing for your employed personnel
+            {% else %}
+              Enables employers &amp; landlords to easily verify your active certificate and build trust, without paying for repeat checks each time you prove your integrity for jobs or tenancy
+            {% endif %}
           </div>
           <div class="d-flex justify-content-between align-items-center">
             <div>
@@ -546,9 +535,7 @@
             </a>
           </div>
         </div>
-        {% endif %}
 
-        {% if not request.user.is_authenticated or request.user.role in 'employer,agency,business' or request.user.is_staff or request.user.is_superuser %}
         <!-- Service 12: Bulk Candidate Screening -->
         <div class="p-3 border-bottom">
           <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
@@ -564,18 +551,11 @@
               <strong class="text-dark" style="font-size:1.15rem;line-height:1;">₦{{ site_settings.price_bulk_check_per_row|floatformat:0 }}</strong>
               <span class="text-muted small" style="font-size:0.75rem;">/ record</span>
             </div>
-            {% if request.user.is_authenticated and request.user.role in 'employer,agency,business' %}
             <a href="{% url 'employer:bulk_upload_create' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold" style="font-size:0.8rem;">
               Bulk Upload &rarr;
             </a>
-            {% else %}
-            <a href="{% url 'users:register_employer' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold" style="font-size:0.8rem;">
-              For Organizations &rarr;
-            </a>
-            {% endif %}
           </div>
         </div>
-        {% endif %}
 
         <!-- Service 13: Fraud Crime Reporting -->
         <div class="p-3">

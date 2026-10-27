@@ -90,6 +90,85 @@ class PrepaidAutoDetectionTests(TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertTrue(res.context['is_direct_paid'])
 
+    def test_public_check_partial_balance_ui_and_topup(self):
+        """User with ₦50 balance against ₦250 check fee sees ₦200 topup difference and ₦50 is applied."""
+        from unittest.mock import patch
+        self.settings.price_public_check = 250
+        self.settings.save()
+
+        # Create ₦50 balance for user
+        Transaction.objects.create(
+            user=self.user,
+            reference='VNG-BAL-50',
+            amount_kobo=5000,
+            status='success',
+            is_active=True,
+            paystack_response={'data': {'metadata': {'service': 'topup'}}}
+        )
+        self.assertEqual(get_user_prepaid_balance(self.user), 50)
+
+        # 1. GET /check/ verifies context and template rendering
+        res = self.client.get(reverse('check'))
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.context['user_balance'], 50)
+        self.assertEqual(res.context['topup_needed'], 200)
+        content = res.content.decode('utf-8')
+        self.assertIn('Account Balance Applied:', content)
+        self.assertIn('50', content)
+        self.assertIn('200', content)
+
+        # 2. POST action=payg with partial balance: deducts ₦50, initializes checkout for ₦200
+        with patch('payments.services.requests.post') as mock_post:
+            mock_post.return_value.status_code = 200
+            mock_post.return_value.json.return_value = {
+                'status': True,
+                'data': {
+                    'authorization_url': 'https://checkout.paystack.com/test-url',
+                    'access_code': 'test-code',
+                    'reference': 'VNG-CHK-TEST-REF',
+                }
+            }
+            post_res = self.client.post(reverse('check'), {
+                'action': 'payg',
+                'identifier_type': 'nin',
+                'identifier_value': '12345678901',
+            })
+            self.assertEqual(post_res.status_code, 302)
+            self.assertEqual(post_res.url, 'https://checkout.paystack.com/test-url')
+
+            # Balance deducted from 50 to 0
+            self.assertEqual(get_user_prepaid_balance(self.user), 0)
+
+            # Checkout initialized for ₦200
+            called_json = mock_post.call_args[1]['json']
+            self.assertEqual(called_json['amount'], 20000)  # 200 NGN in kobo
+
+    def test_public_check_sufficient_balance_post_unlocks_directly(self):
+        """User with ₦500 balance against ₦250 check fee unlocks directly from balance without Paystack."""
+        self.settings.price_public_check = 250
+        self.settings.save()
+
+        Transaction.objects.create(
+            user=self.user,
+            reference='VNG-BAL-500',
+            amount_kobo=50000,
+            status='success',
+            is_active=True,
+            paystack_response={'data': {'metadata': {'service': 'topup'}}}
+        )
+        self.assertEqual(get_user_prepaid_balance(self.user), 500)
+
+        post_res = self.client.post(reverse('check'), {
+            'action': 'payg',
+            'identifier_type': 'nin',
+            'identifier_value': '12345678901',
+        })
+        self.assertEqual(post_res.status_code, 302)
+        self.assertIn('paid_ref=VNG-BAL-', post_res.url)
+
+        # Balance deducted from 500 to 250
+        self.assertEqual(get_user_prepaid_balance(self.user), 250)
+
     def test_verification_submits_with_prepaid_balance(self):
         """User with 3500 balance submits comprehensive verification; balance is deducted."""
         tx = Transaction.objects.create(
