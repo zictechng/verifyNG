@@ -564,6 +564,11 @@ class Transaction(models.Model):
             return "Account Top-Up"
         elif service == 'certificate_verify':
             return "Certificate Verification"
+        elif service == 'monitoring':
+            cert_id = meta.get('certificate_id', '')
+            if cert_id:
+                return f"Certificate Monitoring — {cert_id}"
+            return "Certificate Monitoring Service"
 
         return "Direct Payment"
 

@@ -2916,7 +2916,10 @@ class AdminFinancialReportView(SuperAdminRequiredMixin, TemplateView):
         qs = Transaction.objects.filter(
             created_at__gte=date_from,
             created_at__lte=date_to,
-            is_active=True,
+            # NOTE: Do NOT filter by is_active here. is_active on Transaction
+            # tracks whether a pre-paid credit has been consumed/spent — it is
+            # NOT a soft-delete flag. A consumed transaction (is_active=False)
+            # is still a real payment that admin must see in financial reports.
         ).select_related('user', 'plan').order_by('-created_at')
 
         if status_filter:
@@ -3030,7 +3033,9 @@ class AdminFinancialReportView(SuperAdminRequiredMixin, TemplateView):
         qs = Transaction.objects.filter(
             created_at__gte=date_from,
             created_at__lte=date_to,
-            is_active=True,
+            # is_active is NOT a soft-delete flag on Transaction — it tracks
+            # whether a pre-paid credit is still unspent. Remove the filter
+            # so consumed/fulfilled payments remain visible in the CSV export.
         ).select_related('user', 'plan').order_by('-created_at')
         if status_filter:
             qs = qs.filter(status=status_filter)
@@ -3224,7 +3229,9 @@ class AdminFinancialReportView(SuperAdminRequiredMixin, TemplateView):
         txn_qs = TxnModel.objects.filter(
             created_at__gte=date_from_pdf,
             created_at__lte=date_to_pdf,
-            is_active=True,
+            # is_active is NOT a soft-delete flag on Transaction — it tracks
+            # whether a pre-paid credit is still unspent. Remove filter so
+            # consumed/fulfilled payments appear in the PDF export too.
         ).select_related('user', 'plan').order_by('-created_at')
         if status_filter_pdf:
             txn_qs = txn_qs.filter(status=status_filter_pdf)
