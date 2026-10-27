@@ -36,67 +36,67 @@
         </div>
     </div>
 
-    <!-- Audit Card -->
+    <!-- Audit Card Container -->
     <div class="vng-card p-0 shadow-sm border mb-4" style="border-radius: 12px; overflow: hidden;">
-        <div class="table-responsive">
+
+        <!-- Desktop View (md and up) -->
+        <div class="table-responsive d-none d-md-block">
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light">
                     <tr>
-                        <th class="ps-4 py-3 fw-semibold small text-muted">Date &amp; Time (UTC)</th>
-                        <th class="py-3 fw-semibold small text-muted">Checking Organisation / Employer</th>
-                        <th class="py-3 fw-semibold small text-muted d-none d-md-table-cell">Check Type</th>
-                        <th class="pe-4 py-3 fw-semibold small text-muted text-end">Result</th>
+                        <th class="ps-4 py-3 fw-semibold small text-muted">Checking Organisation / Employer</th>
+                        <th class="py-3 fw-semibold small text-muted">Latest Check (UTC)</th>
+                        <th class="py-3 fw-semibold small text-muted">Check Type</th>
+                        <th class="py-3 fw-semibold small text-muted text-center">Result</th>
+                        <th class="pe-4 py-3 fw-semibold small text-muted text-end">History</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for item in query_logs %}
                         <tr>
-                            <td class="ps-4 py-3 small font-monospace text-dark" style="vertical-align: top;">
-                                {{ item.latest_log.queried_at|date:"d M Y, H:i" }}
-                                {% if item.count > 1 %}
-                                    <div class="text-muted" style="font-size: 11px;">Most recent</div>
-                                {% endif %}
-                            </td>
-                            <td class="py-3 small">
-                                <div class="fw-bold text-dark">
+                            <td class="ps-4 py-3">
+                                <div class="fw-bold text-dark fs-6">
                                     {{ item.name }}{% if item.count > 1 %} ({{ item.count }}){% endif %}
                                 </div>
-                                <div class="text-muted" style="font-size: 11.5px;">
+                                <div class="text-muted" style="font-size: 12px;">
                                     Audit Verified &bull; Verified Online
                                     {% if item.count > 1 %}
-                                        &bull; <a class="text-decoration-none text-primary fw-semibold" data-bs-toggle="collapse" href="#auditDates-{{ forloop.counter }}" role="button" aria-expanded="false" aria-controls="auditDates-{{ forloop.counter }}">
-                                            View all {{ item.count }} check dates &darr;
+                                        &bull; <a href="#" class="text-primary text-decoration-none fw-semibold" data-bs-toggle="modal" data-bs-target="#auditModal-{{ forloop.counter }}">
+                                            View all {{ item.count }} check dates &rarr;
                                         </a>
                                     {% endif %}
                                 </div>
+                            </td>
+                            <td class="py-3 small font-monospace text-dark">
+                                <div class="fw-semibold">{{ item.latest_log.queried_at|date:"d M Y, H:i" }}</div>
                                 {% if item.count > 1 %}
-                                    <div class="collapse mt-2" id="auditDates-{{ forloop.counter }}">
-                                        <div class="p-2.5 rounded border bg-light" style="font-size: 11.5px; max-width: 440px;">
-                                            <div class="fw-semibold text-muted mb-1 text-uppercase" style="font-size: 10px; letter-spacing: 0.04em;">Full Check History ({{ item.count }} checks):</div>
-                                            <ul class="list-unstyled mb-0 font-monospace">
-                                                {% for log in item.logs %}
-                                                    <li class="py-0.5 d-flex justify-content-between text-muted border-bottom border-light">
-                                                        <span>#{{ forloop.revcounter }} &bull; {{ log.queried_at|date:"d M Y, H:i" }}</span>
-                                                        <span class="text-dark">{{ log.get_purpose_display|default:log.purpose|title }}</span>
-                                                    </li>
-                                                {% endfor %}
-                                            </ul>
-                                        </div>
-                                    </div>
+                                    <div class="text-muted" style="font-size: 11px;">Most recent of {{ item.count }}</div>
                                 {% endif %}
                             </td>
-                            <td class="py-3 small d-none d-md-table-cell text-muted" style="vertical-align: top;">
-                                {{ item.latest_log.get_purpose_display|default:item.latest_log.purpose }}
+                            <td class="py-3 small text-muted">
+                                <span class="badge bg-light text-dark border fw-normal">
+                                    {{ item.latest_log.get_purpose_display|default:item.latest_log.purpose }}
+                                </span>
                             </td>
-                            <td class="pe-4 py-3 text-end" style="vertical-align: top;">
-                                <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                            <td class="py-3 text-center">
+                                <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1.5 fw-semibold">
                                     ✓ Status Checked
                                 </span>
+                            </td>
+                            <td class="pe-4 py-3 text-end">
+                                {% if item.count > 1 %}
+                                    <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 fw-semibold d-inline-flex align-items-center gap-1.5" data-bs-toggle="modal" data-bs-target="#auditModal-{{ forloop.counter }}">
+                                        <span>History ({{ item.count }})</span>
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                                    </button>
+                                {% else %}
+                                    <span class="text-muted small">1 check</span>
+                                {% endif %}
                             </td>
                         </tr>
                     {% empty %}
                         <tr>
-                            <td colspan="4" class="text-center py-5 text-muted">
+                            <td colspan="5" class="text-center py-5 text-muted">
                                 <div class="mb-2">
                                     <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="1.5">
                                         <circle cx="12" cy="12" r="10"/>
@@ -114,7 +114,132 @@
                 </tbody>
             </table>
         </div>
+
+        <!-- Mobile View (< md screens, 100% mobile-friendly cards) -->
+        <div class="d-md-none p-3">
+            {% for item in query_logs %}
+                <div class="p-3 mb-3 bg-white border rounded-3 shadow-xs">
+                    <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                        <div>
+                            <div class="fw-bold text-dark fs-6">{{ item.name }}</div>
+                            <div class="text-muted" style="font-size: 11px;">Audit Verified &bull; Verified Online</div>
+                        </div>
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill fw-semibold">
+                            {{ item.count }} check{{ item.count|pluralize }}
+                        </span>
+                    </div>
+
+                    <div class="p-2.5 rounded bg-light border mb-2.5" style="font-size: 12px;">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="text-muted">Latest Check:</span>
+                            <span class="font-monospace text-dark fw-bold">{{ item.latest_log.queried_at|date:"d M Y, H:i" }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="text-muted">Check Type:</span>
+                            <span class="text-dark">{{ item.latest_log.get_purpose_display|default:item.latest_log.purpose }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted">Result:</span>
+                            <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 11px;">
+                                ✓ Status Checked
+                            </span>
+                        </div>
+                    </div>
+
+                    {% if item.count > 1 %}
+                        <button type="button" class="btn btn-sm btn-outline-primary w-100 rounded-pill py-2 fw-semibold d-flex align-items-center justify-content-center gap-1.5" data-bs-toggle="modal" data-bs-target="#auditModal-{{ forloop.counter }}">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                            <span>View All {{ item.count }} Check Dates &rarr;</span>
+                        </button>
+                    {% endif %}
+                </div>
+            {% empty %}
+                <div class="text-center py-4 text-muted">
+                    <div class="fw-semibold text-dark">No status checks recorded yet</div>
+                    <div class="small text-muted mt-1">
+                        Whenever an employer or agency verifies your certificate reference online, the event is permanently logged here.
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
     </div>
+
+    <!-- Modals for Full Audit Date History (Rendered cleanly outside the table for perfect mobile & desktop display) -->
+    {% for item in query_logs %}
+        {% if item.count > 1 %}
+            <div class="modal fade" id="auditModal-{{ forloop.counter }}" tabindex="-1" aria-labelledby="auditModalLabel-{{ forloop.counter }}" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+                    <div class="modal-content shadow-lg border-0" style="border-radius: 16px;">
+                        
+                        <!-- Modal Header -->
+                        <div class="modal-header border-bottom pb-3">
+                            <div>
+                                <h5 class="modal-title fw-bold text-dark fs-6" id="auditModalLabel-{{ forloop.counter }}">
+                                    Status Check History
+                                </h5>
+                                <div class="text-muted small mt-0.5">
+                                    {{ item.name }} &bull; <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill">{{ item.count }} verification events</span>
+                                </div>
+                            </div>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+
+                        <!-- Modal Body -->
+                        <div class="modal-body p-3 p-sm-4">
+                            <!-- Certificate context pill -->
+                            <div class="p-2.5 px-3 rounded-3 bg-light border mb-3 d-flex align-items-center justify-content-between flex-wrap gap-2" style="font-size: 12px;">
+                                <div class="text-muted">Certificate: <strong class="font-monospace text-dark">{{ cert.certificate_id }}</strong></div>
+                                <div class="text-muted">Total: <strong class="text-primary">{{ item.count }} Checks</strong></div>
+                            </div>
+
+                            <!-- Audit Timeline -->
+                            <div class="audit-timeline ps-2">
+                                {% for log in item.logs %}
+                                    <div class="position-relative ps-4 pb-3 {% if not forloop.last %}border-start{% endif %}" style="border-color: #E2E8F0 !important; margin-left: 6px;">
+                                        <!-- Dot indicator -->
+                                        <div class="position-absolute rounded-circle" style="width: 12px; height: 12px; background: {% if forloop.first %}#2563EB{% else %}#94A3B8{% endif %}; left: -6px; top: 4px; border: 2px solid #fff; box-shadow: 0 0 0 1px #CBD5E1;"></div>
+                                        
+                                        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-1 mb-1">
+                                            <div class="fw-bold text-dark small d-flex align-items-center gap-2">
+                                                <span>Check #{{ forloop.revcounter }}</span>
+                                                {% if forloop.first %}
+                                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size: 10px;">Latest</span>
+                                                {% endif %}
+                                            </div>
+                                            <div class="font-monospace text-dark fw-semibold small" style="font-size: 12px;">
+                                                {{ log.queried_at|date:"d M Y, H:i" }} UTC
+                                            </div>
+                                        </div>
+
+                                        <div class="d-flex align-items-center gap-2 flex-wrap mt-1">
+                                            <span class="badge bg-light text-dark border" style="font-size: 11px;">
+                                                Type: {{ log.get_purpose_display|default:log.purpose|title }}
+                                            </span>
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 11px;">
+                                                ✓ Status Checked
+                                            </span>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <!-- Modal Footer -->
+                        <div class="modal-footer bg-light py-2.5 px-3 border-top d-flex justify-content-between align-items-center">
+                            <span class="text-muted extra-small" style="font-size: 11px;">
+                                Official Audit Record &bull; VerifyNG
+                            </span>
+                            <button type="button" class="btn btn-sm btn-secondary rounded-pill px-3.5" data-bs-dismiss="modal">
+                                Close
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    {% endfor %}
 
     <!-- Regulatory Data Privacy Statement -->
     <div class="p-3 rounded-3 border bg-light text-muted small" style="font-size: 12px; line-height: 1.5;">
