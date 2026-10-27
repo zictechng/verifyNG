@@ -829,10 +829,18 @@ def bulk_upload_create(request):
     """
     profile = _get_or_create_employer_profile(request.user)
 
+    from payments.services import get_user_prepaid_balance, deduct_user_prepaid_balance
+    site_settings = SiteSettings.get()
+    price_per_row = site_settings.price_bulk_check_per_row
+    user_balance = get_user_prepaid_balance(request.user)
+
     allowed, reason, details = check_user_entitlement(request.user, service='bulk_upload', cost=1)
     if not allowed and reason == 'service_restricted':
         messages.error(request, details.get('message', "Your organization has been restricted from bulk CSV candidate screening by platform administration."))
         return redirect('employer:dashboard')
+
+    has_entitlement = allowed or (user_balance >= price_per_row)
+    remaining_checks = details.get('remaining', 0) if allowed else 0
 
     if request.method == 'POST':
         uploaded_file = request.FILES.get('csv_file')
@@ -848,6 +856,11 @@ def bulk_upload_create(request):
         if errors:
             return render(request, 'employer/bulk_upload_create.html', {
                 'profile': profile,
+                'has_entitlement': has_entitlement,
+                'allowed': allowed,
+                'remaining_checks': remaining_checks,
+                'user_balance': user_balance,
+                'price_per_row': price_per_row,
                 'errors': errors,
                 'page_title': 'Bulk CSV Upload',
             })
@@ -930,14 +943,28 @@ def bulk_upload_create(request):
         # Enforce check entitlement for bulk check volume
         cost = len(rows_data)
         allowed, reason, details = check_user_entitlement(request.user, service='bulk_upload', cost=cost)
+        total_batch_price = cost * price_per_row
+        balance_paid = False
+
+        if not allowed and user_balance >= total_batch_price:
+            ok, rem_bal = deduct_user_prepaid_balance(request.user, total_batch_price, f"Bulk Screening: {cost} candidates")
+            if ok:
+                allowed = True
+                balance_paid = True
+
         if not allowed:
             remaining = details.get('remaining', 0)
             return render(request, 'employer/bulk_upload_create.html', {
                 'profile': profile,
+                'has_entitlement': False,
+                'allowed': False,
+                'remaining_checks': remaining,
+                'user_balance': user_balance,
+                'price_per_row': price_per_row,
                 'errors': [
-                    f'Insufficient check quota. This bulk upload requires {cost} checks, '
-                    f'but your plan only has {remaining} checks remaining. '
-                    f'Please upgrade your plan to continue.'
+                    f'Payment or plan credits required. This bulk upload requires {cost} checks (₦{total_batch_price:,.0f}), '
+                    f'but your account only has {remaining} checks remaining (account balance: ₦{user_balance:,.0f}). '
+                    f'Please purchase screening credits or upgrade your plan to continue.'
                 ],
                 'page_title': 'Bulk CSV Upload',
             })
@@ -958,7 +985,8 @@ def bulk_upload_create(request):
                 row_count=len(rows_data),
                 status='pending',
             )
-            consume_user_entitlement(request.user, service='bulk_upload', cost=cost)
+            if not balance_paid:
+                consume_user_entitlement(request.user, service='bulk_upload', cost=cost)
             BulkCheckRow.objects.bulk_create([
                 BulkCheckRow(
                     upload=upload,
@@ -997,6 +1025,12 @@ def bulk_upload_create(request):
 
     context = {
         'profile': profile,
+        'has_entitlement': has_entitlement,
+        'allowed': allowed,
+        'remaining_checks': remaining_checks,
+        'entitlement_details': details,
+        'user_balance': user_balance,
+        'price_per_row': price_per_row,
         'page_title': 'Bulk CSV Upload',
     }
     return render(request, 'employer/bulk_upload_create.html', context)

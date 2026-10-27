@@ -849,3 +849,37 @@ class PrepaidAutoDetectionTests(TestCase):
         content = res.content.decode('utf-8')
         self.assertNotIn('confirmUpload', content)
         self.assertNotIn('confirm(', content)
+
+    def test_bulk_upload_payment_entitlement_gate(self):
+        """Bulk upload strictly gates upload access behind subscription or check credits."""
+        employer = User.objects.create_user(
+            username='emp_gate',
+            email='emp_gate@example.com',
+            password='TestPassword123!',
+            role='employer'
+        )
+        self.client.force_login(employer)
+
+        # 1. Without credits or subscription: has_entitlement is False, shows required card and CTA
+        res_unpaid = self.client.get(reverse('employer:bulk_upload_create'))
+        self.assertEqual(res_unpaid.status_code, 200)
+        self.assertFalse(res_unpaid.context['has_entitlement'])
+        content = res_unpaid.content.decode('utf-8')
+        self.assertIn('Subscription or Screening Credits Required', content)
+        self.assertIn('Buy Screening Credits to Upload', content)
+
+        # 2. Give employer credits via account balance
+        Transaction.objects.create(
+            user=employer,
+            reference='VNG-EMP-BULK-BAL',
+            amount_kobo=350000,
+            status='success',
+            is_active=True,
+            paystack_response={'data': {'metadata': {'service': 'topup'}}}
+        )
+        res_paid = self.client.get(reverse('employer:bulk_upload_create'))
+        self.assertEqual(res_paid.status_code, 200)
+        self.assertTrue(res_paid.context['has_entitlement'])
+        content_paid = res_paid.content.decode('utf-8')
+        self.assertIn('Active Screening Access', content_paid)
+        self.assertIn('Upload &amp; Process', content_paid)
