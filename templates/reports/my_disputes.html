@@ -31,14 +31,7 @@
         </div>
     </div>
 
-    {% if messages %}
-        {% for message in messages %}
-            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show mb-3" role="alert">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        {% endfor %}
-    {% endif %}
+
 
     <!-- Stat Strip -->
     <div class="row g-2 g-md-3 mb-4">
@@ -179,18 +172,19 @@
                             <td class="pe-4 text-end">
                                 <div class="d-inline-flex gap-2">
                                     {% if not report.disputes.all %}
-                                        <a href="{% url 'reports:create_dispute' report.reference_number %}" class="btn btn-sm btn-danger text-nowrap">
-                                            Respond &amp; Submit Defense &rarr;
-                                        </a>
+                                        {% if report.is_within_dispute_window and not report.are_pleadings_closed %}
+                                            <a href="{% url 'reports:create_dispute' report.reference_number %}" class="btn btn-sm btn-danger text-nowrap">
+                                                Respond &amp; Submit Defense &rarr;
+                                            </a>
+                                        {% else %}
+                                            <a href="{% url 'reports:detail' report.reference_number %}" class="btn btn-sm btn-outline-secondary text-nowrap">
+                                                View Report
+                                            </a>
+                                        {% endif %}
                                     {% else %}
                                         <a href="{% url 'reports:detail' report.reference_number %}" class="btn btn-sm btn-outline-primary text-nowrap">
                                             View Details
                                         </a>
-                                        {% if report.state in 'submitted,under_review,disputed,published' %}
-                                            <a href="{% url 'reports:create_dispute' report.reference_number %}" class="btn btn-sm btn-outline-secondary text-nowrap" title="Submit additional counter-evidence or statement">
-                                                Add Evidence / Addendum
-                                            </a>
-                                        {% endif %}
                                     {% endif %}
                                 </div>
                             </td>
@@ -246,18 +240,19 @@
 
                 <div class="d-flex flex-column gap-2">
                     {% if not report.disputes.all %}
-                        <a href="{% url 'reports:create_dispute' report.reference_number %}" class="btn btn-danger btn-sm w-100 py-2 d-inline-flex align-items-center justify-content-center gap-1 fw-semibold">
-                            Submit Statement of Defense &rarr;
-                        </a>
+                        {% if report.is_within_dispute_window and not report.are_pleadings_closed %}
+                            <a href="{% url 'reports:create_dispute' report.reference_number %}" class="btn btn-danger btn-sm w-100 py-2 d-inline-flex align-items-center justify-content-center gap-1 fw-semibold">
+                                Submit Statement of Defense &rarr;
+                            </a>
+                        {% else %}
+                            <a href="{% url 'reports:detail' report.reference_number %}" class="btn btn-outline-secondary btn-sm w-100 py-2 text-center">
+                                View Report (Window Closed)
+                            </a>
+                        {% endif %}
                     {% else %}
                         <a href="{% url 'reports:detail' report.reference_number %}" class="btn btn-outline-primary btn-sm w-100 py-2 text-center">
                             View Report &amp; Dispute Status
                         </a>
-                        {% if report.state in 'submitted,under_review,disputed,published' %}
-                            <a href="{% url 'reports:create_dispute' report.reference_number %}" class="btn btn-outline-secondary btn-sm w-100 py-2 text-center">
-                                + Add Evidence / Addendum
-                            </a>
-                        {% endif %}
                     {% endif %}
                 </div>
             </div>

@@ -529,9 +529,9 @@
                                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                                          Bulk Upload
                                      </a>
-                                     <a href="{% url 'employer:certificate_verify' %}" class="vng-avatar-item">
-                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                                         Verify Certificate
+                                     <a href="{% url 'verification:list' %}" class="vng-avatar-item">
+                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                         Verifications Request
                                      </a>
                                      <a href="{% url 'check' %}" class="vng-avatar-item">
                                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21L16.65 16.65"/></svg>
@@ -557,10 +557,7 @@
                                              {% endif %}
                                          </span>
                                      </a>
-                                     <a href="{% url 'payments:plans' %}" class="vng-avatar-item">
-                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                                         <span>Upgrade / Buy Packages</span>
-                                     </a>
+                                    
                                      <a href="{% url 'reports:my_disputes' %}" class="vng-avatar-item">
                                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                                          <span class="d-flex align-items-center justify-content-between flex-grow-1">
@@ -580,10 +577,7 @@
                                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
                                          Certificates (TrustPass)
                                      </a>
-                                     <a href="{% url 'dashboard:who_checked_me' %}" class="vng-avatar-item">
-                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                                         Who Checked Me
-                                     </a>
+                                     
                                      <a href="{% url 'verification:list' %}" class="vng-avatar-item">
                                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                          Verifications
