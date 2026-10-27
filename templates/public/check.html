@@ -642,9 +642,9 @@
                                 <input type="hidden" name="identifier_value" :value="identifier">
                                 <button type="submit" class="btn btn-vng-primary w-100 py-2.5 px-3 fw-bold text-nowrap">
                                     {% if user_balance and user_balance >= payg_price %}
-                                        Unlock Result using &#8358;{{ payg_price|floatformat:0|intcomma }} Account Balance (&#8358;{{ user_balance|floatformat:0|intcomma }} available) &rarr;
+                                        Unlock Result using &#8358;{{ payg_price|floatformat:0|intcomma }} Account Balance &rarr;
                                     {% elif user_balance and user_balance > 0 %}
-                                        Pay &#8358;{{ topup_needed|floatformat:0|intcomma }} via Paystack (&#8358;{{ user_balance|floatformat:0|intcomma }} covered by balance) &rarr;
+                                        Pay &#8358;{{ topup_needed|floatformat:0|intcomma }} via Paystack &amp; View Result &rarr;
                                     {% else %}
                                         Pay &#8358;{{ payg_price|default:site_settings.price_public_check|default:250 }} via Paystack &amp; View Result &rarr;
                                     {% endif %}

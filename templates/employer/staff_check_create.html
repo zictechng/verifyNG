@@ -122,9 +122,9 @@
                                 <button type="submit" name="action" value="payg" class="btn btn-primary fw-bold px-3 py-2 shadow-sm d-inline-flex align-items-center justify-content-center gap-2" style="border-radius:9999px;font-size:.875rem;">
                                     <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
                                     {% if user_balance and user_balance >= selected_price %}
-                                        <span>Unlock Check using ₦{{ selected_price|floatformat:0|intcomma }} Account Balance (₦{{ user_balance|floatformat:0|intcomma }} available) &rarr;</span>
+                                        <span>Unlock Check using ₦{{ selected_price|floatformat:0|intcomma }} Account Balance &rarr;</span>
                                     {% elif user_balance and user_balance > 0 %}
-                                        <span>Pay ₦{{ topup_needed|floatformat:0|intcomma }} via Paystack (₦{{ user_balance|floatformat:0|intcomma }} covered by balance) &rarr;</span>
+                                        <span>Pay ₦{{ topup_needed|floatformat:0|intcomma }} via Paystack &amp; Run Check &rarr;</span>
                                     {% else %}
                                         <span>Pay ₦{{ selected_price|floatformat:0|intcomma }} via Paystack &amp; Run Check &rarr;</span>
                                     {% endif %}
