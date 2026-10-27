@@ -212,3 +212,49 @@ class UpdateServiceTests(TestCase):
         res = self.client.get(reverse('verification:update_service_logout'))
         self.assertRedirects(res, reverse('verification:update_service_login'))
         self.assertIsNone(self.client.session.get('update_service_cert_id'))
+
+    def test_payment_callback_monitoring_enrollment_success(self):
+        from payments.models import Transaction
+
+        # Setup transaction matching Paystack callback
+        tx = Transaction.objects.create(
+            user=self.candidate,
+            reference='VNG-TEST-MONITORING-REF1',
+            paystack_reference='VNG-TEST-MONITORING-REF1',
+            amount_kobo=300000,
+            status='success',
+            paystack_response={
+                'data': {
+                    'status': 'success',
+                    'metadata': {
+                        'service': 'monitoring',
+                        'tier': 'annual',
+                        'certificate_id': self.cert.certificate_id,
+                        'phone': '08012345678',
+                        'address': 'Plot 10, Abuja, Nigeria',
+                        'email': self.candidate.email,
+                    }
+                }
+            }
+        )
+
+        self.client.force_login(self.candidate)
+        res = self.client.get(reverse('payments:callback') + f"?reference={tx.reference}")
+        self.assertRedirects(res, reverse('verification:update_service_portal'))
+
+        self.cert.refresh_from_db()
+        self.assertTrue(self.cert.is_monitoring_active)
+        self.assertIsNotNone(self.cert.monitoring_expires_at)
+        self.assertEqual(self.client.session.get('update_service_cert_id'), self.cert.certificate_id)
+
+        # AuditLog entry created
+        enrollment_log = AuditLog.objects.filter(action='UPDATE_SERVICE_ENROLLED').first()
+        self.assertIsNotNone(enrollment_log)
+        self.assertEqual(enrollment_log.details.get('certificate_id'), self.cert.certificate_id)
+        self.assertEqual(enrollment_log.details.get('phone_number'), '08012345678')
+
+        # Portal page renders with contact details from enrollment log
+        portal_res = self.client.get(reverse('verification:update_service_portal'))
+        self.assertEqual(portal_res.status_code, 200)
+        self.assertContains(portal_res, '08012345678')
+        self.assertContains(portal_res, 'Plot 10, Abuja, Nigeria')

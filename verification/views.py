@@ -1400,14 +1400,15 @@ class UpdateServiceLoginView(View):
 
         # Retrieve application metadata from AuditLog or SubjectEntity
         app_log = AuditLog.objects.filter(
-            action="TRUSTPASS_APPLICATION_SUBMITTED"
+            action__in=["UPDATE_SERVICE_ENROLLED", "TRUSTPASS_APPLICATION_SUBMITTED"]
         ).order_by('-timestamp')
         det = {}
         for l in app_log[:50]:
             d = l.details if isinstance(l.details, dict) else {}
             if d.get('certificate_id') == cert.certificate_id:
-                det = d
-                break
+                for k, v in d.items():
+                    if k not in det and v:
+                        det[k] = v
 
         cand_name = (cert.subject.name if cert.subject else None) or det.get('full_name') or ''
         if not cand_name and cert.holder:
@@ -1573,14 +1574,15 @@ class UpdateServiceJoinView(View):
 
         # Eligible: Retrieve name, email, phone, residential address
         app_log = AuditLog.objects.filter(
-            action="TRUSTPASS_APPLICATION_SUBMITTED"
+            action__in=["UPDATE_SERVICE_ENROLLED", "TRUSTPASS_APPLICATION_SUBMITTED"]
         ).order_by('-timestamp')
         det = {}
         for l in app_log[:50]:
             d = l.details if isinstance(l.details, dict) else {}
             if d.get('certificate_id') == cert.certificate_id:
-                det = d
-                break
+                for k, v in d.items():
+                    if k not in det and v:
+                        det[k] = v
 
         cand_name = (cert.subject.name if cert.subject else None) or det.get('full_name') or ''
         if not cand_name and cert.holder:
@@ -1723,14 +1725,15 @@ class UpdateServicePortalView(View):
 
         # Retrieve application metadata
         app_log = AuditLog.objects.filter(
-            action="TRUSTPASS_APPLICATION_SUBMITTED"
+            action__in=["UPDATE_SERVICE_ENROLLED", "TRUSTPASS_APPLICATION_SUBMITTED"]
         ).order_by('-timestamp')
         det = {}
         for l in app_log[:50]:
             d = l.details if isinstance(l.details, dict) else {}
             if d.get('certificate_id') == cert.certificate_id:
-                det = d
-                break
+                for k, v in d.items():
+                    if k not in det and v:
+                        det[k] = v
 
         cand_name = (cert.subject.name if cert.subject else None) or det.get('full_name') or ''
         if not cand_name and cert.holder:

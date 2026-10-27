@@ -435,7 +435,7 @@ def _route_payg_success(request, transaction):
             from datetime import timedelta
             from django.utils import timezone
             from verification.models import VerificationCertificate
-            from audit.models import AuditLog
+            from core.audit_utils import log_admin_action
             cert = VerificationCertificate.objects.filter(certificate_id=cert_id, is_active=True).first()
             if cert:
                 cert.is_monitoring_active = True
@@ -443,23 +443,19 @@ def _route_payg_success(request, transaction):
                 cert.monitoring_expires_at = timezone.now() + timedelta(days=365)
                 cert.save(update_fields=['is_monitoring_active', 'monitoring_activated_at', 'monitoring_expires_at', 'updated_at'])
 
-                # Update candidate contact info if present in metadata
-                if meta.get('phone') and cert.holder and not getattr(cert.holder, 'phone_number', None):
-                    cert.holder.phone_number = meta['phone']
-                    cert.holder.save(update_fields=['phone_number'])
-                if meta.get('address') and cert.holder and not getattr(cert.holder, 'address', None):
-                    cert.holder.address = meta['address']
-                    cert.holder.save(update_fields=['address'])
-
-                AuditLog.objects.create(
+                log_admin_action(
                     action='UPDATE_SERVICE_ENROLLED',
-                    user=cert.holder or request.user,
-                    ip_address=request.META.get('REMOTE_ADDR'),
+                    action_type='VERIFICATION',
+                    performed_by=cert.holder or (request.user if request.user.is_authenticated else None),
+                    request=request,
                     details={
                         'certificate_id': cert.certificate_id,
                         'transaction_reference': transaction.reference,
-                        'amount_naira': transaction.amount_naira,
+                        'amount_naira': float(transaction.amount_naira) if hasattr(transaction, 'amount_naira') else 0,
                         'expires_at': cert.monitoring_expires_at.isoformat(),
+                        'phone_number': meta.get('phone', ''),
+                        'residential_address': meta.get('address', ''),
+                        'email': meta.get('email', ''),
                     }
                 )
 
