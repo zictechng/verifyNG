@@ -285,6 +285,11 @@ def is_profile_verified(user) -> tuple[bool, str]:
         except Exception:
             pass
 
+        emp_status = getattr(profile, 'verification_status', 'unverified') if profile else 'unverified'
+        if emp_status == 'pending' or (profile and getattr(profile, 'cac_document', None)):
+            return False, "Your company CAC verification is currently under compliance review. Platform actions will be unlocked once approved."
+        elif emp_status == 'rejected':
+            return False, "Your company CAC document was declined by compliance. Please review your company profile and submit a valid document."
         return False, "Company verification required. Please submit your CAC incorporation document to access this service."
 
     # Individual / Candidate accounts
@@ -307,6 +312,11 @@ def is_profile_verified(user) -> tuple[bool, str]:
         except Exception:
             pass
 
+    id_status = getattr(user, 'id_verification_status', 'unverified')
+    if id_status == 'pending' or getattr(user, 'has_id_document', False):
+        return False, "Your identity verification is currently under compliance review. Platform actions will be unlocked once approved."
+    elif id_status == 'rejected':
+        return False, "Your identity verification was declined by compliance. Please review and re-submit a valid government ID."
     return False, "Identity verification required. Please submit your official government ID (NIN, BVN, PVC, or Passport) to verify your profile."
 
 

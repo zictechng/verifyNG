@@ -1880,14 +1880,28 @@ def employer_certificate_verify(request):
             # 1. Full coverage from user available account balance
             if user_balance >= payg_price:
                 if not is_company_verified:
-                    result = {
-                        'lookup_state': 'COMPANY_VERIFICATION_REQUIRED',
-                        'certificate_id': cert_id_input,
-                        'message': (
+                    emp_status = getattr(profile, 'verification_status', 'unverified') if profile else 'unverified'
+                    if emp_status == 'pending' or (profile and getattr(profile, 'cac_document', None)):
+                        msg = (
+                            "Company Verification Under Review: Your CAC documents are currently being reviewed by VerifyNG compliance officers. "
+                            "No funds were deducted from your wallet balance."
+                        )
+                    elif emp_status == 'rejected':
+                        msg = (
+                            "Company CAC Verification Declined: Your company registration documents were declined by compliance. "
+                            "No funds were deducted from your wallet balance."
+                        )
+                    else:
+                        msg = (
                             "Company Profile Verification Required: Candidate workforce clearance records cannot be revealed "
                             "until your company's CAC incorporation documents are verified by platform compliance officers. "
                             "No funds were deducted from your wallet balance."
-                        ),
+                        )
+                    result = {
+                        'lookup_state': 'COMPANY_VERIFICATION_REQUIRED',
+                        'certificate_id': cert_id_input,
+                        'message': msg,
+                        'verification_status': emp_status,
                         'wallet_credited': False,
                         'payg_price': payg_price,
                         'user_balance': user_balance,
@@ -1997,14 +2011,31 @@ def employer_certificate_verify(request):
                     paid_tx.save(update_fields=['is_active'])
 
                 current_balance = get_user_prepaid_balance(request.user)
+                emp_status = getattr(profile, 'verification_status', 'unverified') if profile else 'unverified'
+                if emp_status == 'pending' or (profile and getattr(profile, 'cac_document', None)):
+                    base_msg = (
+                        "Company Verification Under Review: Your CAC incorporation documents have been submitted and are currently being reviewed by VerifyNG compliance officers. "
+                        "Candidate workforce clearance records and full dossiers will be unlocked as soon as your company profile is verified."
+                    )
+                elif emp_status == 'rejected':
+                    base_msg = (
+                        "Company CAC Verification Declined: Your company registration documents were declined by compliance. "
+                        "Please update and re-submit your CAC documents in your Company Profile to access candidate records."
+                    )
+                else:
+                    base_msg = (
+                        "Company Profile Verification Required: Candidate workforce clearance records cannot be revealed "
+                        "until your company's CAC incorporation documents are verified by platform compliance officers."
+                    )
+
+                if is_direct_paid:
+                    base_msg += " Your payment of ₦{:,.0f} has been credited to your account wallet balance.".format(payg_price)
+
                 result = {
                     'lookup_state': 'COMPANY_VERIFICATION_REQUIRED',
                     'certificate_id': cert_id_input,
-                    'message': (
-                        "Company Profile Verification Required: Candidate workforce clearance records cannot be revealed "
-                        "until your company's CAC incorporation documents are verified by platform compliance officers. "
-                        + ("Your payment of ₦{:,.0f} has been credited to your account wallet balance.".format(payg_price) if is_direct_paid else "")
-                    ),
+                    'message': base_msg,
+                    'verification_status': emp_status,
                     'wallet_credited': bool(is_direct_paid),
                     'payg_price': payg_price,
                     'user_balance': current_balance,

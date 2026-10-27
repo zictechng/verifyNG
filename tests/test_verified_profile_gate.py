@@ -225,3 +225,54 @@ class VerifiedProfileGateTests(TestCase):
         res = self.client.get(reverse('dashboard:index'))
         self.assertEqual(res.status_code, 302)
         self.assertIn('suspended', res.url)
+
+    # ── PENDING VERIFICATION STATUS AWARENESS ─────────────────────────────────
+
+    def test_pending_employer_shows_under_review_not_submit_document(self):
+        """
+        When an employer has already submitted CAC documents (status='pending'),
+        they receive an 'under compliance review' notice, NOT a request to submit documents.
+        """
+        pending_emp = User.objects.create_user(
+            username='pending_corp',
+            email='pending@corp.ng',
+            password='TestPass123!',
+            role='employer',
+        )
+        EmployerProfile.objects.create(
+            user=pending_emp,
+            company_name='Pending Corp Ltd',
+            is_verified=False,
+            verification_status='pending',
+        )
+        self.client.force_login(pending_emp)
+
+        # 1. Gated view redirects with 'under review' message
+        res_gated = self.client.get(reverse('employer:staff_check_create'), follow=True)
+        messages_list = [str(m) for m in res_gated.context['messages']]
+        self.assertTrue(any('under compliance review' in m for m in messages_list))
+        self.assertFalse(any('Please submit your CAC' in m for m in messages_list))
+
+        # 2. Certificate verify page shows 'Under Compliance Review' banner
+        res_cert = self.client.get(reverse('employer:certificate_verify'))
+        self.assertContains(res_cert, "Company Verification Under Compliance Review")
+        self.assertNotContains(res_cert, "Company Profile Verification Required")
+
+    def test_pending_individual_shows_under_review_message(self):
+        """
+        When an individual has already submitted government ID (status='pending'),
+        they receive an 'under compliance review' message, NOT a request to submit ID.
+        """
+        pending_user = User.objects.create_user(
+            username='pending_citizen',
+            email='citizen@example.com',
+            password='TestPass123!',
+            role='individual',
+            id_verification_status='pending',
+        )
+        self.client.force_login(pending_user)
+
+        res_gated = self.client.get(reverse('reports:create'), follow=True)
+        messages_list = [str(m) for m in res_gated.context['messages']]
+        self.assertTrue(any('under compliance review' in m for m in messages_list))
+        self.assertFalse(any('Please submit your official government ID' in m for m in messages_list))

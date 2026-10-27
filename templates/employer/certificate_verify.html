@@ -111,23 +111,41 @@
 
     {# ── Persistent Company Verification Banner for Unverified Employers ── #}
     {% if not is_company_verified %}
-    <div class="alert alert-warning border-0 shadow-sm d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between p-3.5 mb-4" style="border-radius:12px;background:#FFFBEB;border-left:5px solid #F59E0B !important;">
+    <div class="alert alert-{% if profile.verification_status == 'pending' %}info{% elif profile.verification_status == 'rejected' %}danger{% else %}warning{% endif %} border-0 shadow-sm d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between p-3.5 mb-4" style="border-radius:12px;background:{% if profile.verification_status == 'pending' %}#EFF6FF;border-left:5px solid #2563EB !important;{% elif profile.verification_status == 'rejected' %}#FEF2F2;border-left:5px solid #DC2626 !important;{% else %}#FFFBEB;border-left:5px solid #F59E0B !important;{% endif %}">
         <div class="d-flex align-items-start gap-3">
-            <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 mt-0.5" style="width:36px;height:36px;background:#FEF3C7;color:#D97706;">
+            <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 mt-0.5" style="width:36px;height:36px;background:{% if profile.verification_status == 'pending' %}#DBEAFE;color:#1D4ED8;{% elif profile.verification_status == 'rejected' %}#FEE2E2;color:#DC2626;{% else %}#FEF3C7;color:#D97706;{% endif %}">
+                {% if profile.verification_status == 'pending' %}
+                <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                </svg>
+                {% else %}
                 <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                 </svg>
+                {% endif %}
             </div>
             <div>
+                {% if profile.verification_status == 'pending' %}
+                <strong class="d-block text-dark fw-bold" style="font-size:0.95rem;">Company Verification Under Compliance Review</strong>
+                <p class="small text-muted mb-0" style="line-height:1.45;">
+                    Your company CAC incorporation documents have been submitted and are currently being reviewed by VerifyNG compliance officers. Candidate workforce clearance records and full dossiers will be unlocked as soon as your company profile is verified. Any Pay-As-You-Go payments made remain safely credited to your wallet balance.
+                </p>
+                {% elif profile.verification_status == 'rejected' %}
+                <strong class="d-block text-danger fw-bold" style="font-size:0.95rem;">Company CAC Verification Declined</strong>
+                <p class="small text-muted mb-0" style="line-height:1.45;">
+                    Your previously submitted CAC documents could not be verified. Please update and re-submit your incorporation certificate to unlock full candidate records.
+                </p>
+                {% else %}
                 <strong class="d-block text-dark fw-bold" style="font-size:0.95rem;">Company Profile Verification Required</strong>
                 <p class="small text-muted mb-0" style="line-height:1.45;">
                     Your employer account is currently unverified. Under NDPR and workforce vetting regulations, official candidate clearance certificates and identity records can only be disclosed to verified organizations. You may purchase Pay-As-You-Go checks, but candidate records will remain locked until your company CAC incorporation documents are verified by compliance. Any payments made will be safely credited to your wallet balance.
                 </p>
+                {% endif %}
             </div>
         </div>
         <div class="mt-3 mt-md-0 ms-md-3 flex-shrink-0">
-            <a href="{% url 'employer:profile' %}?tab=verification" class="btn btn-warning btn-sm fw-bold px-3 py-2 text-nowrap shadow-sm" style="border-radius:8px;">
-                Verify Company Profile &rarr;
+            <a href="{% url 'employer:profile' %}?tab=verification" class="btn btn-{% if profile.verification_status == 'pending' %}primary{% elif profile.verification_status == 'rejected' %}danger{% else %}warning{% endif %} btn-sm fw-bold px-3 py-2 text-nowrap shadow-sm" style="border-radius:8px;">
+                {% if profile.verification_status == 'pending' %}View Verification Status &rarr;{% else %}Verify Company Profile &rarr;{% endif %}
             </a>
         </div>
     </div>
