@@ -6,12 +6,19 @@
 {% block extra_css %}
 <style>
     @media print {
-        /* Hide website chrome, navbars, footers, interactive buttons and modals */
+        /* Hide website chrome, navbars, footers, interactive buttons, modal triggers and modals */
         header, footer, nav, .vng-navbar, .vng-bottom-nav, .vng-footer,
         .btn-print-hide, .btn, button, .modal, #vng-logout-modal,
-        .d-md-none, .view-dates-link, th.th-history, td.td-history {
+        .view-dates-link, .view-dates-btn, th.th-history, td.td-history,
+        .d-print-none, .d-print-none *, .d-print-none.d-flex,
+        button.d-flex, .btn.d-flex, .btn-outline-primary,
+        [data-bs-toggle="modal"] {
             display: none !important;
             visibility: hidden !important;
+            height: 0 !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            opacity: 0 !important;
         }
         body {
             background: #ffffff !important;
@@ -32,7 +39,7 @@
         .vng-card {
             box-shadow: none !important;
             border: 1px solid #CBD5E1 !important;
-            border-radius: 0 !important;
+            border-radius: 8px !important;
             margin-bottom: 1.5rem !important;
         }
         .table-responsive {
@@ -138,7 +145,7 @@
                         <th class="py-3 fw-semibold small text-muted">Latest Check (UTC)</th>
                         <th class="py-3 fw-semibold small text-muted">Check Type</th>
                         <th class="py-3 fw-semibold small text-muted text-center">Result</th>
-                        <th class="pe-4 py-3 fw-semibold small text-muted text-end th-history">History</th>
+                        <th class="pe-4 py-3 fw-semibold small text-muted text-end th-history d-print-none">History</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -151,9 +158,9 @@
                                 <div class="text-muted" style="font-size: 12px;">
                                     Audit Verified &bull; Verified Online
                                     {% if item.count > 1 %}
-                                        &bull; <a href="#" class="text-primary text-decoration-none fw-semibold view-dates-link" data-bs-toggle="modal" data-bs-target="#auditModal-{{ forloop.counter }}">
+                                        <span class="d-print-none">&bull; <a href="#" class="text-primary text-decoration-none fw-semibold view-dates-link d-print-none" data-bs-toggle="modal" data-bs-target="#auditModal-{{ forloop.counter }}">
                                             View all {{ item.count }} check dates &rarr;
-                                        </a>
+                                        </a></span>
                                     {% endif %}
                                 </div>
                             </td>
@@ -173,9 +180,9 @@
                                     ✓ Status Checked
                                 </span>
                             </td>
-                            <td class="pe-4 py-3 text-end td-history">
+                            <td class="pe-4 py-3 text-end td-history d-print-none">
                                 {% if item.count > 1 %}
-                                    <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 fw-semibold d-inline-flex align-items-center gap-1.5" data-bs-toggle="modal" data-bs-target="#auditModal-{{ forloop.counter }}">
+                                    <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 fw-semibold d-inline-flex align-items-center gap-1.5 d-print-none view-dates-btn" data-bs-toggle="modal" data-bs-target="#auditModal-{{ forloop.counter }}">
                                         <span>History ({{ item.count }})</span>
                                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                                     </button>
@@ -238,10 +245,12 @@
                 </div>
 
                 {% if item.count > 1 %}
-                    <button type="button" class="btn btn-outline-primary w-100 rounded-pill py-2.5 px-3 fw-semibold d-flex align-items-center justify-content-center gap-2" style="font-size: 13.5px; border-width: 1.5px;" data-bs-toggle="modal" data-bs-target="#auditModal-{{ forloop.counter }}">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="flex-shrink-0"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                        <span>View All {{ item.count }} Check Dates &rarr;</span>
-                    </button>
+                    <div class="d-print-none">
+                        <button type="button" class="btn btn-outline-primary w-100 rounded-pill py-2.5 px-3 fw-semibold d-flex align-items-center justify-content-center gap-2 d-print-none view-dates-btn" style="font-size: 13.5px; border-width: 1.5px;" data-bs-toggle="modal" data-bs-target="#auditModal-{{ forloop.counter }}">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="flex-shrink-0"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                            <span>View All {{ item.count }} Check Dates &rarr;</span>
+                        </button>
+                    </div>
                 {% endif %}
             </div>
         {% empty %}
