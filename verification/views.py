@@ -1623,11 +1623,20 @@ class UpdateServiceJoinView(View):
 
         has_multiple_eligible = (len(eligible_certs) > 1) if request.user.is_authenticated else False
 
+        user_balance = 0
+        topup_needed = annual_fee
+        if request.user.is_authenticated:
+            from payments.services import get_user_prepaid_balance, get_topup_difference
+            user_balance = get_user_prepaid_balance(request.user)
+            topup_needed = get_topup_difference(user_balance, annual_fee)
+
         return render(request, self.template_name, {
             'cert': cert,
             'form': form,
             'cand_name': cand_name,
             'annual_fee': annual_fee,
+            'user_balance': user_balance,
+            'topup_needed': topup_needed,
             'days_remaining': cert.grace_days_remaining,
             'window_expired': False,
             'has_multiple_eligible': has_multiple_eligible,
@@ -1640,10 +1649,19 @@ class UpdateServiceJoinView(View):
             cert_id = request.POST.get('certificate_id')
             cert = VerificationCertificate.objects.filter(certificate_id__iexact=cert_id, is_active=True).first() if cert_id else None
             site_settings = SiteSettings.get()
+            annual_fee = site_settings.price_monitoring_annual
+            user_balance = 0
+            topup_needed = annual_fee
+            if request.user.is_authenticated:
+                from payments.services import get_user_prepaid_balance, get_topup_difference
+                user_balance = get_user_prepaid_balance(request.user)
+                topup_needed = get_topup_difference(user_balance, annual_fee)
             return render(request, self.template_name, {
                 'cert': cert,
                 'form': form,
-                'annual_fee': site_settings.price_monitoring_annual,
+                'annual_fee': annual_fee,
+                'user_balance': user_balance,
+                'topup_needed': topup_needed,
                 'days_remaining': cert.grace_days_remaining if cert else 0,
                 'window_expired': False,
             })
@@ -1678,17 +1696,71 @@ class UpdateServiceJoinView(View):
 
         request.session['update_service_cert_id'] = cert.certificate_id
 
-        # Initiate checkout via Paystack
         site_settings = SiteSettings.get()
         amount_naira = site_settings.price_monitoring_annual
-        user = request.user if request.user.is_authenticated else cert.holder
 
+        user_balance = 0
+        if request.user.is_authenticated:
+            from payments.services import get_user_prepaid_balance, deduct_user_prepaid_balance, get_topup_difference
+            user_balance = get_user_prepaid_balance(request.user)
+
+        # 1. Full coverage from user available account balance
+        if request.user.is_authenticated and user_balance >= amount_naira:
+            ok, rem_bal = deduct_user_prepaid_balance(request.user, amount_naira, f"Update Service: {cert.certificate_id}")
+            if ok:
+                from datetime import timedelta
+                from django.utils import timezone
+                from core.audit_utils import log_admin_action
+
+                now = timezone.now()
+                cert.is_monitoring_active = True
+                cert.monitoring_activated_at = now
+                cert.monitoring_expires_at = now + timedelta(days=365)
+                update_fields = ['is_monitoring_active', 'monitoring_activated_at', 'monitoring_expires_at', 'updated_at']
+                if cert.holder != request.user:
+                    cert.holder = request.user
+                    update_fields.append('holder')
+                cert.save(update_fields=update_fields)
+
+                log_admin_action(
+                    action='UPDATE_SERVICE_ENROLLED',
+                    action_type='VERIFICATION',
+                    performed_by=request.user,
+                    target_user=request.user,
+                    request=request,
+                    details={
+                        'certificate_id': cert.certificate_id,
+                        'payment_method': 'account_balance',
+                        'amount_naira': float(amount_naira),
+                        'remaining_balance_naira': rem_bal,
+                        'expires_at': cert.monitoring_expires_at.isoformat(),
+                        'phone_number': form.cleaned_data.get('phone_number', ''),
+                        'residential_address': form.cleaned_data.get('residential_address', ''),
+                        'email': form.cleaned_data.get('email', ''),
+                    }
+                )
+                messages.success(
+                    request,
+                    f"?{amount_naira:,.0f} deducted from your account balance successfully (Remaining balance: ?{rem_bal:,.0f}). "
+                    "Your certificate is now registered on the Continuous Update Service for 1 year."
+                )
+                return redirect('verification:update_service_portal')
+
+        # 2. Partial coverage from balance + top-up difference via Paystack
+        user = request.user if request.user.is_authenticated else cert.holder
+        checkout_amount = amount_naira
+        if request.user.is_authenticated and 0 < user_balance < amount_naira:
+            topup_needed = get_topup_difference(user_balance, amount_naira)
+            deduct_user_prepaid_balance(request.user, user_balance, f"Partial top-up for Update Service {cert.certificate_id}")
+            checkout_amount = topup_needed
+
+        # 3. Checkout via Paystack
         try:
             checkout_res = initialize_service_checkout(
                 user=user,
                 service='monitoring',
                 tier='annual',
-                amount_naira=amount_naira,
+                amount_naira=checkout_amount,
                 metadata={
                     'service': 'monitoring',
                     'certificate_id': cert.certificate_id,

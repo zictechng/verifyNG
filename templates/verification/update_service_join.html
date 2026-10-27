@@ -263,6 +263,31 @@
                                     <span class="h5 fw-bold text-primary mb-0">₦{{ annual_fee|floatformat:0 }} <small class="text-muted fw-normal" style="font-size: 12px;">/ yr</small></span>
                                 </div>
                             </div>
+                            {% if user_balance and user_balance >= annual_fee %}
+                                <div class="alert alert-success d-flex align-items-center justify-content-between p-3 mb-3 border-0" style="background: #ECFDF5; border-radius: 10px;">
+                                    <div>
+                                        <div class="fw-bold text-success small mb-1">
+                                            <i class="bi bi-wallet2 me-1"></i> Account Balance Available
+                                        </div>
+                                        <div class="text-muted" style="font-size: 13px;">
+                                            You have <strong>?{{ user_balance|floatformat:0 }}</strong> in your account balance. The <strong>?{{ annual_fee|floatformat:0 }}</strong> registration fee will be deducted directly from your available balance.
+                                        </div>
+                                    </div>
+                                    <span class="badge bg-success text-white px-2.5 py-1.5 small">Covered by Balance</span>
+                                </div>
+                            {% elif user_balance and user_balance > 0 %}
+                                <div class="alert alert-info d-flex align-items-center justify-content-between p-3 mb-3 border-0" style="background: #F0F9FF; border-radius: 10px;">
+                                    <div>
+                                        <div class="fw-bold text-primary small mb-1">
+                                            <i class="bi bi-wallet2 me-1"></i> Partial Balance Applied
+                                        </div>
+                                        <div class="text-muted" style="font-size: 13px;">
+                                            You have <strong>?{{ user_balance|floatformat:0 }}</strong> in your balance. Top up the difference of <strong>?{{ topup_needed|floatformat:0 }}</strong> via Paystack to complete your 1-year registration.
+                                        </div>
+                                    </div>
+                                    <span class="badge bg-primary text-white px-2.5 py-1.5 small">Partial Credit</span>
+                                </div>
+                            {% endif %}
 
                             <!-- Interactive Declaration Checkbox Card -->
                             <div class="p-3 rounded-3 border mb-3"
@@ -316,12 +341,26 @@
                         </div>
 
                         <!-- Submit Button -->
-                        <button type="submit" class="btn btn-vng-primary w-100 py-2.5 fw-semibold d-flex align-items-center justify-content-center gap-2">
-                            <span>Proceed to Pay ₦{{ annual_fee|floatformat:0 }} via Paystack</span>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                                <path d="M5 12h14M12 5l7 7-7 7"/>
-                            </svg>
-                        </button>
+                        {% if user_balance and user_balance >= annual_fee %}
+                            <button type="submit" class="btn btn-success w-100 py-2.5 fw-semibold d-flex align-items-center justify-content-center gap-2" style="background:#059669; border-color:#059669;">
+                                <i class="bi bi-wallet2"></i>
+                                <span>Deduct ?{{ annual_fee|floatformat:0 }} from Account Balance & Join</span>
+                            </button>
+                        {% elif user_balance and user_balance > 0 %}
+                            <button type="submit" class="btn btn-vng-primary w-100 py-2.5 fw-semibold d-flex align-items-center justify-content-center gap-2">
+                                <span>Pay ?{{ topup_needed|floatformat:0 }} via Paystack (?{{ user_balance|floatformat:0 }} covered by balance)</span>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                                    <path d="M5 12h14M12 5l7 7-7 7"/>
+                                </svg>
+                            </button>
+                        {% else %}
+                            <button type="submit" class="btn btn-vng-primary w-100 py-2.5 fw-semibold d-flex align-items-center justify-content-center gap-2">
+                                <span>Proceed to Pay ?{{ annual_fee|floatformat:0 }} via Paystack</span>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                                    <path d="M5 12h14M12 5l7 7-7 7"/>
+                                </svg>
+                            </button>
+                        {% endif %}
                     </form>
                 </div>
 

@@ -399,3 +399,107 @@ class PrepaidAutoDetectionTests(TestCase):
 
 
 
+
+    def test_update_service_join_with_prepaid_balance(self):
+        """User can join Continuous Update Service using available prepaid balance."""
+        from verification.models import VerificationCertificate
+        from identities.models import SubjectEntity
+        from django.utils import timezone
+        from datetime import timedelta
+
+        # 1. Give user 5000 NGN prepaid balance
+        Transaction.objects.create(
+            user=self.user,
+            reference='VNG-BAL-TEST-5000',
+            amount_kobo=500000,
+            status='success',
+            is_active=True,
+        )
+        self.assertEqual(get_user_prepaid_balance(self.user), 5000)
+
+        # 2. Create active certificate within grace period
+        subj = SubjectEntity.objects.create(name="Prepaid User", type="person")
+        cert = VerificationCertificate.objects.create(
+            certificate_id='VNG-CERT-UPDATE-1',
+            holder=self.user,
+            subject=subj,
+            check_level='standard',
+            status='active',
+            issued_at=timezone.now(),
+        )
+
+        join_url = reverse('verification:update_service_join')
+        res = self.client.post(join_url, {
+            'certificate_id': cert.certificate_id,
+            'full_name': 'Prepaid User',
+            'email': self.user.email,
+            'phone_number': '08012345678',
+            'residential_address': '123 Victoria Island, Lagos',
+            'declaration': 'on',
+        })
+        self.assertEqual(res.status_code, 302)
+        self.assertIn('/verification/update-service/portal/', res.url)
+
+        # 3. Certificate monitoring should now be active
+        cert.refresh_from_db()
+        self.assertTrue(cert.is_monitoring_active)
+        self.assertTrue(cert.is_monitoring_valid)
+
+        # 4. 3000 NGN deducted from user prepaid balance: 5000 - 3000 = 2000
+        new_balance = get_user_prepaid_balance(self.user)
+        self.assertEqual(new_balance, 2000)
+
+    def test_paystack_callback_monitoring_sets_transaction_inactive(self):
+        """Paying for monitoring via Paystack sets transaction.is_active=False so balance does not inflate."""
+        from verification.models import VerificationCertificate
+        from identities.models import SubjectEntity
+        from django.utils import timezone
+
+        subj = SubjectEntity.objects.create(name="Paystack User", type="person")
+        cert = VerificationCertificate.objects.create(
+            certificate_id='VNG-CERT-UPDATE-2',
+            holder=self.user,
+            subject=subj,
+            check_level='standard',
+            status='active',
+            issued_at=timezone.now(),
+        )
+
+        initial_balance = get_user_prepaid_balance(self.user)
+
+        tx = Transaction.objects.create(
+            user=self.user,
+            reference='VNG-PAY-MONITOR-3000',
+            amount_kobo=300000,
+            status='success',
+            is_active=True,
+            paystack_response={
+                'data': {
+                    'metadata': {
+                        'service': 'monitoring',
+                        'certificate_id': cert.certificate_id,
+                        'email': self.user.email,
+                    }
+                }
+            }
+        )
+
+        from payments.views import _route_payg_success
+        from django.test import RequestFactory
+        factory = RequestFactory()
+        req = factory.get('/payments/callback/')
+        req.user = self.user
+        from django.contrib.messages.storage.fallback import FallbackStorage
+        setattr(req, 'session', {})
+        setattr(req, '_messages', FallbackStorage(req))
+
+        res = _route_payg_success(req, tx)
+        self.assertEqual(res.status_code, 302)
+
+        # Transaction MUST be deactivated
+        tx.refresh_from_db()
+        self.assertFalse(tx.is_active)
+
+        # Balance must NOT be inflated by the monitoring payment
+        after_balance = get_user_prepaid_balance(self.user)
+        self.assertEqual(after_balance, initial_balance)

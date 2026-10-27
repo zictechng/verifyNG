@@ -463,6 +463,9 @@ def _route_payg_success(request, transaction):
                     }
                 )
 
+            transaction.is_active = False
+            transaction.save(update_fields=['is_active'])
+
             request.session['update_service_cert_id'] = cert_id
             messages.success(
                 request,
@@ -471,6 +474,8 @@ def _route_payg_success(request, transaction):
             )
             return redirect('verification:update_service_portal')
         elif staff_check_id:
+            transaction.is_active = False
+            transaction.save(update_fields=['is_active'])
             messages.success(
                 request,
                 f"Payment of ₦{transaction.amount_naira:,.0f} verified successfully! "

@@ -809,6 +809,9 @@ def _fulfill_payg_transaction(transaction: Transaction, paystack_data: dict):
                 monitor.monitor_status = 'active'
                 monitor.save(update_fields=['monitor_status', 'updated_at'])
                 logger.info("Staff check monitor %s activated after payment %s", staff_check_id, transaction.reference)
+        if cert_id or staff_check_id:
+            transaction.is_active = False
+            transaction.save(update_fields=['is_active'])
 
 
 # ---------------------------------------------------------------------------
