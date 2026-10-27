@@ -256,12 +256,36 @@
                                 </div>
                                 <div class="d-flex justify-content-between align-items-center mb-2">
                                     <span class="small text-muted">Status Check Audit Trail</span>
-                                    <span class="small text-success fw-semibold">✓ Included</span>
+                                    <span class="small text-success fw-semibold">&#10003; Included</span>
+                                </div>
+                                <div class="border-top pt-2 d-flex justify-content-between align-items-center mb-1">
+                                    <span class="small text-muted">Annual Subscription Fee</span>
+                                    <span class="small fw-bold text-dark">&#8358;{{ annual_fee|floatformat:0 }}</span>
+                                </div>
+                                {% if user_balance and user_balance > 0 and user_balance < annual_fee %}
+                                <div class="d-flex justify-content-between align-items-center mb-2 text-success">
+                                    <span class="small"><i class="bi bi-wallet2 me-1"></i>Available Account Balance Applied</span>
+                                    <span class="small fw-semibold">-&#8358;{{ user_balance|floatformat:0 }}</span>
                                 </div>
                                 <div class="border-top pt-2 d-flex justify-content-between align-items-center">
-                                    <span class="fw-bold text-dark">Annual Subscription Fee</span>
-                                    <span class="h5 fw-bold text-primary mb-0">₦{{ annual_fee|floatformat:0 }} <small class="text-muted fw-normal" style="font-size: 12px;">/ yr</small></span>
+                                    <span class="fw-bold text-dark">Amount to Pay via Paystack</span>
+                                    <span class="h5 fw-bold text-primary mb-0">&#8358;{{ topup_needed|floatformat:0 }}</span>
                                 </div>
+                                {% elif user_balance and user_balance >= annual_fee %}
+                                <div class="d-flex justify-content-between align-items-center mb-2 text-success">
+                                    <span class="small"><i class="bi bi-wallet2 me-1"></i>Covered by Account Balance</span>
+                                    <span class="small fw-semibold">-&#8358;{{ annual_fee|floatformat:0 }}</span>
+                                </div>
+                                <div class="border-top pt-2 d-flex justify-content-between align-items-center">
+                                    <span class="fw-bold text-dark">Amount to Pay via Paystack</span>
+                                    <span class="h5 fw-bold text-success mb-0">&#8358;0 <small class="text-muted fw-normal" style="font-size: 12px;">(Fully Covered)</small></span>
+                                </div>
+                                {% else %}
+                                <div class="border-top pt-2 d-flex justify-content-between align-items-center">
+                                    <span class="fw-bold text-dark">Annual Subscription Fee</span>
+                                    <span class="h5 fw-bold text-primary mb-0">&#8358;{{ annual_fee|floatformat:0 }} <small class="text-muted fw-normal" style="font-size: 12px;">/ yr</small></span>
+                                </div>
+                                {% endif %}
                             </div>
                             {% if user_balance and user_balance >= annual_fee %}
                                 <div class="alert alert-success d-flex align-items-center justify-content-between p-3 mb-3 border-0" style="background: #ECFDF5; border-radius: 10px;">
@@ -270,7 +294,7 @@
                                             <i class="bi bi-wallet2 me-1"></i> Account Balance Available
                                         </div>
                                         <div class="text-muted" style="font-size: 13px;">
-                                            You have <strong>?{{ user_balance|floatformat:0 }}</strong> in your account balance. The <strong>?{{ annual_fee|floatformat:0 }}</strong> registration fee will be deducted directly from your available balance.
+                                            You have <strong>&#8358;{{ user_balance|floatformat:0 }}</strong> in your account balance. The <strong>&#8358;{{ annual_fee|floatformat:0 }}</strong> registration fee will be deducted directly from your available balance.
                                         </div>
                                     </div>
                                     <span class="badge bg-success text-white px-2.5 py-1.5 small">Covered by Balance</span>
@@ -282,7 +306,7 @@
                                             <i class="bi bi-wallet2 me-1"></i> Partial Balance Applied
                                         </div>
                                         <div class="text-muted" style="font-size: 13px;">
-                                            You have <strong>?{{ user_balance|floatformat:0 }}</strong> in your balance. Top up the difference of <strong>?{{ topup_needed|floatformat:0 }}</strong> via Paystack to complete your 1-year registration.
+                                            You have <strong>&#8358;{{ user_balance|floatformat:0 }}</strong> in your account balance. This has been applied as credit, so you only pay the difference of <strong>&#8358;{{ topup_needed|floatformat:0 }}</strong> via Paystack to complete your 1-year registration.
                                         </div>
                                     </div>
                                     <span class="badge bg-primary text-white px-2.5 py-1.5 small">Partial Credit</span>
@@ -344,24 +368,23 @@
                         {% if user_balance and user_balance >= annual_fee %}
                             <button type="submit" class="btn btn-success w-100 py-2.5 fw-semibold d-flex align-items-center justify-content-center gap-2" style="background:#059669; border-color:#059669;">
                                 <i class="bi bi-wallet2"></i>
-                                <span>Deduct ?{{ annual_fee|floatformat:0 }} from Account Balance & Join</span>
+                                <span>Deduct &#8358;{{ annual_fee|floatformat:0 }} from Account Balance & Join</span>
                             </button>
                         {% elif user_balance and user_balance > 0 %}
                             <button type="submit" class="btn btn-vng-primary w-100 py-2.5 fw-semibold d-flex align-items-center justify-content-center gap-2">
-                                <span>Pay ?{{ topup_needed|floatformat:0 }} via Paystack (?{{ user_balance|floatformat:0 }} covered by balance)</span>
+                                <span>Pay &#8358;{{ topup_needed|floatformat:0 }} via Paystack (&#8358;{{ user_balance|floatformat:0 }} covered by balance)</span>
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
                                     <path d="M5 12h14M12 5l7 7-7 7"/>
                                 </svg>
                             </button>
                         {% else %}
                             <button type="submit" class="btn btn-vng-primary w-100 py-2.5 fw-semibold d-flex align-items-center justify-content-center gap-2">
-                                <span>Proceed to Pay ?{{ annual_fee|floatformat:0 }} via Paystack</span>
+                                <span>Proceed to Pay &#8358;{{ annual_fee|floatformat:0 }} via Paystack</span>
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
                                     <path d="M5 12h14M12 5l7 7-7 7"/>
                                 </svg>
                             </button>
-                        {% endif %}
-                    </form>
+                        {% endif %}</form>
                 </div>
 
             {% else %}
