@@ -2694,6 +2694,18 @@ class AdminCertificateDetailView(SuperAdminRequiredMixin, TemplateView):
         )
         ctx['id_number'] = id_number
 
+        # Pre-format candidate contact address cleanly for template rendering
+        res_addr = (
+            app_details.get('residential_address') or
+            app_details.get('contact_address') or
+            app_details.get('address') or
+            ''
+        )
+        city = app_details.get('residential_city') or app_details.get('city') or ''
+        state = app_details.get('residential_state') or app_details.get('state') or ''
+        parts = [p.strip() for p in [res_addr, city, state] if p and str(p).strip()]
+        ctx['candidate_contact_address'] = ', '.join(parts) if parts else '?'
+
         # Document detection strictly for this certificate
         doc_pid = app_details.get('doc_public_id') or ''
         has_doc = bool(doc_pid)

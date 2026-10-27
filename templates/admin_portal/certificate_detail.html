@@ -82,25 +82,21 @@
             <span class="badge bg-light text-muted border">No raw ID captured in this submission</span>
           {% endif %}
         </dd>
-        {% if app_log.details %}
+        {% if app_details %}
         <dt class="col-5 text-muted">Date of Birth</dt>
-        <dd class="col-7">{{ app_log.details.date_of_birth|default:"—" }}</dd>
+        <dd class="col-7">{{ app_details.date_of_birth|default:"?" }}</dd>
         <dt class="col-5 text-muted">Gender</dt>
-        <dd class="col-7">{{ app_log.details.gender|title|default:"—" }}</dd>
+        <dd class="col-7">{{ app_details.gender|title|default:"?" }}</dd>
         <dt class="col-5 text-muted">Candidate Phone</dt>
-        <dd class="col-7">{{ app_log.details.phone_number|default:"—" }}</dd>
+        <dd class="col-7">{{ app_details.phone_number|default:"?" }}</dd>
         <dt class="col-5 text-muted">Candidate Email</dt>
-        <dd class="col-7">{{ app_log.details.email|default:"—" }}</dd>
+        <dd class="col-7">{{ app_details.email|default:"?" }}</dd>
         <dt class="col-5 text-muted">Contact Address</dt>
-        <dd class="col-7">
-          {% if app_log.details.residential_address or app_log.details.contact_address or app_log.details.residential_city or app_log.details.residential_state %}
-            {{ app_log.details.residential_address|default:app_log.details.contact_address|default:"" }}{% if app_log.details.residential_address and app_log.details.residential_city %}, {% endif %}{{ app_log.details.residential_city|default:"" }}{% if app_log.details.residential_state %}, {{ app_log.details.residential_state }}{% endif %}
-          {% else %}—{% endif %}
-        </dd>
+        <dd class="col-7">{{ candidate_contact_address|default:"?" }}</dd>
         <dt class="col-5 text-muted">Employer / Org</dt>
-        <dd class="col-7">{{ app_log.details.employer_name|default:"—" }}</dd>
+        <dd class="col-7">{{ app_details.employer_name|default:"?" }}</dd>
         <dt class="col-5 text-muted">Target Job Role</dt>
-        <dd class="col-7">{{ app_log.details.job_role|default:"—" }}</dd>
+        <dd class="col-7">{{ app_details.job_role|default:"?" }}</dd>
         {% endif %}
       </dl>
     </div>

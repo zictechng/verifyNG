@@ -295,3 +295,49 @@ class AdminPortalOperationsTestCase(TestCase):
         self.assertIsNotNone(audit)
         self.assertEqual(audit.details.get('certificate_id'), cert.certificate_id)
         self.assertIn('Candidate requested delisting', audit.details.get('reason', ''))
+
+    def test_admin_certificate_detail_view_without_contact_address(self):
+        """Viewing certificate detail with missing contact_address renders without VariableDoesNotExist error."""
+        from verification.models import VerificationCertificate
+        from identities.models import SubjectEntity
+        from reports.models import AuditLog
+
+        subj = SubjectEntity.objects.create(name="Osasuwa Imade", type="person")
+        cert = VerificationCertificate.objects.create(
+            certificate_id='VNG-2026-99E1E30C',
+            holder=self.individual,
+            subject=subj,
+            check_level='employment',
+            status='active',
+        )
+
+        # AuditLog matching the user's exact details dictionary
+        AuditLog.objects.create(
+            action='TRUSTPASS_APPLICATION_SUBMITTED',
+            action_type='VERIFICATION',
+            performed_by=self.individual,
+            details={
+                'nin': '79574869891',
+                'email': 'shonawebgig@gmail.com',
+                'gender': 'male',
+                'job_role': 'Software Developer',
+                'nin_masked': '795****91',
+                'check_level': 'employment',
+                'has_document': True,
+                'phone_number': '2348037250237',
+                'date_of_birth': '1997-03-11',
+                'employer_name': 'Glee Shelters Limited',
+                'applicant_name': 'Osasuwa Imade',
+                'certificate_id': cert.certificate_id,
+                'id_document_type': 'nin_slip',
+                'residential_city': 'Abuja',
+                'residential_state': 'FCT - Abuja',
+            }
+        )
+
+        detail_url = reverse('admin_portal:certificate_detail', kwargs={'public_id': cert.public_id})
+        res = self.client.get(detail_url)
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, 'Osasuwa Imade')
+        self.assertContains(res, 'Abuja, FCT - Abuja')
+        self.assertContains(res, 'Software Developer')
