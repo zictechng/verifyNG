@@ -85,9 +85,14 @@
                         {% endfor %}
                     </div>
 
-                    <div class="p-3 rounded-3 border bg-light text-muted small" style="font-size: 12px; line-height: 1.5;">
+                    <div class="p-3 rounded-3 border bg-light text-muted small mb-3" style="font-size: 12px; line-height: 1.5;">
                         <i class="bi bi-info-circle me-1 text-primary"></i>
                         Each certificate enrolled in the Update Service receives an independent annual subscription (₦{{ annual_fee|floatformat:0 }}/yr) with its own continuous verification audit trail.
+                    </div>
+                    <div class="text-center pt-2 border-top">
+                        <a href="{% url 'verification:update_service_join' %}?manual=1" class="small text-muted text-decoration-none">
+                            Have an employer-sponsored or different certificate? <strong>Enter reference ID &rarr;</strong>
+                        </a>
                     </div>
                 </div>
 
@@ -113,6 +118,9 @@
                         <a href="{% url 'verification:certificate_apply' %}" class="btn btn-vng-primary btn-sm px-4 py-2">
                             Apply for New Certificate &rarr;
                         </a>
+                        <a href="{% url 'verification:update_service_join' %}?manual=1" class="btn btn-outline-primary btn-sm px-4 py-2">
+                            Enter Different Certificate &rarr;
+                        </a>
                         <a href="{% url 'verification:my_certificates' %}" class="btn btn-outline-secondary btn-sm px-4 py-2">
                             Return to My Certificates
                         </a>
@@ -134,6 +142,10 @@
                         </div>
                         {% if has_multiple_eligible %}
                             <a href="{% url 'verification:update_service_join' %}?choose=1" class="small fw-semibold text-primary text-decoration-none text-nowrap">
+                                Switch Cert &rarr;
+                            </a>
+                        {% else %}
+                            <a href="{% url 'verification:update_service_join' %}?manual=1" class="small fw-semibold text-primary text-decoration-none text-nowrap">
                                 Switch Cert &rarr;
                             </a>
                         {% endif %}
@@ -160,6 +172,10 @@
                                 {% if has_multiple_eligible %}
                                     <a href="{% url 'verification:update_service_join' %}?choose=1" class="small text-muted text-decoration-none">
                                         Choose different certificate &rarr;
+                                    </a>
+                                {% else %}
+                                    <a href="{% url 'verification:update_service_join' %}?manual=1" class="small text-muted text-decoration-none">
+                                        Enter different certificate &rarr;
                                     </a>
                                 {% endif %}
                             </div>
@@ -311,20 +327,36 @@
 
             {% else %}
                 <!-- ── Certificate Lookup Form ── -->
-                <div class="vng-card p-4 p-md-5 shadow-sm border" style="border-radius: 14px;">
-                    <h2 class="h5 fw-bold text-dark mb-2">Enter Certificate Reference</h2>
+                <div class="vng-card p-4 p-md-5 shadow-sm border" style="border-radius: 14px; background: #ffffff;">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="badge bg-primary rounded-circle px-2 py-1" style="font-size: 11px;">1</span>
+                        <h2 class="h5 fw-bold text-dark mb-0">Enter Certificate Reference</h2>
+                    </div>
                     <p class="text-muted small mb-4">
-                        Please enter the 16-character certificate reference printed on your TrustPass clearance document to check eligibility.
+                        Please enter the 16-character certificate reference printed on your TrustPass clearance document (or provided by your sponsoring employer) to check eligibility and register for continuous status checking.
                     </p>
+                    {% if has_pending_notice %}
+                        <div class="alert alert-info small py-2 px-3 mb-3" style="border-radius: 8px;">
+                            <strong>Note:</strong> Your personal certificate application is currently awaiting administrator approval. If an employer has already sponsored an approved certificate for you, enter that reference number below.
+                        </div>
+                    {% endif %}
                     <form method="get" action="{% url 'verification:update_service_join' %}">
                         <div class="mb-3">
-                            <label class="form-label small fw-semibold text-dark mb-1">Certificate Reference ID</label>
-                            <input type="text" name="cert" class="form-control py-2 font-monospace" placeholder="e.g. VNG-2026-99E1E30C" style="text-transform: uppercase;" required>
+                            <label class="form-label small fw-semibold text-dark mb-1">Certificate Reference ID <span class="text-danger">*</span></label>
+                            <input type="text" name="cert" class="form-control py-2 font-monospace" placeholder="e.g. VNG-2026-99E1E30C" style="text-transform: uppercase;" required autofocus>
+                            <div class="form-text small">Printed at the top of your TrustPass Clearance document.</div>
                         </div>
-                        <button type="submit" class="btn btn-vng-primary w-100 py-2 fw-semibold">
-                            Continue &rarr;
+                        <button type="submit" class="btn btn-vng-primary w-100 py-2.5 fw-semibold d-flex align-items-center justify-content-center gap-2">
+                            <span>Continue to Verification &rarr;</span>
                         </button>
                     </form>
+                    {% if user_certs %}
+                        <div class="text-center mt-3 pt-2 border-top">
+                            <a href="{% url 'verification:update_service_join' %}" class="small text-muted text-decoration-none">
+                                &larr; Return to my certificate list
+                            </a>
+                        </div>
+                    {% endif %}
                 </div>
             {% endif %}
 

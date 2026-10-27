@@ -243,14 +243,17 @@
                             <span class="d-inline-block rounded-circle bg-success" style="width: 7px; height: 7px;"></span>
                             <span>Update Service Portal &rarr;</span>
                         </a>
-                    {% elif can_join_update_service %}
+                    {% else %}
                         <a href="{% url 'verification:update_service_join' %}" class="btn btn-vng-outline btn-sm w-100">
                             Join Update Service &rarr;
                         </a>
                     {% endif %}
                 {% else %}
-                    <a href="{% url 'verification:certificate_apply' %}" class="btn btn-vng-outline btn-sm w-100">
+                    <a href="{% url 'verification:certificate_apply' %}" class="btn btn-vng-outline btn-sm w-100 mb-2">
                         Apply for Certificate &rarr;
+                    </a>
+                    <a href="{% url 'verification:update_service_join' %}" class="btn btn-vng-outline btn-sm w-100">
+                        Join Update Service &rarr;
                     </a>
                 {% endif %}
             </div>

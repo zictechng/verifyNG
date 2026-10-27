@@ -284,3 +284,41 @@ class UpdateServiceTests(TestCase):
         res2 = self.client.post(reverse('verification:certificate_apply'), good_post)
         # Succeeded: redirects to certificate or payment
         self.assertEqual(res2.status_code, 302)
+
+    def test_join_update_service_allows_manual_certificate_entry_and_switching(self):
+        # Create a new user with NO certificates
+        new_user = User.objects.create_user(
+            username='new_applicant',
+            email='newapplicant@example.com',
+            password='testpassword123',
+            role='user',
+        )
+        self.client.force_login(new_user)
+
+        # 1. Visiting join page with no personal certificates does NOT redirect to apply;
+        # shows the manual lookup form
+        res = self.client.get(reverse('verification:update_service_join'))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, 'Enter Certificate Reference')
+
+        # 2. Employer-sponsored certificate created (held by sponsoring employer)
+        employer = User.objects.create_user(username='employer_corp', email='hr@corp.ng', role='employer')
+        employer_cert = VerificationCertificate.objects.create(
+            certificate_id='VNG-2026-SPONSOR88',
+            holder=employer,
+            subject=self.subject,
+            status='active',
+            check_level='employment',
+            issued_at=timezone.now() - datetime.timedelta(days=3),
+            expires_at=timezone.now() + relativedelta(years=1),
+            is_monitoring_active=False,
+        )
+
+        # 3. Supplying ?cert=VNG-2026-SPONSOR88 renders the form with auto-filled details
+        res_cert = self.client.get(f"{reverse('verification:update_service_join')}?cert={employer_cert.certificate_id}")
+        self.assertEqual(res_cert.status_code, 200)
+        self.assertContains(res_cert, 'VNG-2026-SPONSOR88')
+        self.assertContains(res_cert, 'Abel Uwadia')
+
+        # 4. User can switch / enter another reference
+        self.assertContains(res_cert, 'Switch Cert')
