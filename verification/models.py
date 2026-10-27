@@ -286,7 +286,9 @@ class VerificationCertificate(models.Model):
 
     @property
     def in_grace_period(self) -> bool:
-        """Returns True if certificate is within initial 30 days of issuance."""
+        """Returns True only if certificate is active (approved) and within initial 30 days of issuance."""
+        if self.status != 'active':
+            return False
         return self.days_since_issued <= 30
 
     @property

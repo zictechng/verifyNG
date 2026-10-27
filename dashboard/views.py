@@ -124,8 +124,8 @@ class DashboardIndexView(LoginRequiredMixin, TemplateView):
         )
         ctx['user_certificates'] = user_certs_qs[:5]
         all_user_certs = list(user_certs_qs)
-        ctx['has_active_monitoring'] = any(c.is_monitoring_valid for c in all_user_certs)
-        ctx['can_join_update_service'] = any(c.in_grace_period and not c.is_monitoring_valid for c in all_user_certs)
+        ctx['has_active_monitoring'] = any(c.status == 'active' and c.is_monitoring_valid for c in all_user_certs)
+        ctx['can_join_update_service'] = any(c.status == 'active' and c.in_grace_period and not c.is_monitoring_valid for c in all_user_certs)
 
         # Pre-paid unconsumed credits auto-detection (dismissible on dashboard)
         if self.request.GET.get('dismiss_prepaid'):

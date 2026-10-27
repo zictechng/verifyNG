@@ -415,21 +415,15 @@
                         </li>
                         {% endif %}
                         {% if user.is_authenticated and user.role in 'employer,agency,business' %}
-                        <li class="nav-item">
-                            <a class="nav-link vng-nav-link {% if request.resolver_match.app_name == 'employer' and 'staff_check' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'employer:staff_check_list' %}">Staff Checks</a>
-                        </li>
+                        
                         <li class="nav-item">
                             <a class="nav-link vng-nav-link {% if request.resolver_match.url_name == 'check' %}active{% endif %}" href="{% url 'check' %}">Verify</a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link vng-nav-link {% if request.resolver_match.app_name == 'employer' and 'certificate_verify' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'employer:certificate_verify' %}">Verify Certificate</a>
-                        </li>
+                        
                         <li class="nav-item">
                             <a class="nav-link vng-nav-link {% if request.resolver_match.app_name == 'reports' or request.resolver_match.url_name == 'report' %}active{% endif %}" href="{% url 'reports:create' %}">Report Fraud</a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link vng-nav-link {% if request.resolver_match.app_name == 'employer' and 'misconduct' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'employer:staff_misconduct_list' %}">Misconduct</a>
-                        </li>
+                        
                         <li class="nav-item">
                             <a class="nav-link vng-nav-link {% if request.resolver_match.app_name == 'payments' %}active{% endif %}" href="{% url 'payments:plans' %}">Plans &amp; Pricing</a>
                         </li>
@@ -527,14 +521,6 @@
                                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
                                          {% if user.role == 'agency' %}Agency Dashboard{% elif user.role == 'business' %}Business Dashboard{% else %}Employer Dashboard{% endif %}
                                      </a>
-                                     <a href="{% url 'employer:staff_check_list' %}" class="vng-avatar-item">
-                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                                         Staff Checks
-                                     </a>
-                                     <a href="{% url 'verification:certificate_apply' %}" class="vng-avatar-item">
-                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
-                                         Sponsor Certificate
-                                     </a>
                                      <a href="{% url 'verification:my_certificates' %}" class="vng-avatar-item">
                                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
                                          Sponsored Certificates
@@ -551,26 +537,17 @@
                                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21L16.65 16.65"/></svg>
                                          Public Search (Verify)
                                      </a>
-                                     <a href="{% url 'reports:create' %}" class="vng-avatar-item">
-                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                                         Report Fraud
-                                     </a>
+                                     
                                      <a href="{% url 'reports:my_reports' %}" class="vng-avatar-item">
                                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
                                          My Fraud Reports
                                      </a>
-                                     <a href="{% url 'employer:person_check_search' %}" class="vng-avatar-item">
-                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                                         Person Quick Check
-                                     </a>
+                                     
                                      <a href="{% url 'employer:staff_misconduct_list' %}" class="vng-avatar-item text-danger">
                                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                                          Misconduct Reports
                                      </a>
-                                     <a href="{% url 'employer:team_list' %}" class="vng-avatar-item">
-                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                                         Team Management
-                                     </a>
+                                     
                                      <a href="{% url 'payments:my_subscription' %}" class="vng-avatar-item">
                                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
                                          <span class="d-flex align-items-center justify-content-between flex-grow-1">

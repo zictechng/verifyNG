@@ -1337,19 +1337,20 @@ def _get_update_service_cert(request):
     """
     Retrieves the certificate active in the current Update Service guest session,
     or from the authenticated user's portfolio if logged in.
+    Strictly requires status == 'active' (approved by officer/admin).
     """
     cert_id = request.session.get('update_service_cert_id')
     if cert_id:
-        cert = VerificationCertificate.objects.filter(certificate_id=cert_id, is_active=True).first()
+        cert = VerificationCertificate.objects.filter(certificate_id=cert_id, status='active', is_active=True).first()
         if cert:
             return cert
     if request.user.is_authenticated:
         req_cert_id = request.GET.get('cert')
         if req_cert_id:
-            cert = VerificationCertificate.objects.filter(certificate_id=req_cert_id, holder=request.user, is_active=True).first()
+            cert = VerificationCertificate.objects.filter(certificate_id=req_cert_id, holder=request.user, status='active', is_active=True).first()
             if cert:
                 return cert
-        return VerificationCertificate.objects.filter(holder=request.user, is_active=True).order_by('-created_at').first()
+        return VerificationCertificate.objects.filter(holder=request.user, status='active', is_active=True).order_by('-created_at').first()
     return None
 
 
@@ -1391,6 +1392,10 @@ class UpdateServiceLoginView(View):
         cert = VerificationCertificate.objects.filter(certificate_id__iexact=cert_id, is_active=True).first()
         if not cert:
             form.add_error(None, "No clearance certificate found with this Reference ID. Please verify the characters.")
+            return render(request, self.template_name, {'form': form})
+
+        if cert.status != 'active':
+            form.add_error(None, f"Certificate {cert.certificate_id} has not been approved by an administrator yet ({cert.get_status_display()}). Only approved certificates can access the Continuous Update Service.")
             return render(request, self.template_name, {'form': form})
 
         # Retrieve application metadata from AuditLog or SubjectEntity
@@ -1482,10 +1487,27 @@ class UpdateServiceJoinView(View):
         user_certs = []
         eligible_certs = []
         if request.user.is_authenticated:
+            # Query ONLY active (officer-approved) certificates for the user
             user_certs = list(
-                VerificationCertificate.objects.filter(holder=request.user, is_active=True).order_by('-created_at')
+                VerificationCertificate.objects.filter(
+                    holder=request.user, 
+                    status='active', 
+                    is_active=True
+                ).order_by('-created_at')
             )
             if not user_certs:
+                has_pending = VerificationCertificate.objects.filter(
+                    holder=request.user, 
+                    is_active=True
+                ).exclude(status='active').exists()
+                if has_pending:
+                    messages.info(
+                        request,
+                        "Your clearance certificate is currently awaiting administrator/officer approval. "
+                        "Certificates can only be added to the Continuous Update Service once officially approved and active."
+                    )
+                    return redirect('verification:my_certificates')
+
                 messages.info(request, "You do not have an active clearance certificate yet. Please apply for a TrustPass certificate first to join the Continuous Update Service.")
                 return redirect('verification:certificate_apply')
 
@@ -1501,7 +1523,7 @@ class UpdateServiceJoinView(View):
 
             if not eligible_certs and not req_cert_id:
                 if all(c.is_monitoring_valid for c in user_certs):
-                    messages.info(request, "All your certificates are already enrolled in the Continuous Update Service.")
+                    messages.info(request, "All your approved certificates are already enrolled in the Continuous Update Service.")
                     return redirect('verification:update_service_portal')
                 first_cert = user_certs[0]
                 return render(request, self.template_name, {
@@ -1513,7 +1535,15 @@ class UpdateServiceJoinView(View):
         # Resolve single certificate
         cert = None
         if req_cert_id:
-            cert = VerificationCertificate.objects.filter(certificate_id__iexact=req_cert_id.strip(), is_active=True).first()
+            raw_cert = VerificationCertificate.objects.filter(certificate_id__iexact=req_cert_id.strip(), is_active=True).first()
+            if raw_cert and raw_cert.status != 'active':
+                messages.warning(
+                    request,
+                    f"Certificate {raw_cert.certificate_id} has not been approved yet ({raw_cert.get_status_display()}). "
+                    "Only approved/active certificates can be enrolled in the Continuous Update Service."
+                )
+                return redirect('verification:my_certificates' if request.user.is_authenticated else 'verification:update_service_login')
+            cert = raw_cert
         elif request.user.is_authenticated:
             if eligible_certs:
                 cert = eligible_certs[0]
@@ -1522,7 +1552,7 @@ class UpdateServiceJoinView(View):
         else:
             session_cert_id = request.session.get('update_service_cert_id')
             if session_cert_id:
-                cert = VerificationCertificate.objects.filter(certificate_id=session_cert_id, is_active=True).first()
+                cert = VerificationCertificate.objects.filter(certificate_id=session_cert_id, status='active', is_active=True).first()
 
         if not cert:
             return render(request, self.template_name, {'cert': None})
@@ -1600,6 +1630,14 @@ class UpdateServiceJoinView(View):
         if not cert:
             messages.error(request, "No active clearance certificate found matching this Reference ID.")
             return redirect('verification:update_service_join')
+
+        if cert.status != 'active':
+            messages.error(
+                request,
+                f"Certificate {cert.certificate_id} has not been approved by an administrator yet ({cert.get_status_display()}). "
+                "Only officially approved certificates can be added to the Continuous Update Service."
+            )
+            return redirect('verification:my_certificates' if request.user.is_authenticated else 'verification:update_service_join')
 
         if not cert.in_grace_period:
             messages.error(request, "This certificate is beyond the 30-day enrollment window and cannot be added to the Update Service.")
