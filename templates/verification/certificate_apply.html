@@ -48,7 +48,7 @@
 
             <!-- Stepper Container -->
             <div class="vng-card p-4 p-md-5" x-data="{
-                step: 1,
+                step: {% if form.declaration.errors %}4{% elif form.check_level.errors or form.employer_name.errors or form.job_role.errors or form.residential_state.errors or form.residential_city.errors %}3{% elif form.nin.errors or form.id_document_type.errors or form.id_document_file.errors %}2{% elif form.errors %}1{% else %}1{% endif %},
                 maxStep: 4,
                 submitting: false,
                 fullName: '{{ form.full_name.value|default:''|escapejs }}',
@@ -68,13 +68,14 @@
                 fileSize: '',
                 isImage: false,
                 imagePreview: null,
-                declared: false,
+                declared: {% if form.declaration.value %}true{% else %}false{% endif %},
                 errors: {
                     fullName: '',
                     dob: '',
                     phone: '',
                     email: '',
-                    nin: ''
+                    nin: '',
+                    declaration: ''
                 },
                 validateStep1() {
                     this.errors.fullName = '';
@@ -127,6 +128,21 @@
                             this.imagePreview = null;
                         }
                     }
+                },
+                handleSubmit(e) {
+                    this.errors.declaration = '';
+                    if (!this.declared) {
+                        e.preventDefault();
+                        this.errors.declaration = 'You must accept the good-faith legal declaration before submitting your application.';
+                        const declElem = document.getElementById('{{ form.declaration.id_for_label }}');
+                        if (declElem) {
+                            declElem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            declElem.focus();
+                        }
+                        return false;
+                    }
+                    this.submitting = true;
+                    return true;
                 }
             }">
 
@@ -163,11 +179,27 @@
                 </div>
 
                 <!-- Global Form Errors Alert -->
-                {% if form.non_field_errors %}
-                    <div class="alert alert-danger mb-4" role="alert">
-                        {% for error in form.non_field_errors %}
-                            <p class="small mb-0">{{ error }}</p>
-                        {% endfor %}
+                {% if form.errors %}
+                    <div class="alert alert-danger alert-dismissible fade show mb-4 shadow-sm" role="alert" style="border-radius:10px;">
+                        <div class="d-flex align-items-start gap-2">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-danger flex-shrink-0 mt-0.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                            <div class="flex-grow-1">
+                                <div class="fw-bold mb-1">Please correct the following errors before submitting:</div>
+                                <ul class="mb-0 ps-3 small">
+                                    {% for field, error_list in form.errors.items %}
+                                        {% for error in error_list %}
+                                            <li>
+                                                {% if field != '__all__' %}
+                                                    <span class="fw-semibold">{{ field|title }}:</span>
+                                                {% endif %}
+                                                {{ error }}
+                                            </li>
+                                        {% endfor %}
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                 {% endif %}
 
@@ -193,7 +225,7 @@
                     </div>
                 </div>
 
-                <form method="post" enctype="multipart/form-data" novalidate @submit="submitting = true">
+                <form method="post" enctype="multipart/form-data" novalidate @submit="handleSubmit($event)">
                     {% csrf_token %}
 
                     {% if prepaid_reference %}
@@ -322,9 +354,9 @@
                             <label for="{{ form.nin.id_for_label }}" class="form-label small fw-semibold">National Identity Number (NIN) <span class="text-danger">*</span></label>
                             <input type="text" name="nin" id="{{ form.nin.id_for_label }}" 
                                    class="form-control font-monospace" 
-                                   :class="{'is-invalid': errors.nin}"
-                                   placeholder="11-digit numeric NIN" 
-                                   maxlength="11" 
+                                   :class="{'is-invalid': errors.nin || {% if form.nin.errors %}true{% else %}false{% endif %}}"
+                                   placeholder="11-digit numeric NIN (e.g. 1234 567 8901)" 
+                                   maxlength="25" 
                                    x-model="nin" 
                                    @input="errors.nin = ''"
                                    value="{{ form.nin.value|default:'' }}">
@@ -545,20 +577,21 @@
                         {% endif %}
 
                         <!-- Legal Declaration Checkbox -->
-                        <div class="form-check mb-4">
-                            <input class="form-check-input" type="checkbox" name="declaration" id="{{ form.declaration.id_for_label }}" x-model="declared" required>
+                        <div class="form-check mb-4 p-3 rounded" :class="{'border border-danger bg-danger-subtle': errors.declaration || {% if form.declaration.errors %}true{% else %}false{% endif %}}">
+                            <input class="form-check-input" type="checkbox" name="declaration" id="{{ form.declaration.id_for_label }}" x-model="declared" @change="errors.declaration = ''" value="on" {% if form.declaration.value %}checked{% endif %}>
                             <label class="form-check-label small" for="{{ form.declaration.id_for_label }}">
                                 <strong>Good-faith legal declaration:</strong> I declare under penalty of platform suspension and legal liability that the information provided in this clearance application is accurate and represents my true identity. I consent to VerifyNG performing background checks against national registries and community integrity databases.
                             </label>
+                            <div class="text-danger small mt-1 fw-semibold" x-show="errors.declaration" x-text="errors.declaration" x-cloak></div>
                             {% if form.declaration.errors %}
-                                <div class="text-danger small mt-1">{{ form.declaration.errors.0 }}</div>
+                                <div class="text-danger small mt-1 fw-semibold">{{ form.declaration.errors.0 }}</div>
                             {% endif %}
                         </div>
 
                         <!-- Step 4 Navigation & Submit -->
                         <div class="d-flex flex-column-reverse flex-sm-row justify-content-between align-items-stretch align-items-sm-center gap-2 pt-2">
                             <button type="button" class="btn btn-outline-secondary px-4 py-2 text-center" @click="step = 3" :disabled="submitting">&larr; Back</button>
-                            <button type="submit" class="btn btn-vng-primary px-4 py-2.5 d-inline-flex align-items-center justify-content-center text-center fw-semibold" :disabled="!declared || submitting">
+                            <button type="submit" class="btn btn-vng-primary px-4 py-2.5 d-inline-flex align-items-center justify-content-center text-center fw-semibold" :disabled="submitting">
                                 {% if prepaid_reference %}
                                 <span x-show="!submitting">Submit Clearance Application (Pre-Paid) &rarr;</span>
                                 {% elif has_entitlement %}

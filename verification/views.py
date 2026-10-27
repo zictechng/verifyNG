@@ -603,6 +603,7 @@ class CertificateApplyView(LoginRequiredMixin, View):
         user_balance = get_user_prepaid_balance(request.user)
 
         if not form.is_valid():
+            messages.error(request, "Please review and correct the errors indicated on the form.")
             context = {
                 'form': form,
                 'has_entitlement': allowed or (user_balance >= site_settings.price_trustpass_1yr),
@@ -769,11 +770,15 @@ class CertificateApplyView(LoginRequiredMixin, View):
                 return redirect(checkout_data['authorization_url'])
 
         except ValidationError as e:
-            form.add_error(None, e.message if hasattr(e, 'message') else str(e))
+            err_msg = e.message if hasattr(e, 'message') else str(e)
+            messages.error(request, err_msg)
+            form.add_error(None, err_msg)
             return render(request, self.template_name, context)
         except Exception as exc:
             logger.exception("Failed to process TrustPass application: %s", exc)
-            form.add_error(None, f"Application could not be initialized: {exc}")
+            err_msg = f"Application could not be initialized: {exc}"
+            messages.error(request, err_msg)
+            form.add_error(None, err_msg)
             return render(request, self.template_name, context)
 
 

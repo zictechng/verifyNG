@@ -1,3 +1,4 @@
+import re
 
 import json
 from django import forms
@@ -278,14 +279,12 @@ class CertificateApplyForm(forms.Form):
 
     # ── Step 2: National Identity & Document Proof 
     nin = forms.CharField(
-        max_length=11,
-        min_length=11,
+        max_length=30,
         required=True,
         widget=forms.TextInput(attrs={
             'class': 'form-control font-monospace',
-            'placeholder': '11-digit National Identity Number',
-            'maxlength': '11',
-            'pattern': '[0-9]{11}',
+            'placeholder': '11-digit National Identity Number (e.g. 1234 567 8901)',
+            'maxlength': '25',
             'inputmode': 'numeric',
         }),
         help_text="Your 11-digit NIN. Stored securely as an irreversible SHA-256 hash in compliance with NDPR."
@@ -361,12 +360,16 @@ class CertificateApplyForm(forms.Form):
 
     def clean_nin(self):
         val = str(self.cleaned_data.get('nin', '')).strip()
-        if not val.isdigit() or len(val) != 11:
+        clean_val = re.sub(r'\D', '', val)
+        if len(clean_val) != 11:
             raise forms.ValidationError("NIN must consist of exactly 11 numeric digits.")
-        return val
+        return clean_val
 
     def clean_phone_number(self):
         val = str(self.cleaned_data.get('phone_number', '')).strip()
+        digits = re.sub(r'\D', '', val)
+        if len(digits) == 10 and digits[0] in ('7', '8', '9'):
+            val = '0' + digits
         if val:
             try:
                 return normalize_identifier('phone', val)

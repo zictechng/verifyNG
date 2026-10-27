@@ -258,3 +258,29 @@ class UpdateServiceTests(TestCase):
         self.assertEqual(portal_res.status_code, 200)
         self.assertContains(portal_res, '08012345678')
         self.assertContains(portal_res, 'Plot 10, Abuja, Nigeria')
+
+    def test_certificate_apply_validation_and_nin_formatting(self):
+        self.client.force_login(self.candidate)
+
+        # 1. Submission with missing declaration displays errors and opens on step 4
+        bad_post = {
+            'full_name': 'Abel Uwadia',
+            'date_of_birth': '1990-05-15',
+            'gender': 'male',
+            'phone_number': '08012345678',
+            'email': 'abelkenuk@gmail.com',
+            'nin': '1234 567 8901',
+            'id_document_type': 'nin_slip',
+            'check_level': 'employment',
+        }
+        res = self.client.post(reverse('verification:certificate_apply'), bad_post)
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, 'Please correct the following errors')
+        self.assertContains(res, 'step: 4')
+
+        # 2. Submission with formatted NIN (spaces) and declaration succeeds
+        good_post = dict(bad_post)
+        good_post['declaration'] = 'on'
+        res2 = self.client.post(reverse('verification:certificate_apply'), good_post)
+        # Succeeded: redirects to certificate or payment
+        self.assertEqual(res2.status_code, 302)
