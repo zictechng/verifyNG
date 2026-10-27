@@ -775,3 +775,77 @@ class PrepaidAutoDetectionTests(TestCase):
         res_guest = self.client.get(reverse('verification:update_service_logout'))
         self.assertEqual(res_guest.status_code, 302)
         self.assertEqual(res_guest.url, reverse('verification:update_service_login'))
+
+    def test_employer_certificate_verify_partial_balance(self):
+        """Employer with ₦50 balance against ₦250 fee sees ₦200 difference and balance is deducted on checkout."""
+        from unittest.mock import patch
+        employer = User.objects.create_user(
+            username='employer_topup',
+            email='employer_topup@example.com',
+            password='TestPassword123!',
+            role='employer'
+        )
+        self.client.force_login(employer)
+        self.settings.price_certificate_verify = 250
+        self.settings.save()
+
+        # Give employer ₦50 balance
+        Transaction.objects.create(
+            user=employer,
+            reference='VNG-EMP-50',
+            amount_kobo=5000,
+            status='success',
+            is_active=True,
+            paystack_response={'data': {'metadata': {'service': 'topup'}}}
+        )
+        self.assertEqual(get_user_prepaid_balance(employer), 50)
+
+        # Post verify search with non-existent cert to trigger quota exceeded
+        res = self.client.post(reverse('employer:certificate_verify'), {
+            'action': 'verify',
+            'certificate_id': 'VNG-2026-99E1E30C',
+            'surname': 'Dorris',
+            'date_of_birth': '1997-11-03',
+        })
+        self.assertEqual(res.status_code, 200)
+        content = res.content.decode('utf-8')
+        self.assertIn('200', content)
+        self.assertIn('50', content)
+        self.assertIn('Account Balance Applied:', content)
+
+        # Now click PAYG: should deduct ₦50 balance and checkout for ₦200
+        with patch('payments.services.requests.post') as mock_post:
+            mock_post.return_value.status_code = 200
+            mock_post.return_value.json.return_value = {
+                'status': True,
+                'data': {
+                    'authorization_url': 'https://checkout.paystack.com/test-cert',
+                    'access_code': 'test-code',
+                    'reference': 'VNG-CHK-CERT-REF',
+                }
+            }
+            payg_res = self.client.post(reverse('employer:certificate_verify'), {
+                'action': 'payg',
+                'certificate_id': 'VNG-2026-99E1E30C',
+                'surname': 'Dorris',
+                'date_of_birth': '1997-11-03',
+            })
+            self.assertEqual(payg_res.status_code, 302)
+            self.assertEqual(payg_res.url, 'https://checkout.paystack.com/test-cert')
+            # Balance was deducted from 50 to 0
+            self.assertEqual(get_user_prepaid_balance(employer), 0)
+
+    def test_bulk_upload_no_confirm_popup(self):
+        """CSV bulk upload should not use window.confirm modal."""
+        employer = User.objects.create_user(
+            username='emp_csv',
+            email='emp_csv@example.com',
+            password='TestPassword123!',
+            role='employer'
+        )
+        self.client.force_login(employer)
+        res = self.client.get(reverse('employer:bulk_upload_create'))
+        self.assertEqual(res.status_code, 200)
+        content = res.content.decode('utf-8')
+        self.assertNotIn('confirmUpload', content)
+        self.assertNotIn('confirm(', content)

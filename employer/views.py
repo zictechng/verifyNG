@@ -651,15 +651,19 @@ def staff_check_create(request):
                 prepaid_active = True
                 break
 
-    from payments.services import get_user_prepaid_balance
+    from payments.services import get_user_prepaid_balance, get_topup_difference
     user_balance = get_user_prepaid_balance(request.user)
     has_entitlement = allowed or prepaid_active or (user_balance >= site_settings.price_staff_check_standard)
+    selected_price = site_settings.price_staff_check_enhanced if init_check_type == 'enhanced' else site_settings.price_staff_check_standard
+    topup_needed = get_topup_difference(user_balance, selected_price)
 
     context = {
         'profile':        profile,
         'form_data':      {'check_type': init_check_type},
         'has_entitlement': has_entitlement,
         'user_balance':   user_balance,
+        'topup_needed':   topup_needed,
+        'selected_price': selected_price,
         'prepaid_reference': paid_ref if prepaid_active else None,
         'entitlement_details': details,
         'price_standard': site_settings.price_staff_check_standard,
@@ -1238,6 +1242,10 @@ def person_check_search(request):
     site_settings = SiteSettings.get()
     payg_price = site_settings.get_service_price('person_check')
 
+    from payments.services import get_user_prepaid_balance, deduct_user_prepaid_balance, get_topup_difference
+    user_balance = get_user_prepaid_balance(request.user)
+    topup_needed = get_topup_difference(user_balance, payg_price)
+
     allowed, reason, details = check_user_entitlement(request.user, service='person_check', cost=1)
 
     result = None
@@ -1252,6 +1260,9 @@ def person_check_search(request):
         if trx:
             is_direct_paid = True
             allowed = True
+            if trx.is_active:
+                trx.is_active = False
+                trx.save(update_fields=['is_active'])
 
     if request.method == 'POST' or (is_direct_paid and query):
         raw_query = request.POST.get('query', query).strip()
@@ -1276,30 +1287,88 @@ def person_check_search(request):
                     'subscription_required': False,
                 }
             elif not allowed and action == 'payg':
-                # User initiated Pay-As-You-Go direct checkout
-                try:
-                    checkout_data = initialize_service_checkout(
-                        user=request.user,
-                        service='person_check',
-                        tier='standard',
-                        amount_naira=payg_price,
-                        metadata={
-                            'service': 'person_check',
-                            'query': digits_only,
+                import uuid
+                # 1. Full coverage from user available account balance
+                if user_balance >= payg_price:
+                    ok, rem_bal = deduct_user_prepaid_balance(request.user, payg_price, "Person Quick-Check")
+                    if ok:
+                        paid_token = f"VNG-BAL-{uuid.uuid4().hex[:12].upper()}"
+                        Transaction.objects.create(
+                            user=request.user,
+                            reference=paid_token,
+                            amount_kobo=payg_price * 100,
+                            status='success',
+                            is_active=False,
+                            paystack_response={
+                                'data': {
+                                    'metadata': {
+                                        'service': 'person_check',
+                                        'query': digits_only,
+                                        'payment_method': 'account_balance',
+                                    }
+                                }
+                            }
+                        )
+                        messages.success(
+                            request,
+                            f"₦{payg_price:,.0f} paid from your account balance (Remaining balance: ₦{rem_bal:,.0f}). "
+                            "Person quick-check unlocked."
+                        )
+                        is_direct_paid = True
+                        allowed = True
+
+                if not is_direct_paid:
+                    # 2. Partial coverage from balance + top-up difference via Paystack
+                    checkout_amount = payg_price
+                    covered_amount = 0
+                    if 0 < user_balance < payg_price:
+                        covered_amount = user_balance
+                        checkout_amount = topup_needed
+                        deduct_user_prepaid_balance(request.user, user_balance, "Partial top-up for Person Quick-Check")
+
+                    try:
+                        checkout_data = initialize_service_checkout(
+                            user=request.user,
+                            service='person_check',
+                            tier='standard',
+                            amount_naira=checkout_amount,
+                            metadata={
+                                'service': 'person_check',
+                                'query': digits_only,
+                                'covered_by_balance': covered_amount,
+                            }
+                        )
+                        request.session['vng_pending_ref'] = checkout_data['reference']
+                        request.session['pending_person_check_query'] = digits_only
+                        return redirect(checkout_data['authorization_url'])
+                    except Exception as exc:
+                        if covered_amount > 0:
+                            # Refund partially deducted balance on checkout initialization failure
+                            Transaction.objects.create(
+                                user=request.user,
+                                reference=f"VNG-REFUND-{uuid.uuid4().hex[:12].upper()}",
+                                amount_kobo=covered_amount * 100,
+                                status='success',
+                                is_active=True,
+                                paystack_response={
+                                    'data': {
+                                        'metadata': {
+                                            'service': 'topup',
+                                            'reason': 'Checkout initialization failure refund'
+                                        }
+                                    }
+                                }
+                            )
+                        logger.exception("Failed to initialize person check checkout: %s", exc)
+                        result = {
+                            'error': f"Payment gateway error: {exc}",
+                            'subscription_required': True,
+                            'can_payg': True,
+                            'payg_price': payg_price,
+                            'user_balance': user_balance,
+                            'topup_needed': topup_needed,
+                            'query': raw_query,
                         }
-                    )
-                    request.session['vng_pending_ref'] = checkout_data['reference']
-                    request.session['pending_person_check_query'] = digits_only
-                    return redirect(checkout_data['authorization_url'])
-                except Exception as exc:
-                    logger.exception("Failed to initialize person check checkout: %s", exc)
-                    result = {
-                        'error': f"Payment gateway error: {exc}",
-                        'subscription_required': True,
-                        'can_payg': True,
-                        'payg_price': payg_price,
-                        'query': raw_query,
-                    }
             elif not allowed:
                 # Quota exhausted: display error with clear Pay-As-You-Go option
                 result = {
@@ -1310,6 +1379,8 @@ def person_check_search(request):
                     'subscription_required': True,
                     'can_payg': True,
                     'payg_price': payg_price,
+                    'user_balance': user_balance,
+                    'topup_needed': topup_needed,
                     'query': raw_query,
                 }
             else:
@@ -1718,8 +1789,9 @@ def employer_certificate_verify(request):
     paid_ref = request.GET.get('paid_ref', '').strip()
     is_direct_paid = False
     paid_tx = None
-    from payments.services import get_user_prepaid_balance, deduct_user_prepaid_balance
+    from payments.services import get_user_prepaid_balance, deduct_user_prepaid_balance, get_topup_difference
     user_balance = get_user_prepaid_balance(request.user)
+    topup_needed = get_topup_difference(user_balance, payg_price)
 
     if request.user.is_authenticated:
         if paid_ref:
@@ -1762,30 +1834,91 @@ def employer_certificate_verify(request):
                 'message': details.get('message', 'Access to certificate verification has been restricted for your account by platform administration.'),
             }
         elif not allowed and action == 'payg':
-            try:
-                checkout_data = initialize_service_checkout(
-                    user=request.user,
-                    service='certificate_verify',
-                    tier='standard',
-                    amount_naira=payg_price,
-                    metadata={
-                        'service': 'certificate_verify',
-                        'certificate_id': cert_id_input,
-                        'surname': surname_input,
-                        'dob': dob_input,
+            import uuid
+            # 1. Full coverage from user available account balance
+            if user_balance >= payg_price:
+                ok, rem_bal = deduct_user_prepaid_balance(request.user, payg_price, "Certificate Verification")
+                if ok:
+                    paid_token = f"VNG-BAL-{uuid.uuid4().hex[:12].upper()}"
+                    Transaction.objects.create(
+                        user=request.user,
+                        reference=paid_token,
+                        amount_kobo=payg_price * 100,
+                        status='success',
+                        is_active=False,
+                        paystack_response={
+                            'data': {
+                                'metadata': {
+                                    'service': 'certificate_verify',
+                                    'certificate_id': cert_id_input,
+                                    'surname': surname_input,
+                                    'dob': dob_input,
+                                    'payment_method': 'account_balance',
+                                }
+                            }
+                        }
+                    )
+                    messages.success(
+                        request,
+                        f"₦{payg_price:,.0f} paid from your account balance (Remaining balance: ₦{rem_bal:,.0f}). "
+                        "Certificate check unlocked."
+                    )
+                    is_direct_paid = True
+                    allowed = True
+
+            if not is_direct_paid:
+                # 2. Partial coverage from balance + top-up difference via Paystack
+                checkout_amount = payg_price
+                covered_amount = 0
+                if 0 < user_balance < payg_price:
+                    covered_amount = user_balance
+                    checkout_amount = topup_needed
+                    deduct_user_prepaid_balance(request.user, user_balance, "Partial top-up for Certificate Verification")
+
+                try:
+                    checkout_data = initialize_service_checkout(
+                        user=request.user,
+                        service='certificate_verify',
+                        tier='standard',
+                        amount_naira=checkout_amount,
+                        metadata={
+                            'service': 'certificate_verify',
+                            'certificate_id': cert_id_input,
+                            'surname': surname_input,
+                            'dob': dob_input,
+                            'covered_by_balance': covered_amount,
+                        }
+                    )
+                    request.session['vng_pending_ref'] = checkout_data['reference']
+                    return redirect(checkout_data['authorization_url'])
+                except Exception as exc:
+                    if covered_amount > 0:
+                        # Refund partially deducted balance on checkout initialization failure
+                        Transaction.objects.create(
+                            user=request.user,
+                            reference=f"VNG-REFUND-{uuid.uuid4().hex[:12].upper()}",
+                            amount_kobo=covered_amount * 100,
+                            status='success',
+                            is_active=True,
+                            paystack_response={
+                                'data': {
+                                    'metadata': {
+                                        'service': 'topup',
+                                        'reason': 'Checkout initialization failure refund'
+                                    }
+                                }
+                            }
+                        )
+                    logger.exception("Failed to initialize certificate verify checkout: %s", exc)
+                    result = {
+                        'lookup_state': 'QUOTA_EXCEEDED',
+                        'message': f"Payment gateway error: {exc}",
+                        'subscription_required': True,
+                        'can_payg': True,
+                        'payg_price': payg_price,
+                        'user_balance': user_balance,
+                        'topup_needed': topup_needed,
                     }
-                )
-                request.session['vng_pending_ref'] = checkout_data['reference']
-                return redirect(checkout_data['authorization_url'])
-            except Exception as exc:
-                logger.exception("Failed to initialize certificate verify checkout: %s", exc)
-                result = {
-                    'lookup_state': 'QUOTA_EXCEEDED',
-                    'message': f"Payment gateway error: {exc}",
-                    'subscription_required': True,
-                    'can_payg': True,
-                    'payg_price': payg_price,
-                }
         elif not allowed:
             result = {
                 'lookup_state': 'QUOTA_EXCEEDED',
@@ -1796,6 +1929,8 @@ def employer_certificate_verify(request):
                 'subscription_required': True,
                 'can_payg': True,
                 'payg_price': payg_price,
+                'user_balance': user_balance,
+                'topup_needed': topup_needed,
             }
         else:
                 # Query registry for certificate

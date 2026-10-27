@@ -93,7 +93,7 @@
             </div>
 
             <div class="d-flex gap-3">
-                <button type="submit" id="submitBtn" class="btn btn-vng-primary" onclick="return confirmUpload()" data-loading-text="Uploading CSV…">
+                <button type="submit" id="submitBtn" class="btn btn-vng-primary" data-loading-text="Uploading CSV…">
                     Upload &amp; Process
                 </button>
                 <a href="{% url 'employer:bulk_upload_list' %}" class="btn btn-vng-outline">Cancel</a>
@@ -119,14 +119,6 @@
     });
 })();
 
-function confirmUpload() {
-    const file = document.getElementById('csv_file').files[0];
-    if (!file) return true;  // let HTML5 validation handle it
-    return confirm(
-        'Upload "' + file.name + '" and queue background checks for all candidates?\n\n' +
-        'This action will consume verification credits for each processed row.'
-    );
-}
 </script>
 {% endblock %}
 
