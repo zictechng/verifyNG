@@ -49,29 +49,46 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for log in query_logs %}
+                    {% for item in query_logs %}
                         <tr>
-                            <td class="ps-4 py-3 small font-monospace text-dark">
-                                {{ log.queried_at|date:"d M Y, H:i" }}
+                            <td class="ps-4 py-3 small font-monospace text-dark" style="vertical-align: top;">
+                                {{ item.latest_log.queried_at|date:"d M Y, H:i" }}
+                                {% if item.count > 1 %}
+                                    <div class="text-muted" style="font-size: 11px;">Most recent</div>
+                                {% endif %}
                             </td>
                             <td class="py-3 small">
                                 <div class="fw-bold text-dark">
-                                    {% if log.organisation_name %}
-                                        {{ log.organisation_name }}
-                                    {% elif log.queried_by %}
-                                        {{ log.queried_by.get_full_name|default:log.queried_by.username }}
-                                    {% else %}
-                                        <span class="text-muted">Registered Employer</span>
-                                    {% endif %}
+                                    {{ item.name }}{% if item.count > 1 %} ({{ item.count }}){% endif %}
                                 </div>
                                 <div class="text-muted" style="font-size: 11.5px;">
                                     Audit Verified &bull; Verified Online
+                                    {% if item.count > 1 %}
+                                        &bull; <a class="text-decoration-none text-primary fw-semibold" data-bs-toggle="collapse" href="#auditDates-{{ forloop.counter }}" role="button" aria-expanded="false" aria-controls="auditDates-{{ forloop.counter }}">
+                                            View all {{ item.count }} check dates &darr;
+                                        </a>
+                                    {% endif %}
                                 </div>
+                                {% if item.count > 1 %}
+                                    <div class="collapse mt-2" id="auditDates-{{ forloop.counter }}">
+                                        <div class="p-2.5 rounded border bg-light" style="font-size: 11.5px; max-width: 440px;">
+                                            <div class="fw-semibold text-muted mb-1 text-uppercase" style="font-size: 10px; letter-spacing: 0.04em;">Full Check History ({{ item.count }} checks):</div>
+                                            <ul class="list-unstyled mb-0 font-monospace">
+                                                {% for log in item.logs %}
+                                                    <li class="py-0.5 d-flex justify-content-between text-muted border-bottom border-light">
+                                                        <span>#{{ forloop.revcounter }} &bull; {{ log.queried_at|date:"d M Y, H:i" }}</span>
+                                                        <span class="text-dark">{{ log.get_purpose_display|default:log.purpose|title }}</span>
+                                                    </li>
+                                                {% endfor %}
+                                            </ul>
+                                        </div>
+                                    </div>
+                                {% endif %}
                             </td>
-                            <td class="py-3 small d-none d-md-table-cell text-muted">
-                                {{ log.get_purpose_display|default:log.purpose }}
+                            <td class="py-3 small d-none d-md-table-cell text-muted" style="vertical-align: top;">
+                                {{ item.latest_log.get_purpose_display|default:item.latest_log.purpose }}
                             </td>
-                            <td class="pe-4 py-3 text-end">
+                            <td class="pe-4 py-3 text-end" style="vertical-align: top;">
                                 <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
                                     ✓ Status Checked
                                 </span>

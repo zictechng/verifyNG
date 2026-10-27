@@ -1900,10 +1900,38 @@ class UpdateServiceAuditLogView(View):
             messages.info(request, "Please enter your Certificate ID, Surname, and Date of Birth to access the query audit log.")
             return redirect('verification:update_service_login')
 
-        query_logs = cert.query_logs.all().order_by('-queried_at')
+        raw_logs = cert.query_logs.select_related('queried_by').all().order_by('-queried_at')
+
+        # Group duplicate queries by organisation or individual employer
+        grouped = {}
+        for log in raw_logs:
+            if log.organisation_name and log.organisation_name.strip():
+                key = f"org_{log.organisation_name.strip().lower()}"
+                display_name = log.organisation_name.strip()
+            elif log.queried_by:
+                key = f"user_{log.queried_by.pk}"
+                display_name = log.queried_by.get_full_name() or log.queried_by.username
+            else:
+                key = "unknown_employer"
+                display_name = "Registered Employer"
+
+            if key not in grouped:
+                grouped[key] = {
+                    'name': display_name,
+                    'count': 0,
+                    'latest_log': log,
+                    'logs': [],
+                }
+            grouped[key]['count'] += 1
+            grouped[key]['logs'].append(log)
+
+        grouped_logs = list(grouped.values())
+
         return render(request, self.template_name, {
             'cert': cert,
-            'query_logs': query_logs,
+            'query_logs': grouped_logs,
+            'total_checks_count': raw_logs.count(),
+            'unique_employers_count': len(grouped_logs),
         })
 
 

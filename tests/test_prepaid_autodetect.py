@@ -677,3 +677,50 @@ class PrepaidAutoDetectionTests(TestCase):
         self.assertEqual(res_csv['Content-Type'], 'text/csv')
         self.assertIn('VNG-TX-MON-01', res_csv.content.decode())
         self.assertNotIn('VNG-TX-BULK-01', res_csv.content.decode())
+
+    def test_update_service_audit_log_unique_employer_grouping(self):
+        """Audit log groups repeated queries by the same organisation and displays the count."""
+        from verification.models import VerificationCertificate, CertificateQueryLog
+        from identities.models import SubjectEntity
+        import uuid
+
+        subj = SubjectEntity.objects.create(name="Audit Test", type="person")
+        cert = VerificationCertificate.objects.create(
+            certificate_id=f"VNG-{uuid.uuid4().hex[:8].upper()}",
+            holder=self.user,
+            subject=subj,
+            check_level='standard',
+            status='active',
+        )
+
+        # Create 4 queries from "Zictech Technologies" and 1 query from "Acme Corp"
+        for _ in range(4):
+            CertificateQueryLog.objects.create(
+                certificate=cert,
+                queried_by=self.user,
+                organisation_name='Zictech Technologies',
+                purpose='hiring'
+            )
+        CertificateQueryLog.objects.create(
+            certificate=cert,
+            queried_by=self.user,
+            organisation_name='Acme Corp',
+            purpose='tenancy'
+        )
+
+        # Set session for update service certificate
+        session = self.client.session
+        session['update_service_cert_id'] = cert.certificate_id
+        session.save()
+
+        res = self.client.get(reverse('verification:update_service_audit_log'))
+        self.assertEqual(res.status_code, 200)
+
+        # Context query_logs should have exactly 2 unique entries
+        self.assertEqual(len(res.context['query_logs']), 2)
+
+        # Should render Zictech Technologies with count (4)
+        self.assertContains(res, 'Zictech Technologies (4)')
+        # Should render Acme Corp without multiple count
+        self.assertContains(res, 'Acme Corp')
+        self.assertNotContains(res, 'Acme Corp (')
