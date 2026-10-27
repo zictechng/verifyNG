@@ -441,7 +441,11 @@ def _route_payg_success(request, transaction):
                 cert.is_monitoring_active = True
                 cert.monitoring_activated_at = timezone.now()
                 cert.monitoring_expires_at = timezone.now() + timedelta(days=365)
-                cert.save(update_fields=['is_monitoring_active', 'monitoring_activated_at', 'monitoring_expires_at', 'updated_at'])
+                update_fields = ['is_monitoring_active', 'monitoring_activated_at', 'monitoring_expires_at', 'updated_at']
+                if request.user.is_authenticated and cert.holder != request.user:
+                    cert.holder = request.user
+                    update_fields.append('holder')
+                cert.save(update_fields=update_fields)
 
                 log_admin_action(
                     action='UPDATE_SERVICE_ENROLLED',
@@ -503,13 +507,23 @@ def payment_callback(request):
 
     # Ensure the transaction belongs to this user
     try:
-        transaction = Transaction.objects.select_related('plan').get(
-            reference=reference,
-            user=request.user,
-        )
+        transaction = Transaction.objects.select_related('plan').get(reference=reference)
     except Transaction.DoesNotExist:
         messages.error(request, "Transaction not found.")
         return redirect('payments:plans')
+
+    if transaction.user != request.user:
+        meta = transaction.paystack_response.get('data', {}).get('metadata', {}) if transaction.paystack_response else {}
+        if meta.get('service') == 'monitoring' or meta.get('email') == request.user.email or request.session.get('update_service_cert_id') == meta.get('certificate_id'):
+            transaction.user = request.user
+            transaction.save(update_fields=['user'])
+        else:
+            logger.warning(
+                "Callback transaction user mismatch: ref=%s tx_user=%s request_user=%s",
+                reference, transaction.user_id, request.user.id
+            )
+            messages.error(request, "Transaction not found.")
+            return redirect('payments:plans')
 
     # If already verified (e.g. webhook beat us here), show result immediately
     if transaction.status == 'success':

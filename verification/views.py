@@ -1681,9 +1681,7 @@ class UpdateServiceJoinView(View):
         # Initiate checkout via Paystack
         site_settings = SiteSettings.get()
         amount_naira = site_settings.price_monitoring_annual
-        user = cert.holder if cert.holder else request.user
-        if not user or not user.is_authenticated:
-            user = cert.holder
+        user = request.user if request.user.is_authenticated else cert.holder
 
         try:
             checkout_res = initialize_service_checkout(
@@ -1858,10 +1856,7 @@ class UpdateServiceEnrollView(View):
         site_settings = SiteSettings.get()
         amount_naira = site_settings.price_monitoring_annual
 
-        user = cert.holder if cert.holder else request.user
-        if not user or not user.is_authenticated:
-            # Fallback to certificate holder account for transaction attribution
-            user = cert.holder
+        user = request.user if request.user.is_authenticated else cert.holder
 
         try:
             checkout_res = initialize_service_checkout(
