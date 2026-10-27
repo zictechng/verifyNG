@@ -352,6 +352,34 @@
         body.modal-open .vng-bottom-nav {
             display: none !important;
         }
+        /* Platform-wide Print Rules: Ensures clean document printing without browser navs/menus */
+        @media print {
+            header, footer, nav, .vng-navbar, .vng-bottom-nav, .vng-footer,
+            #vng-logout-modal, .modal, .modal-backdrop, .btn-print-hide, .no-print,
+            .alert, .btn-close, .d-print-none {
+                display: none !important;
+            }
+            body {
+                background: #ffffff !important;
+                color: #000000 !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            body.has-bottom-nav {
+                padding-bottom: 0 !important;
+            }
+            main {
+                padding: 0 !important;
+                margin: 0 !important;
+                flex: none !important;
+            }
+            .container {
+                max-width: 100% !important;
+                width: 100% !important;
+                padding-left: 0 !important;
+                padding-right: 0 !important;
+            }
+        }
     
     </style>
     

@@ -1927,8 +1927,15 @@ class UpdateServiceAuditLogView(View):
 
         grouped_logs = list(grouped.values())
 
+        candidate_name = (
+            cert.holder.get_full_name()
+            if (cert.holder and cert.holder.get_full_name())
+            else (getattr(cert.subject, 'name', '') or 'Registered Candidate')
+        )
+
         return render(request, self.template_name, {
             'cert': cert,
+            'candidate_name': candidate_name,
             'query_logs': grouped_logs,
             'total_checks_count': raw_logs.count(),
             'unique_employers_count': len(grouped_logs),
@@ -1981,6 +1988,8 @@ class UpdateServiceLogoutView(View):
     """
     def get(self, request):
         request.session.pop('update_service_cert_id', None)
+        if request.user.is_authenticated:
+            return redirect('verification:my_certificates')
         messages.success(request, "You have exited the Update Service.")
         return redirect('verification:update_service_login')
 

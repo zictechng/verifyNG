@@ -3,8 +3,100 @@
 
 {% block title %}Status Check Audit Log | {{ cert.certificate_id }} | {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
 
+{% block extra_css %}
+<style>
+    @media print {
+        /* Hide website chrome, navbars, footers, interactive buttons and modals */
+        header, footer, nav, .vng-navbar, .vng-bottom-nav, .vng-footer,
+        .btn-print-hide, .btn, button, .modal, #vng-logout-modal,
+        .d-md-none, .view-dates-link, th.th-history, td.td-history {
+            display: none !important;
+            visibility: hidden !important;
+        }
+        body {
+            background: #ffffff !important;
+            color: #000000 !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            font-size: 11pt !important;
+        }
+        body.has-bottom-nav {
+            padding-bottom: 0 !important;
+        }
+        .container {
+            max-width: 100% !important;
+            width: 100% !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+        .vng-card {
+            box-shadow: none !important;
+            border: 1px solid #CBD5E1 !important;
+            border-radius: 0 !important;
+            margin-bottom: 1.5rem !important;
+        }
+        .table-responsive {
+            display: block !important;
+            overflow: visible !important;
+        }
+        .table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+        }
+        .table th, .table td {
+            background-color: transparent !important;
+            border: 1px solid #CBD5E1 !important;
+            padding: 8px 12px !important;
+            font-size: 10pt !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+        .table-light, .table thead th {
+            background-color: #F1F5F9 !important;
+            color: #0F172A !important;
+        }
+        .badge {
+            border: 1px solid #64748B !important;
+            color: #000000 !important;
+            background: transparent !important;
+            padding: 2px 6px !important;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container py-4 py-md-5">
+
+    <!-- Official Print Header (Only visible on paper / PDF print) -->
+    <div class="d-none d-print-block mb-4 pb-3 border-bottom">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <div>
+                <div style="font-size: 1.4rem; font-weight: 800; color: #0F172A; letter-spacing: -0.02em;">VERIFY<span style="color:#2563EB;">NG</span></div>
+                <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #64748B; font-weight: 600;">Workforce Trust &amp; Continuous Update Service</div>
+            </div>
+            <div class="text-end">
+                <span class="badge border text-dark font-monospace" style="font-size: 11px; padding: 4px 8px; background: #F8FAFC;">DOCUMENT REF: AUD-{{ cert.certificate_id }}</span>
+                <div style="font-size: 10px; color: #64748B; margin-top: 3px;">Printed: {% now "d M Y, H:i:s" %} UTC</div>
+            </div>
+        </div>
+
+        <h2 style="font-size: 1.15rem; font-weight: 700; color: #0F172A; margin-top: 1rem; margin-bottom: 0.5rem;">
+            Official Status Check Audit Report
+        </h2>
+        <p style="font-size: 11px; color: #475569; margin-bottom: 0.75rem;">
+            Certified independent audit trail of third-party employers, screening agencies, and authorised organisations who have accessed and verified candidate credential standing.
+        </p>
+
+        <div class="p-2.5 rounded bg-light border" style="font-size: 11.5px; background: #F8FAFC !important;">
+            <div class="row g-2">
+                <div class="col-6"><strong>Certificate ID:</strong> <span class="font-monospace text-primary fw-bold">{{ cert.certificate_id }}</span></div>
+                <div class="col-6"><strong>Certificate Holder:</strong> {{ candidate_name }}</div>
+                <div class="col-6"><strong>Current Standing:</strong> <span class="text-success fw-bold">Active / Verified Standing</span></div>
+                <div class="col-6"><strong>Total Inquiries Recorded:</strong> <strong>{{ total_checks_count }}</strong> check{{ total_checks_count|pluralize }} across <strong>{{ unique_employers_count }}</strong> organisation{{ unique_employers_count|pluralize }}</div>
+            </div>
+        </div>
+    </div>
 
     <!-- Back to Update Service Portal -->
     <div class="mb-3 btn-print-hide">
@@ -48,7 +140,7 @@
                         <th class="py-3 fw-semibold small text-muted">Latest Check (UTC)</th>
                         <th class="py-3 fw-semibold small text-muted">Check Type</th>
                         <th class="py-3 fw-semibold small text-muted text-center">Result</th>
-                        <th class="pe-4 py-3 fw-semibold small text-muted text-end">History</th>
+                        <th class="pe-4 py-3 fw-semibold small text-muted text-end th-history">History</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -61,7 +153,7 @@
                                 <div class="text-muted" style="font-size: 12px;">
                                     Audit Verified &bull; Verified Online
                                     {% if item.count > 1 %}
-                                        &bull; <a href="#" class="text-primary text-decoration-none fw-semibold" data-bs-toggle="modal" data-bs-target="#auditModal-{{ forloop.counter }}">
+                                        &bull; <a href="#" class="text-primary text-decoration-none fw-semibold view-dates-link" data-bs-toggle="modal" data-bs-target="#auditModal-{{ forloop.counter }}">
                                             View all {{ item.count }} check dates &rarr;
                                         </a>
                                     {% endif %}
@@ -83,7 +175,7 @@
                                     ✓ Status Checked
                                 </span>
                             </td>
-                            <td class="pe-4 py-3 text-end">
+                            <td class="pe-4 py-3 text-end td-history">
                                 {% if item.count > 1 %}
                                     <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 fw-semibold d-inline-flex align-items-center gap-1.5" data-bs-toggle="modal" data-bs-target="#auditModal-{{ forloop.counter }}">
                                         <span>History ({{ item.count }})</span>
@@ -240,6 +332,40 @@
             </div>
         {% endif %}
     {% endfor %}
+
+    <!-- Itemized Breakdown for Multi-Check Entities (Print-Only) -->
+    <div class="d-none d-print-block mt-4 pt-3 border-top">
+        <div class="fw-bold small text-dark mb-2 text-uppercase" style="letter-spacing: 0.05em; font-size: 11px;">
+            Itemized Verification Events by Organisation:
+        </div>
+        {% for item in query_logs %}
+            {% if item.count > 1 %}
+                <div class="mb-3 p-2.5 rounded border" style="background: #FAFAFA !important; font-size: 11px; page-break-inside: avoid;">
+                    <div class="fw-bold text-dark mb-1">{{ item.name }} &bull; Total Inquiries: {{ item.count }}</div>
+                    <table class="table table-sm table-bordered mb-0" style="font-size: 10.5px;">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 70px;">Event</th>
+                                <th>Date &amp; Time (UTC)</th>
+                                <th>Check Purpose</th>
+                                <th>Verification Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in item.logs %}
+                                <tr>
+                                    <td>#{{ forloop.revcounter }}</td>
+                                    <td class="font-monospace">{{ log.queried_at|date:"d M Y, H:i:s" }}</td>
+                                    <td>{{ log.get_purpose_display|default:log.purpose|title }}</td>
+                                    <td>Status Checked &bull; Verified Online</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
+        {% endfor %}
+    </div>
 
     <!-- Regulatory Data Privacy Statement -->
     <div class="p-3 rounded-3 border bg-light text-muted small" style="font-size: 12px; line-height: 1.5;">

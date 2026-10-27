@@ -724,3 +724,54 @@ class PrepaidAutoDetectionTests(TestCase):
         # Should render Acme Corp without multiple count
         self.assertContains(res, 'Acme Corp')
         self.assertNotContains(res, 'Acme Corp (')
+
+    def test_update_service_portal_exit_button_for_authenticated_vs_guest(self):
+        """Authenticated users do not see 'Exit Portal'; guests do."""
+        from verification.models import VerificationCertificate
+        from identities.models import SubjectEntity
+        from django.utils import timezone
+        from datetime import timedelta
+        import uuid
+
+        subj = SubjectEntity.objects.create(name="Portal Test", type="person")
+        cert = VerificationCertificate.objects.create(
+            certificate_id=f"VNG-{uuid.uuid4().hex[:8].upper()}",
+            holder=self.user,
+            subject=subj,
+            check_level='standard',
+            status='active',
+            is_monitoring_active=True,
+            monitoring_activated_at=timezone.now(),
+            monitoring_expires_at=timezone.now() + timedelta(days=365)
+        )
+
+        # Authenticated user
+        self.client.force_login(self.user)
+        res_auth = self.client.get(reverse('verification:update_service_portal') + f"?cert={cert.certificate_id}")
+        self.assertEqual(res_auth.status_code, 200)
+        self.assertNotContains(res_auth, 'Exit Portal')
+        self.assertContains(res_auth, 'My Certificates')
+
+        # Guest user
+        self.client.logout()
+        session = self.client.session
+        session['update_service_cert_id'] = cert.certificate_id
+        session.save()
+
+        res_guest = self.client.get(reverse('verification:update_service_portal'))
+        self.assertEqual(res_guest.status_code, 200)
+        self.assertContains(res_guest, 'Exit Portal')
+
+    def test_update_service_logout_redirects(self):
+        """Logged-in users exiting update service go to my_certificates; guests to update_service_login."""
+        # Authenticated
+        self.client.force_login(self.user)
+        res_auth = self.client.get(reverse('verification:update_service_logout'))
+        self.assertEqual(res_auth.status_code, 302)
+        self.assertEqual(res_auth.url, reverse('verification:my_certificates'))
+
+        # Guest
+        self.client.logout()
+        res_guest = self.client.get(reverse('verification:update_service_logout'))
+        self.assertEqual(res_guest.status_code, 302)
+        self.assertEqual(res_guest.url, reverse('verification:update_service_login'))

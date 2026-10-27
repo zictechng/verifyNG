@@ -52,16 +52,47 @@
         padding: 0.65rem 0.75rem;
     }
     @media print {
-        header, footer, nav, .btn-print-hide, .vng-avatar-wrapper {
+        header, footer, nav, .vng-navbar, .vng-bottom-nav, .vng-footer,
+        .btn-print-hide, .btn, button, .vng-avatar-wrapper, .alert, .modal, #vng-logout-modal,
+        a[href] {
+            text-decoration: none !important;
+        }
+        header, footer, nav, .vng-navbar, .vng-bottom-nav, .vng-footer,
+        .btn-print-hide, .btn, button, .alert, .modal, #vng-logout-modal {
             display: none !important;
+            visibility: hidden !important;
+        }
+        body {
+            background: #ffffff !important;
+            color: #000000 !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+        body.has-bottom-nav {
+            padding-bottom: 0 !important;
         }
         .container {
             max-width: 100% !important;
+            width: 100% !important;
             padding: 0 !important;
+            margin: 0 !important;
         }
         .vng-card {
             box-shadow: none !important;
-            border: none !important;
+            border: 1px solid #CBD5E1 !important;
+            padding: 1.5rem !important;
+            margin: 0 !important;
+            border-radius: 0 !important;
+        }
+        .table {
+            border-collapse: collapse !important;
+            width: 100% !important;
+        }
+        .table th, .table td {
+            background-color: transparent !important;
+            border: 1px solid #CBD5E1 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
         }
     }
 </style>
@@ -69,6 +100,20 @@
 
 {% block content %}
 <div class="container py-4 py-md-5">
+
+    <!-- Official Print Letterhead (Only visible when printing) -->
+    <div class="d-none d-print-block mb-4 pb-3 border-bottom">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <div>
+                <div style="font-size: 1.4rem; font-weight: 800; color: #0F172A; letter-spacing: -0.02em;">VERIFY<span style="color:#2563EB;">NG</span></div>
+                <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #64748B; font-weight: 600;">Continuous Update Service &bull; Official Standing Record</div>
+            </div>
+            <div class="text-end">
+                <span class="badge border text-dark font-monospace" style="font-size: 11px; padding: 4px 8px; background: #F8FAFC;">RECORD REF: {{ cert.certificate_id }}</span>
+                <div style="font-size: 10px; color: #64748B; margin-top: 3px;">Printed: {% now "d M Y, H:i:s" %} UTC</div>
+            </div>
+        </div>
+    </div>
 
     <!-- Top Action Strip -->
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 btn-print-hide">
@@ -86,12 +131,21 @@
                 </svg>
                 <span>Print</span>
             </button>
-            <a href="{% url 'verification:update_service_logout' %}" class="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
-                </svg>
-                <span>Exit Portal</span>
-            </a>
+            {% if not request.user.is_authenticated %}
+                <a href="{% url 'verification:update_service_logout' %}" class="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
+                    </svg>
+                    <span>Exit Portal</span>
+                </a>
+            {% else %}
+                <a href="{% url 'verification:my_certificates' %}" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="15 18 9 12 15 6"/>
+                    </svg>
+                    <span>My Certificates</span>
+                </a>
+            {% endif %}
         </div>
     </div>
 
