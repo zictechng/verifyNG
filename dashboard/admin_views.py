@@ -496,6 +496,9 @@ class AdminCommunicationsView(SuperAdminRequiredMixin, TemplateView):
             recipient_emails = [target_email]
 
         elif target_type == 'role':
+            if not target_role:
+                messages.error(request, "Please select a specific role to target.")
+                return render(request, self.template_name, self.get_context_data())
             users = User.objects.filter(role=target_role, is_active=True).exclude(email='').values_list('email', flat=True)
             recipient_emails = list(users)
 

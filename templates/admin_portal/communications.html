@@ -8,6 +8,22 @@
 {% endblock %}
 
 {% block admin_body %}
+<style>
+.target-btn {
+    background: transparent;
+    color: var(--adm-muted, #64748B);
+    transition: all 0.15s ease-in-out;
+}
+.target-btn:hover {
+    background: var(--adm-sidebar-hover, rgba(0,0,0,0.04));
+    color: var(--adm-ink, #1E293B);
+}
+.btn-check:checked + .target-btn {
+    background: var(--adm-accent, #2457D6) !important;
+    color: #ffffff !important;
+}
+</style>
+
 <div class="adm-page-heading">
     <h1>Communications &amp; Broadcast Center</h1>
     <p>Compose and dispatch email notifications asynchronously to platform users via Celery workers.</p>
@@ -27,65 +43,67 @@
                 <!-- Target selector tabs -->
                 <div class="mb-4">
                     <label class="form-label" style="font-size:0.78rem;font-weight:700;color:var(--adm-muted);text-transform:uppercase;letter-spacing:0.07em;">Target Audience *</label>
-                    <div style="display:flex;gap:0;border:1px solid var(--adm-border);border-radius:8px;overflow:hidden;">
-                        <label style="flex:1;margin:0;">
-                            <input type="radio" name="target_type" value="all" class="d-none target-radio" {% if not request.POST.target_type or request.POST.target_type == 'all' %}checked{% endif %}>
-                            <span class="target-label" data-value="all"
-                                  style="display:block;text-align:center;padding:9px 12px;font-size:0.82rem;font-weight:600;cursor:pointer;border-right:1px solid var(--adm-border);transition:background 0.12s,color 0.12s;">
-                                All Users
-                            </span>
+                    <div class="btn-group w-100" role="group" aria-label="Target Audience Selection" style="border-radius:8px;overflow:hidden;border:1px solid var(--adm-border);">
+                        <input type="radio" class="btn-check target-radio" name="target_type" id="targetTypeAll" value="all" autocomplete="off"
+                               {% if not request.POST.target_type or request.POST.target_type == 'all' %}checked{% endif %}>
+                        <label class="btn target-btn fw-semibold" for="targetTypeAll" style="font-size:0.84rem;padding:9px 12px;border:none;border-right:1px solid var(--adm-border);">
+                            All Users
                         </label>
-                        <label style="flex:1;margin:0;">
-                            <input type="radio" name="target_type" value="role" class="d-none target-radio" {% if request.POST.target_type == 'role' %}checked{% endif %}>
-                            <span class="target-label" data-value="role"
-                                  style="display:block;text-align:center;padding:9px 12px;font-size:0.82rem;font-weight:600;cursor:pointer;border-right:1px solid var(--adm-border);transition:background 0.12s,color 0.12s;">
-                                By Role
-                            </span>
+
+                        <input type="radio" class="btn-check target-radio" name="target_type" id="targetTypeRole" value="role" autocomplete="off"
+                               {% if request.POST.target_type == 'role' %}checked{% endif %}>
+                        <label class="btn target-btn fw-semibold" for="targetTypeRole" style="font-size:0.84rem;padding:9px 12px;border:none;border-right:1px solid var(--adm-border);">
+                            By Role
                         </label>
-                        <label style="flex:1;margin:0;">
-                            <input type="radio" name="target_type" value="single" class="d-none target-radio" {% if request.POST.target_type == 'single' %}checked{% endif %}>
-                            <span class="target-label" data-value="single"
-                                  style="display:block;text-align:center;padding:9px 12px;font-size:0.82rem;font-weight:600;cursor:pointer;transition:background 0.12s,color 0.12s;">
-                                Single User
-                            </span>
+
+                        <input type="radio" class="btn-check target-radio" name="target_type" id="targetTypeSingle" value="single" autocomplete="off"
+                               {% if request.POST.target_type == 'single' %}checked{% endif %}>
+                        <label class="btn target-btn fw-semibold" for="targetTypeSingle" style="font-size:0.84rem;padding:9px 12px;border:none;">
+                            Single User
                         </label>
                     </div>
                 </div>
 
                 <!-- Role selector (shown when "By Role" selected) -->
-                <div id="roleGroup" class="mb-3" style="display:none;">
-                    <label class="form-label" style="font-size:0.78rem;font-weight:700;color:var(--adm-muted);">Select Role</label>
-                    <select name="target_role" class="form-select" style="border-radius:7px;border-color:var(--adm-border);font-size:0.845rem;">
+                <div id="roleGroup" class="mb-3" style="{% if request.POST.target_type == 'role' %}display:block;{% else %}display:none;{% endif %}">
+                    <label for="targetRoleSelect" class="form-label" style="font-size:0.78rem;font-weight:700;color:var(--adm-muted);text-transform:uppercase;letter-spacing:0.05em;">
+                        Select Role <span class="text-danger">*</span>
+                    </label>
+                    <select name="target_role" id="targetRoleSelect" class="form-select" style="border-radius:7px;border-color:var(--adm-border);font-size:0.86rem;padding:8px 12px;cursor:pointer;">
+                        <option value="" disabled {% if not request.POST.target_role %}selected{% endif %}>-- Choose User Role --</option>
                         {% for r_val, r_label in roles %}
                             <option value="{{ r_val }}" {% if request.POST.target_role == r_val %}selected{% endif %}>{{ r_label }}</option>
                         {% endfor %}
                     </select>
+                    <div class="form-text text-muted" style="font-size:0.75rem;">Only active users registered with this role will receive this broadcast.</div>
                 </div>
 
                 <!-- Single email (shown when "Single User" selected) -->
-                <div id="singleGroup" class="mb-3" style="display:none;">
-                    <label class="form-label" style="font-size:0.78rem;font-weight:700;color:var(--adm-muted);">Recipient Email</label>
-                    <input type="email" name="target_email" class="form-control"
+                <div id="singleGroup" class="mb-3" style="{% if request.POST.target_type == 'single' %}display:block;{% else %}display:none;{% endif %}">
+                    <label for="targetEmailInput" class="form-label" style="font-size:0.78rem;font-weight:700;color:var(--adm-muted);text-transform:uppercase;letter-spacing:0.05em;">
+                        Recipient Email <span class="text-danger">*</span>
+                    </label>
+                    <input type="email" name="target_email" id="targetEmailInput" class="form-control"
                            placeholder="user@example.com"
                            value="{{ request.POST.target_email|default:'' }}"
-                           style="border-radius:7px;border-color:var(--adm-border);font-size:0.845rem;">
+                           style="border-radius:7px;border-color:var(--adm-border);font-size:0.86rem;padding:8px 12px;">
                 </div>
 
                 <!-- Subject -->
                 <div class="mb-3">
-                    <label class="form-label" style="font-size:0.78rem;font-weight:700;color:var(--adm-muted);">Email Subject *</label>
+                    <label class="form-label" style="font-size:0.78rem;font-weight:700;color:var(--adm-muted);text-transform:uppercase;letter-spacing:0.05em;">Email Subject *</label>
                     <input type="text" name="subject" class="form-control" required
                            placeholder="VerifyNG Platform Update: …"
                            value="{{ request.POST.subject|default:'' }}"
-                           style="border-radius:7px;border-color:var(--adm-border);font-size:0.845rem;">
+                           style="border-radius:7px;border-color:var(--adm-border);font-size:0.86rem;padding:8px 12px;">
                 </div>
 
                 <!-- Message body -->
                 <div class="mb-4">
-                    <label class="form-label" style="font-size:0.78rem;font-weight:700;color:var(--adm-muted);">Message Body *</label>
+                    <label class="form-label" style="font-size:0.78rem;font-weight:700;color:var(--adm-muted);text-transform:uppercase;letter-spacing:0.05em;">Message Body *</label>
                     <textarea name="message_body" rows="7" class="form-control" required
                               placeholder="Enter your message to the selected audience…"
-                              style="border-radius:7px;border-color:var(--adm-border);font-size:0.845rem;resize:vertical;">{{ request.POST.message_body|default:'' }}</textarea>
+                              style="border-radius:7px;border-color:var(--adm-border);font-size:0.86rem;resize:vertical;">{{ request.POST.message_body|default:'' }}</textarea>
                 </div>
 
                 <!-- Dispatch button -->
@@ -196,57 +214,102 @@
 {% block admin_scripts %}
 <script>
 (function () {
-    const radios   = document.querySelectorAll('.target-radio');
-    const labels   = document.querySelectorAll('.target-label');
-    const roleGrp  = document.getElementById('roleGroup');
-    const singleGrp = document.getElementById('singleGroup');
+    const roleGrp    = document.getElementById('roleGroup');
+    const singleGrp  = document.getElementById('singleGroup');
+    const radios     = document.querySelectorAll('input[name="target_type"]');
+    const roleSelect = document.getElementById('targetRoleSelect');
+    const emailInput = document.getElementById('targetEmailInput');
 
-    function update(val) {
-        labels.forEach(lbl => {
-            const isActive = lbl.dataset.value === val;
-            lbl.style.background = isActive ? 'var(--adm-accent)' : '';
-            lbl.style.color = isActive ? '#fff' : 'var(--adm-muted)';
-        });
-        roleGrp.style.display  = val === 'role'   ? '' : 'none';
-        singleGrp.style.display = val === 'single' ? '' : 'none';
+    function updateView(val) {
+        if (roleGrp) {
+            roleGrp.style.display = (val === 'role') ? 'block' : 'none';
+        }
+        if (singleGrp) {
+            singleGrp.style.display = (val === 'single') ? 'block' : 'none';
+        }
     }
 
-    radios.forEach(r => r.addEventListener('change', () => update(r.value)));
-    labels.forEach(lbl => lbl.addEventListener('click', () => {
-        const radio = lbl.closest('label').querySelector('input');
-        radio.checked = true;
-        update(radio.value);
-    }));
-
-    // Init on load
-    const checked = document.querySelector('.target-radio:checked');
-    update(checked ? checked.value : 'all');
-
-    // Confirm before large dispatch
-        // Professional modal confirmation before dispatch
-    document.getElementById('broadcastForm').addEventListener('submit', function (e) {
-        e.preventDefault();
-        const val     = document.querySelector('.target-radio:checked').value;
-        const subject = document.querySelector('[name="subject"]')?.value?.trim() || '(no subject)';
-        let audience  = 'All active users';
-        if (val === 'role') {
-            const roleSelect = document.querySelector('[name="role"]');
-            audience = 'Role: ' + (roleSelect?.options[roleSelect.selectedIndex]?.text || val);
-        } else if (val === 'single') {
-            const emailVal = document.querySelector('[name="recipient_email"]')?.value?.trim();
-            audience = emailVal ? 'Single user: ' + emailVal : 'Single user';
-        }
-        document.getElementById('broadcastAudience').textContent = audience;
-        document.getElementById('broadcastSubject').textContent  = subject;
-        const bsModal = new bootstrap.Modal(document.getElementById('broadcastConfirmModal'));
-        bsModal.show();
+    radios.forEach(function (radio) {
+        radio.addEventListener('change', function () {
+            if (this.checked) {
+                updateView(this.value);
+            }
+        });
     });
 
-    document.getElementById('broadcastConfirmBtn').addEventListener('click', function () {
-        document.getElementById('broadcastForm').removeEventListener('submit', arguments.callee);
-        document.getElementById('broadcastForm').submit();
+    // Delegated click on target-btn labels for 100% reliable click capture
+    document.querySelectorAll('.target-btn').forEach(function (lbl) {
+        lbl.addEventListener('click', function () {
+            const targetId = this.getAttribute('for');
+            const targetRadio = document.getElementById(targetId);
+            if (targetRadio) {
+                targetRadio.checked = true;
+                updateView(targetRadio.value);
+            }
+        });
     });
-}());
+
+    // Initialize state on load
+    const checkedRadio = document.querySelector('input[name="target_type"]:checked');
+    updateView(checkedRadio ? checkedRadio.value : 'all');
+
+    // Modal Confirmation handler
+    const broadcastForm = document.getElementById('broadcastForm');
+    let isConfirmed = false;
+
+    if (broadcastForm) {
+        broadcastForm.addEventListener('submit', function (e) {
+            if (isConfirmed) return; // Allow natural submission when confirmed
+            e.preventDefault();
+
+            const checked = document.querySelector('input[name="target_type"]:checked');
+            const val = checked ? checked.value : 'all';
+            const subject = document.querySelector('[name="subject"]')?.value?.trim() || '(no subject)';
+
+            let audience = 'All active users';
+            if (val === 'role') {
+                const selectedOpt = roleSelect?.options[roleSelect.selectedIndex];
+                if (!roleSelect?.value) {
+                    alert('Please select a specific role from the dropdown.');
+                    roleSelect?.focus();
+                    return;
+                }
+                audience = 'Role: ' + (selectedOpt?.text || roleSelect.value);
+            } else if (val === 'single') {
+                const emailVal = emailInput?.value?.trim();
+                if (!emailVal) {
+                    alert('Please enter a recipient email address.');
+                    emailInput?.focus();
+                    return;
+                }
+                audience = 'Single user: ' + emailVal;
+            }
+
+            const audEl = document.getElementById('broadcastAudience');
+            const subEl = document.getElementById('broadcastSubject');
+            if (audEl) audEl.textContent = audience;
+            if (subEl) subEl.textContent = subject;
+
+            const modalEl = document.getElementById('broadcastConfirmModal');
+            if (modalEl && window.bootstrap) {
+                const bsModal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+                bsModal.show();
+            } else {
+                if (confirm('Are you sure you want to send this broadcast to ' + audience + '?')) {
+                    isConfirmed = true;
+                    broadcastForm.submit();
+                }
+            }
+        });
+    }
+
+    const confirmBtn = document.getElementById('broadcastConfirmBtn');
+    if (confirmBtn && broadcastForm) {
+        confirmBtn.addEventListener('click', function () {
+            isConfirmed = true;
+            broadcastForm.submit();
+        });
+    }
+})();
 </script>
 {% endblock %}
-
