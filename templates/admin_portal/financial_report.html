@@ -158,82 +158,136 @@
 </div>
 
 <!-- Revenue by Service & Plan -->
-<div class="adm-card mb-4">
-    <div class="adm-card-header">
-        <span class="adm-card-title">Revenue by Service &amp; Plan</span>
-    </div>
-    <div class="table-responsive">
-        <table class="table table-sm table-hover mb-0">
-            <thead class="table-light">
-                <tr>
-                    <th class="px-3">Service / Plan</th>
-                    <th class="text-end">Transactions</th>
-                    <th class="text-end px-3">Revenue (₦)</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for row in plan_breakdown %}
-                <tr>
-                    <td class="px-3 fw-semibold">{{ row.plan_name }}</td>
-                    <td class="text-end">{{ row.count }}</td>
-                    <td class="text-end fw-bold px-3 text-success">₦{{ row.revenue|floatformat:2|intcomma }}</td>
-                </tr>
-                {% empty %}
-                <tr><td colspan="3" class="text-center py-3" style="color:var(--adm-muted);">No plan data available</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+<div id="financial-services-wrapper">
+    {% include "admin_portal/_financial_services_partial.html" %}
 </div>
 
 <!-- Transaction Ledger -->
-<div class="adm-card">
-    <div class="adm-card-header d-flex align-items-center justify-content-between">
-        <span class="adm-card-title">Transaction Ledger</span>
-        <span class="small" style="color:var(--adm-muted);">{{ transactions.paginator.count }} record(s)</span>
-    </div>
-    <div class="table-responsive">
-        <table class="table table-sm table-hover mb-0">
-            <thead class="table-light">
-                <tr>
-                    <th class="px-3">Date</th>
-                    <th>Reference</th>
-                    <th>User</th>
-                    <th>Plan / Service</th>
-                    <th class="text-end">Amount (₦)</th>
-                    <th class="text-end px-3">Status</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for txn in transactions %}
-                <tr>
-                    <td class="px-3 small" style="color:var(--adm-muted);">{{ txn.created_at|date:"d M Y" }}</td>
-                    <td class="font-monospace small">{{ txn.reference|truncatechars:22 }}</td>
-                    <td class="small">{{ txn.user.get_full_name|default:txn.user.username|default:"—" }}</td>
-                    <td class="small fw-semibold">
-                        {{ txn.item_display_name }}
-                        {% if txn.reason and txn.reason != txn.item_display_name %}
-                            <div class="text-muted extra-small" style="font-size:0.75rem;">Note: {{ txn.reason }}</div>
-                        {% endif %}
-                    </td>
-                    <td class="text-end fw-semibold">₦{{ txn.amount_naira|floatformat:2|intcomma }}</td>
-                    <td class="text-end px-3">
-                        <span class="badge {% if txn.status == 'success' %}bg-success{% elif txn.status == 'failed' %}bg-danger{% elif txn.status == 'refunded' %}bg-warning text-dark{% elif txn.status == 'pending' %}bg-secondary{% else %}bg-light text-dark{% endif %}">
-                            {{ txn.get_status_display }}
-                        </span>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr><td colspan="6" class="text-center py-4" style="color:var(--adm-muted);">No transactions in this period</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-    {% if transactions.has_other_pages %}
-    <div class="p-3 border-top">
-        {% include "admin_portal/_pagination.html" with page_obj=transactions %}
-    </div>
-    {% endif %}
+<div id="financial-ledger-wrapper">
+    {% include "admin_portal/_financial_ledger_partial.html" %}
 </div>
 
+{% endblock %}
+
+{% block admin_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Helper to get active filter parameters from the filter form
+    function getFilterParams() {
+        const form = document.getElementById('filterForm');
+        if (!form) return new URLSearchParams();
+        const fd = new FormData(form);
+        const params = new URLSearchParams();
+        for (const [key, val] of fd.entries()) {
+            if (val && key !== 'download') {
+                params.set(key, val);
+            }
+        }
+        return params;
+    }
+
+    // ── 1. Services & Plan AJAX Pagination ──────────────────────
+    function attachServicesListeners() {
+        const servicesCard = document.getElementById('financial-services-card');
+        if (!servicesCard) return;
+
+        servicesCard.querySelectorAll('.ajax-services-link').forEach(link => {
+            link.addEventListener('click', function (e) {
+                e.preventDefault();
+                const page = this.getAttribute('data-page');
+                if (!page) return;
+
+                const params = getFilterParams();
+                params.set('ajax_section', 'services');
+                params.set('services_page', page);
+
+                // Show loading overlay
+                const overlay = servicesCard.querySelector('.services-loading-overlay');
+                if (overlay) overlay.classList.remove('d-none');
+                servicesCard.style.opacity = '0.65';
+
+                fetch(`${window.location.pathname}?${params.toString()}`, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                .then(res => {
+                    if (!res.ok) throw new Error('Network error: ' + res.status);
+                    return res.text();
+                })
+                .then(html => {
+                    const temp = document.createElement('div');
+                    temp.innerHTML = html.trim();
+                    const newCard = temp.firstElementChild;
+                    if (newCard) {
+                        servicesCard.replaceWith(newCard);
+                        newCard.style.opacity = '1';
+                        // Keep URL state synchronized
+                        const currentUrl = new URL(window.location);
+                        currentUrl.searchParams.set('services_page', page);
+                        window.history.replaceState({}, '', currentUrl.toString());
+                        attachServicesListeners();
+                    }
+                })
+                .catch(err => {
+                    console.error('Failed to load services page:', err);
+                    if (overlay) overlay.classList.add('d-none');
+                    servicesCard.style.opacity = '1';
+                });
+            });
+        });
+    }
+
+    // ── 2. Transaction Ledger AJAX Pagination ───────────────────
+    function attachLedgerListeners() {
+        const ledgerCard = document.getElementById('financial-ledger-card');
+        if (!ledgerCard) return;
+
+        ledgerCard.querySelectorAll('.ajax-ledger-link').forEach(link => {
+            link.addEventListener('click', function (e) {
+                e.preventDefault();
+                const page = this.getAttribute('data-page');
+                if (!page) return;
+
+                const params = getFilterParams();
+                params.set('ajax_section', 'ledger');
+                params.set('page', page);
+
+                // Show loading overlay
+                const overlay = ledgerCard.querySelector('.ledger-loading-overlay');
+                if (overlay) overlay.classList.remove('d-none');
+                ledgerCard.style.opacity = '0.65';
+
+                fetch(`${window.location.pathname}?${params.toString()}`, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                .then(res => {
+                    if (!res.ok) throw new Error('Network error: ' + res.status);
+                    return res.text();
+                })
+                .then(html => {
+                    const temp = document.createElement('div');
+                    temp.innerHTML = html.trim();
+                    const newCard = temp.firstElementChild;
+                    if (newCard) {
+                        ledgerCard.replaceWith(newCard);
+                        newCard.style.opacity = '1';
+                        // Keep URL state synchronized
+                        const currentUrl = new URL(window.location);
+                        currentUrl.searchParams.set('page', page);
+                        window.history.replaceState({}, '', currentUrl.toString());
+                        attachLedgerListeners();
+                    }
+                })
+                .catch(err => {
+                    console.error('Failed to load ledger page:', err);
+                    if (overlay) overlay.classList.add('d-none');
+                    ledgerCard.style.opacity = '1';
+                });
+            });
+        });
+    }
+
+    attachServicesListeners();
+    attachLedgerListeners();
+});
+</script>
 {% endblock %}

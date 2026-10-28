@@ -1,0 +1,73 @@
+{% load humanize %}
+<div class="adm-card mb-4" id="financial-services-card">
+    <div class="adm-card-header d-flex align-items-center justify-content-between">
+        <span class="adm-card-title">Revenue by Service &amp; Plan</span>
+        <span class="small" style="color:var(--adm-muted);">{{ plan_breakdown_page.paginator.count }} item(s)</span>
+    </div>
+    <div class="table-responsive position-relative">
+        <div class="services-loading-overlay d-none position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
+             style="background:rgba(255,255,255,0.75); backdrop-filter:blur(1px); z-index:10;">
+            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+        <table class="table table-sm table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th class="px-3">Service / Plan</th>
+                    <th class="text-end">Transactions</th>
+                    <th class="text-end px-3">Revenue (₦)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in plan_breakdown_page %}
+                <tr>
+                    <td class="px-3 fw-semibold">{{ row.plan_name }}</td>
+                    <td class="text-end">{{ row.count }}</td>
+                    <td class="text-end fw-bold px-3 text-success">₦{{ row.revenue|floatformat:2|intcomma }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="3" class="text-center py-3" style="color:var(--adm-muted);">No plan data available</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if plan_breakdown_page.paginator.count > 0 %}
+    <div class="p-3 border-top d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <span class="text-muted small text-nowrap">
+            Showing {{ plan_breakdown_page.start_index }}–{{ plan_breakdown_page.end_index }} of {{ plan_breakdown_page.paginator.count }} item(s)
+        </span>
+        {% if plan_breakdown_page.has_other_pages %}
+        <nav aria-label="Services and plans pagination">
+            <ul class="pagination pagination-sm mb-0">
+                {% if plan_breakdown_page.has_previous %}
+                <li class="page-item">
+                    <a class="page-link ajax-services-link" href="?services_page={{ plan_breakdown_page.previous_page_number }}" data-page="{{ plan_breakdown_page.previous_page_number }}" aria-label="Previous">‹ Prev</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled"><span class="page-link">‹ Prev</span></li>
+                {% endif %}
+
+                {% for num in plan_breakdown_page.paginator.page_range %}
+                    {% if num == plan_breakdown_page.number %}
+                    <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                    {% elif num == 1 or num == plan_breakdown_page.paginator.num_pages or num >= plan_breakdown_page.number|add:"-2" and num <= plan_breakdown_page.number|add:"2" %}
+                    <li class="page-item"><a class="page-link ajax-services-link" href="?services_page={{ num }}" data-page="{{ num }}">{{ num }}</a></li>
+                    {% elif num == plan_breakdown_page.number|add:"-3" or num == plan_breakdown_page.number|add:"3" %}
+                    <li class="page-item disabled"><span class="page-link">…</span></li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if plan_breakdown_page.has_next %}
+                <li class="page-item">
+                    <a class="page-link ajax-services-link" href="?services_page={{ plan_breakdown_page.next_page_number }}" data-page="{{ plan_breakdown_page.next_page_number }}" aria-label="Next">Next ›</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled"><span class="page-link">Next ›</span></li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>

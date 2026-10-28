@@ -1,0 +1,88 @@
+{% load humanize %}
+<div class="adm-card" id="financial-ledger-card">
+    <div class="adm-card-header d-flex align-items-center justify-content-between">
+        <span class="adm-card-title">Transaction Ledger</span>
+        <span class="small" style="color:var(--adm-muted);">{{ transactions.paginator.count }} record(s)</span>
+    </div>
+    <div class="table-responsive position-relative">
+        <div class="ledger-loading-overlay d-none position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
+             style="background:rgba(255,255,255,0.75); backdrop-filter:blur(1px); z-index:10;">
+            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+        <table class="table table-sm table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th class="px-3">Date</th>
+                    <th>Reference</th>
+                    <th>User</th>
+                    <th>Plan / Service</th>
+                    <th class="text-end">Amount (₦)</th>
+                    <th class="text-end px-3">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for txn in transactions %}
+                <tr>
+                    <td class="px-3 small" style="color:var(--adm-muted);">{{ txn.created_at|date:"d M Y" }}</td>
+                    <td class="font-monospace small">{{ txn.reference|truncatechars:22 }}</td>
+                    <td class="small">{{ txn.user.get_full_name|default:txn.user.username|default:"—" }}</td>
+                    <td class="small fw-semibold">
+                        {{ txn.item_display_name }}
+                        {% if txn.reason and txn.reason != txn.item_display_name %}
+                            <div class="text-muted extra-small" style="font-size:0.75rem;">Note: {{ txn.reason }}</div>
+                        {% endif %}
+                    </td>
+                    <td class="text-end fw-semibold">₦{{ txn.amount_naira|floatformat:2|intcomma }}</td>
+                    <td class="text-end px-3">
+                        <span class="badge {% if txn.status == 'success' %}bg-success{% elif txn.status == 'failed' %}bg-danger{% elif txn.status == 'refunded' %}bg-warning text-dark{% elif txn.status == 'pending' %}bg-secondary{% else %}bg-light text-dark{% endif %}">
+                            {{ txn.get_status_display }}
+                        </span>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6" class="text-center py-4" style="color:var(--adm-muted);">No transactions in this period</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if transactions.paginator.count > 0 %}
+    <div class="p-3 border-top d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <span class="text-muted small text-nowrap">
+            Showing {{ transactions.start_index }}–{{ transactions.end_index }} of {{ transactions.paginator.count }} transaction(s)
+        </span>
+        {% if transactions.has_other_pages %}
+        <nav aria-label="Transaction ledger pagination">
+            <ul class="pagination pagination-sm mb-0">
+                {% if transactions.has_previous %}
+                <li class="page-item">
+                    <a class="page-link ajax-ledger-link" href="?page={{ transactions.previous_page_number }}" data-page="{{ transactions.previous_page_number }}" aria-label="Previous">‹ Prev</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled"><span class="page-link">‹ Prev</span></li>
+                {% endif %}
+
+                {% for num in transactions.paginator.page_range %}
+                    {% if num == transactions.number %}
+                    <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                    {% elif num == 1 or num == transactions.paginator.num_pages or num >= transactions.number|add:"-2" and num <= transactions.number|add:"2" %}
+                    <li class="page-item"><a class="page-link ajax-ledger-link" href="?page={{ num }}" data-page="{{ num }}">{{ num }}</a></li>
+                    {% elif num == transactions.number|add:"-3" or num == transactions.number|add:"3" %}
+                    <li class="page-item disabled"><span class="page-link">…</span></li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if transactions.has_next %}
+                <li class="page-item">
+                    <a class="page-link ajax-ledger-link" href="?page={{ transactions.next_page_number }}" data-page="{{ transactions.next_page_number }}" aria-label="Next">Next ›</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled"><span class="page-link">Next ›</span></li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>

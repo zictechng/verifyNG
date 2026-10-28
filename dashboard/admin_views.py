@@ -3178,10 +3178,15 @@ class AdminFinancialReportView(SuperAdminRequiredMixin, TemplateView):
             for name, data in sorted(breakdown_dict.items(), key=lambda x: -x[1]['revenue'])
         ]
 
-        # Paginated ledger (all statuses matching filter)
-        paginator = Paginator(qs, 50)
-        page_number = request.GET.get('page', 1)
-        transactions_page = paginator.get_page(page_number)
+        # Paginated ledger (15 per page for professional, non-bloated table display)
+        ledger_page_number = request.GET.get('page') or request.GET.get('ledger_page', 1)
+        paginator = Paginator(qs, 15)
+        transactions_page = paginator.get_page(ledger_page_number)
+
+        # Paginated services & plans (15 per page)
+        services_page_number = request.GET.get('services_page', 1)
+        services_paginator = Paginator(plan_breakdown, 15)
+        plan_breakdown_page = services_paginator.get_page(services_page_number)
 
         active_subs = Subscription.objects.filter(status='active', is_active=True).count()
 
@@ -3201,6 +3206,7 @@ class AdminFinancialReportView(SuperAdminRequiredMixin, TemplateView):
             'active_subscriptions': active_subs,
             'monthly_breakdown':    monthly_breakdown,
             'plan_breakdown':       plan_breakdown,
+            'plan_breakdown_page':  plan_breakdown_page,
             'transactions':         transactions_page,
         }
 
@@ -3215,6 +3221,16 @@ class AdminFinancialReportView(SuperAdminRequiredMixin, TemplateView):
             return self._export_csv(request)
         if download == 'pdf':
             return self._export_pdf(request)
+
+        # Handle AJAX partial requests for in-place pagination without page reload
+        ajax_section = request.GET.get('ajax_section', '').strip()
+        if ajax_section:
+            context = self._build_context(request)
+            if ajax_section == 'ledger':
+                return render(request, 'admin_portal/_financial_ledger_partial.html', context)
+            elif ajax_section == 'services':
+                return render(request, 'admin_portal/_financial_services_partial.html', context)
+
         return super().get(request, *args, **kwargs)
 
     # ── CSV Export ────────────────────────────────────────────────────────────
