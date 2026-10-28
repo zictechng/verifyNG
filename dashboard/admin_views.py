@@ -473,7 +473,19 @@ class AdminCommunicationsView(SuperAdminRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx['roles'] = User.ROLE_CHOICES
+        roles_with_counts = []
+        for r_val, r_label in User.ROLE_CHOICES:
+            qs = User.objects.filter(role=r_val, is_active=True).exclude(email='')
+            cnt = qs.count()
+            sample_emails = list(qs.values_list('email', flat=True)[:5])
+            roles_with_counts.append({
+                'value': r_val,
+                'label': r_label,
+                'count': cnt,
+                'emails': sample_emails,
+            })
+        ctx['roles'] = [(r['value'], r['label']) for r in roles_with_counts]
+        ctx['roles_with_counts'] = roles_with_counts
         return ctx
 
     def post(self, request, *args, **kwargs):

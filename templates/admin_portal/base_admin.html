@@ -464,7 +464,12 @@
         .adm-badge.gray .dot   { background: #94A3B8; }
 
         /* ── Filter bar ───────────────────────────────── */
-        .adm-filter-bar {
+                select, .form-select {
+                cursor: pointer !important;
+                pointer-events: auto !important;
+}
+
+.adm-filter-bar {
             background: var(--adm-card-bg);
             border: 1px solid var(--adm-border);
             border-radius: 10px;
@@ -1093,6 +1098,7 @@
 
             if (newContainer) {
                 container.innerHTML = newContainer.innerHTML;
+                if (window.enhanceFilterSelects) { window.enhanceFilterSelects(container); }
             } else {
                 window.location.href = targetUrl;
                 return;
@@ -1133,7 +1139,24 @@
         }
     });
 
-    // Delegated change listener for Rows Per Page dropdown
+    // Delegated click listener for Rows Per Page dropdown items
+    document.addEventListener('click', function (e) {
+        const item = e.target.closest('.admin-per-page-item');
+        if (item) {
+            e.preventDefault();
+            e.stopPropagation();
+            const newPerPage = item.dataset.val;
+            const currentUrl = new URL(window.location.href);
+            currentUrl.searchParams.set('per_page', newPerPage);
+            currentUrl.searchParams.set('page', '1');
+            loadAdminTable(currentUrl.toString(), true);
+            if (window.vng && typeof window.vng.toast === 'function') {
+                window.vng.toast('Rows per page set to ' + newPerPage, 'info');
+            }
+        }
+    });
+
+    // Delegated change listener for native Rows Per Page fallback
     document.addEventListener('change', function (e) {
         const select = e.target.closest('.admin-per-page-select');
         if (select) {
@@ -1144,6 +1167,9 @@
             currentUrl.searchParams.set('per_page', newPerPage);
             currentUrl.searchParams.set('page', '1');
             loadAdminTable(currentUrl.toString(), true);
+            if (window.vng && typeof window.vng.toast === 'function') {
+                window.vng.toast('Rows per page set to ' + newPerPage, 'info');
+            }
         }
     });
 
@@ -1153,6 +1179,71 @@
             loadAdminTable(window.location.href, false);
         }
     });
+})();
+
+/* ── Universal Admin Filter Dropdown Enhancer ── */
+(function () {
+    function enhanceFilterSelects(root) {
+        const container = root || document;
+        const selects = container.querySelectorAll('.adm-filter-bar select.form-select');
+        selects.forEach(function (sel) {
+            if (sel.dataset.enhanced === 'true' || sel.classList.contains('d-none')) return;
+
+            sel.dataset.enhanced = 'true';
+            sel.style.display = 'none';
+
+            const selectedOpt = sel.options[sel.selectedIndex] || sel.options[0];
+            const currentLabel = selectedOpt ? selectedOpt.text : 'Select';
+
+            const wrap = document.createElement('div');
+            wrap.className = 'dropdown d-inline-block w-100 adm-enhanced-dropdown';
+            wrap.style.position = 'relative';
+
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'btn form-select form-select-sm text-start d-flex align-items-center justify-content-between';
+            btn.setAttribute('data-bs-toggle', 'dropdown');
+            btn.setAttribute('aria-expanded', 'false');
+            btn.style.cssText = 'height:38px;font-size:0.845rem;border-color:var(--adm-border);border-radius:7px;background-color:var(--adm-card-bg,#fff);color:var(--adm-ink,#1e293b);box-shadow:none;';
+            btn.innerHTML = `<span class="adm-dd-text text-truncate">${currentLabel}</span>`;
+
+            const menu = document.createElement('ul');
+            menu.className = 'dropdown-menu w-100 shadow-sm';
+            menu.style.cssText = 'max-height:260px;overflow-y:auto;z-index:1050;font-size:0.845rem;border-color:var(--adm-border);';
+
+            Array.from(sel.options).forEach(function (opt) {
+                const li = document.createElement('li');
+                const a = document.createElement('a');
+                a.className = 'dropdown-item py-1' + (opt.selected ? ' active fw-semibold' : '');
+                a.href = 'javascript:void(0);';
+                a.dataset.val = opt.value;
+                a.textContent = opt.text;
+
+                a.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    sel.value = opt.value;
+                    btn.querySelector('.adm-dd-text').textContent = opt.text;
+                    menu.querySelectorAll('.dropdown-item').forEach(el => el.classList.remove('active', 'fw-semibold'));
+                    a.classList.add('active', 'fw-semibold');
+                    sel.dispatchEvent(new Event('change', { bubbles: true }));
+                });
+
+                li.appendChild(a);
+                menu.appendChild(li);
+            });
+
+            wrap.appendChild(btn);
+            wrap.appendChild(menu);
+            sel.parentNode.insertBefore(wrap, sel);
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function () { enhanceFilterSelects(); });
+    } else {
+        enhanceFilterSelects();
+    }
+    window.enhanceFilterSelects = enhanceFilterSelects;
 })();
 </script>
 {% block admin_scripts %}{% endblock %}

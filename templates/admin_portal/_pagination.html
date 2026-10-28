@@ -4,7 +4,37 @@
   <div class="d-flex align-items-center gap-2">
     <div class="d-flex align-items-center gap-2 mb-0">
       <label class="text-muted small mb-0 text-nowrap">Rows per page:</label>
-      <select name="per_page" class="form-select form-select-sm admin-per-page-select" style="width:75px;">
+      <div class="dropdown d-inline-block">
+        <button class="btn btn-sm btn-white border dropdown-toggle admin-per-page-btn d-flex align-items-center justify-content-between gap-1"
+                type="button"
+                id="perPageDropdownBtn"
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
+                style="height:32px;font-size:0.84rem;padding:2px 10px;background:#fff;border-color:var(--adm-border)!important;color:var(--adm-ink,#1e293b);border-radius:6px;">
+          <span id="perPageSelectedVal">{{ per_page|default:15 }}</span>
+        </button>
+        <ul class="dropdown-menu shadow-sm" aria-labelledby="perPageDropdownBtn" style="min-width:75px;font-size:0.84rem;border-color:var(--adm-border);z-index:1050;">
+          {% if per_page_options %}
+            {% for n in per_page_options %}
+            <li>
+              <a class="dropdown-item admin-per-page-item {% if n == per_page or n|stringformat:'s' == per_page|stringformat:'s' %}active fw-bold{% endif %}"
+                 href="javascript:void(0);"
+                 data-val="{{ n }}">
+                {{ n }}
+              </a>
+            </li>
+            {% endfor %}
+          {% else %}
+            <li><a class="dropdown-item admin-per-page-item" href="javascript:void(0);" data-val="15">15</a></li>
+            <li><a class="dropdown-item admin-per-page-item" href="javascript:void(0);" data-val="25">25</a></li>
+            <li><a class="dropdown-item admin-per-page-item" href="javascript:void(0);" data-val="50">50</a></li>
+            <li><a class="dropdown-item admin-per-page-item" href="javascript:void(0);" data-val="75">75</a></li>
+            <li><a class="dropdown-item admin-per-page-item" href="javascript:void(0);" data-val="100">100</a></li>
+          {% endif %}
+        </ul>
+      </div>
+
+      <select name="per_page" class="d-none admin-per-page-select" style="width:75px;">
         {% if per_page_options %}
           {% for n in per_page_options %}
           <option value="{{ n }}" {% if n == per_page or n|stringformat:"s" == per_page|stringformat:"s" %}selected{% endif %}>{{ n }}</option>

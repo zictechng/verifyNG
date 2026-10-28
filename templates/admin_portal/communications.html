@@ -65,17 +65,107 @@
                 </div>
 
                 <!-- Role selector (shown when "By Role" selected) -->
-                <div id="roleGroup" class="mb-3" style="{% if request.POST.target_type == 'role' %}display:block;{% else %}display:none;{% endif %}">
-                    <label for="targetRoleSelect" class="form-label" style="font-size:0.78rem;font-weight:700;color:var(--adm-muted);text-transform:uppercase;letter-spacing:0.05em;">
+                <div id="roleGroup" class="mb-4" style="{% if request.POST.target_type == 'role' %}display:block;{% else %}display:none;{% endif %}">
+                    <label for="roleDropdownBtn" class="form-label" style="font-size:0.78rem;font-weight:700;color:var(--adm-muted);text-transform:uppercase;letter-spacing:0.05em;">
                         Select Role <span class="text-danger">*</span>
                     </label>
-                    <select name="target_role" id="targetRoleSelect" class="form-select" style="border-radius:7px;border-color:var(--adm-border);font-size:0.86rem;padding:8px 12px;cursor:pointer;">
-                        <option value="" disabled {% if not request.POST.target_role %}selected{% endif %}>-- Choose User Role --</option>
-                        {% for r_val, r_label in roles %}
-                            <option value="{{ r_val }}" {% if request.POST.target_role == r_val %}selected{% endif %}>{{ r_label }}</option>
-                        {% endfor %}
+
+                    <!-- Interactive Bootstrap Dropdown (100% reliable drop-down menu) -->
+                    <div class="dropdown mb-3" id="roleCustomDropdown">
+                        <button class="btn w-100 text-start d-flex align-items-center justify-content-between dropdown-toggle" 
+                                type="button" 
+                                id="roleDropdownBtn" 
+                                data-bs-toggle="dropdown" 
+                                aria-expanded="false"
+                                style="border:1px solid var(--adm-border);border-radius:7px;padding:9px 14px;background:var(--adm-card-bg,#fff);font-size:0.86rem;color:var(--adm-ink,#1e293b);box-shadow:none;">
+                            <span id="roleDropdownSelectedText">-- Choose User Role --</span>
+                        </button>
+                        <ul class="dropdown-menu w-100 shadow" aria-labelledby="roleDropdownBtn" style="border-radius:8px;border-color:var(--adm-border);max-height:280px;overflow-y:auto;z-index:1050;">
+                            <li>
+                                <a class="dropdown-item py-2 role-dd-item" href="javascript:void(0);" data-value="">
+                                    <span class="text-muted">-- Choose User Role --</span>
+                                </a>
+                            </li>
+                            {% if roles_with_counts %}
+                                {% for r in roles_with_counts %}
+                                <li>
+                                    <a class="dropdown-item py-2 d-flex align-items-center justify-content-between role-dd-item" 
+                                       href="javascript:void(0);" 
+                                       data-value="{{ r.value }}" 
+                                       data-label="{{ r.label }}" 
+                                       data-count="{{ r.count }}" 
+                                       data-emails="{{ r.emails|join:', ' }}">
+                                        <span class="fw-medium">{{ r.label }}</span>
+                                        {% if r.count > 0 %}
+                                            <span class="badge bg-primary rounded-pill" style="font-size:0.7rem;">{{ r.count }} user{{ r.count|pluralize }}</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary opacity-50 rounded-pill" style="font-size:0.7rem;">0 users</span>
+                                        {% endif %}
+                                    </a>
+                                </li>
+                                {% endfor %}
+                            {% else %}
+                                {% for r_val, r_label in roles %}
+                                <li>
+                                    <a class="dropdown-item py-2 role-dd-item" href="javascript:void(0);" data-value="{{ r_val }}" data-label="{{ r_label }}">
+                                        <span>{{ r_label }}</span>
+                                    </a>
+                                </li>
+                                {% endfor %}
+                            {% endif %}
+                        </ul>
+                    </div>
+
+                    <!-- Standard Form Select (kept in DOM for native form submission & tests) -->
+                    <select name="target_role" id="targetRoleSelect" class="d-none">
+                        <option value="" {% if not request.POST.target_role %}selected{% endif %}>-- Choose User Role --</option>
+                        {% if roles_with_counts %}
+                            {% for r in roles_with_counts %}
+                                <option value="{{ r.value }}" data-count="{{ r.count }}" data-emails="{{ r.emails|join:', ' }}" {% if request.POST.target_role == r.value %}selected{% endif %}>
+                                    {{ r.label }} ({{ r.count }} active user{{ r.count|pluralize }})
+                                </option>
+                            {% endfor %}
+                        {% else %}
+                            {% for r_val, r_label in roles %}
+                                <option value="{{ r_val }}" {% if request.POST.target_role == r_val %}selected{% endif %}>{{ r_label }}</option>
+                            {% endfor %}
+                        {% endif %}
                     </select>
-                    <div class="form-text text-muted" style="font-size:0.75rem;">Only active users registered with this role will receive this broadcast.</div>
+
+                    <!-- 1-Click Role Quick Select Cards / Pills -->
+                    <div class="small fw-semibold text-muted mb-2" style="font-size:0.75rem;">Or click a role directly:</div>
+                    <div class="d-flex flex-wrap gap-2 mb-3" id="rolePillContainer">
+                        {% for r in roles_with_counts %}
+                            <button type="button" 
+                                    class="btn btn-sm role-pill-btn d-flex align-items-center gap-2"
+                                    data-role="{{ r.value }}"
+                                    data-label="{{ r.label }}"
+                                    data-count="{{ r.count }}"
+                                    data-emails="{{ r.emails|join:', ' }}"
+                                    style="border-radius:20px; font-size:0.8rem; padding:6px 14px; border:1px solid var(--adm-border); background:var(--adm-card-bg,#fff); color:var(--adm-ink,#1e293b); transition:all 0.15s ease;">
+                                <span>{{ r.label }}</span>
+                                {% if r.count > 0 %}
+                                    <span class="badge rounded-pill bg-primary" style="font-size:0.7rem;">{{ r.count }}</span>
+                                {% else %}
+                                    <span class="badge rounded-pill bg-secondary opacity-50" style="font-size:0.7rem;">0</span>
+                                {% endif %}
+                            </button>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Live Recipient Preview Box -->
+                    <div id="roleRecipientPreview" class="p-3 rounded small d-none" style="background:#F0FDF4; border:1px solid #BBF7D0; color:#166534; font-size:0.82rem;">
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                            <span class="fw-bold" id="previewRoleName"></span>
+                            <span class="badge bg-success text-white" id="previewRoleBadge" style="font-size:0.72rem;"></span>
+                        </div>
+                        <div id="previewRoleEmailsWrap" style="font-size:0.78rem; color:#14532D;">
+                            <strong>Recipient Emails:</strong> <span id="previewRoleEmails"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-text text-muted mt-2" style="font-size:0.75rem;">Only active users registered with this role will receive this broadcast.</div>
                 </div>
 
                 <!-- Single email (shown when "Single User" selected) -->
@@ -159,14 +249,25 @@
             <h2 class="adm-card-title mb-3">Audience Reference</h2>
             <table style="width:100%;font-size:0.78rem;border-collapse:collapse;">
                 <tbody>
-                    {% for r_val, r_label in roles %}
-                    <tr>
-                        <td style="padding:5px 0;color:var(--adm-muted);">{{ r_label }}</td>
-                        <td style="padding:5px 0;text-align:right;">
-                            <span class="adm-badge blue">{{ r_val }}</span>
-                        </td>
-                    </tr>
-                    {% endfor %}
+                    {% if roles_with_counts %}
+                        {% for r in roles_with_counts %}
+                        <tr>
+                            <td style="padding:5px 0;color:var(--adm-muted);">{{ r.label }}</td>
+                            <td style="padding:5px 0;text-align:right;">
+                                <span class="adm-badge blue">{{ r.count }} user{{ r.count|pluralize }}</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        {% for r_val, r_label in roles %}
+                        <tr>
+                            <td style="padding:5px 0;color:var(--adm-muted);">{{ r_label }}</td>
+                            <td style="padding:5px 0;text-align:right;">
+                                <span class="adm-badge blue">{{ r_val }}</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% endif %}
                 </tbody>
             </table>
         </div>
@@ -219,6 +320,106 @@
     const radios     = document.querySelectorAll('input[name="target_type"]');
     const roleSelect = document.getElementById('targetRoleSelect');
     const emailInput = document.getElementById('targetEmailInput');
+    const pillBtns   = document.querySelectorAll('.role-pill-btn');
+    const ddItems    = document.querySelectorAll('.role-dd-item');
+    const ddText     = document.getElementById('roleDropdownSelectedText');
+    const previewBox = document.getElementById('roleRecipientPreview');
+    const previewName = document.getElementById('previewRoleName');
+    const previewBadge = document.getElementById('previewRoleBadge');
+    const previewEmails = document.getElementById('previewRoleEmails');
+    const previewEmailsWrap = document.getElementById('previewRoleEmailsWrap');
+
+    function syncDropdownText(val, customLabel) {
+        if (!ddText) return;
+        if (!val) {
+            ddText.textContent = '-- Choose User Role --';
+            ddText.classList.add('text-muted');
+        } else {
+            ddText.textContent = customLabel || val;
+            ddText.classList.remove('text-muted');
+        }
+    }
+
+    function updatePreview(val, optLabel) {
+        if (!val) {
+            if (previewBox) previewBox.classList.add('d-none');
+            syncDropdownText('', '');
+            pillBtns.forEach(btn => {
+                btn.style.background = 'var(--adm-card-bg, #fff)';
+                btn.style.color = 'var(--adm-ink, #1e293b)';
+                btn.style.borderColor = 'var(--adm-border)';
+            });
+            return;
+        }
+
+        // Highlight matching pill & find label
+        let matchedBtn = null;
+        let roleLabel = optLabel || val;
+        pillBtns.forEach(btn => {
+            if (btn.dataset.role === val) {
+                btn.style.background = 'var(--adm-accent, #2457D6)';
+                btn.style.color = '#ffffff';
+                btn.style.borderColor = 'var(--adm-accent, #2457D6)';
+                matchedBtn = btn;
+                roleLabel = btn.dataset.label || roleLabel;
+            } else {
+                btn.style.background = 'var(--adm-card-bg, #fff)';
+                btn.style.color = 'var(--adm-ink, #1e293b)';
+                btn.style.borderColor = 'var(--adm-border)';
+            }
+        });
+
+        syncDropdownText(val, roleLabel);
+
+        // Update preview card
+        if (previewBox) {
+            const count = parseInt(matchedBtn ? (matchedBtn.dataset.count || '0') : '0', 10);
+            const emails = matchedBtn ? (matchedBtn.dataset.emails || '') : '';
+            previewName.textContent = roleLabel;
+            previewBadge.textContent = count + ' recipient' + (count === 1 ? '' : 's');
+            
+            if (count > 0 && emails) {
+                previewEmails.textContent = emails;
+                previewEmailsWrap.classList.remove('d-none');
+            } else {
+                previewEmails.textContent = 'None currently registered.';
+                previewEmailsWrap.classList.remove('d-none');
+            }
+            previewBox.classList.remove('d-none');
+        }
+    }
+
+    // Interactive Bootstrap Dropdown click listener
+    ddItems.forEach(item => {
+        item.addEventListener('click', function (e) {
+            e.preventDefault();
+            const val = this.dataset.value || '';
+            const label = this.dataset.label || (val ? this.querySelector('.fw-medium')?.textContent : '');
+            if (roleSelect) {
+                roleSelect.value = val;
+            }
+            updatePreview(val, label);
+        });
+    });
+
+    // Role select change listener
+    if (roleSelect) {
+        roleSelect.addEventListener('change', function () {
+            updatePreview(this.value);
+        });
+    }
+
+    // Pill buttons click listener
+    pillBtns.forEach(btn => {
+        btn.addEventListener('click', function () {
+            const role = this.dataset.role;
+            const label = this.dataset.label;
+            if (roleSelect) {
+                roleSelect.value = role;
+            }
+            updatePreview(role, label);
+        });
+    });
 
     function updateView(val) {
         if (roleGrp) {
@@ -226,6 +427,9 @@
         }
         if (singleGrp) {
             singleGrp.style.display = (val === 'single') ? 'block' : 'none';
+        }
+        if (val === 'role' && roleSelect) {
+            updatePreview(roleSelect.value);
         }
     }
 
@@ -252,6 +456,9 @@
     // Initialize state on load
     const checkedRadio = document.querySelector('input[name="target_type"]:checked');
     updateView(checkedRadio ? checkedRadio.value : 'all');
+    if (roleSelect && roleSelect.value) {
+        updatePreview(roleSelect.value);
+    }
 
     // Modal Confirmation handler
     const broadcastForm = document.getElementById('broadcastForm');
