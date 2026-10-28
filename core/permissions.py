@@ -1,7 +1,11 @@
 from functools import wraps
 from django.core.exceptions import PermissionDenied
 from django.contrib.auth.decorators import user_passes_test
-
+from django.contrib.auth import get_user_model
+from django.contrib import messages
+from django.shortcuts import redirect
+from django.contrib.auth.views import redirect_to_login
+                
 
 def is_moderator(user):
     """
@@ -303,7 +307,6 @@ def is_profile_verified(user) -> tuple[bool, str]:
     # Handle case where OTPMiddleware attached a partial to identity_verified
     if getattr(user, 'pk', None):
         try:
-            from django.contrib.auth import get_user_model
             UserModel = get_user_model()
             if UserModel.objects.filter(pk=user.pk, identity_verified=True).exists():
                 return True, ""
@@ -330,13 +333,10 @@ def verified_profile_required(view_func=None, redirect_url=None):
         @wraps(func)
         def wrapper(request, *args, **kwargs):
             if not request.user.is_authenticated:
-                from django.contrib.auth.views import redirect_to_login
                 return redirect_to_login(request.get_full_path())
 
             verified, message = is_profile_verified(request.user)
             if not verified:
-                from django.contrib import messages
-                from django.shortcuts import redirect
                 messages.warning(request, message)
 
                 if redirect_url:
@@ -363,13 +363,10 @@ class VerifiedProfileRequiredMixin:
 
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
-            from django.contrib.auth.views import redirect_to_login
             return redirect_to_login(request.get_full_path())
 
         verified, message = is_profile_verified(request.user)
         if not verified:
-            from django.contrib import messages
-            from django.shortcuts import redirect
             messages.warning(request, message)
 
             if self.verified_redirect_url:

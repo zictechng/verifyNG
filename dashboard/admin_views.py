@@ -2291,10 +2291,10 @@ class AdminActivityLogsView(SuperAdminRequiredMixin, TemplateView):
         ctx['per_page'] = per_page
         ctx['per_page_options'] = [15, 25, 50, 75, 100]
 
-        # --- Summary panels (non-paginated, fixed count) ---
-        ctx['recent_reports'] = FraudReport.objects.select_related('reporter').order_by('-created_at')[:20]
-        ctx['recent_verifications'] = VerificationRequest.objects.select_related('requester').order_by('-created_at')[:20] if VerificationRequest else []
-        ctx['recent_users'] = User.objects.order_by('-date_joined')[:15]
+        # --- Summary panels (compact 5 items each) ---
+        ctx['recent_reports'] = FraudReport.objects.select_related('reporter').order_by('-created_at')[:5]
+        ctx['recent_verifications'] = VerificationRequest.objects.select_related('requester').order_by('-created_at')[:5] if VerificationRequest else []
+        ctx['recent_users'] = User.objects.order_by('-date_joined')[:5]
 
         # --- Filters state ---
         ctx['q'] = q

@@ -17,11 +17,12 @@
 
   <!-- Recent Reports -->
   <div class="col-lg-4">
-    <div class="adm-card h-100">
-      <div class="adm-card-header">
-        <i class="bi bi-flag me-2"></i>Recent Reports (20)
+    <div class="adm-card h-100 d-flex flex-column">
+      <div class="adm-card-header d-flex align-items-center justify-content-between">
+        <span><i class="bi bi-flag me-2"></i>Recent Reports (5)</span>
+        <a href="{% url 'admin_portal:reports' %}" class="small text-decoration-none" style="font-size:0.75rem;">View all</a>
       </div>
-      <div class="table-responsive">
+      <div class="table-responsive flex-grow-1">
         <table class="table adm-table mb-0">
           <thead><tr><th>Reference</th><th>State</th><th>Date</th></tr></thead>
           <tbody>
@@ -45,11 +46,12 @@
 
   <!-- Recent Registrations -->
   <div class="col-lg-4">
-    <div class="adm-card h-100">
-      <div class="adm-card-header">
-        <i class="bi bi-people me-2"></i>New Users (15)
+    <div class="adm-card h-100 d-flex flex-column">
+      <div class="adm-card-header d-flex align-items-center justify-content-between">
+        <span><i class="bi bi-people me-2"></i>New Users (5)</span>
+        <a href="{% url 'admin_portal:users' %}" class="small text-decoration-none" style="font-size:0.75rem;">View all</a>
       </div>
-      <div class="table-responsive">
+      <div class="table-responsive flex-grow-1">
         <table class="table adm-table mb-0">
           <thead><tr><th>Username</th><th>Role</th><th>Joined</th></tr></thead>
           <tbody>
@@ -73,11 +75,12 @@
 
   <!-- Recent Verifications -->
   <div class="col-lg-4">
-    <div class="adm-card h-100">
-      <div class="adm-card-header">
-        <i class="bi bi-patch-check me-2"></i>Recent Verifications (20)
+    <div class="adm-card h-100 d-flex flex-column">
+      <div class="adm-card-header d-flex align-items-center justify-content-between">
+        <span><i class="bi bi-patch-check me-2"></i>Recent Verifications (5)</span>
+        <a href="{% url 'admin_portal:verifications' %}" class="small text-decoration-none" style="font-size:0.75rem;">View all</a>
       </div>
-      <div class="table-responsive">
+      <div class="table-responsive flex-grow-1">
         <table class="table adm-table mb-0">
           <thead><tr><th>Requester</th><th>Status</th><th>Date</th></tr></thead>
           <tbody>
