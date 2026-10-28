@@ -26,25 +26,9 @@
       {% if custom_message %}
         {{ custom_message }}
       {% else %}
-        You do not have permission to access the <strong>{{ section_name|default:"requested" }}</strong> section. 
-        Your staff account is limited to your assigned responsibilities. If you need access to this tool, please contact the System Administrator.
+        You do not have permission to access the <strong>{{ section_name|default:"requested" }}</strong> section. If you need access to this tool, please contact the System Administrator.
       {% endif %}
     </p>
-
-    <!-- Group Information Pill -->
-    <div class="p-3 rounded mb-4 text-start" style="background: var(--adm-bg-alt, #F8FAFC); border: 1px solid var(--adm-border, #E2E8F0);">
-      <div class="small fw-semibold text-muted mb-1">Your Account Status:</div>
-      <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-        <span class="small fw-bold text-dark">{{ request.user.get_full_name|default:request.user.username }} ({{ request.user.get_role_display|default:"Staff" }})</span>
-        <div class="d-flex flex-wrap gap-1">
-          {% for grp in request.user.groups.all %}
-            <span class="badge bg-secondary" style="font-size: 0.72rem;">{{ grp.name }}</span>
-          {% empty %}
-            <span class="badge bg-light text-muted border" style="font-size: 0.72rem;">No department groups assigned</span>
-          {% endfor %}
-        </div>
-      </div>
-    </div>
 
     <!-- Return to Dashboard Button -->
     <div class="d-flex justify-content-center gap-3">

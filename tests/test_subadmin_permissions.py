@@ -85,8 +85,11 @@ class SubAdminPermissionsSecurityTestCase(TestCase):
         session.save()
 
     def test_reports_moderator_allowed_reports_view(self):
-        """Reports Moderator should have 200 OK access to Fraud Reports."""
+        """Reports Moderator should have 200 OK access to Fraud Reports and Overview."""
         self.client.force_login(self.reports_subadmin)
+        res_overview = self.client.get(reverse('admin_portal:overview'))
+        self.assertEqual(res_overview.status_code, 200)
+
         res = self.client.get(reverse('admin_portal:reports'))
         self.assertEqual(res.status_code, 200)
 
@@ -100,7 +103,6 @@ class SubAdminPermissionsSecurityTestCase(TestCase):
         self.assertIn("Access Restricted", content)
         self.assertIn("Verification Requests", content)
         self.assertIn("Return to Dashboard", content)
-        self.assertIn("Reports Moderator", content)
 
     def test_reports_moderator_blocked_from_users_view(self):
         """Reports Moderator attempting to open Users view gets HTTP 403 access_denied page."""
