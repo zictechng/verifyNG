@@ -49,15 +49,23 @@
     </div>
     {% if transactions.paginator.count > 0 %}
     <div class="p-3 border-top d-flex flex-wrap align-items-center justify-content-between gap-3">
-        <span class="text-muted small text-nowrap">
-            Showing {{ transactions.start_index }}–{{ transactions.end_index }} of {{ transactions.paginator.count }} transaction(s)
-        </span>
+        <div class="d-flex align-items-center gap-2">
+            <label class="text-muted small mb-0 text-nowrap" for="ledgerPerPageSelect">Rows per page:</label>
+            <select id="ledgerPerPageSelect" class="form-select form-select-sm ajax-ledger-per-page" style="width:80px;">
+                {% for n in per_page_options %}
+                <option value="{{ n }}" {% if n == ledger_per_page %}selected{% endif %}>{{ n }}</option>
+                {% endfor %}
+            </select>
+            <span class="text-muted small text-nowrap ms-2">
+                Showing {{ transactions.start_index }}–{{ transactions.end_index }} of {{ transactions.paginator.count }} transaction(s)
+            </span>
+        </div>
         {% if transactions.has_other_pages %}
         <nav aria-label="Transaction ledger pagination">
             <ul class="pagination pagination-sm mb-0">
                 {% if transactions.has_previous %}
                 <li class="page-item">
-                    <a class="page-link ajax-ledger-link" href="?page={{ transactions.previous_page_number }}" data-page="{{ transactions.previous_page_number }}" aria-label="Previous">‹ Prev</a>
+                    <a class="page-link ajax-ledger-link" href="javascript:void(0);" data-page="{{ transactions.previous_page_number }}" aria-label="Previous">‹ Prev</a>
                 </li>
                 {% else %}
                 <li class="page-item disabled"><span class="page-link">‹ Prev</span></li>
@@ -67,7 +75,7 @@
                     {% if num == transactions.number %}
                     <li class="page-item active"><span class="page-link">{{ num }}</span></li>
                     {% elif num == 1 or num == transactions.paginator.num_pages or num >= transactions.number|add:"-2" and num <= transactions.number|add:"2" %}
-                    <li class="page-item"><a class="page-link ajax-ledger-link" href="?page={{ num }}" data-page="{{ num }}">{{ num }}</a></li>
+                    <li class="page-item"><a class="page-link ajax-ledger-link" href="javascript:void(0);" data-page="{{ num }}">{{ num }}</a></li>
                     {% elif num == transactions.number|add:"-3" or num == transactions.number|add:"3" %}
                     <li class="page-item disabled"><span class="page-link">…</span></li>
                     {% endif %}
@@ -75,7 +83,7 @@
 
                 {% if transactions.has_next %}
                 <li class="page-item">
-                    <a class="page-link ajax-ledger-link" href="?page={{ transactions.next_page_number }}" data-page="{{ transactions.next_page_number }}" aria-label="Next">Next ›</a>
+                    <a class="page-link ajax-ledger-link" href="javascript:void(0);" data-page="{{ transactions.next_page_number }}" aria-label="Next">Next ›</a>
                 </li>
                 {% else %}
                 <li class="page-item disabled"><span class="page-link">Next ›</span></li>

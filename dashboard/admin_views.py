@@ -3178,14 +3178,31 @@ class AdminFinancialReportView(SuperAdminRequiredMixin, TemplateView):
             for name, data in sorted(breakdown_dict.items(), key=lambda x: -x[1]['revenue'])
         ]
 
-        # Paginated ledger (15 per page for professional, non-bloated table display)
+        # Rows per page options: 15, 25, 50, 75, 100 (defaults to 15)
+        per_page_options = [15, 25, 50, 75, 100]
+
+        # Paginated ledger
+        try:
+            ledger_per_page = int(request.GET.get('per_page') or request.GET.get('ledger_per_page', 15))
+            if ledger_per_page not in per_page_options:
+                ledger_per_page = 15
+        except (ValueError, TypeError):
+            ledger_per_page = 15
+
         ledger_page_number = request.GET.get('page') or request.GET.get('ledger_page', 1)
-        paginator = Paginator(qs, 15)
+        paginator = Paginator(qs, ledger_per_page)
         transactions_page = paginator.get_page(ledger_page_number)
 
-        # Paginated services & plans (15 per page)
+        # Paginated services & plans
+        try:
+            services_per_page = int(request.GET.get('services_per_page', 15))
+            if services_per_page not in per_page_options:
+                services_per_page = 15
+        except (ValueError, TypeError):
+            services_per_page = 15
+
         services_page_number = request.GET.get('services_page', 1)
-        services_paginator = Paginator(plan_breakdown, 15)
+        services_paginator = Paginator(plan_breakdown, services_per_page)
         plan_breakdown_page = services_paginator.get_page(services_page_number)
 
         active_subs = Subscription.objects.filter(status='active', is_active=True).count()
@@ -3208,6 +3225,9 @@ class AdminFinancialReportView(SuperAdminRequiredMixin, TemplateView):
             'plan_breakdown':       plan_breakdown,
             'plan_breakdown_page':  plan_breakdown_page,
             'transactions':         transactions_page,
+            'per_page_options':     per_page_options,
+            'ledger_per_page':      ledger_per_page,
+            'services_per_page':    services_per_page,
         }
 
     def get_context_data(self, **kwargs):

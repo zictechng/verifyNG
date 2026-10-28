@@ -126,6 +126,46 @@ class AdminFinancialReportPaginationTests(TestCase):
         self.assertTemplateNotUsed(res, 'admin_portal/financial_report.html')
         self.assertContains(res, 'Revenue by Service &amp; Plan')
 
+    def test_rows_per_page_selection_ledger(self):
+        """
+        User selects Rows per page: 25 on Transaction Ledger.
+        Table reloads with 25 rows per page without full page reload.
+        """
+        self.client.force_login(self.admin)
+        url = reverse('admin_portal:financial_report')
+        res = self.client.get(url, {
+            'ajax_section': 'ledger',
+            'page': 1,
+            'per_page': 25,
+        }, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+
+        self.assertEqual(res.status_code, 200)
+        self.assertTemplateUsed(res, 'admin_portal/_financial_ledger_partial.html')
+        transactions = res.context['transactions']
+        self.assertEqual(transactions.paginator.per_page, 25)
+        # 22 total transactions fit into 1 page when per_page is 25
+        self.assertEqual(len(transactions), 22)
+        self.assertFalse(transactions.has_next())
+        self.assertContains(res, 'selected>25</option>')
+
+    def test_rows_per_page_selection_services(self):
+        """
+        User selects Rows per page: 50 on Services & Plans.
+        """
+        self.client.force_login(self.admin)
+        url = reverse('admin_portal:financial_report')
+        res = self.client.get(url, {
+            'ajax_section': 'services',
+            'services_page': 1,
+            'services_per_page': 50,
+        }, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+
+        self.assertEqual(res.status_code, 200)
+        self.assertTemplateUsed(res, 'admin_portal/_financial_services_partial.html')
+        services_page = res.context['plan_breakdown_page']
+        self.assertEqual(services_page.paginator.per_page, 50)
+        self.assertContains(res, 'selected>50</option>')
+
     def test_export_csv_and_pdf_still_work_unaffected(self):
         """CSV and PDF exports function correctly and are not broken by partial pagination."""
         self.client.force_login(self.admin)

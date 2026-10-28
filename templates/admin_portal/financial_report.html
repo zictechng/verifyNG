@@ -171,123 +171,153 @@
 
 {% block admin_scripts %}
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    // Helper to get active filter parameters from the filter form
-    function getFilterParams() {
+(function () {
+    // Helper to get active filter parameters from the filterForm and current URL
+    function getActiveFilterParams() {
+        const params = new URLSearchParams(window.location.search);
         const form = document.getElementById('filterForm');
-        if (!form) return new URLSearchParams();
-        const fd = new FormData(form);
-        const params = new URLSearchParams();
-        for (const [key, val] of fd.entries()) {
-            if (val && key !== 'download') {
-                params.set(key, val);
+        if (form) {
+            const fd = new FormData(form);
+            for (const [k, v] of fd.entries()) {
+                if (v && k !== 'download' && k !== 'ajax_section') {
+                    params.set(k, v);
+                }
             }
         }
+        params.delete('download');
+        params.delete('ajax_section');
         return params;
     }
 
-    // ── 1. Services & Plan AJAX Pagination ──────────────────────
-    function attachServicesListeners() {
-        const servicesCard = document.getElementById('financial-services-card');
-        if (!servicesCard) return;
+    // ── 1. Fetch & Replace Transaction Ledger ────────────────────
+    function fetchLedger(page, perPage) {
+        const wrapper = document.getElementById('financial-ledger-wrapper');
+        if (!wrapper) return;
 
-        servicesCard.querySelectorAll('.ajax-services-link').forEach(link => {
-            link.addEventListener('click', function (e) {
-                e.preventDefault();
-                const page = this.getAttribute('data-page');
-                if (!page) return;
+        const params = getActiveFilterParams();
+        params.set('ajax_section', 'ledger');
+        params.set('page', page || '1');
+        if (perPage) {
+            params.set('per_page', perPage);
+        }
 
-                const params = getFilterParams();
-                params.set('ajax_section', 'services');
-                params.set('services_page', page);
+        // Show loading state
+        wrapper.style.opacity = '0.55';
+        wrapper.style.pointerEvents = 'none';
 
-                // Show loading overlay
-                const overlay = servicesCard.querySelector('.services-loading-overlay');
-                if (overlay) overlay.classList.remove('d-none');
-                servicesCard.style.opacity = '0.65';
+        const fetchUrl = window.location.pathname + '?' + params.toString();
 
-                fetch(`${window.location.pathname}?${params.toString()}`, {
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                })
-                .then(res => {
-                    if (!res.ok) throw new Error('Network error: ' + res.status);
-                    return res.text();
-                })
-                .then(html => {
-                    const temp = document.createElement('div');
-                    temp.innerHTML = html.trim();
-                    const newCard = temp.firstElementChild;
-                    if (newCard) {
-                        servicesCard.replaceWith(newCard);
-                        newCard.style.opacity = '1';
-                        // Keep URL state synchronized
-                        const currentUrl = new URL(window.location);
-                        currentUrl.searchParams.set('services_page', page);
-                        window.history.replaceState({}, '', currentUrl.toString());
-                        attachServicesListeners();
-                    }
-                })
-                .catch(err => {
-                    console.error('Failed to load services page:', err);
-                    if (overlay) overlay.classList.add('d-none');
-                    servicesCard.style.opacity = '1';
-                });
-            });
+        fetch(fetchUrl, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(function (res) {
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            return res.text();
+        })
+        .then(function (html) {
+            wrapper.innerHTML = html;
+            wrapper.style.opacity = '1';
+            wrapper.style.pointerEvents = 'auto';
+
+            // Sync URL state without reload
+            const currentUrl = new URL(window.location.href);
+            currentUrl.searchParams.set('page', page || '1');
+            if (perPage) currentUrl.searchParams.set('per_page', perPage);
+            currentUrl.searchParams.delete('ajax_section');
+            window.history.replaceState({}, '', currentUrl.toString());
+        })
+        .catch(function (err) {
+            console.error('Ledger pagination error:', err);
+            wrapper.style.opacity = '1';
+            wrapper.style.pointerEvents = 'auto';
         });
     }
 
-    // ── 2. Transaction Ledger AJAX Pagination ───────────────────
-    function attachLedgerListeners() {
-        const ledgerCard = document.getElementById('financial-ledger-card');
-        if (!ledgerCard) return;
+    // ── 2. Fetch & Replace Services & Plans ──────────────────────
+    function fetchServices(page, perPage) {
+        const wrapper = document.getElementById('financial-services-wrapper');
+        if (!wrapper) return;
 
-        ledgerCard.querySelectorAll('.ajax-ledger-link').forEach(link => {
-            link.addEventListener('click', function (e) {
-                e.preventDefault();
-                const page = this.getAttribute('data-page');
-                if (!page) return;
+        const params = getActiveFilterParams();
+        params.set('ajax_section', 'services');
+        params.set('services_page', page || '1');
+        if (perPage) {
+            params.set('services_per_page', perPage);
+        }
 
-                const params = getFilterParams();
-                params.set('ajax_section', 'ledger');
-                params.set('page', page);
+        wrapper.style.opacity = '0.55';
+        wrapper.style.pointerEvents = 'none';
 
-                // Show loading overlay
-                const overlay = ledgerCard.querySelector('.ledger-loading-overlay');
-                if (overlay) overlay.classList.remove('d-none');
-                ledgerCard.style.opacity = '0.65';
+        const fetchUrl = window.location.pathname + '?' + params.toString();
 
-                fetch(`${window.location.pathname}?${params.toString()}`, {
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                })
-                .then(res => {
-                    if (!res.ok) throw new Error('Network error: ' + res.status);
-                    return res.text();
-                })
-                .then(html => {
-                    const temp = document.createElement('div');
-                    temp.innerHTML = html.trim();
-                    const newCard = temp.firstElementChild;
-                    if (newCard) {
-                        ledgerCard.replaceWith(newCard);
-                        newCard.style.opacity = '1';
-                        // Keep URL state synchronized
-                        const currentUrl = new URL(window.location);
-                        currentUrl.searchParams.set('page', page);
-                        window.history.replaceState({}, '', currentUrl.toString());
-                        attachLedgerListeners();
-                    }
-                })
-                .catch(err => {
-                    console.error('Failed to load ledger page:', err);
-                    if (overlay) overlay.classList.add('d-none');
-                    ledgerCard.style.opacity = '1';
-                });
-            });
+        fetch(fetchUrl, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(function (res) {
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            return res.text();
+        })
+        .then(function (html) {
+            wrapper.innerHTML = html;
+            wrapper.style.opacity = '1';
+            wrapper.style.pointerEvents = 'auto';
+
+            const currentUrl = new URL(window.location.href);
+            currentUrl.searchParams.set('services_page', page || '1');
+            if (perPage) currentUrl.searchParams.set('services_per_page', perPage);
+            currentUrl.searchParams.delete('ajax_section');
+            window.history.replaceState({}, '', currentUrl.toString());
+        })
+        .catch(function (err) {
+            console.error('Services pagination error:', err);
+            wrapper.style.opacity = '1';
+            wrapper.style.pointerEvents = 'auto';
         });
     }
 
-    attachServicesListeners();
-    attachLedgerListeners();
-});
+    // ── 3. Delegated Click Listener (Handles all page number clicks) ──
+    document.addEventListener('click', function (e) {
+        // Ledger pagination link clicked
+        const ledgerLink = e.target.closest('.ajax-ledger-link');
+        if (ledgerLink) {
+            e.preventDefault();
+            e.stopPropagation();
+            const page = ledgerLink.getAttribute('data-page') || '1';
+            const select = document.getElementById('ledgerPerPageSelect');
+            const perPage = select ? select.value : '15';
+            fetchLedger(page, perPage);
+            return;
+        }
+
+        // Services pagination link clicked
+        const servicesLink = e.target.closest('.ajax-services-link');
+        if (servicesLink) {
+            e.preventDefault();
+            e.stopPropagation();
+            const page = servicesLink.getAttribute('data-page') || '1';
+            const select = document.getElementById('servicesPerPageSelect');
+            const perPage = select ? select.value : '15';
+            fetchServices(page, perPage);
+            return;
+        }
+    });
+
+    // ── 4. Delegated Change Listener (Handles Rows Per Page dropdown) ──
+    document.addEventListener('change', function (e) {
+        if (e.target && e.target.id === 'ledgerPerPageSelect') {
+            e.preventDefault();
+            const newPerPage = e.target.value;
+            fetchLedger('1', newPerPage);
+            return;
+        }
+
+        if (e.target && e.target.id === 'servicesPerPageSelect') {
+            e.preventDefault();
+            const newPerPage = e.target.value;
+            fetchServices('1', newPerPage);
+            return;
+        }
+    });
+})();
 </script>
 {% endblock %}
