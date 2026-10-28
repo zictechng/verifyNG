@@ -3,7 +3,10 @@ from django.urls import path, include
 from django_otp.admin import OTPAdminSite
 from django.conf import settings
 
-admin.site.__class__ = OTPAdminSite
+# Enforce OTP/Two-Factor security on the technical Django Admin in production only.
+# In local development (DEBUG=True), standard username/password login is used.
+if not settings.DEBUG:
+    admin.site.__class__ = OTPAdminSite
 
 _api_urls = None
 
