@@ -19,7 +19,7 @@
   <div class="col-lg-4">
     <div class="adm-card h-100 d-flex flex-column">
       <div class="adm-card-header d-flex align-items-center justify-content-between">
-        <span><i class="bi bi-flag me-2"></i>Recent Reports (5)</span>
+        <span><i class="bi bi-flag me-2"></i>Recent Reports ({{ recent_reports|length }})</span>
         <a href="{% url 'admin_portal:reports' %}" class="small text-decoration-none" style="font-size:0.75rem;">View all</a>
       </div>
       <div class="table-responsive flex-grow-1">
@@ -48,7 +48,7 @@
   <div class="col-lg-4">
     <div class="adm-card h-100 d-flex flex-column">
       <div class="adm-card-header d-flex align-items-center justify-content-between">
-        <span><i class="bi bi-people me-2"></i>New Users (5)</span>
+        <span><i class="bi bi-people me-2"></i>New Users ({{ recent_users|length }})</span>
         <a href="{% url 'admin_portal:users' %}" class="small text-decoration-none" style="font-size:0.75rem;">View all</a>
       </div>
       <div class="table-responsive flex-grow-1">
@@ -77,7 +77,7 @@
   <div class="col-lg-4">
     <div class="adm-card h-100 d-flex flex-column">
       <div class="adm-card-header d-flex align-items-center justify-content-between">
-        <span><i class="bi bi-patch-check me-2"></i>Recent Verifications (5)</span>
+        <span><i class="bi bi-patch-check me-2"></i>Recent Verifications ({{ recent_verifications|length }})</span>
         <a href="{% url 'admin_portal:verifications' %}" class="small text-decoration-none" style="font-size:0.75rem;">View all</a>
       </div>
       <div class="table-responsive flex-grow-1">
