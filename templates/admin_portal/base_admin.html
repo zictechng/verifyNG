@@ -1181,55 +1181,97 @@
     });
 })();
 
-/* ── Universal Admin Filter Dropdown Enhancer ── */
+/* ── Universal Admin Dropdown Enhancer ── */
 (function () {
-    function enhanceFilterSelects(root) {
+    function addOptionItem(opt, menu, sel, btn) {
+        const li = document.createElement('li');
+        const a = document.createElement('a');
+        a.className = 'dropdown-item py-1' + (opt.selected ? ' active fw-semibold' : '');
+        a.href = 'javascript:void(0);';
+        a.dataset.val = opt.value;
+        a.textContent = opt.text;
+
+        a.addEventListener('click', function (e) {
+            e.preventDefault();
+            sel.value = opt.value;
+            sel.selectedIndex = opt.index;
+            btn.querySelector('.adm-dd-text').textContent = opt.text;
+            menu.querySelectorAll('.dropdown-item').forEach(el => el.classList.remove('active', 'fw-semibold'));
+            a.classList.add('active', 'fw-semibold');
+            sel.dispatchEvent(new Event('change', { bubbles: true }));
+            if (typeof sel.onchange === 'function') {
+                sel.onchange();
+            }
+        });
+
+        li.appendChild(a);
+        menu.appendChild(li);
+    }
+
+    function enhanceSelects(root) {
         const container = root || document;
-        const selects = container.querySelectorAll('.adm-filter-bar select.form-select');
+        const selects = container.querySelectorAll('select.form-select');
         selects.forEach(function (sel) {
-            if (sel.dataset.enhanced === 'true' || sel.classList.contains('d-none')) return;
+            // Skip already enhanced, explicitly hidden (d-none), or opt-out selects
+            if (sel.dataset.enhanced === 'true' || sel.classList.contains('d-none') || sel.dataset.noEnhance === 'true') {
+                return;
+            }
 
             sel.dataset.enhanced = 'true';
             sel.style.display = 'none';
 
-            const selectedOpt = sel.options[sel.selectedIndex] || sel.options[0];
-            const currentLabel = selectedOpt ? selectedOpt.text : 'Select';
+            const selectedOpt = (sel.selectedIndex >= 0 && sel.options[sel.selectedIndex]) ? sel.options[sel.selectedIndex] : sel.options[0];
+            const currentLabel = selectedOpt ? selectedOpt.text : 'Select…';
 
             const wrap = document.createElement('div');
-            wrap.className = 'dropdown d-inline-block w-100 adm-enhanced-dropdown';
+            wrap.className = 'dropdown d-inline-block adm-enhanced-dropdown';
+            if (sel.style.width) wrap.style.width = sel.style.width;
+            if (sel.style.minWidth) wrap.style.minWidth = sel.style.minWidth;
+            if (!sel.style.width && !sel.style.minWidth) {
+                wrap.style.width = '100%';
+            }
             wrap.style.position = 'relative';
 
+            const isSm = sel.classList.contains('form-select-sm');
             const btn = document.createElement('button');
             btn.type = 'button';
-            btn.className = 'btn form-select form-select-sm text-start d-flex align-items-center justify-content-between';
+            btn.className = 'btn form-select ' + (isSm ? 'form-select-sm ' : '') + 'text-start d-flex align-items-center justify-content-between gap-2';
             btn.setAttribute('data-bs-toggle', 'dropdown');
             btn.setAttribute('aria-expanded', 'false');
-            btn.style.cssText = 'height:38px;font-size:0.845rem;border-color:var(--adm-border);border-radius:7px;background-color:var(--adm-card-bg,#fff);color:var(--adm-ink,#1e293b);box-shadow:none;';
+                        btn.style.cssText = (isSm ? 'height:36px;font-size:0.84rem;' : 'height:38px;font-size:0.86rem;') + 
+                               'border-color:var(--adm-border);border-radius:7px;background-color:var(--adm-card-bg,#fff);color:var(--adm-ink,#1e293b);box-shadow:none;width:100%;';
             btn.innerHTML = `<span class="adm-dd-text text-truncate">${currentLabel}</span>`;
 
             const menu = document.createElement('ul');
             menu.className = 'dropdown-menu w-100 shadow-sm';
-            menu.style.cssText = 'max-height:260px;overflow-y:auto;z-index:1050;font-size:0.845rem;border-color:var(--adm-border);';
+            menu.style.cssText = 'max-height:280px;overflow-y:auto;z-index:1050;font-size:0.845rem;border-color:var(--adm-border);';
 
-            Array.from(sel.options).forEach(function (opt) {
-                const li = document.createElement('li');
-                const a = document.createElement('a');
-                a.className = 'dropdown-item py-1' + (opt.selected ? ' active fw-semibold' : '');
-                a.href = 'javascript:void(0);';
-                a.dataset.val = opt.value;
-                a.textContent = opt.text;
+            Array.from(sel.children).forEach(function (child) {
+                if (child.tagName === 'OPTGROUP') {
+                    const header = document.createElement('li');
+                    header.className = 'dropdown-header fw-bold text-uppercase';
+                    header.style.cssText = 'font-size:0.68rem;letter-spacing:0.05em;color:var(--adm-muted);padding:6px 14px 2px;';
+                    header.textContent = child.label;
+                    menu.appendChild(header);
 
-                a.addEventListener('click', function (e) {
-                    e.preventDefault();
-                    sel.value = opt.value;
+                    Array.from(child.children).forEach(function (opt) {
+                        addOptionItem(opt, menu, sel, btn);
+                    });
+                } else if (child.tagName === 'OPTION') {
+                    addOptionItem(child, menu, sel, btn);
+                }
+            });
+
+            // Keep button in sync if script changes select value
+            sel.addEventListener('change', function () {
+                const opt = (sel.selectedIndex >= 0 && sel.options[sel.selectedIndex]) ? sel.options[sel.selectedIndex] : sel.options[0];
+                if (opt) {
                     btn.querySelector('.adm-dd-text').textContent = opt.text;
-                    menu.querySelectorAll('.dropdown-item').forEach(el => el.classList.remove('active', 'fw-semibold'));
-                    a.classList.add('active', 'fw-semibold');
-                    sel.dispatchEvent(new Event('change', { bubbles: true }));
-                });
-
-                li.appendChild(a);
-                menu.appendChild(li);
+                    menu.querySelectorAll('.dropdown-item').forEach(el => {
+                        el.classList.toggle('active', el.dataset.val === opt.value);
+                        el.classList.toggle('fw-semibold', el.dataset.val === opt.value);
+                    });
+                }
             });
 
             wrap.appendChild(btn);
@@ -1239,11 +1281,12 @@
     }
 
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function () { enhanceFilterSelects(); });
+        document.addEventListener('DOMContentLoaded', function () { enhanceSelects(); });
     } else {
-        enhanceFilterSelects();
+        enhanceSelects();
     }
-    window.enhanceFilterSelects = enhanceFilterSelects;
+    window.enhanceSelects = enhanceSelects;
+    window.enhanceFilterSelects = enhanceSelects;
 })();
 </script>
 {% block admin_scripts %}{% endblock %}

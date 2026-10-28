@@ -18,7 +18,7 @@
 <!-- Filter bar -->
 <div class="adm-filter-bar">
     <form method="get" class="row g-2 align-items-end">
-        <div class="col-md-5">
+        <div class="col-md-4">
             <label class="form-label small fw-semibold mb-1" style="color:var(--adm-muted);">Search</label>
             <div class="input-group input-group-sm">
                 <span class="input-group-text border-end-0 bg-white">
@@ -37,9 +37,9 @@
                 {% endfor %}
             </select>
         </div>
-        <div class="col-md-2">
+        <div class="col-md-3">
             <label class="form-label small fw-semibold mb-1" style="color:var(--adm-muted);">Status</label>
-            <select name="status" class="form-select form-select-sm" style="height:38px;">
+            <select name="status" class="form-select form-select-sm" style="height:38px;min-width:140px;">
                 <option value="">All Statuses</option>
                 <option value="active"    {% if selected_status == 'active'    %}selected{% endif %}>Active</option>
                 <option value="suspended" {% if selected_status == 'suspended' %}selected{% endif %}>Suspended</option>

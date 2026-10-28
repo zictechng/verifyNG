@@ -20,8 +20,8 @@
 <!-- Hidden CSRF token for JS fetch -->
 <input type="hidden" id="csrfToken" value="{{ csrf_token }}">
 
-<div class="adm-card">
-  <div class="table-responsive">
+<div class="adm-card" style="overflow:visible;">
+  <div class="table-responsive" style="overflow:visible;">
     <table class="table adm-table mb-0">
       <thead>
         <tr>
@@ -72,12 +72,12 @@
             <span class="text-muted small no-groups-label" id="no-groups-{{ user.pk }}">No groups</span>
             {% endfor %}
           </td>
-          <td>
+                    <td>
             {% if all_groups %}
             <div class="d-flex gap-2 align-items-center">
               <select class="form-select form-select-sm group-select"
                       id="select-{{ user.pk }}"
-                      style="min-width:160px;">
+                      style="min-width:180px;">
                 <option value="">Select group…</option>
                 {% for grp in all_groups %}
                 <option value="{{ grp.pk }}" data-name="{{ grp.name }}">{{ grp.name }}</option>
@@ -199,6 +199,8 @@ document.querySelectorAll('.add-group-btn').forEach(function(btn) {
 
           // Reset select
           select.value = '';
+          select.selectedIndex = 0;
+          select.dispatchEvent(new Event('change', { bubbles: true }));
         } else {
           showToast(false, data.error || 'Something went wrong.');
         }
