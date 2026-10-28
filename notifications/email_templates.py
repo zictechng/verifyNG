@@ -444,3 +444,144 @@ def build_broadcast(subject_line: str, message_body: str, username: str) -> Tupl
     except Exception:
         fallback_html = f"<h2>{subject_line}</h2><p>Hi {username},</p><p>{message_body}</p>"
         return subject, _html_fallback(subject, fallback_html), f"Hi {username},\n\n{message_body}"
+
+
+# ---------------------------------------------------------------------------
+# Account Identity & Corporate CAC Compliance Builders
+# ---------------------------------------------------------------------------
+
+def build_identity_verified(username: str, id_type: str = "Government ID") -> Tuple[str, str, str]:
+    site_name, site_url = _get_site_meta()
+    subject = f"Identity Verification Approved — {site_name}"
+    body_html = f"""
+    <p>Congratulations! Your {id_type} document has been authenticated and approved by our compliance officers.</p>
+    <p>Your account now holds an official <strong>Verified Identity Badge</strong>. You can now publish verified fraud reports, submit dispute resolutions, and request candidate checks across {site_name}.</p>
+    """
+    try:
+        html_body, text_body = render_email('generic_notification', {
+            'user_name': username,
+            'heading': "Identity Verification Approved",
+            'body_html': body_html,
+            'cta_url': f"{site_url}/users/profile/",
+            'cta_label': "View Your Verified Profile →",
+        })
+        return subject, html_body, text_body
+    except Exception:
+        fallback_html = f"<h2>Identity Verification Approved</h2><p>Hi {username}, your {id_type} has been verified.</p>"
+        return subject, _html_fallback(subject, fallback_html), f"Hi {username}, your {id_type} has been verified."
+
+
+def build_identity_rejected(username: str, id_type: str = "Government ID", reason: str = "") -> Tuple[str, str, str]:
+    site_name, site_url = _get_site_meta()
+    subject = f"Action Required: Identity Verification Update — {site_name}"
+    reason_clean = reason or "Document could not be authenticated against primary identity registries."
+    body_html = f"""
+    <p>We reviewed your submitted {id_type} document, but our compliance team was unable to verify it at this time.</p>
+    <div style="background:#fef2f2;border-left:4px solid #ef4444;padding:12px 16px;border-radius:6px;margin:16px 0;">
+        <strong style="color:#991b1b;">Reason:</strong>
+        <p style="color:#7f1d1d;margin:4px 0 0;">{reason_clean}</p>
+    </div>
+    <p>Please log in to your profile, review your submitted information, and provide a clear, valid government-issued document.</p>
+    """
+    try:
+        html_body, text_body = render_email('generic_notification', {
+            'user_name': username,
+            'heading': "Identity Verification Declined",
+            'body_html': body_html,
+            'cta_url': f"{site_url}/users/profile/",
+            'cta_label': "Update Document in Profile →",
+        })
+        return subject, html_body, text_body
+    except Exception:
+        fallback_html = f"<h2>Identity Verification Declined</h2><p>Hi {username}, your {id_type} was declined. Reason: {reason_clean}</p>"
+        return subject, _html_fallback(subject, fallback_html), f"Hi {username}, your {id_type} was declined. Reason: {reason_clean}"
+
+
+def build_identity_revoked(username: str) -> Tuple[str, str, str]:
+    site_name, site_url = _get_site_meta()
+    subject = f"Notice: Identity Verification Badge Revoked — {site_name}"
+    body_html = f"""
+    <p>This is to inform you that your verified identity badge on {site_name} has been revoked by platform compliance.</p>
+    <p>Your status has reverted to unverified. Platform operations that require verified identity will remain locked until valid documents are submitted and re-approved.</p>
+    """
+    try:
+        html_body, text_body = render_email('generic_notification', {
+            'user_name': username,
+            'heading': "Identity Verification Revoked",
+            'body_html': body_html,
+            'cta_url': f"{site_url}/users/profile/",
+            'cta_label': "Review Profile →",
+        })
+        return subject, html_body, text_body
+    except Exception:
+        fallback_html = f"<h2>Identity Verification Revoked</h2><p>Hi {username}, your verified badge has been revoked.</p>"
+        return subject, _html_fallback(subject, fallback_html), f"Hi {username}, your verified badge has been revoked."
+
+
+def build_employer_verified(company_name: str, username: str) -> Tuple[str, str, str]:
+    site_name, site_url = _get_site_meta()
+    subject = f"Corporate CAC Verification Approved — {site_name}"
+    body_html = f"""
+    <p>Congratulations! Corporate incorporation records for <strong>{company_name}</strong> have been verified by compliance.</p>
+    <p>Your organization now holds an active <strong>Verified Employer Badge</strong>. Full candidate clearance certificates (TrustPass), staff checks, and bulk screening capabilities have been unlocked for your team.</p>
+    """
+    try:
+        html_body, text_body = render_email('generic_notification', {
+            'user_name': username,
+            'heading': "Company Verification Approved",
+            'body_html': body_html,
+            'cta_url': f"{site_url}/employer/",
+            'cta_label': "Go to Employer Portal →",
+        })
+        return subject, html_body, text_body
+    except Exception:
+        fallback_html = f"<h2>Company Verification Approved</h2><p>Hi {username}, {company_name} has been verified.</p>"
+        return subject, _html_fallback(subject, fallback_html), f"Hi {username}, {company_name} has been verified."
+
+
+def build_employer_rejected(company_name: str, username: str, reason: str = "") -> Tuple[str, str, str]:
+    site_name, site_url = _get_site_meta()
+    subject = f"Action Required: CAC Verification Declined for {company_name} — {site_name}"
+    reason_clean = reason or "CAC incorporation certificate or registration details could not be validated against registry records."
+    body_html = f"""
+    <p>We reviewed the corporate registration documents for <strong>{company_name}</strong>, but our compliance team was unable to approve them at this time.</p>
+    <div style="background:#fef2f2;border-left:4px solid #ef4444;padding:12px 16px;border-radius:6px;margin:16px 0;">
+        <strong style="color:#991b1b;">Reason for Decline:</strong>
+        <p style="color:#7f1d1d;margin:4px 0 0;">{reason_clean}</p>
+    </div>
+    <p>Under NDPR and workforce vetting regulations, candidate clearance dossiers remain locked until a valid CAC certificate is confirmed. Any check purchases remain safely credited to your wallet balance.</p>
+    <p>Please update your registration documents in your employer settings to request a re-review.</p>
+    """
+    try:
+        html_body, text_body = render_email('generic_notification', {
+            'user_name': username,
+            'heading': "CAC Verification Declined",
+            'body_html': body_html,
+            'cta_url': f"{site_url}/employer/profile/?tab=verification",
+            'cta_label': "Update CAC Document →",
+        })
+        return subject, html_body, text_body
+    except Exception:
+        fallback_html = f"<h2>CAC Verification Declined</h2><p>Hi {username}, CAC for {company_name} was declined. Reason: {reason_clean}</p>"
+        return subject, _html_fallback(subject, fallback_html), f"Hi {username}, CAC for {company_name} was declined. Reason: {reason_clean}"
+
+
+def build_employer_unverified(company_name: str, username: str) -> Tuple[str, str, str]:
+    site_name, site_url = _get_site_meta()
+    subject = f"Notice: Verified Employer Status Removed — {site_name}"
+    body_html = f"""
+    <p>This is to inform you that the verified organization status for <strong>{company_name}</strong> on {site_name} has been removed by platform compliance.</p>
+    <p>Candidate clearance certificates and candidate vetting operations are now locked. Please re-submit your verification documents or contact compliance if you have any questions.</p>
+    """
+    try:
+        html_body, text_body = render_email('generic_notification', {
+            'user_name': username,
+            'heading': "Employer Verification Status Removed",
+            'body_html': body_html,
+            'cta_url': f"{site_url}/employer/profile/",
+            'cta_label': "View Employer Profile →",
+        })
+        return subject, html_body, text_body
+    except Exception:
+        fallback_html = f"<h2>Employer Status Removed</h2><p>Hi {username}, verified status for {company_name} was removed.</p>"
+        return subject, _html_fallback(subject, fallback_html), f"Hi {username}, verified status for {company_name} was removed."

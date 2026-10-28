@@ -547,6 +547,28 @@ class AdminUserDetailView(SuperAdminRequiredMixin, TemplateView):
                     "id_number": target_user.masked_id_number,
                 }
             )
+            # Dispatch compliance notification & email to user
+            try:
+                from notifications.services import dispatch_notification
+                from notifications.email_templates import build_identity_verified
+                id_display = target_user.get_id_type_display() if hasattr(target_user, 'get_id_type_display') else (target_user.id_type or 'Government ID')
+                subject, html_body, text_body = build_identity_verified(
+                    username=target_user.get_full_name() or target_user.username,
+                    id_type=id_display
+                )
+                dispatch_notification(
+                    recipient=target_user,
+                    event_type='VERIFICATION_COMPLETED',
+                    title='Identity Verification Approved',
+                    body=f"Your {id_display} verification has been approved. You now hold a Verified Profile badge with full platform access.",
+                    object_reference=f"ID-{target_user.public_id}",
+                    subject=subject,
+                    html_body=html_body,
+                    text_body=text_body,
+                )
+            except Exception as e:
+                logger.warning(f"Failed to dispatch identity verification notification for {target_user.username}: {e}")
+
             messages.success(request, f"Government identity verified for '{target_user.get_full_name() or target_user.username}'.")
             return redirect('admin_portal:user_detail', public_id=public_id)
 
@@ -565,6 +587,29 @@ class AdminUserDetailView(SuperAdminRequiredMixin, TemplateView):
                     "reason": target_user.id_rejection_reason,
                 }
             )
+            # Dispatch compliance notification & email to user
+            try:
+                from notifications.services import dispatch_notification
+                from notifications.email_templates import build_identity_rejected
+                id_display = target_user.get_id_type_display() if hasattr(target_user, 'get_id_type_display') else (target_user.id_type or 'Government ID')
+                subject, html_body, text_body = build_identity_rejected(
+                    username=target_user.get_full_name() or target_user.username,
+                    id_type=id_display,
+                    reason=target_user.id_rejection_reason,
+                )
+                dispatch_notification(
+                    recipient=target_user,
+                    event_type='VERIFICATION_REJECTED',
+                    title='Identity Verification Declined',
+                    body=f"Your identity document could not be verified by compliance. Reason: {target_user.id_rejection_reason}",
+                    object_reference=f"ID-{target_user.public_id}",
+                    subject=subject,
+                    html_body=html_body,
+                    text_body=text_body,
+                )
+            except Exception as e:
+                logger.warning(f"Failed to dispatch identity rejection notification for {target_user.username}: {e}")
+
             messages.success(request, f"Identity proof declined for '{target_user.username}'.")
             return redirect('admin_portal:user_detail', public_id=public_id)
 
@@ -580,6 +625,26 @@ class AdminUserDetailView(SuperAdminRequiredMixin, TemplateView):
                     "target_username": target_user.username,
                 }
             )
+            # Dispatch compliance notification & email to user
+            try:
+                from notifications.services import dispatch_notification
+                from notifications.email_templates import build_identity_revoked
+                subject, html_body, text_body = build_identity_revoked(
+                    username=target_user.get_full_name() or target_user.username,
+                )
+                dispatch_notification(
+                    recipient=target_user,
+                    event_type='VERIFICATION_REJECTED',
+                    title='Identity Verification Revoked',
+                    body="Your verified identity badge has been revoked by platform compliance. Please review your profile credentials.",
+                    object_reference=f"ID-{target_user.public_id}",
+                    subject=subject,
+                    html_body=html_body,
+                    text_body=text_body,
+                )
+            except Exception as e:
+                logger.warning(f"Failed to dispatch identity revocation notification for {target_user.username}: {e}")
+
             messages.success(request, f"Identity verification badge revoked for '{target_user.username}'.")
             return redirect('admin_portal:user_detail', public_id=public_id)
 
@@ -1473,6 +1538,28 @@ class AdminEmployerActionView(SuperAdminRequiredMixin, View):
             if not profile.billing_exempt_notes:
                 profile.billing_exempt_notes = "Verified Company Complimentary Access"
             profile.save(update_fields=['is_verified', 'verification_status', 'rejection_reason', 'verified_at', 'exempt_services', 'billing_exempt_notes'])
+            
+            # Dispatch compliance notification & email to employer
+            try:
+                from notifications.services import dispatch_notification
+                from notifications.email_templates import build_employer_verified
+                subject, html_body, text_body = build_employer_verified(
+                    company_name=profile.company_name,
+                    username=profile.user.get_full_name() or profile.user.username,
+                )
+                dispatch_notification(
+                    recipient=profile.user,
+                    event_type='VERIFICATION_COMPLETED',
+                    title='Company CAC Verification Approved',
+                    body=f"CAC documentation for {profile.company_name} has been verified and approved. Candidate vetting, bulk uploads, and clearance reports are now unlocked.",
+                    object_reference=f"CAC-{profile.company_rc_number or profile.public_id}",
+                    subject=subject,
+                    html_body=html_body,
+                    text_body=text_body,
+                )
+            except Exception as e:
+                logger.warning(f"Failed to dispatch employer verification notification: {e}")
+
             msg = f"Employer '{profile.company_name}' verified with complimentary service entitlements."
         elif action == 'reject':
             profile.is_verified = False
@@ -1480,11 +1567,56 @@ class AdminEmployerActionView(SuperAdminRequiredMixin, View):
             reason = request.POST.get('rejection_reason', '').strip()
             profile.rejection_reason = reason if reason else 'CAC registration document or details could not be validated.'
             profile.save(update_fields=['is_verified', 'verification_status', 'rejection_reason'])
+
+            # Dispatch compliance notification & email to employer
+            try:
+                from notifications.services import dispatch_notification
+                from notifications.email_templates import build_employer_rejected
+                subject, html_body, text_body = build_employer_rejected(
+                    company_name=profile.company_name,
+                    username=profile.user.get_full_name() or profile.user.username,
+                    reason=profile.rejection_reason,
+                )
+                dispatch_notification(
+                    recipient=profile.user,
+                    event_type='VERIFICATION_REJECTED',
+                    title='Company CAC Verification Declined',
+                    body=f"CAC verification for {profile.company_name} could not be approved. Reason: {profile.rejection_reason}",
+                    object_reference=f"CAC-{profile.company_rc_number or profile.public_id}",
+                    subject=subject,
+                    html_body=html_body,
+                    text_body=text_body,
+                )
+            except Exception as e:
+                logger.warning(f"Failed to dispatch employer rejection notification: {e}")
+
             msg = f"CAC verification declined for '{profile.company_name}'."
         elif action == 'unverify':
             profile.is_verified = False
             profile.verification_status = 'unverified'
             profile.save(update_fields=['is_verified', 'verification_status'])
+
+            # Dispatch compliance notification & email to employer
+            try:
+                from notifications.services import dispatch_notification
+                from notifications.email_templates import build_employer_unverified
+                subject, html_body, text_body = build_employer_unverified(
+                    company_name=profile.company_name,
+                    username=profile.user.get_full_name() or profile.user.username,
+                )
+                dispatch_notification(
+                    recipient=profile.user,
+                    event_type='VERIFICATION_REJECTED',
+                    title='Company Verification Status Removed',
+                    body=f"Verified company status for {profile.company_name} has been removed. Platform candidate checks have been locked.",
+                    object_reference=f"CAC-{profile.public_id}",
+                    subject=subject,
+                    html_body=html_body,
+                    text_body=text_body,
+                )
+            except Exception as e:
+                logger.warning(f"Failed to dispatch employer unverified notification: {e}")
+
             msg = f"Employer '{profile.company_name}' unverified."
         elif action == 'update_billing_exempt':
             profile.is_billing_exempt = request.POST.get('is_billing_exempt') == 'on'

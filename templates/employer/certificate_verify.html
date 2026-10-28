@@ -133,8 +133,13 @@
                 {% elif profile.verification_status == 'rejected' %}
                 <strong class="d-block text-danger fw-bold" style="font-size:0.95rem;">Company CAC Verification Declined</strong>
                 <p class="small text-muted mb-0" style="line-height:1.45;">
-                    Your previously submitted CAC documents could not be verified. Please update and re-submit your incorporation certificate to unlock full candidate records.
+                    Your previously submitted CAC documents could not be verified by compliance. Please update and re-submit your incorporation certificate to unlock full candidate records.
                 </p>
+                {% if profile.rejection_reason %}
+                <p class="small text-danger mt-1 mb-0">
+                    <strong>Reason:</strong> {{ profile.rejection_reason }}
+                </p>
+                {% endif %}
                 {% else %}
                 <strong class="d-block text-dark fw-bold" style="font-size:0.95rem;">Company Profile Verification Required</strong>
                 <p class="small text-muted mb-0" style="line-height:1.45;">
