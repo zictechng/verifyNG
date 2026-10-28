@@ -110,10 +110,60 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 
-class SuperAdminRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
-    """Enforces that only superusers or staff members can access the Admin Portal."""
-    def test_func(self):
-        return is_superadmin(self.request.user)
+class AdminPermissionRequiredMixin(LoginRequiredMixin):
+    """
+    Two-Tier Security Mixin for VerifyNG Admin Portal:
+    1. Superusers always have full, unrestricted access to every view.
+    2. Non-superuser staff members are validated against required_permission:
+       - required_permission can be a single string (e.g. 'users.view_user')
+       - or a tuple/list (e.g. ('users.view_user', 'employer.view_employerprofile'))
+       - if superuser_only=True: strictly restricted to superusers (e.g. Settings, Financials).
+       - if user lacks required permission: renders friendly access_denied.html with HTTP 403.
+    3. Unauthenticated users are redirected to login.
+    """
+    required_permission = None
+    section_name = None
+    superuser_only = False
+
+    def has_permission(self):
+        user = self.request.user
+        if not user or not user.is_authenticated:
+            return False
+        if user.is_superuser:
+            return True
+        if not user.is_staff:
+            return False
+        if self.superuser_only:
+            return False
+        if not self.required_permission:
+            return True
+        if isinstance(self.required_permission, (list, tuple, set)):
+            return any(user.has_perm(p) for p in self.required_permission)
+        return user.has_perm(self.required_permission)
+
+    def handle_no_permission(self):
+        if not self.request.user.is_authenticated or not self.request.user.is_staff:
+            from django.contrib.auth.views import redirect_to_login
+            return redirect_to_login(self.request.get_full_path())
+
+        # Branded, friendly "Access Restricted" screen with Return to Dashboard
+        return render(
+            self.request,
+            "admin_portal/access_denied.html",
+            {
+                "section_name": self.section_name or "requested",
+            },
+            status=403,
+        )
+
+    def dispatch(self, request, *args, **kwargs):
+        if not self.has_permission():
+            return self.handle_no_permission()
+        return super().dispatch(request, *args, **kwargs)
+
+
+class SuperAdminRequiredMixin(AdminPermissionRequiredMixin):
+    pass
 
 
 class AdminOverviewView(SuperAdminRequiredMixin, TemplateView):
@@ -200,6 +250,8 @@ class AdminOverviewView(SuperAdminRequiredMixin, TemplateView):
 
 
 class AdminUserListView(SuperAdminRequiredMixin, TemplateView):
+    section_name = "User Management"
+    required_permission = "users.view_user"
     """User Management Desk: Search, Role Filtering, Status Toggle, Role Reassignment."""
     template_name = "admin_portal/users.html"
 
@@ -239,6 +291,8 @@ class AdminUserListView(SuperAdminRequiredMixin, TemplateView):
         return ctx
 
 class AdminUserToggleStatusView(SuperAdminRequiredMixin, View):
+    section_name = "User Management"
+    required_permission = ("users.change_user", "users.view_user")
     """Suspends or reactivates a user account.
 
     Suspension is a soft action: the user can still log in but is blocked
@@ -310,6 +364,8 @@ class AdminUserToggleStatusView(SuperAdminRequiredMixin, View):
 
 
 class AdminUserChangeRoleView(SuperAdminRequiredMixin, View):
+    section_name = "User Management"
+    required_permission = ("users.change_user", "users.view_user")
     """Reassigns a user's role (e.g. Moderator, Verification Officer, Business)."""
     def post(self, request, public_id):
         target_user = get_object_or_404(User, public_id=self.kwargs['public_id'])
@@ -348,6 +404,8 @@ class AdminUserChangeRoleView(SuperAdminRequiredMixin, View):
         return redirect('admin_portal:users')
 
 class AdminAuditLogsView(SuperAdminRequiredMixin, TemplateView):
+    section_name = "Platform Audit Log"
+    required_permission = "reports.view_auditlog"
     """Platform-wide admin action audit log with filter, search and pagination."""
     template_name = "admin_portal/audit_logs.html"
 
@@ -408,6 +466,8 @@ class AdminAuditLogsView(SuperAdminRequiredMixin, TemplateView):
         return ctx
 
 class AdminCommunicationsView(SuperAdminRequiredMixin, TemplateView):
+    section_name = "Broadcast Communications"
+    superuser_only = True
     """Email Broadcasting and Targeted Message Dispatch Center."""
     template_name = "admin_portal/communications.html"
 
@@ -478,6 +538,8 @@ class AdminCommunicationsView(SuperAdminRequiredMixin, TemplateView):
 
 
 class AdminUserIdentityDocumentView(SuperAdminRequiredMixin, View):
+    section_name = "User Management"
+    required_permission = "users.view_user"
     """
     Secure document stream proxy for compliance officers to view a user's uploaded government ID inline.
     """
@@ -513,6 +575,8 @@ class AdminUserIdentityDocumentView(SuperAdminRequiredMixin, View):
         return response
 
 class AdminUserDetailView(SuperAdminRequiredMixin, TemplateView):
+    section_name = "User Management"
+    required_permission = "users.view_user"
     """Full user profile: all fields, login history, reports, verifications, subscriptions."""
     template_name = "admin_portal/user_detail.html"
     def post(self, request, public_id):
@@ -737,6 +801,8 @@ class AdminUserDetailView(SuperAdminRequiredMixin, TemplateView):
 
 
 class AdminUserActivityExportView(SuperAdminRequiredMixin, View):
+    section_name = "User Management"
+    required_permission = "users.view_user"
     """
     Generates a printable HTML activity statement for a user.
     ?type=login|activity  &date_from=YYYY-MM-DD  &date_to=YYYY-MM-DD
@@ -796,6 +862,8 @@ class AdminUserActivityExportView(SuperAdminRequiredMixin, View):
 
 
 class AdminUserHardDeleteView(SuperAdminRequiredMixin, View):
+    section_name = "User Management"
+    superuser_only = True
     """Permanently deletes a user and all their data. Requires confirmation token."""
     def post(self, request, public_id):
         target_user = get_object_or_404(User, public_id=self.kwargs['public_id'])
@@ -820,6 +888,8 @@ class AdminUserHardDeleteView(SuperAdminRequiredMixin, View):
 
 
 class AdminUserBlockView(SuperAdminRequiredMixin, View):
+    section_name = "User Management"
+    required_permission = ("users.change_user", "users.view_user")
     """Hard-blocks or unblocks a user account.
 
     Blocking sets is_active=False which prevents Django from authenticating
@@ -901,6 +971,8 @@ class AdminUserBlockView(SuperAdminRequiredMixin, View):
 # ── Reports Moderation ─────────────────────────────────────────────────────
 
 class AdminReportsView(SuperAdminRequiredMixin, TemplateView):
+    section_name = "Fraud Reports"
+    required_permission = "reports.view_fraudreport"
     """Full fraud report moderation queue with filtering and pagination."""
     template_name = "admin_portal/reports.html"
 
@@ -937,6 +1009,8 @@ class AdminReportsView(SuperAdminRequiredMixin, TemplateView):
         return ctx
 
 class AdminReportDetailView(SuperAdminRequiredMixin, TemplateView):
+    section_name = "Fraud Reports"
+    required_permission = "reports.view_fraudreport"
     """Full detail view for a single fraud report: evidence, audit trail, state actions."""
     template_name = "admin_portal/report_detail.html"
 
@@ -967,6 +1041,8 @@ class AdminReportLegacyRedirectView(SuperAdminRequiredMixin, View):
 
 
 class AdminReportTransitionView(SuperAdminRequiredMixin, View):
+    section_name = "Fraud Reports"
+    required_permission = ("reports.change_fraudreport", "reports.view_fraudreport")
     """POST handler: transitions a report to a new state."""
     VALID_TRANSITIONS = {
         'submitted': ['under_review', 'rejected'],
@@ -1013,6 +1089,8 @@ class AdminReportTransitionView(SuperAdminRequiredMixin, View):
 # ── Disputes ───────────────────────────────────────────────────────────────
 
 class AdminDisputesView(SuperAdminRequiredMixin, TemplateView):
+    section_name = "Disputes"
+    required_permission = ("reports.view_dispute", "reports.view_fraudreport")
     """Disputes management queue."""
     template_name = "admin_portal/disputes.html"
 
@@ -1051,6 +1129,8 @@ class AdminDisputeLegacyRedirectView(SuperAdminRequiredMixin, View):
 
 
 class AdminDisputeActionView(SuperAdminRequiredMixin, View):
+    section_name = "Disputes"
+    required_permission = ("reports.change_dispute", "reports.view_dispute")
     """POST: Accept (uphold) or Reject a dispute via the official service layer."""
     def post(self, request, public_id=None, pk=None):
         lookup = {'public_id': public_id} if public_id else {'pk': pk}
@@ -1080,6 +1160,8 @@ class AdminDisputeActionView(SuperAdminRequiredMixin, View):
 
 
 class AdminDisputeDetailView(SuperAdminRequiredMixin, TemplateView):
+    section_name = "Disputes"
+    required_permission = ("reports.view_dispute", "reports.view_fraudreport")
     """Full dispute detail — shows report content, disputant reason, evidence, rebuttal, and resolution form."""
     template_name = "admin_portal/dispute_detail.html"
 
@@ -1126,6 +1208,8 @@ class AdminDisputeDetailView(SuperAdminRequiredMixin, TemplateView):
 # ── Verifications ──────────────────────────────────────────────────────────
 
 class AdminVerificationsView(SuperAdminRequiredMixin, TemplateView):
+    section_name = "Verification Requests"
+    required_permission = "verification.view_verificationrequest"
     """Verifications request queue."""
     template_name = "admin_portal/verifications.html"
 
@@ -1238,6 +1322,8 @@ class AdminVerificationLegacyRedirectView(SuperAdminRequiredMixin, View):
 
 
 class AdminVerificationActionView(SuperAdminRequiredMixin, View):
+    section_name = "Verification Requests"
+    required_permission = ("verification.change_verificationrequest", "verification.view_verificationrequest")
     """POST: complete or reject a verification request."""
     def post(self, request, public_id=None, pk=None):
         lookup = {'public_id': public_id} if public_id else {'pk': pk}
@@ -1287,6 +1373,8 @@ class AdminVerificationActionView(SuperAdminRequiredMixin, View):
 # ── verification details ──────────────────────────────────────────────────────
 
 class AdminVerificationDetailView(SuperAdminRequiredMixin, TemplateView):
+    section_name = "Verification Requests"
+    required_permission = "verification.view_verificationrequest"
     """Full detail page for a single verification request."""
     template_name = "admin_portal/verification_detail.html"
 
@@ -1353,6 +1441,8 @@ class AdminVerificationDetailView(SuperAdminRequiredMixin, TemplateView):
 # ── Employer Profiles ──────────────────────────────────────────────────────
 
 class AdminEmployerProfilesView(SuperAdminRequiredMixin, TemplateView):
+    section_name = "Agency & Employers"
+    required_permission = ("employer.view_employerprofile", "users.view_user")
     """All employer profiles — verify, suspend, view."""
     template_name = "admin_portal/employer_profiles.html"
 
@@ -1392,6 +1482,8 @@ class AdminEmployerProfilesView(SuperAdminRequiredMixin, TemplateView):
 
 
 class AdminEmployerDetailView(SuperAdminRequiredMixin, TemplateView):
+    section_name = "Agency & Employers"
+    required_permission = ("employer.view_employerprofile", "employer.change_employerprofile")
     """Detail view for a single employer profile."""
     template_name = 'admin_portal/employer_detail.html'
 
@@ -1456,6 +1548,8 @@ class AdminEmployerDetailView(SuperAdminRequiredMixin, TemplateView):
 
 
 class AdminEmployerActivityExportView(SuperAdminRequiredMixin, View):
+    section_name = "Agency & Employers"
+    required_permission = ("employer.view_employerprofile", "users.view_user")
     """Printable activity export for an employer account."""
     def get(self, request, public_id):
 
@@ -1505,6 +1599,8 @@ class AdminEmployerLegacyRedirectView(SuperAdminRequiredMixin, View):
 
 
 class AdminEmployerCACDocumentView(SuperAdminRequiredMixin, View):
+    section_name = "Agency & Employers"
+    required_permission = ("employer.view_employerprofile", "employer.change_employerprofile")
     """
     Secure document stream proxy for viewing employer CAC incorporation documents.
     Serves the uploaded CAC document inline in browser without forced download.
@@ -1538,6 +1634,8 @@ class AdminEmployerCACDocumentView(SuperAdminRequiredMixin, View):
         return response
 
 class AdminEmployerActionView(SuperAdminRequiredMixin, View):
+    section_name = "Agency & Employers"
+    required_permission = ("employer.change_employerprofile", "employer.view_employerprofile")
     """POST: verify, unverify, or toggle billing exemption for an employer profile."""
     def post(self, request, public_id):
         profile = get_object_or_404(
@@ -1669,6 +1767,8 @@ class AdminEmployerActionView(SuperAdminRequiredMixin, View):
 # ── Subscriptions ──────────────────────────────────────────────────────────
 
 class AdminSubscriptionsView(SuperAdminRequiredMixin, TemplateView):
+    section_name = "Subscriptions"
+    required_permission = "payments.view_subscription"
     """All subscriptions management."""
     template_name = "admin_portal/subscriptions.html"
     def get_context_data(self, **kwargs):
@@ -1702,6 +1802,8 @@ class AdminSubscriptionsView(SuperAdminRequiredMixin, TemplateView):
         return ctx
 
 class AdminSubscriptionActionView(SuperAdminRequiredMixin, View):
+    section_name = "Subscriptions"
+    required_permission = ("payments.change_subscription", "payments.view_subscription")
     """POST: cancel, revoke, or reactivate a subscription."""
     def post(self, request, pk):
         sub = get_object_or_404(Subscription, pk=pk)
@@ -1737,6 +1839,8 @@ class AdminSubscriptionActionView(SuperAdminRequiredMixin, View):
     
 
 class AdminPlansView(SuperAdminRequiredMixin, TemplateView):
+    section_name = "Subscription Plans"
+    required_permission = ("payments.view_plan", "payments.view_subscription")
     """List all subscription plans with management actions."""
     template_name = "admin_portal/plans.html"
 
@@ -1750,6 +1854,8 @@ class AdminPlansView(SuperAdminRequiredMixin, TemplateView):
 
 
 class AdminPlanCreateEditView(SuperAdminRequiredMixin, View):
+    section_name = "Subscription Plans"
+    required_permission = ("payments.change_plan", "payments.view_plan")
     """Create or edit a Plan and its bullet-point features."""
     template_name = "admin_portal/plan_form.html"
 
@@ -1863,6 +1969,8 @@ class AdminPlanCreateEditView(SuperAdminRequiredMixin, View):
 
 
 class AdminPlanToggleView(SuperAdminRequiredMixin, View):
+    section_name = "Subscription Plans"
+    required_permission = ("payments.change_plan", "payments.view_plan")
     """Toggle a Plan's is_active flag (activate / deactivate)."""
 
     def post(self, request, pk):
@@ -1888,6 +1996,8 @@ class AdminPlanToggleView(SuperAdminRequiredMixin, View):
 
 
 class AdminCreditSubscriptionView(SuperAdminRequiredMixin, View):
+    section_name = "Subscriptions"
+    required_permission = ("payments.change_subscription", "payments.view_subscription")
     """
     POST: Manually credit (assign) a subscription plan to a user.
     Called from the user detail quick-actions panel.
@@ -1982,6 +2092,8 @@ class AdminCreditSubscriptionView(SuperAdminRequiredMixin, View):
 
 
 class AdminUserWalletTopupView(SuperAdminRequiredMixin, View):
+    section_name = "User Management"
+    superuser_only = True
     """
     POST: Manually top up / credit Pay-As-You-Go wallet balance in Naira (₦) for a user or employer.
     Creates an active, successful Transaction and logs the audit event.
@@ -2068,6 +2180,8 @@ class AdminUserWalletTopupView(SuperAdminRequiredMixin, View):
 # ── Analytics ─────────────────────────────────────────────────────────────
 
 class AdminAnalyticsView(SuperAdminRequiredMixin, TemplateView):
+    section_name = "Analytics"
+    superuser_only = True
     """Platform-wide analytics: user growth, report trends, revenue, verifications."""
     template_name = "admin_portal/analytics.html"
 
@@ -2137,6 +2251,8 @@ class AdminAnalyticsView(SuperAdminRequiredMixin, TemplateView):
 
 
 class AdminNotificationsView(SuperAdminRequiredMixin, TemplateView):
+    section_name = "Notifications"
+    superuser_only = True
     """Platform-wide admin notification digest — pending actions requiring attention."""
     template_name = "admin_portal/notifications.html"
 
@@ -2212,6 +2328,8 @@ class AdminNotificationsView(SuperAdminRequiredMixin, TemplateView):
 # ── System Logs ────────────────────────────────────────────────────────────
 
 class AdminSystemLogsView(SuperAdminRequiredMixin, TemplateView):
+    section_name = "System Logs"
+    required_permission = "reports.view_auditlog"
     """All AuditLog records — full system event trail."""
     template_name = "admin_portal/system_logs.html"
 
@@ -2245,6 +2363,8 @@ class AdminSystemLogsView(SuperAdminRequiredMixin, TemplateView):
 
 
 class AdminActivityLogsView(SuperAdminRequiredMixin, TemplateView):
+    section_name = "Platform Activity Logs"
+    required_permission = "reports.view_auditlog"
     """Recent platform activity across users — report submissions, verifications, logins."""
     template_name = "admin_portal/activity_logs.html"
 
@@ -2308,6 +2428,8 @@ class AdminActivityLogsView(SuperAdminRequiredMixin, TemplateView):
 
 
 class AdminLoginLogsView(SuperAdminRequiredMixin, TemplateView):
+    section_name = "Login Audit Logs"
+    required_permission = "users.view_loginaudit"
     """Dedicated login log explorer — full SearchFilter, IP, device, location."""
     template_name = "admin_portal/login_logs.html"
 
@@ -2351,6 +2473,8 @@ class AdminLoginLogsView(SuperAdminRequiredMixin, TemplateView):
 # ── Platform Settings ──────────────────────────────────────────────────────
 
 class AdminPlatformSettingsView(SuperAdminRequiredMixin, TemplateView):
+    section_name = "Platform Settings"
+    superuser_only = True
     """Platform branding configuration: logo, favicon, company name, social links."""
     template_name = "admin_portal/platform_settings.html"
 
@@ -2412,6 +2536,8 @@ class AdminPlatformSettingsView(SuperAdminRequiredMixin, TemplateView):
 
 
 class AdminSiteSettingsView(SuperAdminRequiredMixin, TemplateView):
+    section_name = "Site Settings"
+    superuser_only = True
     """Free-tier check limits and payment system settings (SiteSettings singleton)."""
     template_name = "admin_portal/site_settings.html"
 
@@ -2513,15 +2639,14 @@ class AdminSiteSettingsView(SuperAdminRequiredMixin, TemplateView):
 # Admin: Create New User
 # ─────────────────────────────────────────────────────────────────────────────
 
-class AdminCreateUserView(LoginRequiredMixin, UserPassesTestMixin, View):
+class AdminCreateUserView(SuperAdminRequiredMixin, View):
+    section_name = "User Management"
+    required_permission = "users.add_user"
     """
     Admin can register any new user directly from the portal.
     Assigns role, sets staff/superuser flags, sends welcome email.
     """
     template_name = 'admin_portal/create_user.html'
-
-    def test_func(self):
-        return is_superadmin(self.request.user)
 
     def get(self, request):
         return render(request, self.template_name, {
@@ -2537,6 +2662,9 @@ class AdminCreateUserView(LoginRequiredMixin, UserPassesTestMixin, View):
         password    = request.POST.get('password', '').strip()
         is_staff    = request.POST.get('is_staff') == 'on'
         is_superuser = request.POST.get('is_superuser') == 'on'
+        if (is_staff or is_superuser) and not request.user.is_superuser:
+            is_staff = False
+            is_superuser = False
         send_welcome = request.POST.get('send_welcome') == 'on'
 
         errors = []
@@ -2616,15 +2744,14 @@ class AdminCreateUserView(LoginRequiredMixin, UserPassesTestMixin, View):
 # Admin: Toggle Per-User Service Access Restriction
 # ─────────────────────────────────────────────────────────────────────────────
 
-class AdminUserServiceAccessView(LoginRequiredMixin, UserPassesTestMixin, View):
+class AdminUserServiceAccessView(SuperAdminRequiredMixin, View):
+    section_name = "User Management"
+    required_permission = ("users.change_user", "users.view_user")
     """
     Toggle a user's access to a specific platform service.
     POST with: service (str), action ('restrict' | 'allow'), reason (str)
     Returns JSON for Alpine.js to update the toggle UI.
     """
-
-    def test_func(self):
-        return is_superadmin(self.request.user)
 
     def post(self, request, public_id):
         target_user = get_object_or_404(User, public_id=public_id)
@@ -2678,6 +2805,8 @@ class AdminUserServiceAccessView(LoginRequiredMixin, UserPassesTestMixin, View):
 # ── Certificate Admin ──────────────────────────────────────────────────────────
 
 class AdminCertificatesView(SuperAdminRequiredMixin, TemplateView):
+    section_name = "TrustPass Certificates"
+    required_permission = ("verification.view_verificationcertificate", "verification.view_verificationrequest")
     """List all VerificationCertificates with filtering and bulk status management."""
     template_name = "admin_portal/certificates.html"
 
@@ -2746,6 +2875,8 @@ class AdminCertificateLegacyRedirectView(SuperAdminRequiredMixin, View):
 
 
 class AdminCertificateActionView(SuperAdminRequiredMixin, View):
+    section_name = "TrustPass Certificates"
+    required_permission = ("verification.change_verificationcertificate", "verification.view_verificationcertificate")
     """Activate, suspend, or revoke a certificate."""
 
     def post(self, request, public_id=None, pk=None):
@@ -2816,6 +2947,8 @@ class AdminCertificateActionView(SuperAdminRequiredMixin, View):
 
 
 class AdminCertificateDetailView(SuperAdminRequiredMixin, TemplateView):
+    section_name = "TrustPass Certificates"
+    required_permission = ("verification.view_verificationcertificate", "verification.view_verificationrequest")
     """Full certificate detail — holder info, history, and officer action buttons."""
     template_name = "admin_portal/certificate_detail.html"
 
@@ -2898,6 +3031,8 @@ class AdminCertificateDetailView(SuperAdminRequiredMixin, TemplateView):
 
 
 class AdminCertificateDocumentView(SuperAdminRequiredMixin, View):
+    section_name = "TrustPass Certificates"
+    required_permission = ("verification.view_verificationdocument", "verification.view_verificationcertificate")
     """
     Secure document stream proxy for verification officers.
     Serves the candidate's uploaded identity proof inline in the browser tab
@@ -2976,6 +3111,8 @@ class AdminCertificateDocumentView(SuperAdminRequiredMixin, View):
 
 
 class AdminMenuAccessView(SuperAdminRequiredMixin, View):
+    section_name = "Staff Access"
+    superuser_only = True
     """
     Manage which Django permission groups apply to moderator/officer sub-admins.
     Lists all non-superuser staff users and their assigned groups.
@@ -3065,6 +3202,8 @@ class RoundedCard(Flowable):
 
 
 class AdminFinancialReportView(SuperAdminRequiredMixin, TemplateView):
+    section_name = "Financial Reports"
+    required_permission = "payments.view_transaction"
     """
     Dynamic financial reporting dashboard with CSV and PDF export.
     Covers: revenue KPIs, monthly breakdown, plan breakdown, transaction ledger.

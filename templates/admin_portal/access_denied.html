@@ -1,0 +1,62 @@
+{% extends "admin_portal/base_admin.html" %}
+
+{% block title %}Access Restricted | {{ site_config.site_name|default:"VerifyNG" }} Admin{% endblock %}
+
+{% block breadcrumb %}
+  <li class="breadcrumb-item"><a href="{% url 'admin_portal:overview' %}">Admin</a></li>
+  <li class="breadcrumb-item active">Access Restricted</li>
+{% endblock %}
+
+{% block admin_body %}
+<div class="d-flex align-items-center justify-content-center py-5">
+  <div class="adm-card text-center p-5" style="max-width: 620px; border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.06);">
+    
+    <!-- Shield / Lock Icon -->
+    <div class="mx-auto mb-4 d-flex align-items-center justify-content-center"
+         style="width: 72px; height: 72px; border-radius: 50%; background: rgba(220, 38, 38, 0.1); color: #DC2626;">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+      </svg>
+    </div>
+
+    <!-- Title & Notice -->
+    <h2 class="h4 fw-bold text-dark mb-2">Access Restricted</h2>
+    <p class="text-muted mb-4" style="line-height: 1.6; font-size: 0.95rem;">
+      {% if custom_message %}
+        {{ custom_message }}
+      {% else %}
+        You do not have permission to access the <strong>{{ section_name|default:"requested" }}</strong> section. 
+        Your staff account is limited to your assigned responsibilities. If you need access to this tool, please contact the System Administrator.
+      {% endif %}
+    </p>
+
+    <!-- Group Information Pill -->
+    <div class="p-3 rounded mb-4 text-start" style="background: var(--adm-bg-alt, #F8FAFC); border: 1px solid var(--adm-border, #E2E8F0);">
+      <div class="small fw-semibold text-muted mb-1">Your Account Status:</div>
+      <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <span class="small fw-bold text-dark">{{ request.user.get_full_name|default:request.user.username }} ({{ request.user.get_role_display|default:"Staff" }})</span>
+        <div class="d-flex flex-wrap gap-1">
+          {% for grp in request.user.groups.all %}
+            <span class="badge bg-secondary" style="font-size: 0.72rem;">{{ grp.name }}</span>
+          {% empty %}
+            <span class="badge bg-light text-muted border" style="font-size: 0.72rem;">No department groups assigned</span>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Return to Dashboard Button -->
+    <div class="d-flex justify-content-center gap-3">
+      <a href="{% url 'admin_portal:overview' %}" class="btn btn-adm-primary px-4 py-2 fw-semibold">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="me-1">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+          <polyline points="9 22 9 12 15 12 15 22"></polyline>
+        </svg>
+        Return to Dashboard
+      </a>
+    </div>
+
+  </div>
+</div>
+{% endblock admin_body %}

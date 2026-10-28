@@ -1,3 +1,5 @@
+from functools import wraps
+from django.shortcuts import render
 from django.contrib import admin
 from django.urls import path, include
 from django_otp.admin import OTPAdminSite
@@ -7,6 +9,29 @@ from django.conf import settings
 # In local development (DEBUG=True), standard username/password login is used.
 if not settings.DEBUG:
     admin.site.__class__ = OTPAdminSite
+
+# Strictly protect raw technical Django Admin (/admin/) for Superadmins only.
+# Sub-admins (moderators, officers) are guided to the custom VerifyNG Admin Portal.
+_original_admin_view = admin.site.admin_view
+
+def _restricted_admin_view(view, cacheable=False):
+    wrapped = _original_admin_view(view, cacheable)
+    @wraps(view)
+    def inner(request, *args, **kwargs):
+        if request.user.is_authenticated and not request.user.is_superuser:
+            return render(
+                request,
+                'admin_portal/access_denied.html',
+                {
+                    'section_name': 'Technical Backend (/admin/)',
+                    'custom_message': 'You are not authorized to access the technical backend. Please use the VerifyNG Admin Portal.',
+                },
+                status=403,
+            )
+        return wrapped(request, *args, **kwargs)
+    return inner
+
+admin.site.admin_view = _restricted_admin_view
 
 _api_urls = None
 
