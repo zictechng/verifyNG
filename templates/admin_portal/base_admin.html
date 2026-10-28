@@ -1020,6 +1020,98 @@
     });
 })();
 </script>
+<script>
+/* ── Universal Admin Zero-Reload Table Pagination & Rows Per Page Engine ── */
+(function () {
+    function loadAdminTable(targetUrl, pushState) {
+        const container = document.getElementById('adminTableContainer');
+        if (!container) {
+            window.location.href = targetUrl;
+            return;
+        }
+
+        const bar = document.getElementById('pageLoadingBar');
+        if (bar) bar.classList.remove('d-none');
+        container.style.transition = 'opacity 0.15s ease';
+        container.style.opacity = '0.45';
+        container.style.pointerEvents = 'none';
+
+        fetch(targetUrl, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(function (res) {
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            return res.text();
+        })
+        .then(function (htmlText) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlText, 'text/html');
+            const newContainer = doc.getElementById('adminTableContainer');
+
+            if (newContainer) {
+                container.innerHTML = newContainer.innerHTML;
+            } else {
+                window.location.href = targetUrl;
+                return;
+            }
+
+            container.style.opacity = '1';
+            container.style.pointerEvents = 'auto';
+            if (bar) bar.classList.add('d-none');
+
+            if (pushState) {
+                window.history.pushState({ adminTableUrl: targetUrl }, '', targetUrl);
+            }
+
+            const rect = container.getBoundingClientRect();
+            if (rect.top < 0) {
+                container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        })
+        .catch(function (err) {
+            console.error('Admin table pagination error:', err);
+            container.style.opacity = '1';
+            container.style.pointerEvents = 'auto';
+            if (bar) bar.classList.add('d-none');
+            window.location.href = targetUrl;
+        });
+    }
+
+    // Delegated click listener for table pagination links
+    document.addEventListener('click', function (e) {
+        const link = e.target.closest('.admin-page-link');
+        if (link) {
+            e.preventDefault();
+            e.stopPropagation();
+            const targetUrl = link.getAttribute('href');
+            if (targetUrl && targetUrl !== '#' && targetUrl !== 'javascript:void(0);') {
+                loadAdminTable(targetUrl, true);
+            }
+        }
+    });
+
+    // Delegated change listener for Rows Per Page dropdown
+    document.addEventListener('change', function (e) {
+        const select = e.target.closest('.admin-per-page-select');
+        if (select) {
+            e.preventDefault();
+            e.stopPropagation();
+            const newPerPage = select.value;
+            const currentUrl = new URL(window.location.href);
+            currentUrl.searchParams.set('per_page', newPerPage);
+            currentUrl.searchParams.set('page', '1');
+            loadAdminTable(currentUrl.toString(), true);
+        }
+    });
+
+    // Handle browser back and forward buttons
+    window.addEventListener('popstate', function () {
+        if (document.getElementById('adminTableContainer')) {
+            loadAdminTable(window.location.href, false);
+        }
+    });
+})();
+</script>
 {% block admin_scripts %}{% endblock %}
 {# ── at the bottom of <body>, before </body> ── #}
 {% include "includes/confirm_modal.html" %}

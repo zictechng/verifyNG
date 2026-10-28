@@ -54,8 +54,9 @@
 </div>
 
 <!-- Log table -->
-<div class="adm-card">
+<div id="adminTableContainer" class="admin-table-container">
   {% if page_obj %}
+  <div class="adm-card">
   <div style="overflow-x:auto;">
     <table class="adm-table" style="min-width:900px;">
       <thead>
@@ -127,34 +128,8 @@
     </table>
   </div>
 
-  <!-- Pagination -->
-  {% if page_obj.has_other_pages %}
-  <div class="px-4 py-3 d-flex align-items-center justify-content-between flex-wrap gap-2" style="border-top:1px solid var(--adm-border);">
-    <span style="font-size:0.78rem;color:var(--adm-muted);">
-      Showing {{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ total_count }}
-    </span>
-    <ul class="pagination pagination-sm mb-0">
-      {% if page_obj.has_previous %}
-        <li class="page-item">
-          <a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ search_query }}&action_type={{ action_type_filter }}&date_from={{ date_from }}&date_to={{ date_to }}&per_page={{ per_page }}">‹ Prev</a>
-        </li>
-      {% else %}
-        <li class="page-item disabled"><span class="page-link">‹ Prev</span></li>
-      {% endif %}
-      <li class="page-item disabled">
-        <span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
-      </li>
-      {% if page_obj.has_next %}
-        <li class="page-item">
-          <a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ search_query }}&action_type={{ action_type_filter }}&date_from={{ date_from }}&date_to={{ date_to }}&per_page={{ per_page }}">Next ›</a>
-        </li>
-      {% else %}
-        <li class="page-item disabled"><span class="page-link">Next ›</span></li>
-      {% endif %}
-    </ul>
   </div>
-  {% endif %}
-
+  {% include "admin_portal/_pagination.html" %}
   {% else %}
   <div class="adm-empty"><p>No audit log entries found.</p></div>
   {% endif %}

@@ -222,13 +222,16 @@ class AdminUserListView(SuperAdminRequiredMixin, TemplateView):
         elif status_filter == 'blocked':
             users = users.filter(is_active=False)
 
-        per_page = int(self.request.GET.get('per_page', 15))
-        if per_page not in (15, 25, 50, 100):
+        try:
+            per_page = int(self.request.GET.get('per_page', 15))
+        except (ValueError, TypeError):
+            per_page = 15
+        if per_page not in (15, 25, 50, 75, 100):
             per_page = 15
         paginator = Paginator(users, per_page)
         ctx['page_obj'] = paginator.get_page(self.request.GET.get('page', 1))
         ctx['per_page'] = per_page
-        ctx['per_page_options'] = [15, 25, 50, 100]
+        ctx['per_page_options'] = [15, 25, 50, 75, 100]
         ctx['role_choices'] = User.ROLE_CHOICES
         ctx['query'] = query
         ctx['selected_role'] = role_filter
@@ -385,14 +388,17 @@ class AdminAuditLogsView(SuperAdminRequiredMixin, TemplateView):
             except ValueError:
                 pass
 
-        per_page = int(self.request.GET.get('per_page', 25))
-        if per_page not in (25, 50, 100):
-            per_page = 25
+        try:
+            per_page = int(self.request.GET.get('per_page', 15))
+        except (ValueError, TypeError):
+            per_page = 15
+        if per_page not in (15, 25, 50, 75, 100):
+            per_page = 15
 
         paginator = Paginator(qs, per_page)
         ctx['page_obj']          = paginator.get_page(self.request.GET.get('page', 1))
         ctx['per_page']          = per_page
-        ctx['per_page_options']  = [25, 50, 100]
+        ctx['per_page_options']  = [15, 25, 50, 75, 100]
         ctx['action_type_filter']= action_type_filter
         ctx['search_query']      = search_query
         ctx['date_from']         = date_from
@@ -913,13 +919,16 @@ class AdminReportsView(SuperAdminRequiredMixin, TemplateView):
                       reports.filter(reporter__username__icontains=q)
 
         counts = {s[0]: FraudReport.objects.filter(state=s[0]).count() for s in FraudReport.STATES}
-        per_page = int(self.request.GET.get('per_page', 15))
-        if per_page not in (15, 25, 50, 100):
+        try:
+            per_page = int(self.request.GET.get('per_page', 15))
+        except (ValueError, TypeError):
+            per_page = 15
+        if per_page not in (15, 25, 50, 75, 100):
             per_page = 15
         paginator = Paginator(reports, per_page)
         ctx['page_obj'] = paginator.get_page(self.request.GET.get('page', 1))
         ctx['per_page'] = per_page
-        ctx['per_page_options'] = [15, 25, 50, 100]
+        ctx['per_page_options'] = [15, 25, 50, 75, 100]
         ctx['counts'] = counts
         ctx['total_count'] = sum(counts.values())
         ctx['state_choices'] = [(key, label, counts.get(key, 0)) for key, label in FraudReport.STATES]
@@ -1019,13 +1028,16 @@ class AdminDisputesView(SuperAdminRequiredMixin, TemplateView):
         if q:
             disputes = disputes.filter(report__reference_number__icontains=q)
 
-        per_page = int(self.request.GET.get('per_page', 15))
-        if per_page not in (15, 25, 50, 100):
+        try:
+            per_page = int(self.request.GET.get('per_page', 15))
+        except (ValueError, TypeError):
+            per_page = 15
+        if per_page not in (15, 25, 50, 75, 100):
             per_page = 15
         paginator = Paginator(disputes, per_page)
         ctx['page_obj'] = paginator.get_page(self.request.GET.get('page', 1))
         ctx['per_page'] = per_page
-        ctx['per_page_options'] = [15, 25, 50, 100]
+        ctx['per_page_options'] = [15, 25, 50, 75, 100]
         ctx['status_choices'] = Dispute.DISPUTE_STATES
         ctx['selected_status'] = status_filter
         ctx['q'] = q
@@ -1129,13 +1141,16 @@ class AdminVerificationsView(SuperAdminRequiredMixin, TemplateView):
         if type_filter and qs:
             qs = qs.filter(verification_type=type_filter)
 
-        per_page = int(self.request.GET.get('per_page', 15))
-        if per_page not in (15, 25, 50, 100):
+        try:
+            per_page = int(self.request.GET.get('per_page', 15))
+        except (ValueError, TypeError):
+            per_page = 15
+        if per_page not in (15, 25, 50, 75, 100):
             per_page = 15
         paginator = Paginator(qs, per_page)
         ctx['page_obj'] = paginator.get_page(self.request.GET.get('page', 1))
         ctx['per_page'] = per_page
-        ctx['per_page_options'] = [15, 25, 50, 100]
+        ctx['per_page_options'] = [15, 25, 50, 75, 100]
         ctx['status_choices'] = VerificationRequest.STATUS_CHOICES if VerificationRequest else []
         ctx['type_choices'] = VerificationRequest.VERIFICATION_TYPES if VerificationRequest else []
         ctx['selected_status'] = status_filter
@@ -1346,8 +1361,11 @@ class AdminEmployerProfilesView(SuperAdminRequiredMixin, TemplateView):
         q = self.request.GET.get('q', '').strip()
         verified_filter = self.request.GET.get('verified', '')
 
-        per_page = int(self.request.GET.get('per_page', 15))
-        if per_page not in (15, 25, 50, 100):
+        try:
+            per_page = int(self.request.GET.get('per_page', 15))
+        except (ValueError, TypeError):
+            per_page = 15
+        if per_page not in (15, 25, 50, 75, 100):
             per_page = 15
 
         if EmployerProfile:
@@ -1367,7 +1385,7 @@ class AdminEmployerProfilesView(SuperAdminRequiredMixin, TemplateView):
         else:
             ctx['page_obj'] = []
         ctx['per_page'] = per_page
-        ctx['per_page_options'] = [15, 25, 50, 100]
+        ctx['per_page_options'] = [15, 25, 50, 75, 100]
         ctx['q'] = q
         ctx['verified_filter'] = verified_filter
         return ctx
@@ -1658,8 +1676,11 @@ class AdminSubscriptionsView(SuperAdminRequiredMixin, TemplateView):
         status_filter = self.request.GET.get('status', '')
         q = self.request.GET.get('q', '').strip()
 
-        per_page = int(self.request.GET.get('per_page', 15))
-        if per_page not in (15, 25, 50, 100):
+        try:
+            per_page = int(self.request.GET.get('per_page', 15))
+        except (ValueError, TypeError):
+            per_page = 15
+        if per_page not in (15, 25, 50, 75, 100):
             per_page = 15
 
         if Subscription:
@@ -1675,7 +1696,7 @@ class AdminSubscriptionsView(SuperAdminRequiredMixin, TemplateView):
             ctx['page_obj'] = []
             ctx['status_choices'] = []
         ctx['per_page'] = per_page
-        ctx['per_page_options'] = [15, 25, 50, 100]
+        ctx['per_page_options'] = [15, 25, 50, 75, 100]
         ctx['selected_status'] = status_filter
         ctx['q'] = q
         return ctx
@@ -2208,13 +2229,16 @@ class AdminSystemLogsView(SuperAdminRequiredMixin, TemplateView):
 
         ctx['action_types'] = AuditLog.objects.values_list('action', flat=True).distinct().order_by('action')[:50]
 
-        per_page = int(self.request.GET.get('per_page', 15))
-        if per_page not in (15, 25, 50, 100):
+        try:
+            per_page = int(self.request.GET.get('per_page', 15))
+        except (ValueError, TypeError):
+            per_page = 15
+        if per_page not in (15, 25, 50, 75, 100):
             per_page = 15
         paginator = Paginator(logs, per_page)
         ctx['page_obj'] = paginator.get_page(self.request.GET.get('page', 1))
         ctx['per_page'] = per_page
-        ctx['per_page_options'] = [15, 25, 50, 100]
+        ctx['per_page_options'] = [15, 25, 50, 75, 100]
         ctx['action_filter'] = action_filter
         ctx['q'] = q
         return ctx
@@ -2253,8 +2277,19 @@ class AdminActivityLogsView(SuperAdminRequiredMixin, TemplateView):
             except Exception:
                 pass
 
-        paginator = Paginator(audit_qs, 30)
-        ctx['audit_page'] = paginator.get_page(self.request.GET.get('audit_page', 1))
+        try:
+            per_page = int(self.request.GET.get('per_page', 15))
+        except (ValueError, TypeError):
+            per_page = 15
+        if per_page not in (15, 25, 50, 75, 100):
+            per_page = 15
+
+        paginator = Paginator(audit_qs, per_page)
+        page = self.request.GET.get('page', self.request.GET.get('audit_page', 1))
+        ctx['audit_page'] = paginator.get_page(page)
+        ctx['page_obj'] = ctx['audit_page']
+        ctx['per_page'] = per_page
+        ctx['per_page_options'] = [15, 25, 50, 75, 100]
 
         # --- Summary panels (non-paginated, fixed count) ---
         ctx['recent_reports'] = FraudReport.objects.select_related('reporter').order_by('-created_at')[:20]
@@ -2296,13 +2331,16 @@ class AdminLoginLogsView(SuperAdminRequiredMixin, TemplateView):
         ctx['blocked_logins'] = LoginAudit.objects.filter(status='blocked').count()
         ctx['success_logins'] = LoginAudit.objects.filter(status='success').count()
 
-        per_page = int(self.request.GET.get('per_page', 15))
-        if per_page not in (15, 25, 50, 100):
+        try:
+            per_page = int(self.request.GET.get('per_page', 15))
+        except (ValueError, TypeError):
+            per_page = 15
+        if per_page not in (15, 25, 50, 75, 100):
             per_page = 15
         paginator = Paginator(logs, per_page)
         ctx['page_obj'] = paginator.get_page(self.request.GET.get('page', 1))
         ctx['per_page'] = per_page
-        ctx['per_page_options'] = [15, 25, 50, 100]
+        ctx['per_page_options'] = [15, 25, 50, 75, 100]
         ctx['status_choices'] = LoginAudit.STATUS_CHOICES
         ctx['selected_status'] = status_filter
         ctx['q'] = q
@@ -2673,9 +2711,18 @@ class AdminCertificatesView(SuperAdminRequiredMixin, TemplateView):
                 Q(holder__email__icontains=q) |
                 Q(subject__name__icontains=q)
             )
-        paginator = Paginator(qs, 30)
+        try:
+            per_page = int(self.request.GET.get('per_page', 15))
+        except (ValueError, TypeError):
+            per_page = 15
+        if per_page not in (15, 25, 50, 75, 100):
+            per_page = 15
+        paginator = Paginator(qs, per_page)
         page = self.request.GET.get('page', 1)
         ctx['certificates'] = paginator.get_page(page)
+        ctx['page_obj'] = ctx['certificates']
+        ctx['per_page'] = per_page
+        ctx['per_page_options'] = [15, 25, 50, 75, 100]
         ctx['status_filter'] = status_filter
         ctx['level_filter'] = level_filter
         ctx['monitoring_filter'] = monitoring_filter

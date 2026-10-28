@@ -48,6 +48,7 @@
   </div>
 </form>
 
+<div id="adminTableContainer" class="admin-table-container">
 {% if page_obj.object_list %}
 <div class="adm-card">
   <table class="adm-table">
@@ -78,3 +79,4 @@
 <div class="adm-empty">No login records match your filters.</div>
 {% endif %}
 {% endblock %}
+</div>

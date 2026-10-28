@@ -27,6 +27,7 @@
   </div>
 </form>
 
+<div id="adminTableContainer" class="admin-table-container">
 {% if page_obj.object_list %}
 <div class="adm-card">
   <table class="adm-table">
@@ -80,6 +81,7 @@
 {% endif %}
 
 <!-- Subscription Action Modal -->
+</div>
 <div class="modal fade" id="subActionModal" tabindex="-1" aria-labelledby="subActionModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content" style="border-radius:12px; border:none; box-shadow:0 8px 32px rgba(0,0,0,.15);">

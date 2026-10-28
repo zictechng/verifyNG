@@ -137,6 +137,7 @@
     </div>
   </form>
 
+<div id="adminTableContainer" class="admin-table-container">
   <!-- Table -->
   <div class="table-responsive">
     <table class="table adm-table mb-0">
@@ -176,40 +177,8 @@
     </table>
   </div>
 
-  <!-- Pagination -->
-  {% with page_obj=audit_page %}
-  {% if page_obj.has_other_pages %}
-  <div class="px-4 py-3 border-top d-flex justify-content-between align-items-center flex-wrap gap-2">
-    <small class="text-muted">
-      Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
-      &nbsp;·&nbsp; {{ total_audit }} total
-    </small>
-    <nav>
-      <ul class="pagination pagination-sm mb-0">
-        {% if page_obj.has_previous %}
-        <li class="page-item">
-          <a class="page-link" href="?{% if q %}q={{ q }}&{% endif %}{% if action_type %}action_type={{ action_type }}&{% endif %}{% if date_from %}date_from={{ date_from }}&{% endif %}{% if date_to %}date_to={{ date_to }}&{% endif %}audit_page={{ page_obj.previous_page_number }}">‹</a>
-        </li>
-        {% endif %}
-        {% for num in page_obj.paginator.page_range %}
-          {% if page_obj.number == num %}
-          <li class="page-item active"><span class="page-link">{{ num }}</span></li>
-          {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
-          <li class="page-item">
-            <a class="page-link" href="?{% if q %}q={{ q }}&{% endif %}{% if action_type %}action_type={{ action_type }}&{% endif %}{% if date_from %}date_from={{ date_from }}&{% endif %}{% if date_to %}date_to={{ date_to }}&{% endif %}audit_page={{ num }}">{{ num }}</a>
-          </li>
-          {% endif %}
-        {% endfor %}
-        {% if page_obj.has_next %}
-        <li class="page-item">
-          <a class="page-link" href="?{% if q %}q={{ q }}&{% endif %}{% if action_type %}action_type={{ action_type }}&{% endif %}{% if date_from %}date_from={{ date_from }}&{% endif %}{% if date_to %}date_to={{ date_to }}&{% endif %}audit_page={{ page_obj.next_page_number }}">›</a>
-        </li>
-        {% endif %}
-      </ul>
-    </nav>
-  </div>
-  {% endif %}
-  {% endwith %}
+  {% include "admin_portal/_pagination.html" with page_obj=audit_page %}
+</div>
 
 </div>
 
