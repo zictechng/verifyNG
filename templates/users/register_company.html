@@ -1,0 +1,86 @@
+{% extends 'public/base.html' %}
+{% load static %}
+
+{% block title %}Register Organisation — VerifyNG{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-md-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-6 col-md-8">
+
+            <div class="text-center mb-4">
+                <span class="vng-badge-trust mb-2">Employer Onboarding</span>
+                <h1 class="h3 fw-bold">Register Your Organisation</h1>
+                <p class="small text-muted mb-0">
+                    Set up your organisation portal to run staff background checks, verify workforce certificates, and manage team screening.
+                </p>
+            </div>
+
+            <div class="vng-card p-4 p-md-5">
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags|default:'info' }} py-2 small mb-3">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+
+                {% if form.errors %}
+                    <div class="alert alert-danger py-2 small mb-3">
+                        Please correct the errors indicated below.
+                    </div>
+                {% endif %}
+
+                <form method="post" novalidate>
+                    {% csrf_token %}
+
+                    <div class="mb-3">
+                        <label for="{{ form.company_name.id_for_label }}" class="form-label small fw-semibold">
+                            Company / Organisation Legal Name *
+                        </label>
+                        {{ form.company_name }}
+                        {% if form.company_name.errors %}
+                            <div class="text-danger small mt-1">{{ form.company_name.errors.0 }}</div>
+                        {% endif %}
+                        <div class="form-text small text-muted">
+                            As registered with the Corporate Affairs Commission (CAC).
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.company_rc_number.id_for_label }}" class="form-label small fw-semibold">
+                            CAC Registration Number (RC / BN)
+                        </label>
+                        {{ form.company_rc_number }}
+                        {% if form.company_rc_number.errors %}
+                            <div class="text-danger small mt-1">{{ form.company_rc_number.errors.0 }}</div>
+                        {% endif %}
+                        <div class="form-text small text-muted">
+                            Optional for initial setup. You can complete CAC documentation inside the employer portal.
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.contact_phone.id_for_label }}" class="form-label small fw-semibold">
+                            Official Phone Number
+                        </label>
+                        {{ form.contact_phone }}
+                        {% if form.contact_phone.errors %}
+                            <div class="text-danger small mt-1">{{ form.contact_phone.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <button type="submit" class="btn btn-vng-primary w-100 py-2 mt-3">
+                        Create Organisation Portal &rarr;
+                    </button>
+                </form>
+
+                <div class="mt-4 pt-3 border-top text-center">
+                    <a href="{% url 'dashboard:index' %}" class="small text-muted text-decoration-none">
+                        &larr; Back to Dashboard
+                    </a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

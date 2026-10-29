@@ -15,7 +15,7 @@ from django.shortcuts import render, redirect
 from django.urls import reverse_lazy
 from django.utils import timezone
 from django.utils.timezone import localtime, now
-from django.views.generic import CreateView, DetailView, TemplateView, View
+from django.views.generic import CreateView, DetailView, TemplateView, View, FormView
 from django.urls import reverse
 
 from django.contrib import messages
@@ -699,3 +699,95 @@ class AgencyRegisterView(CreateView):
 
 
 
+
+
+def oauth_google_login(request):
+    """
+    Initiates Google OAuth authentication while storing the user's role intent
+    ('employer', 'agency', or 'individual') in the session.
+    """
+    role = request.GET.get('role', 'individual')
+    if role in ('employer', 'agency', 'individual'):
+        request.session['oauth_role_intent'] = role
+    else:
+        request.session['oauth_role_intent'] = 'individual'
+    return HttpResponseRedirect(reverse('google_login'))
+
+
+class RegisterCompanyView(LoginRequiredMixin, FormView):
+    """
+    Allows an existing Individual user to upgrade or register their organization/company,
+    switching their role to 'employer' and initializing their EmployerProfile.
+    """
+    template_name = 'users/register_company.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return super().dispatch(request, *args, **kwargs)
+        from core.permissions import is_admin_or_subadmin, is_employer
+        if is_admin_or_subadmin(request.user):
+            return HttpResponseRedirect(reverse('admin_portal:overview'))
+        if is_employer(request.user):
+            return HttpResponseRedirect(reverse('employer:dashboard'))
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_form_class(self):
+        from django import forms
+
+        class CompanyUpgradeForm(forms.Form):
+            company_name = forms.CharField(
+                max_length=200,
+                required=True,
+                label='Company / Organisation Legal Name *',
+                widget=forms.TextInput(attrs={
+                    'class': 'form-control',
+                    'placeholder': 'e.g. Acme Logistics Nigeria Ltd',
+                    'autofocus': 'autofocus'
+                })
+            )
+            company_rc_number = forms.CharField(
+                max_length=50,
+                required=False,
+                label='CAC Registration Number (RC / BN)',
+                widget=forms.TextInput(attrs={
+                    'class': 'form-control',
+                    'placeholder': 'RC123456 or BN654321 (optional for now)'
+                })
+            )
+            contact_phone = forms.CharField(
+                max_length=30,
+                required=False,
+                label='Official Phone Number',
+                widget=forms.TextInput(attrs={
+                    'class': 'form-control',
+                    'placeholder': '+234 801 234 5678'
+                })
+            )
+
+        return CompanyUpgradeForm
+
+    def form_valid(self, form):
+        user = self.request.user
+        company_name = form.cleaned_data['company_name'].strip()
+        rc_number = form.cleaned_data.get('company_rc_number', '').strip()
+        phone = form.cleaned_data.get('contact_phone', '').strip()
+
+        # Update role to employer
+        user.role = 'employer'
+        user.save(update_fields=['role'])
+
+        # Create or update EmployerProfile
+        from employer.models import EmployerProfile
+        profile, _ = EmployerProfile.objects.get_or_create(user=user)
+        profile.company_name = company_name
+        if rc_number:
+            profile.company_rc_number = rc_number
+        if phone:
+            profile.contact_phone = phone
+        profile.save()
+
+        messages.success(
+            self.request,
+            f"Welcome to the Employer Portal! Your organisation '{company_name}' is now registered. Please complete your CAC verification to unlock full screening services."
+        )
+        return HttpResponseRedirect(reverse('employer:dashboard'))

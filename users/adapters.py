@@ -35,15 +35,40 @@ class CustomAccountAdapter(DefaultAccountAdapter):
 class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
     """
     VerifyNG social account adapter for Google OAuth.
-    Ensures safe onboarding: new users always enter as unverified 'individual' role
-    and must complete standard KYC/CAC verification before accessing employer or sensitive services.
+    Ensures safe onboarding:
+    - Respects intended signup role ('employer', 'agency', or 'individual') from session.
+    - Always initializes KYC status as unverified ('unverified').
+    - Auto-initializes minimal EmployerProfile if role is employer/agency.
     """
     def populate_user(self, request, sociallogin, data):
         user = super().populate_user(request, sociallogin, data)
-        # Always enforce individual role and unverified KYC status for new social signups
         if not user.pk:
-            user.role = 'individual'
+            role_intent = request.session.pop('oauth_role_intent', 'individual') if hasattr(request, 'session') else 'individual'
+            if role_intent in ('employer', 'agency', 'individual'):
+                user.role = role_intent
+            else:
+                user.role = 'individual'
             user.id_status = 'unverified'
+        return user
+
+    def save_user(self, request, sociallogin, form=None):
+        user = super().save_user(request, sociallogin, form)
+        if user.role in ('employer', 'agency'):
+            try:
+                from employer.models import EmployerProfile
+                if not EmployerProfile.objects.filter(user=user).exists():
+                    company_name = (
+                        sociallogin.account.extra_data.get('name')
+                        or user.get_full_name()
+                        or user.username
+                    )
+                    EmployerProfile.objects.create(
+                        user=user,
+                        company_name=company_name,
+                        contact_phone='',
+                    )
+            except Exception as e:
+                logger.error("Failed to auto-create EmployerProfile on social signup: %s", e)
         return user
 
     def on_authentication_error(self, request, provider, error=None, exception=None, extra_context=None):

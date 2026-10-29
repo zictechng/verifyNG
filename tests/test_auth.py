@@ -252,3 +252,70 @@ class ReportIdentityGateTest(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertIn('login', response['Location'])
 
+
+
+
+# ---------------------------------------------------------------------------
+# Google OAuth Role Intent & In-App Company Registration Tests
+# ---------------------------------------------------------------------------
+
+class GoogleOAuthRoleIntentTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+
+    def test_oauth_initiate_employer_role(self):
+        url = reverse('users:oauth_google_login') + '?role=employer'
+        response = self.client.get(url, follow=False)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(self.client.session.get('oauth_role_intent'), 'employer')
+
+    def test_oauth_initiate_agency_role(self):
+        url = reverse('users:oauth_google_login') + '?role=agency'
+        response = self.client.get(url, follow=False)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(self.client.session.get('oauth_role_intent'), 'agency')
+
+    def test_oauth_initiate_default_role(self):
+        url = reverse('users:oauth_google_login')
+        response = self.client.get(url, follow=False)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(self.client.session.get('oauth_role_intent'), 'individual')
+
+
+class RegisterCompanyUpgradeTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = make_user(username='indiv_upgrade_user', email='upgrade@test.com')
+        self.url = reverse('users:register_company')
+
+    def test_anonymous_redirected_to_login(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('login', response['Location'])
+
+    def test_individual_can_access_company_registration_form(self):
+        self.client.force_login(self.user)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Register Your Organisation')
+
+    def test_upgrade_creates_employer_profile_and_switches_role(self):
+        self.client.force_login(self.user)
+        response = self.client.post(self.url, {
+            'company_name': 'Sterling Logistics Limited',
+            'company_rc_number': 'RC109283',
+            'contact_phone': '+2348030001122'
+        }, follow=False)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response['Location'], reverse('employer:dashboard'))
+
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.role, 'employer')
+
+        from employer.models import EmployerProfile
+        profile = EmployerProfile.objects.filter(user=self.user).first()
+        self.assertIsNotNone(profile)
+        self.assertEqual(profile.company_name, 'Sterling Logistics Limited')
+        self.assertEqual(profile.company_rc_number, 'RC109283')
+        self.assertEqual(profile.is_verified, False)  # KYC gate strictly intact

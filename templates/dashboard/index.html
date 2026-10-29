@@ -134,6 +134,24 @@
         </div>
     </div>
 
+        {% if request.user.role == 'individual' %}
+    {# ── Switch to Employer Card ────────────────────────────────────────── #}
+    <div class="vng-card p-4 mb-4" style="background: linear-gradient(135deg, #f8fbf9 0%, #edf7f2 100%); border-left: 4px solid var(--vng-primary);">
+        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+            <div>
+                <span class="badge bg-success-subtle text-success mb-2 fw-semibold">For Business &amp; HR</span>
+                <h3 class="h6 fw-bold mb-1 text-dark">Represent an Organisation or Hiring Team?</h3>
+                <p class="small text-muted mb-0">Switch your account to an Employer Portal to screen staff, conduct bulk checks, and manage verifications.</p>
+            </div>
+            <div class="flex-shrink-0">
+                <a href="{% url 'users:register_company' %}" class="btn btn-vng-primary btn-sm px-3 py-2 text-decoration-none">
+                    Register Organisation &rarr;
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     {# ── Role Widgets Row ─────────────────────────────────────────────────── #}
     <div class="row g-3 g-md-4 mb-4">
        

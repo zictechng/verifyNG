@@ -18,6 +18,8 @@ from users.views import (
     CustomPasswordResetConfirmView,
     CustomPasswordResetCompleteView,
     CustomPasswordChangeView,
+    oauth_google_login,
+    RegisterCompanyView,
 )
 from django.contrib.auth.views import PasswordChangeDoneView
 from django.views.generic import TemplateView
@@ -30,6 +32,8 @@ urlpatterns = [
     path('register/individual/', RegisterView.as_view(), name='register'),
     path('register/employer/', EmployerRegisterView.as_view(), name='register_employer'),
     path('register/agency/', AgencyRegisterView.as_view(), name='register_agency'),
+    path('register/company/', RegisterCompanyView.as_view(), name='register_company'),
+    path('oauth/google/', oauth_google_login, name='oauth_google_login'),
 
     path('login/', UserLoginView.as_view(), name='login'),
     path('logout/', UserLogoutView.as_view(), name='logout'),
