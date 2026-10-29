@@ -155,6 +155,8 @@ class User(AbstractUser):
             self.is_billing_exempt = False
         if not isinstance(self.is_active, bool):
             self.is_active = bool(self.is_active)
+        if self.role in ('moderator', 'officer'):
+            self.is_staff = True
         super().save(*args, **kwargs)
 
     def __str__(self):

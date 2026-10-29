@@ -178,3 +178,43 @@ class SubAdminPermissionsSecurityTestCase(TestCase):
         res = self.client.get(reverse('admin_portal:reports'))
         self.assertEqual(res.status_code, 302)
         self.assertIn('/users/login/', res.url)
+
+    def test_subadmin_login_redirects_to_admin_portal_overview(self):
+        """Sub-admin logging in from /users/login/ is routed directly to admin portal overview."""
+        from unittest.mock import patch
+        with patch('users.views.check_rate_limit', return_value=(False, 0)):
+            res = self.client.post(reverse('users:login'), {
+                'username': 'report_mod',
+                'password': 'Password123!',
+            })
+        self.assertEqual(res.status_code, 302)
+        self.assertRedirects(res, reverse('admin_portal:overview'))
+
+    def test_subadmin_login_with_dashboard_next_redirects_to_admin_portal_overview(self):
+        """Sub-admin logging in with ?next=/dashboard/ is rerouted directly to admin portal overview."""
+        from unittest.mock import patch
+        with patch('users.views.check_rate_limit', return_value=(False, 0)):
+            res = self.client.post(reverse('users:login') + '?next=/dashboard/', {
+                'username': 'report_mod',
+                'password': 'Password123!',
+            })
+        self.assertEqual(res.status_code, 302)
+        self.assertRedirects(res, reverse('admin_portal:overview'))
+
+    def test_subadmin_visiting_dashboard_redirects_to_admin_portal_overview(self):
+        """Sub-admin attempting to access regular candidate /dashboard/ is redirected to admin portal overview."""
+        self.client.force_login(self.reports_subadmin)
+        res = self.client.get(reverse('dashboard:index'))
+        self.assertEqual(res.status_code, 302)
+        self.assertRedirects(res, reverse('admin_portal:overview'))
+
+    def test_superadmin_login_redirects_to_admin_portal_overview(self):
+        """Superadmin logging in is routed directly to admin portal overview."""
+        from unittest.mock import patch
+        with patch('users.views.check_rate_limit', return_value=(False, 0)):
+            res = self.client.post(reverse('users:login'), {
+                'username': 'superadmin',
+                'password': 'Password123!',
+            })
+        self.assertEqual(res.status_code, 302)
+        self.assertRedirects(res, reverse('admin_portal:overview'))

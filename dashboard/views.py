@@ -85,7 +85,10 @@ class DashboardIndexView(LoginRequiredMixin, TemplateView):
 
     def dispatch(self, request, *args, **kwargs):
         if request.user.is_authenticated:
-            if not (request.user.is_staff or request.user.is_superuser) and is_employer(request.user):
+            from core.permissions import is_admin_or_subadmin, is_employer
+            if is_admin_or_subadmin(request.user):
+                return redirect('admin_portal:overview')
+            if is_employer(request.user):
                 return redirect('employer:dashboard')
         return super().dispatch(request, *args, **kwargs)
 

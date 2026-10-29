@@ -131,7 +131,7 @@ class AdminPermissionRequiredMixin(LoginRequiredMixin):
             return False
         if user.is_superuser:
             return True
-        if not user.is_staff:
+        if not (user.is_staff or getattr(user, 'role', None) in ('moderator', 'officer')):
             return False
         if self.superuser_only:
             return False
@@ -142,7 +142,7 @@ class AdminPermissionRequiredMixin(LoginRequiredMixin):
         return user.has_perm(self.required_permission)
 
     def handle_no_permission(self):
-        if not self.request.user.is_authenticated or not self.request.user.is_staff:
+        if not self.request.user.is_authenticated or not (self.request.user.is_staff or getattr(self.request.user, 'role', None) in ('moderator', 'officer')):
             from django.contrib.auth.views import redirect_to_login
             return redirect_to_login(self.request.get_full_path())
 

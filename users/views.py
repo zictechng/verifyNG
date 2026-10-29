@@ -111,9 +111,16 @@ class UserLoginView(LoginView):
         """Route to the correct portal based on user role."""
         user = self.request.user
         redirect_to = self.get_redirect_url()
-        from core.permissions import get_user_home_url, is_employer
+        from core.permissions import get_user_home_url, is_employer, is_admin_or_subadmin
 
         if redirect_to:
+            # If an admin or sub-admin user was redirected with next pointing to candidate dashboard/profile, root, or non-admin URLs,
+            # reroute them directly to the admin portal overview.
+            if is_admin_or_subadmin(user):
+                if redirect_to.rstrip('/') in ('', '/dashboard', '/users/profile') or not redirect_to.startswith('/admin-portal'):
+                    return reverse('admin_portal:overview')
+                return redirect_to
+
             # If an employer/agency/business user was redirected with next pointing to candidate dashboard/profile,
             # reroute them to their appropriate employer portal instead.
             if is_employer(user) and redirect_to.rstrip('/') in ('/dashboard', '/users/profile'):

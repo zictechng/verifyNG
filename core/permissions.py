@@ -54,16 +54,33 @@ def is_agency(user):
     return getattr(user, 'role', None) == 'agency'
 
 
+def is_admin_or_subadmin(user) -> bool:
+    """
+    Returns True if user is an admin or sub-admin:
+    - Superusers
+    - Staff members
+    - Moderator role
+    - Verification Officer role
+    """
+    if not user or not user.is_authenticated:
+        return False
+    return (
+        getattr(user, 'is_superuser', False) is True
+        or getattr(user, 'is_staff', False) is True
+        or getattr(user, 'role', None) in ('moderator', 'officer')
+    )
+
+
 def get_user_home_url(user) -> str:
     """
     Returns the appropriate destination dashboard URL for a user based on their role:
+    - Admin / Sub-admin (Superuser, Staff, Moderator, Officer) -> 'admin_portal:overview'
     - Employer / Agency / Business / Team Member -> 'employer:dashboard'
-    - Staff / Superuser -> 'admin_portal:overview'
     - Regular Candidate / Individual -> 'dashboard:index'
     """
     if not user or not user.is_authenticated:
         return 'public:home'
-    if getattr(user, 'is_staff', False) or getattr(user, 'is_superuser', False):
+    if is_admin_or_subadmin(user):
         return 'admin_portal:overview'
     if is_employer(user):
         return 'employer:dashboard'
