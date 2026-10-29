@@ -429,6 +429,20 @@
                 </div>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="vng-chevron"><polyline points="9 18 15 12 9 6"/></svg>
             </a>
+            {% if request.user.is_superuser %}
+            <a href="{% url 'admin:index' %}" class="vng-menu-item" target="_blank" rel="noopener noreferrer">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="vng-menu-icon" style="color: #6366F1;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                    </div>
+                    <div>
+                        <div class="vng-item-title">Raw Django Admin</div>
+                        <div class="vng-item-desc">Technical backend database &amp; models access</div>
+                    </div>
+                </div>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="vng-chevron"><polyline points="9 18 15 12 9 6"/></svg>
+            </a>
+            {% endif %}
             <a href="{% url 'verification:officer_queue' %}" class="vng-menu-item">
                 <div class="d-flex align-items-center gap-3">
                     <div class="vng-menu-icon">
