@@ -2,6 +2,7 @@ from django.urls import path
 from dashboard.admin_views import (
     # Existing
     AdminMenuAccessView,
+    AdminProfileView,
     AdminOverviewView,
     AdminPlanToggleView,
     AdminSubscriptionActionView,
@@ -70,6 +71,7 @@ app_name = 'admin_portal'
 urlpatterns = [
     # ── Overview Dashboard ─────────────────────────────────────────────────
     path('', AdminOverviewView.as_view(), name='overview'),
+    path('profile/', AdminProfileView.as_view(), name='profile'),
 
     # ── Analytics ─────────────────────────────────────────────────────────
     path('analytics/', AdminAnalyticsView.as_view(), name='analytics'),

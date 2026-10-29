@@ -218,3 +218,59 @@ class SubAdminPermissionsSecurityTestCase(TestCase):
             })
         self.assertEqual(res.status_code, 302)
         self.assertRedirects(res, reverse('admin_portal:overview'))
+
+    def test_subadmin_can_access_admin_profile(self):
+        """Sub-admin can access their own My Profile & Security page in admin portal."""
+        self.client.force_login(self.reports_subadmin)
+        res = self.client.get(reverse('admin_portal:profile'))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, 'My Profile &amp; Security')
+        self.assertContains(res, self.reports_subadmin.email)
+
+    def test_subadmin_can_update_profile_details(self):
+        """Sub-admin can update their first name, last name, and email via admin profile."""
+        self.client.force_login(self.reports_subadmin)
+        res = self.client.post(reverse('admin_portal:profile'), {
+            'action': 'update_profile',
+            'first_name': 'UpdatedFirst',
+            'last_name': 'UpdatedLast',
+            'email': 'newemail@example.com',
+        }, follow=True)
+        self.assertEqual(res.status_code, 200)
+        self.reports_subadmin.refresh_from_db()
+        self.assertEqual(self.reports_subadmin.first_name, 'UpdatedFirst')
+        self.assertEqual(self.reports_subadmin.last_name, 'UpdatedLast')
+        self.assertEqual(self.reports_subadmin.email, 'newemail@example.com')
+
+    def test_subadmin_can_change_password(self):
+        """Sub-admin can change password via admin profile and authenticate with new password."""
+        self.client.force_login(self.reports_subadmin)
+        res = self.client.post(reverse('admin_portal:profile'), {
+            'action': 'change_password',
+            'old_password': 'Password123!',
+            'new_password1': 'BrandNewPass999!',
+            'new_password2': 'BrandNewPass999!',
+        }, follow=True)
+        self.assertEqual(res.status_code, 200)
+        self.reports_subadmin.refresh_from_db()
+        self.assertTrue(self.reports_subadmin.check_password('BrandNewPass999!'))
+
+    def test_non_admin_blocked_from_admin_profile(self):
+        """Regular candidate user is blocked with 403 Forbidden from admin profile."""
+        self.client.force_login(self.regular_user)
+        res = self.client.get(reverse('admin_portal:profile'))
+        self.assertEqual(res.status_code, 403)
+
+    def test_subadmin_accessing_candidate_profile_redirected_to_admin_profile(self):
+        """Sub-admin accessing /users/profile/ is seamlessly redirected to /admin-portal/profile/."""
+        self.client.force_login(self.reports_subadmin)
+        res = self.client.get(reverse('users:profile'))
+        self.assertEqual(res.status_code, 302)
+        self.assertRedirects(res, reverse('admin_portal:profile'))
+
+    def test_subadmin_accessing_candidate_password_change_redirected_to_admin_profile(self):
+        """Sub-admin accessing /users/password-change/ is redirected to /admin-portal/profile/."""
+        self.client.force_login(self.reports_subadmin)
+        res = self.client.get(reverse('users:password_change'))
+        self.assertEqual(res.status_code, 302)
+        self.assertRedirects(res, reverse('admin_portal:profile'))

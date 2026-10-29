@@ -3741,3 +3741,73 @@ class AdminFinancialReportView(SuperAdminRequiredMixin, TemplateView):
 
 
 
+
+
+class AdminProfileView(LoginRequiredMixin, View):
+    """
+    Dedicated Profile and Account Management view for Admin and Sub-Admin users.
+    Accessible to all authenticated staff members, superadmins, moderators, and officers.
+    Allows managing personal details (First Name, Last Name, Email) and login credentials (Password).
+    """
+    template_name = "admin_portal/profile.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            from django.contrib.auth.views import redirect_to_login
+            return redirect_to_login(request.get_full_path())
+        from core.permissions import is_admin_or_subadmin
+        if not is_admin_or_subadmin(request.user):
+            from django.core.exceptions import PermissionDenied
+            raise PermissionDenied("Administrative portal access required.")
+        return super().dispatch(request, *args, **kwargs)
+
+    def get(self, request):
+        from django.contrib.auth.forms import PasswordChangeForm
+        pw_form = PasswordChangeForm(user=request.user)
+        return render(request, self.template_name, {
+            'pw_form': pw_form,
+        })
+
+    def post(self, request):
+        from django.contrib.auth.forms import PasswordChangeForm
+        from django.contrib.auth import update_session_auth_hash
+        action = request.POST.get('action')
+
+        if action == 'update_profile':
+            first_name = request.POST.get('first_name', '').strip()
+            last_name  = request.POST.get('last_name', '').strip()
+            email      = request.POST.get('email', '').strip().lower()
+
+            errors = []
+            if not email:
+                errors.append("Email address is required.")
+            elif User.objects.filter(email=email).exclude(pk=request.user.pk).exists():
+                errors.append(f"Email '{email}' is already registered to another account.")
+
+            if errors:
+                for err in errors:
+                    messages.error(request, err)
+            else:
+                request.user.first_name = first_name
+                request.user.last_name  = last_name
+                request.user.email      = email
+                request.user.save(update_fields=['first_name', 'last_name', 'email'])
+                messages.success(request, "Your personal details have been updated successfully.")
+            return redirect('admin_portal:profile')
+
+        elif action == 'change_password':
+            pw_form = PasswordChangeForm(user=request.user, data=request.POST)
+            if pw_form.is_valid():
+                user = pw_form.save()
+                update_session_auth_hash(request, user)
+                messages.success(request, "Your login password has been changed successfully.")
+                return redirect('admin_portal:profile')
+            else:
+                for field, field_errors in pw_form.errors.items():
+                    for err in field_errors:
+                        messages.error(request, err)
+                return render(request, self.template_name, {
+                    'pw_form': pw_form,
+                })
+
+        return redirect('admin_portal:profile')

@@ -891,8 +891,20 @@
 
     <!-- User identity footer -->
     <div class="adm-sidebar-user">
-        <span class="uname">{{ request.user.username }}</span>
-        <span class="urole">Superadmin</span>
+        <a href="{% url 'admin_portal:profile' %}" class="text-decoration-none d-block">
+            <span class="uname">{{ request.user.get_full_name|default:request.user.username }}</span>
+            <span class="urole">
+                {% if request.user.is_superuser %}
+                    Superadmin
+                {% elif request.user.role == 'moderator' %}
+                    Moderator
+                {% elif request.user.role == 'officer' %}
+                    Verification Officer
+                {% else %}
+                    {{ request.user.get_role_display|default:"Staff" }}
+                {% endif %}
+            </span>
+        </a>
     </div>
 </aside>
 
@@ -942,21 +954,31 @@
                     <!-- Header -->
                     <div class="adm-tb-dropdown-header">
                         <span class="dh-name">{{ request.user.get_full_name|default:request.user.username }}</span>
-                        <span class="dh-role">Superadmin</span>
+                        <span class="dh-role">
+                            {% if request.user.is_superuser %}
+                                Superadmin
+                            {% elif request.user.role == 'moderator' %}
+                                Moderator
+                            {% elif request.user.role == 'officer' %}
+                                Verification Officer
+                            {% else %}
+                                {{ request.user.get_role_display|default:"Staff" }}
+                            {% endif %}
+                        </span>
                         <div style="font-size:0.72rem;color:var(--adm-muted);margin-top:3px;">
                             {{ request.user.email }}
                         </div>
                     </div>
 
                     <!-- Menu items -->
-                    <a href="{% url 'admin_portal:users' %}?q={{ request.user.email }}"
+                    <a href="{% url 'admin_portal:profile' %}"
                        class="adm-tb-dropdown-item" role="menuitem">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
                              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
                             <circle cx="12" cy="7" r="4"/>
                         </svg>
-                        My Profile
+                        My Profile &amp; Security
                     </a>
 
                     <a href="{% url 'admin_portal:notifications' %}"

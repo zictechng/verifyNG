@@ -243,6 +243,13 @@ class CustomPasswordChangeView(LoginRequiredMixin, PasswordChangeView):
     form_class = CustomPasswordChangeForm
     success_url = reverse_lazy('users:password_change_done')
 
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            from core.permissions import is_admin_or_subadmin
+            if is_admin_or_subadmin(request.user):
+                return redirect('admin_portal:profile')
+        return super().dispatch(request, *args, **kwargs)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         from notifications.models import NotificationPreference
@@ -329,6 +336,13 @@ class UserProfileUpdateView(LoginRequiredMixin, View):
     Username and role are read-only.
     """
     template_name = 'users/profile.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            from core.permissions import is_admin_or_subadmin
+            if is_admin_or_subadmin(request.user):
+                return redirect('admin_portal:profile')
+        return super().dispatch(request, *args, **kwargs)
 
     def get(self, request):
         class ProfileForm(dj_forms.ModelForm):
