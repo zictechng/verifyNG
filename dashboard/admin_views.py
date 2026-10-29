@@ -2265,10 +2265,11 @@ class AdminAnalyticsView(SuperAdminRequiredMixin, TemplateView):
         return ctx
 
 
-class AdminNotificationsView(SuperAdminRequiredMixin, TemplateView):
+class AdminNotificationsView(AdminPermissionRequiredMixin, TemplateView):
     section_name = "Notifications"
-    superuser_only = True
-    """Platform-wide admin notification digest — pending actions requiring attention."""
+    superuser_only = False
+    required_permission = None
+    """Platform-wide admin notification digest — role-filtered pending actions requiring attention."""
     template_name = "admin_portal/notifications.html"
 
     def get_context_data(self, **kwargs):
@@ -2276,68 +2277,99 @@ class AdminNotificationsView(SuperAdminRequiredMixin, TemplateView):
         from django.utils import timezone as tz
 
         now = tz.now()
+        user = self.request.user
+
+        # Two-tier RBAC clearance checks for notification cards
+        can_view_reports = user.is_superuser or user.has_perm('reports.view_fraudreport') or getattr(user, 'role', None) == 'moderator'
+        can_view_disputes = user.is_superuser or user.has_perm('reports.view_dispute') or user.has_perm('reports.view_fraudreport') or getattr(user, 'role', None) == 'moderator'
+        can_view_certs = user.is_superuser or user.has_perm('verification.view_verificationcertificate') or user.has_perm('verification.view_verificationrequest') or getattr(user, 'role', None) == 'officer'
+        can_view_employers = user.is_superuser or user.has_perm('employer.view_employerprofile') or user.has_perm('users.view_user')
+        can_view_txns = user.is_superuser or user.has_perm('payments.view_transaction')
+
+        ctx['can_view_reports'] = can_view_reports
+        ctx['can_view_disputes'] = can_view_disputes
+        ctx['can_view_certs'] = can_view_certs
+        ctx['can_view_employers'] = can_view_employers
+        ctx['can_view_txns'] = can_view_txns
+
+        total_alerts = 0
 
         # Pending / in-review reports
-        ctx['pending_reports'] = FraudReport.objects.filter(
-            state__in=['submitted', 'under_review']
-        ).order_by('-created_at')[:20]
-        ctx['pending_reports_count'] = FraudReport.objects.filter(
-            state__in=['submitted', 'under_review']
-        ).count()
+        if can_view_reports:
+            ctx['pending_reports'] = FraudReport.objects.filter(
+                state__in=['submitted', 'under_review']
+            ).order_by('-created_at')[:20]
+            ctx['pending_reports_count'] = FraudReport.objects.filter(
+                state__in=['submitted', 'under_review']
+            ).count()
+            total_alerts += ctx['pending_reports_count']
+        else:
+            ctx['pending_reports'] = []
+            ctx['pending_reports_count'] = 0
 
         # Open disputes
-        ctx['open_disputes'] = Dispute.objects.filter(
-            status__in=['opened', 'under_review']
-        ).select_related('report', 'disputant').order_by('-created_at')[:20]
-        ctx['open_disputes_count'] = Dispute.objects.filter(
-            status__in=['opened', 'under_review']
-        ).count()
+        if can_view_disputes:
+            ctx['open_disputes'] = Dispute.objects.filter(
+                status__in=['opened', 'under_review']
+            ).select_related('report', 'disputant').order_by('-created_at')[:20]
+            ctx['open_disputes_count'] = Dispute.objects.filter(
+                status__in=['opened', 'under_review']
+            ).count()
+            total_alerts += ctx['open_disputes_count']
+        else:
+            ctx['open_disputes'] = []
+            ctx['open_disputes_count'] = 0
 
         # Certificates expiring within 30 days
-        from verification.models import VerificationCertificate
-        thirty_days = now + timedelta(days=30)
-        ctx['expiring_certs'] = VerificationCertificate.objects.filter(
-            status='active',
-            expires_at__lte=thirty_days,
-            expires_at__gt=now
-        ).select_related('holder').order_by('expires_at')[:20]
-        ctx['expiring_certs_count'] = VerificationCertificate.objects.filter(
-            status='active',
-            expires_at__lte=thirty_days,
-            expires_at__gt=now
-        ).count()
+        if can_view_certs:
+            from verification.models import VerificationCertificate
+            thirty_days = now + timedelta(days=30)
+            ctx['expiring_certs'] = VerificationCertificate.objects.filter(
+                status='active',
+                expires_at__lte=thirty_days,
+                expires_at__gt=now
+            ).select_related('holder').order_by('expires_at')[:20]
+            ctx['expiring_certs_count'] = VerificationCertificate.objects.filter(
+                status='active',
+                expires_at__lte=thirty_days,
+                expires_at__gt=now
+            ).count()
+            total_alerts += ctx['expiring_certs_count']
+        else:
+            ctx['expiring_certs'] = []
+            ctx['expiring_certs_count'] = 0
 
         # Unverified employer profiles
-        if EmployerProfile:
+        if can_view_employers and EmployerProfile:
             ctx['unverified_employers'] = EmployerProfile.objects.filter(
                 is_verified=False, user__is_active=True
             ).select_related('user').order_by('-created_at')[:20]
             ctx['unverified_employers_count'] = EmployerProfile.objects.filter(
                 is_verified=False, user__is_active=True
             ).count()
+            total_alerts += ctx['unverified_employers_count']
         else:
             ctx['unverified_employers'] = []
             ctx['unverified_employers_count'] = 0
 
         # Failed transactions (last 7 days)
-        from payments.models import Transaction
-        seven_days_ago = now - timedelta(days=7)
-        ctx['failed_transactions'] = Transaction.objects.filter(
-            status='failed',
-            created_at__gte=seven_days_ago
-        ).select_related('user').order_by('-created_at')[:20]
-        ctx['failed_transactions_count'] = Transaction.objects.filter(
-            status='failed',
-            created_at__gte=seven_days_ago
-        ).count()
+        if can_view_txns:
+            from payments.models import Transaction
+            seven_days_ago = now - timedelta(days=7)
+            ctx['failed_transactions'] = Transaction.objects.filter(
+                status='failed',
+                created_at__gte=seven_days_ago
+            ).select_related('user').order_by('-created_at')[:20]
+            ctx['failed_transactions_count'] = Transaction.objects.filter(
+                status='failed',
+                created_at__gte=seven_days_ago
+            ).count()
+            total_alerts += ctx['failed_transactions_count']
+        else:
+            ctx['failed_transactions'] = []
+            ctx['failed_transactions_count'] = 0
 
-        ctx['total_alerts'] = (
-            ctx['pending_reports_count'] +
-            ctx['open_disputes_count'] +
-            ctx['expiring_certs_count'] +
-            ctx['unverified_employers_count'] +
-            ctx['failed_transactions_count']
-        )
+        ctx['total_alerts'] = total_alerts
         return ctx
     
 # ── System Logs ────────────────────────────────────────────────────────────
@@ -3803,9 +3835,7 @@ class AdminProfileView(LoginRequiredMixin, View):
                 messages.success(request, "Your login password has been changed successfully.")
                 return redirect('admin_portal:profile')
             else:
-                for field, field_errors in pw_form.errors.items():
-                    for err in field_errors:
-                        messages.error(request, err)
+                messages.error(request, "Unable to change password. Please check the inline error messages below.")
                 return render(request, self.template_name, {
                     'pw_form': pw_form,
                 })

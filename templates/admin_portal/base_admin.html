@@ -844,7 +844,7 @@
     {% endif %}
 
     <!-- Section: Communications -->
-    {% if request.user.is_superuser or perms.notifications.view_notification %}
+    {% if request.user.is_superuser or request.user.is_staff or request.user.role == 'moderator' or request.user.role == 'officer' or perms.notifications.view_notification %}
     <div class="adm-nav-label">Communications</div>
     <nav class="adm-nav">
         {% if request.user.is_superuser %}

@@ -181,7 +181,7 @@
     </div>
 
     <!-- Manage Login Credentials / Change Password Card -->
-    <div class="adm-card">
+    <div class="adm-card" id="passwordManagementCard">
       <div class="adm-card-header mb-3">
         <h6 class="adm-card-title d-flex align-items-center gap-2">
           <i class="bi bi-key text-primary"></i>
@@ -191,64 +191,110 @@
 
       <p class="small text-muted mb-4">
         Update your login password regularly to protect your administrative privileges.
-        Must be at least 8 characters and not too common.
+        Must be at least 8 characters and meet all security criteria below.
       </p>
+
+      {% if pw_form.non_field_errors %}
+        <div class="alert alert-danger py-2 px-3 small mb-3">
+          {% for err in pw_form.non_field_errors %}
+            <div><i class="bi bi-exclamation-triangle-fill me-1"></i> {{ err }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
 
       <form method="post" novalidate id="adminPasswordForm">
         {% csrf_token %}
         <input type="hidden" name="action" value="change_password">
 
+        <!-- Current Password -->
         <div class="mb-3">
-          <label class="form-label small fw-semibold">Current Password *</label>
+          <label class="form-label small fw-semibold" for="id_old_password">Current Password *</label>
           <div class="input-group">
             <input type="password"
                    name="old_password"
                    id="id_old_password"
-                   class="form-control"
+                   class="form-control {% if pw_form.old_password.errors %}is-invalid{% endif %}"
                    required
+                   autocomplete="current-password"
                    placeholder="Enter your current password"
                    style="height:40px;font-size:0.875rem;border-color:var(--adm-border);">
             <button class="btn btn-outline-secondary toggle-pw-btn" type="button" data-target="id_old_password" tabindex="-1">
               <i class="bi bi-eye"></i>
             </button>
           </div>
+          <div id="old_password_error" class="{% if pw_form.old_password.errors %}text-danger small mt-1 d-flex align-items-center gap-1{% else %}d-none text-danger small mt-1 align-items-center gap-1{% endif %}">
+            <i class="bi bi-exclamation-circle-fill"></i>
+            <span id="old_password_error_text">{{ pw_form.old_password.errors.0 }}</span>
+          </div>
         </div>
 
         <div class="row g-3 mb-4">
+          <!-- New Password -->
           <div class="col-sm-6">
-            <label class="form-label small fw-semibold">New Password *</label>
+            <label class="form-label small fw-semibold" for="id_new_password1">New Password *</label>
             <div class="input-group">
               <input type="password"
                      name="new_password1"
                      id="id_new_password1"
-                     class="form-control"
+                     class="form-control {% if pw_form.new_password1.errors %}is-invalid{% endif %}"
                      required
+                     autocomplete="new-password"
                      placeholder="Min. 8 characters"
                      style="height:40px;font-size:0.875rem;border-color:var(--adm-border);">
               <button class="btn btn-outline-secondary toggle-pw-btn" type="button" data-target="id_new_password1" tabindex="-1">
                 <i class="bi bi-eye"></i>
               </button>
             </div>
+            <div id="new_password1_error" class="{% if pw_form.new_password1.errors %}text-danger small mt-1 d-flex align-items-center gap-1{% else %}d-none text-danger small mt-1 align-items-center gap-1{% endif %}">
+              <i class="bi bi-exclamation-circle-fill"></i>
+              <span id="new_password1_error_text">{{ pw_form.new_password1.errors.0 }}</span>
+            </div>
+
+            <!-- Inline Password Strength / Requirements Checklist -->
+            <div class="pw-criteria mt-2 p-2 rounded bg-light border" id="pwCriteriaBox" style="font-size:0.75rem;">
+              <div class="fw-semibold text-muted mb-1">Password Requirements:</div>
+              <div class="criterion text-muted d-flex align-items-center gap-1 mb-1" id="crit-length">
+                <i class="bi bi-circle"></i> <span>At least 8 characters</span>
+              </div>
+              <div class="criterion text-muted d-flex align-items-center gap-1 mb-1" id="crit-numeric">
+                <i class="bi bi-circle"></i> <span>Cannot be entirely numeric</span>
+              </div>
+              <div class="criterion text-muted d-flex align-items-center gap-1" id="crit-identity">
+                <i class="bi bi-circle"></i> <span>Cannot be username or email</span>
+              </div>
+            </div>
           </div>
+
+          <!-- Confirm New Password -->
           <div class="col-sm-6">
-            <label class="form-label small fw-semibold">Confirm New Password *</label>
+            <label class="form-label small fw-semibold" for="id_new_password2">Confirm New Password *</label>
             <div class="input-group">
               <input type="password"
                      name="new_password2"
                      id="id_new_password2"
-                     class="form-control"
+                     class="form-control {% if pw_form.new_password2.errors %}is-invalid{% endif %}"
                      required
+                     autocomplete="new-password"
                      placeholder="Repeat new password"
                      style="height:40px;font-size:0.875rem;border-color:var(--adm-border);">
               <button class="btn btn-outline-secondary toggle-pw-btn" type="button" data-target="id_new_password2" tabindex="-1">
                 <i class="bi bi-eye"></i>
               </button>
             </div>
+            <div id="new_password2_error" class="{% if pw_form.new_password2.errors %}text-danger small mt-1 d-flex align-items-center gap-1{% else %}d-none text-danger small mt-1 align-items-center gap-1{% endif %}">
+              <i class="bi bi-exclamation-circle-fill"></i>
+              <span id="new_password2_error_text">{{ pw_form.new_password2.errors.0 }}</span>
+            </div>
+
+            <!-- Inline Password Match Live Feedback -->
+            <div class="mt-2 small" id="pwMatchFeedback" style="display:none;font-size:0.78rem;">
+              <div id="pwMatchText" class="d-flex align-items-center gap-1"></div>
+            </div>
           </div>
         </div>
 
         <div class="d-flex justify-content-end">
-          <button type="submit" class="btn btn-adm-primary px-4" style="height:38px;font-size:0.85rem;">
+          <button type="submit" id="btnSubmitPw" class="btn btn-adm-primary px-4" style="height:38px;font-size:0.85rem;">
             <i class="bi bi-lock me-1"></i> Update Password
           </button>
         </div>
@@ -283,5 +329,178 @@ document.querySelectorAll('.toggle-pw-btn').forEach(function(btn) {
     }
   });
 });
+
+// Real-time inline password validation
+(function() {
+  const form = document.getElementById('adminPasswordForm');
+  const oldPw = document.getElementById('id_old_password');
+  const newPw1 = document.getElementById('id_new_password1');
+  const newPw2 = document.getElementById('id_new_password2');
+
+  const critLength = document.getElementById('crit-length');
+  const critNumeric = document.getElementById('crit-numeric');
+  const critIdentity = document.getElementById('crit-identity');
+
+  const matchBox = document.getElementById('pwMatchFeedback');
+  const matchText = document.getElementById('pwMatchText');
+
+  const username = "{{ request.user.username|escapejs }}".toLowerCase();
+  const email = "{{ request.user.email|escapejs }}".toLowerCase();
+
+  function updateCriterion(elem, isValid) {
+    if (!elem) return;
+    const icon = elem.querySelector('i');
+    if (isValid) {
+      elem.classList.remove('text-muted', 'text-danger');
+      elem.classList.add('text-success', 'fw-medium');
+      if (icon) icon.className = 'bi bi-check-circle-fill text-success';
+    } else {
+      elem.classList.remove('text-success', 'fw-medium');
+      elem.classList.add('text-muted');
+      if (icon) icon.className = 'bi bi-circle text-muted';
+    }
+  }
+
+  function validateNewPw1() {
+    const val = newPw1.value;
+    const errContainer = document.getElementById('new_password1_error');
+    if (errContainer) {
+      errContainer.classList.add('d-none');
+      errContainer.classList.remove('d-flex');
+    }
+
+    if (!val) {
+      updateCriterion(critLength, false);
+      updateCriterion(critNumeric, false);
+      updateCriterion(critIdentity, false);
+      newPw1.classList.remove('is-invalid', 'is-valid');
+      return false;
+    }
+
+    const isLen = val.length >= 8;
+    const isNotAllDigits = !/^\d+$/.test(val);
+    const isNotIdentity = (username ? !val.toLowerCase().includes(username) : true) &&
+                          (email ? !val.toLowerCase().includes(email) : true);
+
+    updateCriterion(critLength, isLen);
+    updateCriterion(critNumeric, isNotAllDigits);
+    updateCriterion(critIdentity, isNotIdentity);
+
+    const allPassed = isLen && isNotAllDigits && isNotIdentity;
+    if (allPassed) {
+      newPw1.classList.remove('is-invalid');
+      newPw1.classList.add('is-valid');
+    } else {
+      newPw1.classList.remove('is-valid');
+      newPw1.classList.add('is-invalid');
+    }
+    return allPassed;
+  }
+
+  function validateMatch() {
+    const p1 = newPw1.value;
+    const p2 = newPw2.value;
+    const errContainer = document.getElementById('new_password2_error');
+    if (errContainer) {
+      errContainer.classList.add('d-none');
+      errContainer.classList.remove('d-flex');
+    }
+
+    if (!p2) {
+      matchBox.style.display = 'none';
+      newPw2.classList.remove('is-invalid', 'is-valid');
+      return false;
+    }
+
+    matchBox.style.display = 'block';
+    if (p1 === p2 && p1.length > 0) {
+      matchText.innerHTML = '<i class="bi bi-check-circle-fill text-success"></i> <span class="text-success fw-medium">Passwords match</span>';
+      newPw2.classList.remove('is-invalid');
+      newPw2.classList.add('is-valid');
+      return true;
+    } else {
+      matchText.innerHTML = '<i class="bi bi-x-circle-fill text-danger"></i> <span class="text-danger fw-medium">Passwords do not match</span>';
+      newPw2.classList.remove('is-valid');
+      newPw2.classList.add('is-invalid');
+      return false;
+    }
+  }
+
+  if (newPw1) {
+    newPw1.addEventListener('input', function() {
+      validateNewPw1();
+      if (newPw2.value) validateMatch();
+    });
+  }
+
+  if (newPw2) {
+    newPw2.addEventListener('input', validateMatch);
+  }
+
+  if (oldPw) {
+    oldPw.addEventListener('input', function() {
+      if (this.value) {
+        this.classList.remove('is-invalid');
+        const err = document.getElementById('old_password_error');
+        if (err) {
+          err.classList.add('d-none');
+          err.classList.remove('d-flex');
+        }
+      }
+    });
+  }
+
+  if (form) {
+    form.addEventListener('submit', function(e) {
+      let valid = true;
+
+      // Validate old password non-empty
+      if (!oldPw.value.trim()) {
+        oldPw.classList.add('is-invalid');
+        const err = document.getElementById('old_password_error');
+        const errText = document.getElementById('old_password_error_text');
+        if (err && errText) {
+          errText.textContent = 'Please enter your current password.';
+          err.classList.remove('d-none');
+          err.classList.add('d-flex');
+        }
+        valid = false;
+      }
+
+      // Validate new password meets criteria
+      const p1Valid = validateNewPw1();
+      if (!p1Valid) {
+        newPw1.classList.add('is-invalid');
+        const err = document.getElementById('new_password1_error');
+        const errText = document.getElementById('new_password1_error_text');
+        if (err && errText) {
+          errText.textContent = 'Password must meet all requirement criteria listed below.';
+          err.classList.remove('d-none');
+          err.classList.add('d-flex');
+        }
+        valid = false;
+      }
+
+      // Validate passwords match
+      const matchValid = validateMatch();
+      if (!matchValid) {
+        newPw2.classList.add('is-invalid');
+        const err = document.getElementById('new_password2_error');
+        const errText = document.getElementById('new_password2_error_text');
+        if (err && errText) {
+          errText.textContent = 'Confirmation password does not match.';
+          err.classList.remove('d-none');
+          err.classList.add('d-flex');
+        }
+        valid = false;
+      }
+
+      if (!valid) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    });
+  }
+})();
 </script>
 {% endblock %}

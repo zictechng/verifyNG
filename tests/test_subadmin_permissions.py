@@ -274,3 +274,79 @@ class SubAdminPermissionsSecurityTestCase(TestCase):
         res = self.client.get(reverse('users:password_change'))
         self.assertEqual(res.status_code, 302)
         self.assertRedirects(res, reverse('admin_portal:profile'))
+
+    def test_subadmin_can_access_notifications_page(self):
+        """Sub-admins (moderators, officers) have access to platform notifications."""
+        self.client.force_login(self.reports_subadmin)
+        res = self.client.get(reverse('admin_portal:notifications'))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "Notifications")
+
+        self.client.force_login(self.verif_subadmin)
+        res = self.client.get(reverse('admin_portal:notifications'))
+        self.assertEqual(res.status_code, 200)
+
+    def test_regular_user_blocked_from_notifications(self):
+        """Regular candidate user cannot access admin notifications and is redirected to login."""
+        self.client.force_login(self.regular_user)
+        res = self.client.get(reverse('admin_portal:notifications'))
+        self.assertEqual(res.status_code, 302)
+        self.assertIn('/users/login/', res.url)
+
+    def test_subadmin_password_change_inline_validation_mismatch(self):
+        """Submitting mismatched passwords returns inline form errors."""
+        self.client.force_login(self.reports_subadmin)
+        res = self.client.post(reverse('admin_portal:profile'), {
+            'action': 'change_password',
+            'old_password': 'Password123!',
+            'new_password1': 'StrongNewPass123!',
+            'new_password2': 'MismatchPass999!',
+        })
+        self.assertEqual(res.status_code, 200)
+        self.assertIn('pw_form', res.context)
+        self.assertTrue(res.context['pw_form'].errors)
+        self.assertIn('new_password2', res.context['pw_form'].errors)
+        # Verify inline error container is rendered in HTML
+        self.assertContains(res, 'is-invalid')
+
+    def test_subadmin_password_change_inline_validation_invalid_old_password(self):
+        """Submitting incorrect old password returns inline error for old_password field."""
+        self.client.force_login(self.reports_subadmin)
+        res = self.client.post(reverse('admin_portal:profile'), {
+            'action': 'change_password',
+            'old_password': 'WrongPassword999!',
+            'new_password1': 'StrongNewPass123!',
+            'new_password2': 'StrongNewPass123!',
+        })
+        self.assertEqual(res.status_code, 200)
+        self.assertIn('pw_form', res.context)
+        self.assertIn('old_password', res.context['pw_form'].errors)
+        self.assertContains(res, 'is-invalid')
+
+    def test_notifications_cards_role_filtered(self):
+        """Notification cards only display for modules the user has clearance to access."""
+        # 1. Reports moderator sees Reports & Disputes, but NOT Expiring Certificates or Failed Transactions
+        self.client.force_login(self.reports_subadmin)
+        res_mod = self.client.get(reverse('admin_portal:notifications'))
+        self.assertEqual(res_mod.status_code, 200)
+        self.assertContains(res_mod, "Pending Fraud Reports")
+        self.assertContains(res_mod, "Open Disputes")
+        self.assertNotContains(res_mod, "Expiring Certificates")
+        self.assertNotContains(res_mod, "Failed Transactions")
+
+        # 2. Verification officer sees Expiring Certificates, but NOT Pending Fraud Reports or Failed Transactions
+        self.client.force_login(self.verif_subadmin)
+        res_verif = self.client.get(reverse('admin_portal:notifications'))
+        self.assertEqual(res_verif.status_code, 200)
+        self.assertContains(res_verif, "Expiring Certificates")
+        self.assertNotContains(res_verif, "Pending Fraud Reports")
+        self.assertNotContains(res_verif, "Failed Transactions")
+
+        # 3. Superadmin sees all cards
+        self._login_superadmin_with_otp()
+        res_super = self.client.get(reverse('admin_portal:notifications'))
+        self.assertEqual(res_super.status_code, 200)
+        self.assertContains(res_super, "Pending Fraud Reports")
+        self.assertContains(res_super, "Open Disputes")
+        self.assertContains(res_super, "Expiring Certificates")
+        self.assertContains(res_super, "Failed Transactions")

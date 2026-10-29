@@ -1,4 +1,3 @@
-
 {% extends "admin_portal/base_admin.html" %}
 {% block title %}Notifications — VerifyNG Admin{% endblock %}
 
@@ -19,8 +18,9 @@
 
 <div class="row g-4">
 
+  {% if can_view_reports %}
   <!-- Pending Reports -->
-  <div class="col-12">
+  <div class="col-12" id="notifCardReports">
     <div class="adm-card" style="border-left:4px solid #DC2626;">
       <div class="adm-card-header d-flex align-items-center justify-content-between">
         <div class="d-flex align-items-center gap-2">
@@ -52,9 +52,11 @@
       {% endif %}
     </div>
   </div>
+  {% endif %}
 
+  {% if can_view_disputes %}
   <!-- Open Disputes -->
-  <div class="col-12">
+  <div class="col-12" id="notifCardDisputes">
     <div class="adm-card" style="border-left:4px solid #D97706;">
       <div class="adm-card-header d-flex align-items-center justify-content-between">
         <div class="d-flex align-items-center gap-2">
@@ -86,9 +88,11 @@
       {% endif %}
     </div>
   </div>
+  {% endif %}
 
+  {% if can_view_certs %}
   <!-- Expiring Certificates -->
-  <div class="col-lg-6">
+  <div class="{% if can_view_certs and can_view_employers %}col-lg-6{% else %}col-12{% endif %}" id="notifCardCerts">
     <div class="adm-card" style="border-left:4px solid #7C3AED;">
       <div class="adm-card-header d-flex align-items-center justify-content-between">
         <div class="d-flex align-items-center gap-2">
@@ -117,9 +121,11 @@
       {% endif %}
     </div>
   </div>
+  {% endif %}
 
+  {% if can_view_employers %}
   <!-- Unverified Employers -->
-  <div class="col-lg-6">
+  <div class="{% if can_view_certs and can_view_employers %}col-lg-6{% else %}col-12{% endif %}" id="notifCardEmployers">
     <div class="adm-card" style="border-left:4px solid #0891B2;">
       <div class="adm-card-header d-flex align-items-center justify-content-between">
         <div class="d-flex align-items-center gap-2">
@@ -149,9 +155,11 @@
       {% endif %}
     </div>
   </div>
+  {% endif %}
 
-  <!-- Failed Transactions (last 7 days) -->
-  <div class="col-12">
+  {% if can_view_txns %}
+  <!-- Failed Transactions -->
+  <div class="col-12" id="notifCardTransactions">
     <div class="adm-card" style="border-left:4px solid #64748B;">
       <div class="adm-card-header d-flex align-items-center justify-content-between">
         <div class="d-flex align-items-center gap-2">
@@ -182,7 +190,20 @@
       {% endif %}
     </div>
   </div>
+  {% endif %}
+
+  <!-- Fallback when user has no alert permissions -->
+  {% if not can_view_reports and not can_view_disputes and not can_view_certs and not can_view_employers and not can_view_txns %}
+  <div class="col-12" id="notifNoSubscriptions">
+    <div class="adm-card text-center py-5">
+      <div class="mb-3">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--adm-muted,#94a3b8)" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </div>
+      <h5 class="fw-bold mb-2">No Active Alert Subscriptions</h5>
+      <p class="text-muted small mb-0">You currently do not have administrative clearance for active platform alert modules.</p>
+    </div>
+  </div>
+  {% endif %}
 
 </div>
 {% endblock %}
-
