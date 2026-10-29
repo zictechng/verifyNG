@@ -134,10 +134,22 @@
         </div>
     </div>
 
-        {% if request.user.role == 'individual' %}
-    {# ── Switch to Employer Card ────────────────────────────────────────── #}
-    <div class="vng-card p-4 mb-4" style="background: linear-gradient(135deg, #f8fbf9 0%, #edf7f2 100%); border-left: 4px solid var(--vng-primary);">
-        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+    {% if request.user.role == 'individual' %}
+    {# ── Switch to Employer Card (Dismissable) ───────────────────────────── #}
+    <div x-data="{ dismissed: localStorage.getItem('vng_dismiss_employer_banner') === 'true' }" 
+         x-show="!dismissed" 
+         x-cloak
+         class="vng-card p-4 mb-4 position-relative" 
+         style="background: linear-gradient(135deg, #f8fbf9 0%, #edf7f2 100%); border-left: 4px solid var(--vng-primary);">
+        
+        <button type="button" 
+                class="btn-close position-absolute top-0 end-0 m-3" 
+                aria-label="Dismiss notice" 
+                @click="dismissed = true; localStorage.setItem('vng_dismiss_employer_banner', 'true')"
+                title="Dismiss this notice">
+        </button>
+
+        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 pe-md-4">
             <div>
                 <span class="badge bg-success-subtle text-success mb-2 fw-semibold">For Business &amp; HR</span>
                 <h3 class="h6 fw-bold mb-1 text-dark">Represent an Organisation or Hiring Team?</h3>
