@@ -24,6 +24,11 @@
             --vng-primary-hover: #1a44ab;
             --vng-primary-light: #EAF1FF;
             --vng-ink: #17233B;
+            --vng-btn-bg: #EAF6FC;
+            --vng-btn-border: #BCDFF4;
+            --vng-btn-text: #011B33;
+            --vng-btn-hover-bg: #D6EDFA;
+            --vng-btn-hover-border: #98CFEE;
             --vng-teal: #0F766E;
             --vng-teal-light: #F0FDFA;
             --vng-page-bg: #F6F8FC;
@@ -115,12 +120,20 @@
             background-color: var(--vng-primary-light);
         }
 
-        /* Buttons */
+        /* ── Unified Button System (#EAF6FC Colorway with dark readable text) ── */
+        .btn-primary,
+        .btn-vng-primary,
+        button.btn-primary,
+        a.btn-primary,
+        input[type="submit"].btn-primary {
+            background-color: #EAF6FC !important;
+            border: 1px solid #BCDFF4 !important;
+            color: #011B33 !important;
+            font-weight: 600 !important;
+            transition: all 0.15s ease-in-out;
+        }
+
         .btn-vng-primary {
-            background-color: var(--vng-primary) !important;
-            border: 1px solid var(--vng-primary) !important;
-            color: #FFFFFF !important;
-            font-weight: 600;
             font-size: 0.9375rem;
             padding: 0.65rem 1.25rem !important;
             border-radius: var(--vng-radius-md) !important;
@@ -130,12 +143,51 @@
             justify-content: center;
             gap: 0.5rem;
             text-decoration: none;
-            transition: all 0.15s ease;
         }
 
-        .btn-vng-primary:hover {
-            background-color: var(--vng-primary-hover) !important;
-            box-shadow: var(--vng-shadow-md);
+        /* Enforce dark text on ALL button hover, focus, active states (NEVER white) */
+        .btn-primary:hover,
+        .btn-primary:focus,
+        .btn-primary:active,
+        .btn-vng-primary:hover,
+        .btn-vng-primary:focus,
+        .btn-vng-primary:active,
+        .btn-primary:hover *,
+        .btn-primary:focus *,
+        .btn-primary:active *,
+        .btn-vng-primary:hover *,
+        .btn-vng-primary:focus *,
+        .btn-vng-primary:active * {
+            background-color: #D6EDFA !important;
+            border-color: #98CFEE !important;
+            color: #011B33 !important;
+            box-shadow: 0 4px 12px rgba(1, 27, 51, 0.08) !important;
+        }
+
+        .btn-primary svg,
+        .btn-vng-primary svg,
+        .btn-primary:hover svg,
+        .btn-vng-primary:hover svg {
+            color: #011B33 !important;
+            stroke: #011B33 !important;
+        }
+
+        .btn-outline-primary,
+        .btn-vng-outline-primary {
+            border: 1px solid #BCDFF4 !important;
+            color: #011B33 !important;
+            background-color: transparent !important;
+        }
+
+        .btn-outline-primary:hover,
+        .btn-outline-primary:focus,
+        .btn-outline-primary:active,
+        .btn-vng-outline-primary:hover,
+        .btn-outline-primary:hover *,
+        .btn-vng-outline-primary:hover * {
+            background-color: #EAF6FC !important;
+            border-color: #98CFEE !important;
+            color: #011B33 !important;
         }
 
         .btn-vng-outline {
@@ -292,11 +344,17 @@
         .vng-avatar-circle {
             display: flex; align-items: center; justify-content: center;
             width: 36px; height: 36px; border-radius: 50%;
-            background: var(--vng-primary); color: #fff;
+            background: var(--vng-primary-light);
+            border: 1px solid #C7D9F8;
+            color: #011B33;
             font-size: 14px; font-weight: 700; user-select: none;
-            transition: opacity 0.15s ease; cursor: pointer;
+            transition: all 0.15s ease; cursor: pointer;
         }
-        .vng-avatar-btn:hover .vng-avatar-circle { opacity: 0.85; }
+        .vng-avatar-btn:hover .vng-avatar-circle {
+            background: #DCE8F8;
+            border-color: #A8C7F4;
+            color: #011B33;
+        }
         .vng-avatar-dropdown {
             position: absolute; top: calc(100% + 10px); right: 0;
             width: 235px; background: #fff;

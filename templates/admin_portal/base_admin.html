@@ -228,8 +228,9 @@
             width: 34px;
             height: 34px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #1d4ed8, #3b82f6);
-            color: #fff;
+            background: #EAF1FF;
+            border: 1px solid #C7D9F8;
+            color: #011B33;
             font-size: 0.78rem;
             font-weight: 700;
             display: flex;
@@ -239,6 +240,12 @@
             user-select: none;
             flex-shrink: 0;
             letter-spacing: 0.02em;
+            transition: all 0.15s ease;
+        }
+        .adm-tb-avatar:hover {
+            background: #DCE8F8;
+            border-color: #A8C7F4;
+            color: #011B33;
         }
         /* Dropdown */
         .adm-tb-dropdown {
@@ -494,20 +501,41 @@
         }
 
         /* ── Buttons ──────────────────────────────────── */
-        .btn-adm-primary {
-            background: var(--adm-accent);
-            color: #fff;
-            border: none;
+        .btn-adm-primary,
+        .btn-primary,
+        button.btn-primary,
+        a.btn-primary,
+        input[type="submit"].btn-primary {
+            background: #EAF6FC !important;
+            border: 1px solid #BCDFF4 !important;
+            color: #011B33 !important;
             border-radius: 7px;
             font-size: 0.845rem;
-            font-weight: 600;
+            font-weight: 600 !important;
             padding: 8px 18px;
             cursor: pointer;
             text-decoration: none;
             display: inline-flex; align-items: center; gap: 6px;
-            transition: background 0.12s;
+            transition: all 0.15s ease;
         }
-        .btn-adm-primary:hover { background: #1a46c0; color: #fff; }
+        .btn-adm-primary svg,
+        .btn-primary svg,
+        .btn-adm-primary:hover svg,
+        .btn-primary:hover svg {
+            color: #011B33 !important;
+            stroke: #011B33 !important;
+        }
+        .btn-adm-primary:hover,
+        .btn-primary:hover,
+        .btn-primary:focus,
+        .btn-primary:active,
+        .btn-adm-primary:hover *,
+        .btn-primary:hover * {
+            background: #D6EDFA !important;
+            border-color: #98CFEE !important;
+            color: #011B33 !important;
+            box-shadow: 0 4px 12px rgba(1, 27, 51, 0.08) !important;
+        }
         /* ── Base Outline Style ───────────────────────── */
         .btn-adm-outline,
         .btn-adm-outline-primary,
