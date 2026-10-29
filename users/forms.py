@@ -80,6 +80,29 @@ class CustomPasswordResetForm(PasswordResetForm):
         })
     )
 
+    def get_users(self, email):
+        """
+        Given an email, return matching active user(s) who should receive a reset.
+        Allows users who initially joined via Google OAuth (unusable password)
+        to set a password and log in via credentials as well.
+        """
+        from django.contrib.auth import get_user_model
+        from django.contrib.auth.forms import _unicode_ci_compare
+
+        UserModel = get_user_model()
+        email_field_name = UserModel.get_email_field_name()
+        active_users = UserModel._default_manager.filter(
+            **{
+                f"{email_field_name}__iexact": email,
+                "is_active": True,
+            }
+        )
+        return (
+            u
+            for u in active_users
+            if _unicode_ci_compare(email, getattr(u, email_field_name))
+        )
+
     def send_mail(self, subject_template_name, email_template_name, context,
                   from_email, to_email, html_email_template_name=None):
         from core.email_utils import render_email

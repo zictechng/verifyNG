@@ -319,3 +319,25 @@ class RegisterCompanyUpgradeTest(TestCase):
         self.assertEqual(profile.company_name, 'Sterling Logistics Limited')
         self.assertEqual(profile.company_rc_number, 'RC109283')
         self.assertEqual(profile.is_verified, False)  # KYC gate strictly intact
+
+
+
+class OAuthUserPasswordResetTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = make_user(username='google_oauth_user', email='oauthuser@test.com')
+        # Simulate OAuth signup: unusable local password
+        self.user.set_unusable_password()
+        self.user.save()
+
+    def test_unusable_password_user_can_request_reset(self):
+        self.assertFalse(self.user.has_usable_password())
+        url = reverse('users:password_reset')
+        with patch('notifications.tasks.send_broadcast_email_task.delay') as mock_send:
+            response = self.client.post(url, {'email': 'oauthuser@test.com'}, follow=False)
+            self.assertEqual(response.status_code, 302)
+            self.assertEqual(response['Location'], reverse('users:password_reset_done'))
+            mock_send.assert_called_once()
+            call_kwargs = mock_send.call_args[1]
+            self.assertEqual(call_kwargs['to_email'], 'oauthuser@test.com')
+            self.assertIn('users/password-reset/confirm/', call_kwargs['html_body'])
