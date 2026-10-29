@@ -162,12 +162,22 @@
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
         </a>
         {% else %}
-        <a href="{% url 'users:profile' %}" class="vng-profile-card-action">
+        <a href="{% url 'users:profile' %}" class="vng-profile-card-action border-bottom">
             <div class="min-w-0">
                 <div class="vng-action-title">Manage Personal Profile</div>
                 <div class="vng-action-desc">Update your personal details, name and email</div>
             </div>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        </a>
+        <a href="{% url 'users:register_company' %}" class="vng-profile-card-action" style="background: rgba(16, 185, 129, 0.05);">
+            <div class="min-w-0">
+                <div class="vng-action-title text-primary fw-bold d-flex align-items-center gap-1">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+                    Switch to Employer
+                </div>
+                <div class="vng-action-desc">Set up your organisation portal for workforce screening</div>
+            </div>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-primary"><polyline points="9 18 15 12 9 6"/></svg>
         </a>
         {% endif %}
     </div>
@@ -459,6 +469,19 @@
                     </div>
                 </div>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="vng-chevron"><polyline points="9 18 15 12 9 6"/></svg>
+            </a>
+            <!-- Switch to Employer Portal -->
+            <a href="{% url 'users:register_company' %}" class="vng-menu-item" style="background: rgba(16, 185, 129, 0.04);">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="vng-menu-icon" style="color: var(--vng-primary); background: rgba(16, 185, 129, 0.12);">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+                    </div>
+                    <div>
+                        <div class="vng-item-title text-primary fw-bold">Switch to Employer</div>
+                        <div class="vng-item-desc">Register your company to screen staff and run bulk checks</div>
+                    </div>
+                </div>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="vng-chevron text-primary"><polyline points="9 18 15 12 9 6"/></svg>
             </a>
             <!-- 2. My Certificates -->
             <a href="{% url 'verification:my_certificates' %}" class="vng-menu-item">
