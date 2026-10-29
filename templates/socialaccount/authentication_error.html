@@ -1,0 +1,58 @@
+{% extends 'public/base.html' %}
+{% load static %}
+
+{% block title %}Authentication Error — VerifyNG{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-md-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-6 col-md-8">
+            <div class="vng-card p-4 p-md-5 text-center">
+                <!-- Icon -->
+                <div class="mb-4">
+                    <span class="d-inline-flex align-items-center justify-content-center rounded-circle bg-danger-subtle text-danger" style="width: 72px; height: 72px;">
+                        <svg width="36" height="36" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+                        </svg>
+                    </span>
+                </div>
+
+                <span class="vng-badge-trust mb-2">OAuth Verification</span>
+                <h1 class="h3 fw-bold text-dark mt-2 mb-2">Google Sign-In Unsuccessful</h1>
+                <p class="text-muted small mb-4">
+                    We could not complete your sign-in via Google. This usually happens for one of the reasons below:
+                </p>
+
+                <div class="text-start bg-light rounded-3 p-3 mb-4 small border">
+                    <ul class="mb-0 ps-3 text-secondary" style="line-height: 1.8;">
+                        <li>
+                            <strong>Direct Page Visit:</strong> Callback URLs cannot be navigated to directly. You must start sign-in from the <a href="{% url 'users:login' %}" class="text-primary text-decoration-none">Login page</a>.
+                        </li>
+                        <li>
+                            <strong>Session Expired / Cancelled:</strong> The authorization request timed out or was declined in Google's consent screen.
+                        </li>
+                        <li>
+                            <strong>Missing API Credentials:</strong> If you are testing the development server, ensure <code>GOOGLE_CLIENT_ID</code> and <code>GOOGLE_CLIENT_SECRET</code> are set in your <code>.env</code> file, and that authorized redirect URIs match in Google Cloud Console.
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="d-flex flex-column flex-sm-row gap-2 justify-content-center">
+                    <a href="{% url 'users:login' %}" class="btn btn-vng-primary px-4 py-2">
+                        Return to Sign In &rarr;
+                    </a>
+                    <a href="{% url 'users:register_landing' %}" class="btn btn-outline-secondary px-4 py-2">
+                        Register with Email
+                    </a>
+                </div>
+
+                <div class="mt-4 pt-3 border-top">
+                    <a href="{% url 'home' %}" class="small text-muted text-decoration-none">
+                        &larr; Back to Home
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

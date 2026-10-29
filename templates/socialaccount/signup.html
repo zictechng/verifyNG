@@ -1,0 +1,56 @@
+{% extends 'public/base.html' %}
+{% load static %}
+
+{% block title %}Complete Registration — VerifyNG{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-md-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-5 col-md-7">
+            <div class="text-center mb-4">
+                <span class="vng-badge-trust mb-2">Member Portal</span>
+                <h1 class="h3 fw-bold">Complete Registration</h1>
+                <p class="small text-muted mb-0">Almost done! Confirm your details to connect your Google account.</p>
+            </div>
+
+            <div class="vng-card p-4 p-md-5">
+                {% if form.errors %}
+                    <div class="alert alert-danger py-2 small mb-3">
+                        {% for error in form.non_field_errors %}
+                            <div>{{ error }}</div>
+                        {% endfor %}
+                        {% for field in form %}
+                            {% for error in field.errors %}
+                                <div>{{ field.label }}: {{ error }}</div>
+                            {% endfor %}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <form method="post" action="{% url 'socialaccount_signup' %}">
+                    {% csrf_token %}
+                    {% for field in form %}
+                        <div class="mb-3">
+                            <label for="{{ field.id_for_label }}" class="form-label small fw-semibold">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.help_text %}
+                                <div class="form-text small text-muted">{{ field.help_text }}</div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+
+                    <button type="submit" class="btn btn-vng-primary w-100 py-2 mt-3">
+                        Complete Sign Up &rarr;
+                    </button>
+                </form>
+
+                <div class="text-center mt-4 pt-3 border-top">
+                    <p class="small text-muted mb-0">
+                        Already have an account? <a href="{% url 'users:login' %}" class="fw-semibold text-primary text-decoration-none">Sign in</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
