@@ -116,6 +116,18 @@
             color: #1E293B !important;
         }
 
+        /* Paragraphs & Text on Dark Surfaces (Footer, Dark Cards/Banners) */
+        .vng-footer p,
+        .vng-footer p.small,
+        .vng-footer .vng-footer-muted,
+        .vng-footer p.vng-footer-muted,
+        .vng-footer div,
+        .bg-dark p,
+        .text-white p,
+        p.text-white {
+            color: #CBD5E1 !important; /* Luminous, high-contrast light slate */
+        }
+
         @media (max-width: 767.98px) {
             p {
                 font-size: 1rem !important;
@@ -341,12 +353,38 @@
             padding: 3.5rem 0 2.5rem 0 !important;
             margin-top: auto;
             border-top: 1px solid #1E293B;
-            font-size: 0.875rem;
+            font-size: 0.925rem;
         }
 
-        .vng-footer-muted { color: #94A3B8 !important; }
+        .vng-footer p,
+        .vng-footer p.small,
+        .vng-footer .small,
+        .vng-footer p.vng-footer-muted,
+        .vng-footer .vng-footer-muted {
+            color: #CBD5E1 !important; /* Luminous, highly visible silver-slate */
+            font-size: 0.95rem !important;
+            line-height: 1.65 !important;
+        }
+
+        .vng-footer div {
+            color: #E2E8F0 !important;
+        }
+
+        .vng-footer h6 {
+            color: #FFFFFF !important;
+            font-weight: 700 !important;
+            font-size: 1rem !important;
+            letter-spacing: -0.01em;
+        }
 
         @media (max-width: 767.98px) {
+            .vng-footer p,
+            .vng-footer p.small,
+            .vng-footer .vng-footer-muted {
+                color: #CBD5E1 !important;
+                font-size: 0.925rem !important;
+                line-height: 1.6 !important;
+            }
             .vng-footer.vng-footer-authenticated {
                 padding: 1.25rem 0 1.25rem 0 !important;
             }
@@ -357,17 +395,20 @@
         }
 
         .vng-footer a {
-            color: #CBD5E1 !important;
+            color: #E2E8F0 !important;
             text-decoration: none;
             transition: color 0.15s ease;
+            font-size: 0.95rem;
         }
 
-        .vng-footer a:hover { color: #FFFFFF !important; }
+        .vng-footer a:hover {
+            color: #38BDF8 !important; /* Accessible high-contrast sky blue */
+        }
 
         .vng-footer-brand {
-            color: #FFFFFF;
+            color: #FFFFFF !important;
             font-weight: 800;
-            font-size: 1.125rem;
+            font-size: 1.2rem;
         }
 
         /* Mobile Bottom App Navigation */

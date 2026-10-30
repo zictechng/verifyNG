@@ -498,10 +498,14 @@
                 </div>
             </div>
             <div class="col-lg-6 text-center">
-                <div class="p-4 rounded-4" style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.12);">
-                    <img src="{% static 'img/africa-map-bg.svg' %}" alt="Pan-African Verification Matrix" class="img-fluid" style="max-height: 320px; filter: drop-shadow(0 0 15px rgba(11, 184, 89, 0.3));">
-                    <div class="mt-3 text-white-50 small">
-                        VerifyNG African Commerce Trust Mesh &bull; Empowering SMEs Across Borders
+                <div class="p-4 rounded-4 position-relative overflow-hidden" 
+                     style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.12);">
+                    <img src="{% static 'img/africa-map-bg.svg' %}" 
+                         alt="Pan-African Verification Matrix" 
+                         class="img-fluid" 
+                         style="max-height: 290px; width: auto; transform: scale(1.38); transform-origin: center center; filter: drop-shadow(0 0 20px rgba(11, 184, 89, 0.45));">
+                    <div class="mt-3 text-white-50 small position-relative" style="z-index: 2;">
+                        {{ site_config.site_name|default:"VerifyNG" }} African Commerce Trust Mesh &bull; Empowering SMEs Across Borders
                     </div>
                 </div>
             </div>
