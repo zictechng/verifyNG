@@ -88,9 +88,9 @@
 
         /* ══ Global Accessible & Highly Readable Paragraph & Text Typography ══ */
         p {
-            font-size: 1.05rem;
-            line-height: 1.68;
-            color: #334155;
+            font-size: 1.05rem !important;
+            line-height: 1.7 !important;
+            color: #1E293B !important; /* Deep, sharp, high-contrast slate ink */
             margin-bottom: 1rem;
         }
 
@@ -98,36 +98,58 @@
         p.lead, .lead {
             font-size: 1.15rem !important;
             line-height: 1.65 !important;
-            color: #1E293B !important;
+            color: #0F172A !important;
             font-weight: 400;
         }
 
-        /* Small Paragraphs & Muted notes across cards, tables, sections */
+        /* Small Paragraphs & Secondary notes across cards, tables, sections */
         p.small, .card p.small, .vng-card p.small, p.text-muted, .text-muted p, p.fs-6 {
-            font-size: 0.95rem;
-            line-height: 1.6;
-            color: #475569;
+            font-size: 0.95rem !important;
+            line-height: 1.62 !important;
+            color: #334155 !important; /* Crisp, readable contrast (never washed-out light gray) */
         }
 
         /* Inside cards and content containers */
         .card p, .vng-card p, .modal-body p {
-            font-size: 1rem;
-            line-height: 1.65;
-            color: #334155;
+            font-size: 1.025rem !important;
+            line-height: 1.65 !important;
+            color: #1E293B !important;
         }
 
         @media (max-width: 767.98px) {
             p {
-                font-size: 1rem;
-                line-height: 1.6;
+                font-size: 1rem !important;
+                line-height: 1.62 !important;
+                color: #1E293B !important;
             }
             p.lead, .lead {
                 font-size: 1.075rem !important;
                 line-height: 1.58 !important;
+                color: #0F172A !important;
             }
             p.small, .card p.small, .vng-card p.small, p.text-muted {
-                font-size: 0.925rem;
-                line-height: 1.55;
+                font-size: 0.925rem !important;
+                line-height: 1.55 !important;
+                color: #334155 !important;
+            }
+        }
+
+        /* ══ Expansive Modern Layout Widths (Prevents Compressed / Cramped Content) ══ */
+        @media (min-width: 1200px) {
+            .container, .container-lg, .container-md, .container-sm, .container-xl {
+                max-width: 1260px;
+            }
+        }
+
+        @media (min-width: 1400px) {
+            .container, .container-lg, .container-md, .container-sm, .container-xl, .container-xxl {
+                max-width: 1380px;
+            }
+        }
+
+        @media (min-width: 1600px) {
+            .container, .container-lg, .container-md, .container-sm, .container-xl, .container-xxl {
+                max-width: 1440px;
             }
         }
 
@@ -550,6 +572,10 @@
                         <li class="nav-item">
                             <a class="nav-link vng-nav-link {% if request.resolver_match.url_name == 'check' %}active{% endif %}" href="{% url 'check' %}">Verify</a>
                         </li>
+
+                        <li class="nav-item">
+                            <a class="nav-link vng-nav-link {% if request.resolver_match.url_name == 'business' %}active{% endif %}" href="{% url 'business' %}">For Business</a>
+                        </li>
                         
                         <li class="nav-item">
                             <a class="nav-link vng-nav-link {% if request.resolver_match.app_name == 'reports' or request.resolver_match.url_name == 'report' %}active{% endif %}" href="{% url 'reports:create' %}">Report Fraud</a>
@@ -576,6 +602,9 @@
                         {% endif %}
                         <li class="nav-item">
                             <a class="nav-link vng-nav-link {% if request.resolver_match.url_name == 'check' %}active{% endif %}" href="{% url 'check' %}">Verify</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link vng-nav-link {% if request.resolver_match.url_name == 'business' %}active{% endif %}" href="{% url 'business' %}">For Business</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link vng-nav-link {% if request.resolver_match.app_name == 'reports' or request.resolver_match.url_name == 'report' %}active{% endif %}" href="{% url 'reports:create' %}">Report Fraud</a>
@@ -852,6 +881,7 @@
                     <h6 class="text-white fw-bold mb-3">Platform</h6>
                     <ul class="list-unstyled small mb-0 d-flex flex-column gap-2">
                         <li><a href="{% url 'home' %}">Home</a></li>
+                        <li><a href="{% url 'business' %}">For Business (SMEs)</a></li>
                         <li><a href="{% url 'check' %}">Verify Record</a></li>
                         <li><a href="{% url 'reports:create' %}">Submit Report</a></li>
                     </ul>

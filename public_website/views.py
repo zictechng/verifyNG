@@ -27,6 +27,17 @@ def home(request):
     return render(request, 'public/home.html')
 
 
+def business(request):
+    """
+    Dedicated landing page for Small and Medium Enterprises (SMEs) across Africa.
+    Features:
+    - Initial fraud & trust problems faced by African SMEs (fake alerts, rogue vendors, dispatch theft).
+    - Bridges provided by VerifyNG (Pre-trade verification, TrustPass™ business badge, staff due diligence).
+    - Why SMEs rely on the platform daily for pan-African commerce & cross-border trade.
+    """
+    return render(request, 'public/business.html')
+
+
 def check(request):
     is_limited, retry_after = check_rate_limit(request, namespace="web_check")
     if is_limited:

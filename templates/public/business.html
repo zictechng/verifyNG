@@ -1,0 +1,587 @@
+{% extends "public/base.html" %}
+{% load static %}
+
+{% block title %}{{ site_config.site_name|default:"VerifyNG" }} for Business &mdash; SME Fraud Protection &amp; Commercial Trust Network{% endblock %}
+
+{% block content %}
+<style>
+/* ══ BUSINESS PAGE STYLES ══ */
+.biz-hero-section {
+    background: linear-gradient(180deg, #F0F6FC 0%, #FFFFFF 100%);
+    border-bottom: 1px solid var(--vng-border);
+}
+
+.biz-africa-map-bg {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 60%;
+    max-width: 850px;
+    opacity: 0.45;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.biz-card-hover {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.biz-card-hover:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 16px 32px -8px rgba(1, 27, 51, 0.12) !important;
+}
+
+.biz-check-icon {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #E6F8EF;
+    color: #0BB859;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.biz-cross-icon {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #FEE2E2;
+    color: #DC2626;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+</style>
+
+<!-- ══ 1. BUSINESS HERO SECTION ═══════════════════════════════════ -->
+<section class="biz-hero-section position-relative overflow-hidden py-5">
+    
+    <!-- Dotted African Map Cover Background (Right-Aligned) -->
+    <div class="biz-africa-map-bg">
+        <img src="{% static 'img/africa-map-bg.svg' %}" alt="African SME Digital Commerce Network" class="w-100 h-100" style="object-fit: contain; object-position: right top;">
+    </div>
+
+    <div class="container py-3 py-lg-4 position-relative" style="z-index: 1;">
+        <div class="row align-items-center g-4 g-lg-5">
+            
+            <!-- Left Hero Content -->
+            <div class="col-lg-7">
+
+                <!-- Main Headline -->
+                <h1 class="display-5 fw-bold mb-3" style="color: #011B33; line-height: 1.15; letter-spacing: -0.02em;">
+                    Scale Your Business Across Africa<br>
+                    <span style="color: var(--vng-primary);">Without Fear of Fraud.</span>
+                </h1>
+
+                <!-- Subheadline -->
+                <p class="lead mb-4" style="color: #475569; font-size: 1.1rem; line-height: 1.65; max-width: 600px;">
+                    Over 80% of African SMEs lose revenue to fake payment alerts, unverified suppliers, ghost logistics riders, and dishonest counter-parties. {{ site_config.site_name|default:"VerifyNG" }} gives small and medium businesses the pre-trade verification clarity to protect cash flow and build commercial trust.
+                </p>
+
+                <!-- Action CTAs -->
+                <div class="d-flex flex-column flex-sm-row gap-3 mb-4">
+                    <a href="{% url 'users:register_employer' %}" class="btn px-4 py-3 fw-bold fs-6 shadow-sm" style="background: #011B33 !important; border: 1px solid #011B33 !important; color: #FFFFFF !important; border-radius: 12px;">
+                        Register Business Portal &rarr;
+                    </a>
+                    <a href="{% url 'check' %}" class="btn px-4 py-3 fw-bold fs-6 shadow-sm" style="background: #FFFFFF !important; border: 1px solid #CBD5E1 !important; color: #011B33 !important; border-radius: 12px;">
+                        Verify Counterparty / Vendor
+                    </a>
+                </div>
+
+                <!-- Fast Highlights -->
+                <div class="d-flex flex-wrap align-items-center gap-4 pt-2 text-muted" style="font-size: 13.5px;">
+                    <div class="d-flex align-items-center gap-2">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0BB859" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>NDPR Privacy Compliant</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0BB859" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>Human-Moderated Proof</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0BB859" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>AfCFTA Pan-African Ready</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Showcase Card: The Commercial Trustpass Visual -->
+            <div class="col-lg-5">
+                <div class="vng-card p-4 p-md-4 shadow-lg bg-white" style="border: 1px solid #CBD5E1; border-radius: 18px;">
+                    <!-- Card Header -->
+                    <div class="d-flex align-items-center justify-content-between pb-3 mb-3 border-bottom">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px; background: #EAF6FC; color: #2457D6;">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2L3 7V12C3 17.52 6.84 22.74 12 24C17.16 22.74 21 17.52 21 12V7L12 2Z"/></svg>
+                            </div>
+                            <div>
+                                <h6 class="mb-0 fw-bold" style="color: #011B33; font-size: 14px;">B2B Verified Enterprise Hub</h6>
+                                <span class="text-muted" style="font-size: 11px;">Cryptographically Audited Record</span>
+                            </div>
+                        </div>
+                        <span class="badge" style="background: #E6F8EF; color: #077A3C; font-size: 10px; font-weight: 700;">ACTIVE CREDENTIAL</span>
+                    </div>
+
+                    <!-- Credential Metrics Preview -->
+                    <div class="p-3 rounded-3 mb-3" style="background: #F8FAFC; border: 1px solid #E2E8F0;">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="small text-muted fw-semibold" style="font-size: 12px;">Pre-Trade Risk Clearance</span>
+                            <span class="badge" style="background: #E6F8EF; color: #0BB859; font-size: 11px;">0 Active Disputes</span>
+                        </div>
+                        <div class="progress mb-2" style="height: 6px;">
+                            <div class="progress-bar bg-success" style="width: 98%;"></div>
+                        </div>
+                        <div class="d-flex justify-content-between text-muted" style="font-size: 11px;">
+                            <span>Counterparty Risk: Low</span>
+                            <span>Audit Score: 98/100</span>
+                        </div>
+                    </div>
+
+                    <!-- 3 Core Business Signals -->
+                    <div class="d-flex flex-column gap-2.5 mb-3">
+                        <div class="p-2.5 rounded-3 d-flex align-items-center justify-content-between" style="background: #FFFFFF; border: 1px solid #E2E8F0;">
+                            <div class="d-flex align-items-center gap-2 min-w-0">
+                                <span class="biz-check-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>
+                                <div class="text-start">
+                                    <div class="fw-bold" style="color: #011B33; font-size: 12px;">Corporate CAC Validation</div>
+                                    <div class="text-muted" style="font-size: 10.5px;">Active Registered Business Entity</div>
+                                </div>
+                            </div>
+                            <span class="badge" style="background: #EAF1FF; color: #2457D6; font-size: 10px;">CERTIFIED</span>
+                        </div>
+
+                        <div class="p-2.5 rounded-3 d-flex align-items-center justify-content-between" style="background: #FFFFFF; border: 1px solid #E2E8F0;">
+                            <div class="d-flex align-items-center gap-2 min-w-0">
+                                <span class="biz-check-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>
+                                <div class="text-start">
+                                    <div class="fw-bold" style="color: #011B33; font-size: 12px;">Settlement Bank &amp; Phone Audit</div>
+                                    <div class="text-muted" style="font-size: 10.5px;">Clean Fraud Incident History</div>
+                                </div>
+                            </div>
+                            <span class="badge" style="background: #E6F8EF; color: #077A3C; font-size: 10px;">VALIDATED</span>
+                        </div>
+
+                        <div class="p-2.5 rounded-3 d-flex align-items-center justify-content-between" style="background: #FFFFFF; border: 1px solid #E2E8F0;">
+                            <div class="d-flex align-items-center gap-2 min-w-0">
+                                <span class="biz-check-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>
+                                <div class="text-start">
+                                    <div class="fw-bold" style="color: #011B33; font-size: 12px;">TrustPass™ Public Badge</div>
+                                    <div class="text-muted" style="font-size: 10.5px;">Instant Buyer Skepticism Eliminator</div>
+                                </div>
+                            </div>
+                            <span class="badge" style="background: #EAF6FC; color: #011B33; font-size: 10px;">SHIELDED</span>
+                        </div>
+                    </div>
+
+                    <!-- Footer Note -->
+                    <div class="text-center pt-2 border-top">
+                        <span class="small text-muted" style="font-size: 11.5px;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2457D6" stroke-width="2" class="me-1"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                            Protected by {{ site_config.site_name|default:"VerifyNG" }} Commercial Trust Engine
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- ══ 2. THE PROBLEM AFRICAN SMES FACE ═══════════════════════════ -->
+<section class="py-5" style="background: #FFFFFF; border-bottom: 1px solid #E2E8F0;">
+    <div class="container py-3">
+        
+        <!-- Section Header -->
+        <div class="text-center mb-5 max-w-700 mx-auto" style="max-width: 720px;">
+            
+            <h2 class="h3 fw-bold mb-2" style="color: #011B33;">
+                Why Doing Business in Africa Still Feels Risky
+            </h2>
+            <p class="text-muted mb-0">
+                African commerce has immense potential, but small businesses operate in high-friction environments where trust is scarce and verification tools were traditionally inaccessible.
+            </p>
+        </div>
+
+        <!-- 5 Practical Pain Points Grid -->
+        <div class="row g-4">
+            
+            <!-- Pain 1: Fake Bank Alerts -->
+            <div class="col-md-6 col-lg-4">
+                <div class="vng-card p-4 h-100 shadow-sm biz-card-hover" style="border: 1px solid #F1F5F9; border-radius: 14px;">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center mb-3" style="width: 44px; height: 44px; background: #FEE2E2; color: #DC2626;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                    </div>
+                    <h4 class="h6 fw-bold mb-2" style="color: #011B33;">Fake Transfer Slips &amp; Reversed Funds</h4>
+                    <p class="text-muted mb-0" style="font-size: 0.95rem; line-height: 1.6;">
+                        Fraudsters pose as wealthy buyers, send photorealistic fake banking screenshots, and pressure your sales team to dispatch goods before bank clearing, causing instant inventory loss.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Pain 2: Ghost Suppliers -->
+            <div class="col-md-6 col-lg-4">
+                <div class="vng-card p-4 h-100 shadow-sm biz-card-hover" style="border: 1px solid #F1F5F9; border-radius: 14px;">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center mb-3" style="width: 44px; height: 44px; background: #FEE2E2; color: #DC2626;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="18" y1="8" x2="23" y2="13"/><line x1="23" y1="8" x2="18" y2="13"/></svg>
+                    </div>
+                    <h4 class="h6 fw-bold mb-2" style="color: #011B33;">Ghost Suppliers &amp; Lost Deposits</h4>
+                    <p class="text-muted mb-0" style="font-size: 0.95rem; line-height: 1.6;">
+                        SMEs looking for raw materials, electronics, or inventory pay 50% deposits to fabricated social vendors or fake CAC companies that vanish immediately after receiving payment.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Pain 3: Dispatch & Logistics Theft -->
+            <div class="col-md-6 col-lg-4">
+                <div class="vng-card p-4 h-100 shadow-sm biz-card-hover" style="border: 1px solid #F1F5F9; border-radius: 14px;">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center mb-3" style="width: 44px; height: 44px; background: #FEE2E2; color: #DC2626;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    </div>
+                    <h4 class="h6 fw-bold mb-2" style="color: #011B33;">Dispatch Riders &amp; COD Divergence</h4>
+                    <p class="text-muted mb-0" style="font-size: 0.95rem; line-height: 1.6;">
+                        Freelance delivery riders and untracked dispatch contractors steal high-value products or collect cash-on-delivery payments from customers and block contact numbers.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Pain 4: Internal Staff Misconduct -->
+            <div class="col-md-6 col-lg-6">
+                <div class="vng-card p-4 h-100 shadow-sm biz-card-hover" style="border: 1px solid #F1F5F9; border-radius: 14px;">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center mb-3" style="width: 44px; height: 44px; background: #FEE2E2; color: #DC2626;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    </div>
+                    <h4 class="h6 fw-bold mb-2" style="color: #011B33;">Recurrent Staff Theft &amp; Document Forgery</h4>
+                    <p class="text-muted mb-0" style="font-size: 0.95rem; line-height: 1.6;">
+                        Without formal employer registries, dismissed staff members who committed embezzlement simply change location and present forged CVs or fake guarantors to victimize another unsuspecting business.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Pain 5: Cross-Border Skepticism -->
+            <div class="col-md-12 col-lg-6">
+                <div class="vng-card p-4 h-100 shadow-sm biz-card-hover" style="border: 1px solid #F1F5F9; border-radius: 14px;">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center mb-3" style="width: 44px; height: 44px; background: #FEE2E2; color: #DC2626;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                    </div>
+                    <h4 class="h6 fw-bold mb-2" style="color: #011B33;">Cross-Border Trade Friction Across Africa</h4>
+                    <p class="text-muted mb-0" style="font-size: 0.95rem; line-height: 1.6;">
+                        African buyers in Ghana, Kenya, or Cameroon hesitate to buy from Nigerian vendors, and Nigerian businesses hesitate to wire funds across borders due to lack of a unified digital trust credential.
+                    </p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- ══ 3. THE SOLUTION VERIFYNG BRIDGES ═══════════════════════════ -->
+<section class="py-5" style="background: #F8FAFC;">
+    <div class="container py-3">
+        
+        <!-- Section Header -->
+        <div class="text-center mb-5 max-w-700 mx-auto" style="max-width: 720px;">
+            <span class="badge rounded-pill mb-2 px-3 py-1.5 text-uppercase fw-bold"
+                  style="background: #E6F8EF; color: #077A3C; font-size: 11.5px; letter-spacing: 0.05em;">
+                The Solution &bull; What We Bridge
+            </span>
+            <h2 class="h3 fw-bold mb-2" style="color: #011B33;">
+                How {{ site_config.site_name|default:"VerifyNG" }} Empowers Your Business
+            </h2>
+            <p class="text-muted mb-0">
+                We replace guesswork and blind trust with cryptographically backed records, rapid lookup intelligence, and community-moderated fraud defense.
+            </p>
+        </div>
+
+        <!-- 4 Core Bridges -->
+        <div class="row g-4">
+            
+            <!-- Bridge 1: Pre-Transaction Due Diligence -->
+            <div class="col-md-6 col-lg-3">
+                <div class="vng-card p-4 h-100 d-flex flex-column shadow-sm bg-white" style="border: 1px solid #E2E8F0; border-radius: 14px;">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center mb-3" style="width: 48px; height: 48px; background: #EAF6FC; color: #2457D6;">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><path d="M21 21L16.65 16.65"/></svg>
+                    </div>
+                    <h3 class="h6 fw-bold mb-2" style="color: #011B33;">Instant Pre-Trade Lookup</h3>
+                    <p class="text-muted mb-3 flex-grow-1" style="font-size: 0.95rem; line-height: 1.6;">
+                        Run a fast check on any phone number, corporate CAC number, or bank account before dispatching orders or paying raw material invoices.
+                    </p>
+                    <a href="{% url 'check' %}" class="small fw-bold text-decoration-none mt-auto" style="color: #011B33;">
+                        Search Database &rarr;
+                    </a>
+                </div>
+            </div>
+
+            <!-- Bridge 2: TrustPass™ Badge -->
+            <div class="col-md-6 col-lg-3">
+                <div class="vng-card p-4 h-100 d-flex flex-column shadow-sm bg-white" style="border: 1px solid #E2E8F0; border-radius: 14px;">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center mb-3" style="width: 48px; height: 48px; background: #E6F8EF; color: #0BB859;">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+                    </div>
+                    <h3 class="h6 fw-bold mb-2" style="color: #011B33;">TrustPass™ Verified Badge</h3>
+                    <p class="text-muted mb-3 flex-grow-1" style="font-size: 0.95rem; line-height: 1.6;">
+                        Showcase an audited verification seal on your website, WhatsApp, and invoices. Eliminate buyer hesitation and close high-value sales faster.
+                    </p>
+                    <a href="{% url 'verification:create' %}" class="small fw-bold text-decoration-none mt-auto" style="color: #011B33;">
+                        Get Verified &rarr;
+                    </a>
+                </div>
+            </div>
+
+            <!-- Bridge 3: Workforce & Staff Due Diligence -->
+            <div class="col-md-6 col-lg-3">
+                <div class="vng-card p-4 h-100 d-flex flex-column shadow-sm bg-white" style="border: 1px solid #E2E8F0; border-radius: 14px;">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center mb-3" style="width: 48px; height: 48px; background: #EAF1FF; color: #2457D6;">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    </div>
+                    <h3 class="h6 fw-bold mb-2" style="color: #011B33;">Employer Screening Hub</h3>
+                    <p class="text-muted mb-3 flex-grow-1" style="font-size: 0.95rem; line-height: 1.6;">
+                        Onboard staff, drivers, and contract logistics dispatchers with verified records. Check candidate records against the verified misconduct registry.
+                    </p>
+                    <a href="{% url 'users:register_employer' %}" class="small fw-bold text-decoration-none mt-auto" style="color: #011B33;">
+                        Employer Portal &rarr;
+                    </a>
+                </div>
+            </div>
+
+            <!-- Bridge 4: Dispute Rights & Defamation Defense -->
+            <div class="col-md-6 col-lg-3">
+                <div class="vng-card p-4 h-100 d-flex flex-column shadow-sm bg-white" style="border: 1px solid #E2E8F0; border-radius: 14px;">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center mb-3" style="width: 48px; height: 48px; background: #FEF3C7; color: #92400E;">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    </div>
+                    <h3 class="h6 fw-bold mb-2" style="color: #011B33;">Smear Campaign Protection</h3>
+                    <p class="text-muted mb-3 flex-grow-1" style="font-size: 0.95rem; line-height: 1.6;">
+                        Legitimate businesses are shielded under NDPR rules. We require documented proof and offer full dispute rebuttal before any public allegation is considered.
+                    </p>
+                    <a href="{% url 'reports:create' %}" class="small fw-bold text-decoration-none mt-auto" style="color: #011B33;">
+                        Learn Due Process &rarr;
+                    </a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- ══ 4. DAILY OPERATIONAL RELIANCE FOR SMES ════════════════════ -->
+<section class="py-5" style="background: #FFFFFF;">
+    <div class="container py-3">
+        
+        <div class="row align-items-center g-4 g-lg-5">
+            <div class="col-lg-6">
+                
+                <h2 class="h3 fw-bold mb-3" style="color: #011B33;">
+                    Why African SMEs Rely on {{ site_config.site_name|default:"VerifyNG" }} Every Day
+                </h2>
+                <p class="text-muted mb-4" style="line-height: 1.65;">
+                    Verification is not a one-time event — it is a daily risk management safeguard that protects profit margins and cash flow.
+                </p>
+
+                <!-- Daily Workflow Points -->
+                <div class="d-flex flex-column gap-3 mb-4">
+                    <div class="d-flex align-items-start gap-3">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold flex-shrink-0" style="width: 36px; height: 36px; background: #EAF6FC; border: 1.5px solid #BCDFF4; color: #011B33; font-size: 14px;">1</div>
+                        <div>
+                            <h5 class="fw-bold mb-1" style="font-size: 15px; color: #011B33;">Morning Dispatch Screening</h5>
+                            <p class="mb-0" style="font-size: 14px; color: #334155;">Your sales desk checks new buyer phone numbers and accounts before loading goods for delivery.</p>
+                        </div>
+                    </div>
+
+                    <div class="d-flex align-items-start gap-3">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold flex-shrink-0" style="width: 36px; height: 36px; background: #EAF6FC; border: 1.5px solid #BCDFF4; color: #011B33; font-size: 14px;">2</div>
+                        <div>
+                            <h5 class="fw-bold mb-1" style="font-size: 15px; color: #011B33;">Procurement &amp; Supplier Deposit Audit</h5>
+                            <p class="mb-0" style="font-size: 14px; color: #334155;">Before releasing a 50% invoice deposit, verify the supplier's corporate records and past incident history.</p>
+                        </div>
+                    </div>
+
+                    <div class="d-flex align-items-start gap-3">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold flex-shrink-0" style="width: 36px; height: 36px; background: #EAF6FC; border: 1.5px solid #BCDFF4; color: #011B33; font-size: 14px;">3</div>
+                        <div>
+                            <h5 class="fw-bold mb-1" style="font-size: 15px; color: #011B33;">Hiring &amp; Driver Safety Check</h5>
+                            <p class="mb-0" style="font-size: 14px; color: #334155;">Screen new logistics riders, warehouse assistants, and sales reps before providing stock or vehicle keys.</p>
+                        </div>
+                    </div>
+
+                    <div class="d-flex align-items-start gap-3">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold flex-shrink-0" style="width: 36px; height: 36px; background: #EAF6FC; border: 1.5px solid #BCDFF4; color: #011B33; font-size: 14px;">4</div>
+                        <div>
+                            <h5 class="fw-bold mb-1" style="font-size: 15px; color: #011B33;">Closing High-Value Cross-Border Deals</h5>
+                            <p class="mb-0" style="font-size: 14px; color: #334155;">Share your verified TrustPass™ link on commercial proposals to prove business legitimacy to international buyers.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <a href="{% url 'users:register_employer' %}" class="btn btn-vng-primary px-4 py-3 fw-bold fs-6 shadow-sm" style="border-radius: 12px;">
+                    Get Started With Business Hub &rarr;
+                </a>
+            </div>
+
+            <!-- Right Visual: Comparison Card -->
+            <div class="col-lg-6">
+                <div class="vng-card p-4 shadow-sm" style="border: 1px solid #CBD5E1; border-radius: 16px; background: #FAFCFE;">
+                    <h5 class="fw-bold mb-3" style="color: #011B33;">The Practical Difference</h5>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-borderless align-middle mb-0" style="font-size: 13.5px;">
+                            <thead>
+                                <tr class="border-bottom">
+                                    <th style="width: 30%; color: #64748B;">Operation</th>
+                                    <th style="width: 35%; color: #DC2626;">Without {{ site_config.site_name|default:"VerifyNG" }}</th>
+                                    <th style="width: 35%; color: #0BB859;">With {{ site_config.site_name|default:"VerifyNG" }}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="border-bottom">
+                                    <td class="fw-semibold text-dark">Customer Payment</td>
+                                    <td><span class="biz-cross-icon me-1">&times;</span> Fake transfer alerts accepted; goods lost.</td>
+                                    <td><span class="biz-check-icon me-1">&check;</span> Verified bank details &amp; risk record cleared.</td>
+                                </tr>
+                                <tr class="border-bottom">
+                                    <td class="fw-semibold text-dark">Supplier Onboarding</td>
+                                    <td><span class="biz-cross-icon me-1">&times;</span> Blind upfront deposits to ghost entities.</td>
+                                    <td><span class="biz-check-icon me-1">&check;</span> Documented CAC and phone record audited.</td>
+                                </tr>
+                                <tr class="border-bottom">
+                                    <td class="fw-semibold text-dark">Dispatch &amp; Delivery</td>
+                                    <td><span class="biz-cross-icon me-1">&times;</span> Untracked freelance riders absconding.</td>
+                                    <td><span class="biz-check-icon me-1">&check;</span> Pre-vetted riders with verified identity.</td>
+                                </tr>
+                                <tr class="border-bottom">
+                                    <td class="fw-semibold text-dark">Buyer Conversion</td>
+                                    <td><span class="biz-cross-icon me-1">&times;</span> Buyers fear online scam; cancel deals.</td>
+                                    <td><span class="biz-check-icon me-1">&check;</span> TrustPass™ badge removes skepticism.</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-semibold text-dark">Cross-Border Trade</td>
+                                    <td><span class="biz-cross-icon me-1">&times;</span> Continental buyers doubt validity.</td>
+                                    <td><span class="biz-check-icon me-1">&check;</span> Pan-African verification passport.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+<!-- ══ 5. PAN-AFRICAN COMMERCE & AFCFTA READY ═════════════════════ -->
+<section class="py-5" style="background: linear-gradient(135deg, #011B33 0%, #0A2540 100%); color: #FFFFFF;">
+    <div class="container py-3">
+        <div class="row align-items-center g-4 g-lg-5">
+            <div class="col-lg-6">
+                
+                <h2 class="h3 fw-bold mb-3 text-white">
+                    Powering Trust for Intra-African Trade
+                </h2>
+                <p class="text-white-50 mb-4" style="line-height: 1.65; font-size: 1.05rem;">
+                    The African Continental Free Trade Area (AfCFTA) creates a 1.3-billion-person single market. But commerce cannot flow without verifiable counterparty trust. {{ site_config.site_name|default:"VerifyNG" }} is building the commercial trust infrastructure for businesses trading across Nigeria, West Africa, and the entire continent.
+                </p>
+                <div class="row g-3">
+                    <div class="col-sm-6">
+                        <div class="p-3 rounded-3" style="background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.1);">
+                            <div class="h4 fw-bold text-white mb-1">54 Nations</div>
+                            <div class="small text-white-50">Cross-border merchant identity roadmap</div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="p-3 rounded-3" style="background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.1);">
+                            <div class="h4 fw-bold text-white mb-1">0 Smear Tolerated</div>
+                            <div class="small text-white-50">NDPR compliant audited moderation</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6 text-center">
+                <div class="p-4 rounded-4" style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.12);">
+                    <img src="{% static 'img/africa-map-bg.svg' %}" alt="Pan-African Verification Matrix" class="img-fluid" style="max-height: 320px; filter: drop-shadow(0 0 15px rgba(11, 184, 89, 0.3));">
+                    <div class="mt-3 text-white-50 small">
+                        VerifyNG African Commerce Trust Mesh &bull; Empowering SMEs Across Borders
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ══ 6. FREQUENTLY ASKED QUESTIONS FOR BUSINESSES ═══════════════ -->
+<section class="py-5" style="background: #FFFFFF;">
+    <div class="container py-3">
+        <div class="text-center mb-5 max-w-700 mx-auto" style="max-width: 680px;">
+            <h2 class="h3 fw-bold mb-2" style="color: #011B33;">Business &amp; SME Frequently Asked Questions</h2>
+            <p class="text-muted mb-0">Learn how {{ site_config.site_name|default:"VerifyNG" }} works for your company, staff, and partners.</p>
+        </div>
+
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                
+                <div class="vng-card mb-3 overflow-hidden shadow-sm" style="border: 1px solid #E2E8F0; border-radius: 12px;" x-data="{ open: false }">
+                    <button class="w-100 p-3 text-start bg-white border-0 d-flex justify-content-between align-items-center" @click="open = !open">
+                        <span class="fw-bold" style="color: #011B33; font-size: 15px;">How does TrustPass™ help my business increase sales?</span>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :class="open ? 'rotate-180' : ''" style="transition: transform 0.2s;"><polyline points="6 9 12 15 18 9"/></svg>
+                    </button>
+                    <div class="p-3 pt-0 border-top text-muted" x-show="open" style="display: none; font-size: 14px; line-height: 1.6;">
+                        TrustPass™ gives your business an official, cryptographically verified link and badge confirming your CAC incorporation, verified bank accounts, and clean record with zero fraud complaints. Displaying this on your Instagram bio, WhatsApp, and invoices removes customer fear and dramatically reduces abandoned carts.
+                    </div>
+                </div>
+
+                <div class="vng-card mb-3 overflow-hidden shadow-sm" style="border: 1px solid #E2E8F0; border-radius: 12px;" x-data="{ open: false }">
+                    <button class="w-100 p-3 text-start bg-white border-0 d-flex justify-content-between align-items-center" @click="open = !open">
+                        <span class="fw-bold" style="color: #011B33; font-size: 15px;">What if a dishonest competitor maliciously reports my company?</span>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :class="open ? 'rotate-180' : ''" style="transition: transform 0.2s;"><polyline points="6 9 12 15 18 9"/></svg>
+                    </button>
+                    <div class="p-3 pt-0 border-top text-muted" x-show="open" style="display: none; font-size: 14px; line-height: 1.6;">
+                        {{ site_config.site_name|default:"VerifyNG" }} strictly forbids smear campaigns. No allegation is published without audited evidence (receipts, transaction records, and verified chat histories). Every business is given formal notice, full dispute rights, and independent human review under NDPR compliance guidelines.
+                    </div>
+                </div>
+
+                <div class="vng-card mb-3 overflow-hidden shadow-sm" style="border: 1px solid #E2E8F0; border-radius: 12px;" x-data="{ open: false }">
+                    <button class="w-100 p-3 text-start bg-white border-0 d-flex justify-content-between align-items-center" @click="open = !open">
+                        <span class="fw-bold" style="color: #011B33; font-size: 15px;">Can our business verify candidates and drivers in bulk?</span>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :class="open ? 'rotate-180' : ''" style="transition: transform 0.2s;"><polyline points="6 9 12 15 18 9"/></svg>
+                    </button>
+                    <div class="p-3 pt-0 border-top text-muted" x-show="open" style="display: none; font-size: 14px; line-height: 1.6;">
+                        Yes. Our dedicated Employer Portal allows registered businesses to upload candidate CSV lists, perform batch verification checks, and maintain safe records for warehouse employees, drivers, and store managers.
+                    </div>
+                </div>
+
+                <div class="vng-card mb-3 overflow-hidden shadow-sm" style="border: 1px solid #E2E8F0; border-radius: 12px;" x-data="{ open: false }">
+                    <button class="w-100 p-3 text-start bg-white border-0 d-flex justify-content-between align-items-center" @click="open = !open">
+                        <span class="fw-bold" style="color: #011B33; font-size: 15px;">Can we screen suppliers located in other African countries?</span>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :class="open ? 'rotate-180' : ''" style="transition: transform 0.2s;"><polyline points="6 9 12 15 18 9"/></svg>
+                    </button>
+                    <div class="p-3 pt-0 border-top text-muted" x-show="open" style="display: none; font-size: 14px; line-height: 1.6;">
+                        Yes. While starting strongly in Nigeria, our fraud network accepts cross-border reports and verified vendor records across Ghana, Kenya, South Africa, and other African trade corridors to protect intra-African commerce.
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ══ 7. FINAL COMMUNITY CALL TO ACTION ═════════════════════════ -->
+<section class="py-5" style="background: #EAF6FC; border-top: 1px solid #BCDFF4; border-bottom: 1px solid #BCDFF4;">
+    <div class="container py-4 text-center">
+        <h2 class="h2 fw-extrabold mb-3" style="color: #011B33; font-weight: 800; letter-spacing: -0.02em;">
+            Ready to Protect and Grow Your Business?
+        </h2>
+        <p class="lead mb-4" style="color: #334155; max-width: 620px; margin-inline: auto; font-size: 1.05rem; line-height: 1.6;">
+            Join thousands of verified businesses and employers protecting their cash flow, inventory, and brand reputation every day.
+        </p>
+        <div class="d-flex flex-column flex-sm-row justify-content-center gap-3">
+            <a href="{% url 'users:register_employer' %}" class="btn px-4 py-3 fw-bold fs-6 shadow-sm" style="background: #FFFFFF !important; border: 1.5px solid #011B33 !important; color: #011B33 !important; border-radius: 12px;">
+                Create Business Account &rarr;
+            </a>
+            <a href="{% url 'check' %}" class="btn px-4 py-3 fw-bold fs-6 shadow-sm" style="background: transparent !important; border: 1.5px solid #011B33 !important; color: #011B33 !important; border-radius: 12px;">
+                Run Pre-Trade Check
+            </a>
+        </div>
+    </div>
+</section>
+{% endblock %}
