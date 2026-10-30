@@ -86,6 +86,51 @@
             letter-spacing: -0.02em;
         }
 
+        /* ══ Global Accessible & Highly Readable Paragraph & Text Typography ══ */
+        p {
+            font-size: 1.05rem;
+            line-height: 1.68;
+            color: #334155;
+            margin-bottom: 1rem;
+        }
+
+        /* Lead Paragraphs */
+        p.lead, .lead {
+            font-size: 1.15rem !important;
+            line-height: 1.65 !important;
+            color: #1E293B !important;
+            font-weight: 400;
+        }
+
+        /* Small Paragraphs & Muted notes across cards, tables, sections */
+        p.small, .card p.small, .vng-card p.small, p.text-muted, .text-muted p, p.fs-6 {
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: #475569;
+        }
+
+        /* Inside cards and content containers */
+        .card p, .vng-card p, .modal-body p {
+            font-size: 1rem;
+            line-height: 1.65;
+            color: #334155;
+        }
+
+        @media (max-width: 767.98px) {
+            p {
+                font-size: 1rem;
+                line-height: 1.6;
+            }
+            p.lead, .lead {
+                font-size: 1.075rem !important;
+                line-height: 1.58 !important;
+            }
+            p.small, .card p.small, .vng-card p.small, p.text-muted {
+                font-size: 0.925rem;
+                line-height: 1.55;
+            }
+        }
+
         /* Top Navbar */
         .vng-navbar {
             background-color: #FFFFFF !important;
