@@ -1,59 +1,121 @@
 {% extends "public/base.html" %}
 {% load static %}
 
-{% block title %}VerifyNG — Check First. Trust with Confidence.{% endblock %}
+{% block title %}{{ site_config.site_name|default:"VerifyNG" }} &mdash; Nigeria's Community Fraud Defense &amp; Scam Reporting Network{% endblock %}
 
 {% block content %}
-<!-- 1. Hero Section -->
-<section class="py-5">
-    <div class="container">
-        <div class="row align-items-center g-4 g-lg-5">
-            <!-- Left Hero Content & Interactive Search Card -->
+<style>
+/* ══ HERO RESPONSIVE DOTTED MAP & AVATAR ══ */
+.hero-africa-map-wrap {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 65%;
+    max-width: 900px;
+    z-index: 0;
+    opacity: 0.50;
+    pointer-events: none;
+}
+
+.hero-avatar-wrapper {
+    position: relative;
+    max-width: 440px;
+    margin-inline: auto;
+}
+
+@media (max-width: 991.98px) {
+    .hero-africa-map-wrap {
+        width: 100%;
+        opacity: 0.30;
+    }
+    .hero-avatar-wrapper {
+        max-width: 380px;
+        margin-top: 1.5rem;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .hero-africa-map-wrap {
+        width: 100%;
+        opacity: 0.25;
+    }
+    .hero-avatar-wrapper {
+        max-width: 300px;
+        margin-top: 1rem;
+    }
+}
+</style>
+
+<!-- ══ 1. HERO SECTION ═══════════════════════════════════════════ -->
+<section class="vng-hero-section position-relative overflow-hidden py-4 py-lg-5" style="background: linear-gradient(180deg, #F0F6FC 0%, #FFFFFF 100%); border-bottom: 1px solid var(--vng-border);">
+    
+    <!-- Prominent Dotted African Map Cover Background (Paystack Style - Visible on Mobile & Desktop) -->
+    <div class="hero-africa-map-wrap">
+        <img src="{% static 'img/africa-map-bg.svg' %}" alt="African Digital Defense Network Map" class="w-100 h-100" style="object-fit: contain; object-position: right top;">
+    </div>
+
+    <div class="container py-2 py-lg-3 position-relative" style="z-index: 1;">
+        <!-- Top Hero Block: Trust Pill & Main Headline -->
+        <div class="row">
             <div class="col-lg-6">
-                <div class="mb-3">
-                    <span class="vng-badge-trust">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M12 2L3 7V12C3 17.52 6.84 22.74 12 24C17.16 22.74 21 17.52 21 12V7L12 2Z"/>
-                        </svg>
-                        A Safer Nigeria
-                    </span>
+                <!-- Trust Pill Badge -->
+                <div class="d-inline-flex align-items-center gap-2 px-3 py-1.5 rounded-pill mb-3"
+                     style="background: #FFFFFF; border: 1px solid #C7D9F8; box-shadow: 0 1px 3px rgba(1, 27, 51, 0.05);">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="#2457D6">
+                        <path d="M12 2L3 7V12C3 17.52 6.84 22.74 12 24C17.16 22.74 21 17.52 21 12V7L12 2Z"/>
+                    </svg>
+                    
                 </div>
-                
-                <h1 class="display-5 fw-bold mb-3" style="color: var(--vng-ink); line-height: 1.15;">
+
+                <!-- Main Hero Headline -->
+                <h1 class="display-5 fw-bold mb-3" style="color: #011B33; line-height: 1.15; letter-spacing: -0.02em;">
                     Check first.<br>
                     Trust with <span style="color: var(--vng-primary);">confidence.</span>
                 </h1>
-                
-                <p class="lead text-muted mb-4 fs-6">
-                    Verify information, identify potential fraud risks, and report suspicious activity. A safer Nigeria starts with you.
+            </div>
+        </div>
+
+        <!-- Main Content & Hero Avatar Row: Starts from the same horizontal line! -->
+        <div class="row align-items-start g-4 g-lg-5">
+            
+            <!-- Left Hero Column: Subheadline & Fast Action Console -->
+            <div class="col-lg-6">
+                <!-- Subheadline (Exact starting line) -->
+                <p class="lead mb-4" style="color: #475569; font-size: 1.05rem; line-height: 1.6; max-width: 540px;">
+                    Verify bank accounts, phone numbers, online vendors, and businesses before transacting. Identify fraud risks and report suspicious activity to protect your money.
                 </p>
 
-                <!-- Interactive Tabbed Action Card -->
-                <div class="vng-card p-4 mb-4" x-data="{ activeTab: 'verify' }">
+                <!-- Interactive Fast-Check & Report Console -->
+                <div class="vng-card p-3 p-md-4 mb-3 shadow-sm bg-white" style="border: 1px solid #D6E3F0; border-radius: 14px;" x-data="{ activeTab: 'verify' }">
                     <!-- Tab Switcher -->
-                    <div class="d-flex border-bottom mb-3 pb-2 gap-3">
+                    <div class="d-flex border-bottom mb-3 pb-2 gap-4">
                         <button type="button" 
-                                class="btn btn-sm px-0 py-1 fw-semibold border-0 bg-transparent"
-                                :class="activeTab === 'verify' ? 'text-primary border-bottom border-primary border-2' : 'text-muted'"
+                                class="btn btn-sm px-0 py-1 fw-bold border-0 bg-transparent text-decoration-none d-inline-flex align-items-center gap-2"
+                                :class="activeTab === 'verify' ? 'text-primary border-bottom border-primary border-2 pb-1' : 'text-muted'"
                                 @click="activeTab = 'verify'">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><path d="M21 21L16.65 16.65"/></svg>
                             Verify Information
                         </button>
                         <button type="button" 
-                                class="btn btn-sm px-0 py-1 fw-semibold border-0 bg-transparent"
-                                :class="activeTab === 'report' ? 'text-primary border-bottom border-primary border-2' : 'text-muted'"
+                                class="btn btn-sm px-0 py-1 fw-bold border-0 bg-transparent text-decoration-none d-inline-flex align-items-center gap-2"
+                                :class="activeTab === 'report' ? 'text-primary border-bottom border-primary border-2 pb-1' : 'text-muted'"
                                 @click="activeTab = 'report'">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                             Report Suspicious Activity
                         </button>
                     </div>
 
-                    <!-- Tab 1: Fast Lookup Search -->
+                    <!-- Tab 1: Instant Public Check Form -->
                     <div x-show="activeTab === 'verify'">
                         <form method="get" action="{% url 'check' %}">
                             <div class="mb-3">
-                                <label for="heroSearchInput" class="form-label small fw-semibold text-muted">Quick Verification Lookup</label>
+                                <label for="heroSearchInput" class="form-label small fw-semibold text-muted mb-1.5">
+                                    Quick Verification Lookup
+                                </label>
                                 <div class="input-group">
-                                    <span class="input-group-text bg-white border-end-0" style="border-color: var(--vng-border);">
-                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <span class="input-group-text bg-white" style="border-color: #CBD5E1; border-right: none;">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="2">
                                             <circle cx="11" cy="11" r="8"/>
                                             <path d="M21 21L16.65 16.65"/>
                                         </svg>
@@ -61,129 +123,310 @@
                                     <input type="text" 
                                            id="heroSearchInput"
                                            name="q" 
-                                           class="form-control border-start-0 py-2 fs-6" 
-                                           style="border-color: var(--vng-border);"
-                                           placeholder="Enter phone, NIN, BVN or account number"
+                                           class="form-control py-2.5 fs-6" 
+                                           style="border-color: #CBD5E1; border-left: none;"
+                                           placeholder="Enter phone number, bank account, or CAC number"
                                            required>
                                 </div>
+                                <div class="form-text small" style="color: #64748B; font-size: 11.5px;">
+                                    Checks verified scam reports, incident histories, and verified credentials.
+                                </div>
                             </div>
-                            <button type="submit" class="btn btn-vng-primary w-100 py-2 fs-6">
+                            <button type="submit" class="btn btn-vng-primary w-100 py-2.5 fw-bold fs-6 shadow-sm">
                                 Check Now &rarr;
                             </button>
                         </form>
                     </div>
 
-                    <!-- Tab 2: Fast Report Action -->
+                    <!-- Tab 2: Report Suspicious Entity -->
                     <div x-show="activeTab === 'report'" style="display: none;">
-                        <p class="small text-muted mb-3">
-                            Encountered a scam, unfulfilled payment, or fraudulent identity? Submit a structured allegation report to protect the public.
+                        <p class="small mb-3" style="color: #475569; line-height: 1.55;">
+                            Encountered a scam, fake online vendor, bad real estate agent, or fraudulent company? Submit a documented allegation report to protect the public.
                         </p>
-                        <a href="{% url 'reports:create' %}" class="btn btn-vng-primary w-100 py-2 fs-6">
+                        <div class="p-2.5 rounded-3 mb-3 d-flex align-items-center gap-2" style="background: #FEF3C7; border: 1px solid #FDE68A; color: #92400E; font-size: 12.5px;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="flex-shrink-0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                            <span>All reports undergo human moderation with proof of transaction and strict due process.</span>
+                        </div>
+                        <a href="{% url 'reports:create' %}" class="btn btn-vng-primary w-100 py-2.5 fw-bold fs-6 shadow-sm">
                             Report Suspicious Activity &rarr;
                         </a>
                     </div>
                 </div>
             </div>
 
-            <!-- Right Hero Graphic / Mock Phone Display (Matching 5.jpg) -->
-                        <!-- Right Hero Graphic with Real Concept Illustration -->
-            <div class="col-lg-6 d-none d-lg-block text-center">
-                <div class="position-relative mx-auto d-flex flex-column align-items-center justify-content-center">
-                    <img src="{% static 'img/hero-illustration.png' %}" 
-                         alt="VerifyNG Security and Nigeria Verification" 
-                         class="img-fluid rounded-4 shadow-sm" 
-                         style="max-width: 420px; object-fit: contain;">
-                    <div class="mt-3">
-                        <span class="badge bg-white text-dark shadow-sm py-2 px-3 rounded-pill fw-semibold border">
-                            <span class="text-success me-1">&bull;</span> Community-Verified Security
-                        </span>
+            <!-- Right Hero Column: Professional Human Avatar Showcase (Visible & Scaled across Mobile & Desktop) -->
+            <div class="col-lg-6 text-center my-3 my-lg-0">
+                <div class="hero-avatar-wrapper">
+                    <!-- Human Avatar Card with Ambient Fintech Drop Shadow -->
+                    <div class="position-relative rounded-4 overflow-hidden shadow-lg" 
+                         style="background: #011B33; border: 1px solid #C7D9F8; box-shadow: 0 24px 50px -12px rgba(1, 27, 51, 0.22);">
+                        <img src="{% static 'img/hero-avatar.jpg' %}" 
+                             alt="{{ site_config.site_name|default:'VerifyNG' }} Customer Protected from Online Fraud and Scams" 
+                             class="img-fluid w-100 d-block" 
+                             style="object-fit: cover; aspect-ratio: 1/1;"
+                             loading="eager">
                     </div>
                 </div>
             </div>
+
         </div>
     </div>
 </section>
 
-<!-- 2. Quick Access Cards Grid (Matching Mockup 5.jpg Cards) -->
-<section class="py-4">
+<!-- ══ 2. DAILY PROTECTION CATEGORIES ══════════════════════════ -->
+<section class="py-5" style="background: #FFFFFF;">
     <div class="container">
-        <div class="row g-3 g-md-4">
-            <!-- Card 1: Verify Information -->
-            <div class="col-6 col-md-3">
-                <a href="{% url 'check' %}" class="vng-card p-3 p-md-4 h-100 d-flex flex-column text-decoration-none">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center mb-3" 
-                         style="width: 44px; height: 44px; background-color: var(--vng-primary-light); color: var(--vng-primary);">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="11" cy="11" r="8"/>
-                            <path d="M21 21L16.65 16.65"/>
-                        </svg>
+        <!-- Section Header -->
+        <div class="text-center mb-5 max-w-700 mx-auto" style="max-width: 680px;">
+            <span class="badge rounded-pill mb-2 px-3 py-1.5 text-uppercase fw-bold"
+                  style="background: #EAF6FC; color: #011B33; font-size: 11.5px; letter-spacing: 0.05em;">
+                Everyday Protection
+            </span>
+            <h2 class="h3 fw-bold mb-2" style="color: #011B33;">
+                What {{ site_config.site_name|default:"VerifyNG" }} Protects You From Every Day
+            </h2>
+            <p class="text-muted small fs-6 mb-0">
+                Millions of Naira are lost daily to preventable scams. {{ site_config.site_name|default:"VerifyNG" }} gives you verified, pre-transaction clarity before you send money or sign documents.
+            </p>
+        </div>
+
+        <!-- 4 Core Relatable Problem-Solver Cards -->
+        <div class="row g-4">
+            
+            <!-- Category 1: Online & Social Media Vendors -->
+            <div class="col-md-6 col-lg-3">
+                <div class="vng-card p-4 h-100 d-flex flex-column shadow-sm" style="border: 1px solid #E2E8F0; border-radius: 14px;">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center mb-3 flex-shrink-0"
+                         style="width: 48px; height: 48px; background: #EAF6FC; color: #011B33;">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
                     </div>
-                    <h5 class="fw-bold mb-1 fs-6">Verify Information</h5>
-                    <p class="small text-muted mb-3 d-none d-md-block flex-grow-1">Check details like phone, NIN, BVN or account.</p>
-                    <span class="small fw-semibold text-primary mt-auto">Learn more &rarr;</span>
-                </a>
+                    <h3 class="h6 fw-bold mb-2" style="color: #011B33;">Online &amp; Social Vendors</h3>
+                    <p class="small text-muted mb-3 flex-grow-1" style="font-size: 13px; line-height: 1.55;">
+                        Found a vendor on Instagram, TikTok, or WhatsApp? Check their bank account number and phone records to confirm they don't have past unfulfilled delivery complaints.
+                    </p>
+                    <a href="{% url 'check' %}" class="small fw-bold text-decoration-none mt-auto" style="color: #011B33;">
+                        Verify a Vendor &rarr;
+                    </a>
+                </div>
             </div>
 
-            <!-- Card 2: Report Fraud -->
-            <div class="col-6 col-md-3">
-                <a href="{% url 'reports:create' %}" class="vng-card p-3 p-md-4 h-100 d-flex flex-column text-decoration-none">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center mb-3" 
-                         style="width: 44px; height: 44px; background-color: var(--vng-teal-light); color: var(--vng-teal);">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                            <path d="M12 8v4M12 16h.01"/>
-                        </svg>
+            <!-- Category 2: Real Estate Companies & Property Agents -->
+            <div class="col-md-6 col-lg-3">
+                <div class="vng-card p-4 h-100 d-flex flex-column shadow-sm" style="border: 1px solid #E2E8F0; border-radius: 14px;">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center mb-3 flex-shrink-0"
+                         style="width: 48px; height: 48px; background: #EAF6FC; color: #011B33;">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
                     </div>
-                    <h5 class="fw-bold mb-1 fs-6">Report Fraud</h5>
-                    <p class="small text-muted mb-3 d-none d-md-block flex-grow-1">Report suspicious activity or scams.</p>
-                    <span class="small fw-semibold text-primary mt-auto">Report now &rarr;</span>
-                </a>
+                    <h3 class="h6 fw-bold mb-2" style="color: #011B33;">Real Estate &amp; Land Agents</h3>
+                    <p class="small text-muted mb-3 flex-grow-1" style="font-size: 13px; line-height: 1.55;">
+                        Don't pay for ghost land or fake rentals. Verify real estate developers, property managers, and independent house agents before paying inspection or lease fees.
+                    </p>
+                    <a href="{% url 'check' %}" class="small fw-bold text-decoration-none mt-auto" style="color: #011B33;">
+                        Verify Real Estate Entity &rarr;
+                    </a>
+                </div>
             </div>
 
-            <!-- Card 3: My Reports -->
-            <div class="col-6 col-md-3">
-                <a href="{% if user.is_authenticated %}{% url 'dashboard:index' %}{% else %}{% url 'users:login' %}{% endif %}" 
-                   class="vng-card p-3 p-md-4 h-100 d-flex flex-column text-decoration-none">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center mb-3" 
-                         style="width: 44px; height: 44px; background-color: var(--vng-primary-light); color: var(--vng-primary);">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                            <polyline points="14 2 14 8 20 8"/>
-                            <line x1="16" y1="13" x2="8" y2="13"/>
-                            <line x1="16" y1="17" x2="8" y2="17"/>
-                        </svg>
+            <!-- Category 3: Fake Businesses & Ghost Corporate Entities -->
+            <div class="col-md-6 col-lg-3">
+                <div class="vng-card p-4 h-100 d-flex flex-column shadow-sm" style="border: 1px solid #E2E8F0; border-radius: 14px;">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center mb-3 flex-shrink-0"
+                         style="width: 48px; height: 48px; background: #EAF6FC; color: #011B33;">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
                     </div>
-                    <h5 class="fw-bold mb-1 fs-6">My Reports</h5>
-                    <p class="small text-muted mb-3 d-none d-md-block flex-grow-1">Track the status of your submitted reports.</p>
-                    <span class="small fw-semibold text-primary mt-auto">View reports &rarr;</span>
-                </a>
+                    <h3 class="h6 fw-bold mb-2" style="color: #011B33;">Fake Businesses &amp; CAC Checks</h3>
+                    <p class="small text-muted mb-3 flex-grow-1" style="font-size: 13px; line-height: 1.55;">
+                        Detect forged CAC certificates, impersonated companies, and fake recruitment agencies charging interview fees. Confirm business legitimacy before entering contracts.
+                    </p>
+                    <a href="{% url 'check' %}" class="small fw-bold text-decoration-none mt-auto" style="color: #011B33;">
+                        Search Business Records &rarr;
+                    </a>
+                </div>
             </div>
 
-            <!-- Card 4: Learn & Get Help -->
-            <div class="col-6 col-md-3">
-                <a href="#faqSection" class="vng-card p-3 p-md-4 h-100 d-flex flex-column text-decoration-none">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center mb-3" 
-                         style="width: 44px; height: 44px; background-color: var(--vng-primary-light); color: var(--vng-primary);">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-                        </svg>
+            <!-- Category 4: Domestic Staff, Drivers & Workforce Hiring -->
+            <div class="col-md-6 col-lg-3">
+                <div class="vng-card p-4 h-100 d-flex flex-column shadow-sm" style="border: 1px solid #E2E8F0; border-radius: 14px;">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center mb-3 flex-shrink-0"
+                         style="width: 48px; height: 48px; background: #EAF6FC; color: #011B33;">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                     </div>
-                    <h5 class="fw-bold mb-1 fs-6">Learn & Help</h5>
-                    <p class="small text-muted mb-3 d-none d-md-block flex-grow-1">Tips, guides and resources to stay safe.</p>
-                    <span class="small fw-semibold text-primary mt-auto">Visit help center &rarr;</span>
-                </a>
+                    <h3 class="h6 fw-bold mb-2" style="color: #011B33;">Staff, Drivers &amp; Freelancers</h3>
+                    <p class="small text-muted mb-3 flex-grow-1" style="font-size: 13px; line-height: 1.55;">
+                        Hiring a personal driver, domestic helper, or contractor? Screen their verifiable identity and past misconduct records to ensure complete safety in your home or office.
+                    </p>
+                    <a href="{% url 'users:register_employer' %}" class="small fw-bold text-decoration-none mt-auto" style="color: #011B33;">
+                        Employer Screening Portal &rarr;
+                    </a>
+                </div>
             </div>
+
         </div>
     </div>
 </section>
 
-<!-- 3. Important Trust & Safety Notice -->
-<section class="py-3">
+
+<!-- ══ 3. HOW IT WORKS (3 TRANSPARENT STEPS) ════════════════════ -->
+<section class="py-5" style="background: #F8FAFC; border-top: 1px solid var(--vng-border); border-bottom: 1px solid var(--vng-border);">
     <div class="container">
-        <div class="vng-callout-notice d-flex align-items-start justify-content-between gap-3">
+        <div class="text-center mb-5 max-w-700 mx-auto" style="max-width: 650px;">
+            <span class="badge rounded-pill mb-2 px-3 py-1.5 text-uppercase fw-bold"
+                  style="background: #EAF6FC; color: #011B33; font-size: 11.5px; letter-spacing: 0.05em;">
+                Simple &bull; Secure &bull; Fast
+            </span>
+            <h2 class="h3 fw-bold mb-2" style="color: #011B33;">How {{ site_config.site_name|default:"VerifyNG" }} Works</h2>
+            <p class="text-muted small fs-6 mb-0">Three transparent steps to verify entities and protect yourself from fraud.</p>
+        </div>
+
+        <div class="row g-4">
+            <!-- Step 1 -->
+            <div class="col-md-4">
+                <div class="vng-card p-4 h-100 text-center shadow-sm" style="border: 1px solid #E2E8F0; border-radius: 14px;">
+                    <div class="rounded-circle d-inline-flex align-items-center justify-content-center fw-bold mb-3"
+                         style="width: 44px; height: 44px; background: var(--vng-primary-light); border: 1px solid #C7D9F8; color: #011B33; font-size: 16px;">
+                        1
+                    </div>
+                    <h4 class="fw-bold mb-2 fs-6" style="color: #011B33;">Enter the Entity Details</h4>
+                    <p class="small text-muted mb-0" style="line-height: 1.6;">
+                        Type in any mobile phone number, Nigerian bank account number, CAC company registration number, or full legal name into the search console.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="col-md-4">
+                <div class="vng-card p-4 h-100 text-center shadow-sm" style="border: 1px solid #E2E8F0; border-radius: 14px;">
+                    <div class="rounded-circle d-inline-flex align-items-center justify-content-center fw-bold mb-3"
+                         style="width: 44px; height: 44px; background: var(--vng-primary-light); border: 1px solid #C7D9F8; color: #011B33; font-size: 16px;">
+                        2
+                    </div>
+                    <h4 class="fw-bold mb-2 fs-6" style="color: #011B33;">Inspect Verified History</h4>
+                    <p class="small text-muted mb-0" style="line-height: 1.6;">
+                        {{ site_config.site_name|default:"VerifyNG" }} cross-references our human-moderated database, past dispute outcomes, verified credentials, and active risk alerts in real-time.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="col-md-4">
+                <div class="vng-card p-4 h-100 text-center shadow-sm" style="border: 1px solid #E2E8F0; border-radius: 14px;">
+                    <div class="rounded-circle d-inline-flex align-items-center justify-content-center fw-bold mb-3"
+                         style="width: 44px; height: 44px; background: var(--vng-primary-light); border: 1px solid #C7D9F8; color: #011B33; font-size: 16px;">
+                        3
+                    </div>
+                    <h4 class="fw-bold mb-2 fs-6" style="color: #011B33;">Transact Safely or Report</h4>
+                    <p class="small text-muted mb-0" style="line-height: 1.6;">
+                        Proceed with complete confidence knowing the risk profile, or submit a formal, evidence-backed report to warn the wider Nigerian community.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Call to action button -->
+        <div class="text-center mt-4 pt-2">
+            <a href="{% url 'check' %}" class="btn btn-vng-primary px-4 py-2.5 fw-bold shadow-sm" style="min-width: 220px;">
+                Try a Search Lookup Now &rarr;
+            </a>
+        </div>
+    </div>
+</section>
+
+
+<!-- ══ 4. SEPARATE WORKFLOWS (NO COLLIDING) ═══════════════════════ -->
+<section class="py-5" style="background: #FFFFFF;">
+    <div class="container">
+        <div class="text-center mb-5 max-w-700 mx-auto" style="max-width: 650px;">
+            <h2 class="h3 fw-bold mb-2" style="color: #011B33;">Tailored Solutions for Everyone</h2>
+            <p class="text-muted small fs-6 mb-0">Separate, dedicated portals designed for everyday citizens and corporate hiring teams.</p>
+        </div>
+
+        <div class="row g-4 justify-content-center">
+            
+            <!-- Pillar 1: Everyday Citizens & Consumers -->
+            <div class="col-lg-5">
+                <div class="vng-card p-4 p-md-5 h-100 d-flex flex-column" style="border: 1px solid #CBD5E1; border-radius: 16px; background: #FAFCFE;">
+                    <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill mb-3"
+                         style="background: #EAF6FC; color: #011B33; font-size: 12px; font-weight: 700; width: fit-content;">
+                        FOR INDIVIDUALS &amp; CONSUMERS
+                    </div>
+                    <h3 class="h4 fw-bold mb-3" style="color: #011B33;">Protect Yourself &amp; Transact Safely</h3>
+                    <p class="text-muted small mb-4" style="line-height: 1.65;">
+                        Search any counterparty before making payments, verify your own identity, and download official TrustPass™ certificates to prove your credibility to landlords and employers.
+                    </p>
+                    <ul class="list-unstyled small mb-4 d-flex flex-column gap-2 text-muted">
+                        <li class="d-flex align-items-center gap-2">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0BB859" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                            <span>100% Free Public Verification Search</span>
+                        </li>
+                        <li class="d-flex align-items-center gap-2">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0BB859" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                            <span>Secure Scam &amp; Incident Reporting</span>
+                        </li>
+                        <li class="d-flex align-items-center gap-2">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0BB859" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                            <span>Personal TrustPass™ Credential Verification</span>
+                        </li>
+                    </ul>
+                    <div class="mt-auto d-flex flex-column flex-sm-row gap-2">
+                        <a href="{% url 'check' %}" class="btn btn-vng-primary fw-bold flex-fill py-2">
+                            Public Search &rarr;
+                        </a>
+                        <a href="{% url 'reports:create' %}" class="btn btn-vng-outline fw-bold flex-fill py-2">
+                            Report a Scam
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pillar 2: Employers, Businesses & Agencies -->
+            <div class="col-lg-5">
+                <div class="vng-card p-4 p-md-5 h-100 d-flex flex-column" style="border: 1px solid #CBD5E1; border-radius: 16px; background: #FAFCFE;">
+                    <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill mb-3"
+                         style="background: #E6F8EF; color: #077A3C; font-size: 12px; font-weight: 700; width: fit-content;">
+                        FOR BUSINESSES &amp; HIRING TEAMS
+                    </div>
+                    <h3 class="h4 fw-bold mb-3" style="color: #011B33;">Screen Staff &amp; Secure Your Workforce</h3>
+                    <p class="text-muted small mb-4" style="line-height: 1.65;">
+                        Conduct bulk workforce checks, record verified misconduct reports, manage corporate verification requests, and maintain clean staff records.
+                    </p>
+                    <ul class="list-unstyled small mb-4 d-flex flex-column gap-2 text-muted">
+                        <li class="d-flex align-items-center gap-2">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0BB859" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                            <span>Bulk Candidate CSV Upload &amp; Verification</span>
+                        </li>
+                        <li class="d-flex align-items-center gap-2">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0BB859" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                            <span>Staff Misconduct Register &amp; Verification</span>
+                        </li>
+                        <li class="d-flex align-items-center gap-2">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0BB859" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                            <span>Team Access &amp; Organization Compliance Portal</span>
+                        </li>
+                    </ul>
+                    <div class="mt-auto d-flex flex-column flex-sm-row gap-2">
+                        <a href="{% url 'users:register_employer' %}" class="btn btn-vng-primary fw-bold flex-fill py-2">
+                            Join Employer Portal &rarr;
+                        </a>
+                        <a href="{% url 'employer:dashboard' %}" class="btn btn-vng-outline fw-bold flex-fill py-2">
+                            Employer Login
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+
+<!-- ══ 5. TRUST, FAIRNESS & DUE PROCESS NOTICE ═══════════════════ -->
+<section class="py-4" style="background: #F8FAFC;">
+    <div class="container">
+        <div class="vng-callout-notice d-flex flex-column flex-md-row align-items-start justify-content-between gap-3 p-4 rounded-3"
+             style="background: #FFFFFF; border: 1px solid #D6E3F0; border-left: 4px solid #011B33;">
             <div class="d-flex align-items-start gap-3">
-                <div class="rounded-circle bg-white p-2 d-flex align-items-center justify-content-center flex-shrink-0" style="color: var(--vng-teal);">
+                <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                     style="width: 42px; height: 42px; background: #EAF6FC; color: #011B33;">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                         <line x1="12" y1="8" x2="12" y2="12"/>
@@ -191,143 +434,126 @@
                     </svg>
                 </div>
                 <div>
-                    <strong class="d-block mb-1" style="color: var(--vng-ink);">Important to know</strong>
-                    <p class="small mb-0" style="color: var(--vng-muted);">
-                        VerifyNG provides information and risk indicators based on available data. It does not guarantee that an individual or entity is genuine or that a report will result in action.
+                    <h4 class="fw-bold mb-1 fs-6" style="color: #011B33;">Our Commitment to Fairness &amp; Due Process</h4>
+                    <p class="small mb-0 text-muted" style="line-height: 1.6;">
+                        {{ site_config.site_name|default:"VerifyNG" }} strictly prohibits malicious smear campaigns. Every reported entity has the right to dispute, submit counter-evidence, and have allegations independently reviewed by human compliance officers under Nigerian Data Protection Regulation (NDPR) guidelines.
                     </p>
                 </div>
             </div>
-            <a href="#faqSection" class="small fw-semibold text-primary text-decoration-none d-none d-md-block flex-shrink-0 align-self-center">
-                Learn more &rarr;
+            <a href="{% url 'privacy_legal' %}" class="small fw-bold text-decoration-none text-nowrap align-self-start align-self-md-center" style="color: #011B33;">
+                Read Privacy &amp; Legal Policies &rarr;
             </a>
         </div>
     </div>
 </section>
 
-<!-- 4. How It Works -->
-<section class="py-5">
-    <div class="container">
-        <div class="text-center mb-5">
-            <h2 class="h3 fw-bold">How it works</h2>
-            <p class="text-muted small">Three simple steps to verify records and protect yourself.</p>
-        </div>
 
-        <div class="row g-4">
-            <div class="col-md-4">
-                <div class="vng-card p-4 h-100 text-center">
-                    <div class="rounded-circle d-inline-flex align-items-center justify-content-center fw-bold mb-3" style="width: 36px; height: 36px; background: var(--vng-primary-light); border: 1px solid #C7D9F8; color: #011B33;">
-                        1
-                    </div>
-                    <h5 class="fw-bold mb-2 fs-6">Enter details</h5>
-                    <p class="small text-muted mb-0">Provide the information you want to verify (e.g. phone, NIN, BVN or account number).</p>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="vng-card p-4 h-100 text-center">
-                    <div class="rounded-circle d-inline-flex align-items-center justify-content-center fw-bold mb-3" style="width: 36px; height: 36px; background: var(--vng-primary-light); border: 1px solid #C7D9F8; color: #011B33;">
-                        2
-                    </div>
-                    <h5 class="fw-bold mb-2 fs-6">Review records</h5>
-                    <p class="small text-muted mb-0">Review verified risk alerts, past incident reports, and moderation statuses.</p>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="vng-card p-4 h-100 text-center">
-                    <div class="rounded-circle d-inline-flex align-items-center justify-content-center fw-bold mb-3" style="width: 36px; height: 36px; background: var(--vng-primary-light); border: 1px solid #C7D9F8; color: #011B33;">
-                        3
-                    </div>
-                    <h5 class="fw-bold mb-2 fs-6">Transact safely</h5>
-                    <p class="small text-muted mb-0">Make informed financial and business decisions with documented peace of mind.</p>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- 5. Frequently Asked Questions (FAQ Accordion matching Mockup 5.jpg) -->
+<!-- ══ 6. FREQUENTLY ASKED QUESTIONS ═════════════════════════════ -->
 <section id="faqSection" class="py-5" style="background-color: #FFFFFF; border-top: 1px solid var(--vng-border);">
     <div class="container">
         <div class="row justify-content-center">
             <div class="col-lg-8">
                 <div class="text-center mb-5">
-                    <h2 class="h3 fw-bold">Frequently Asked Questions</h2>
-                    <p class="text-muted small">Learn how VerifyNG handles data, reporting, and privacy.</p>
+                    
+                    <h2 class="h3 fw-bold" style="color: #011B33;">Frequently Asked Questions</h2>
+                    <p class="text-muted small">Learn how {{ site_config.site_name|default:"VerifyNG" }} protects your safety, privacy, and business records.</p>
                 </div>
 
                 <div class="accordion accordion-flush" id="faqAccordion">
+                    
                     <!-- FAQ 1 -->
-                    <div class="vng-card mb-3 overflow-hidden">
+                    <div class="vng-card mb-3 overflow-hidden shadow-sm" style="border: 1px solid #E2E8F0; border-radius: 12px;">
                         <h2 class="accordion-header" id="faqHeading1">
                             <button class="accordion-button collapsed fw-semibold text-dark bg-white" type="button" data-bs-toggle="collapse" data-bs-target="#faqCollapse1">
-                                What information can I verify?
+                                What can I verify using {{ site_config.site_name|default:"VerifyNG" }}?
                             </button>
                         </h2>
                         <div id="faqCollapse1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                            <div class="accordion-body small text-muted border-top">
-                                You can check phone numbers and accounts against our database of verified fraud reports and identity records.
+                            <div class="accordion-body small text-muted border-top" style="line-height: 1.65;">
+                                You can search mobile phone numbers, Nigerian bank account numbers, Corporate Affairs Commission (CAC) business registration numbers, and individual identities. {{ site_config.site_name|default:"VerifyNG" }} checks against verified public fraud reports, resolved dispute histories, and active TrustPass credentials.
                             </div>
                         </div>
                     </div>
 
                     <!-- FAQ 2 -->
-                    <div class="vng-card mb-3 overflow-hidden">
+                    <div class="vng-card mb-3 overflow-hidden shadow-sm" style="border: 1px solid #E2E8F0; border-radius: 12px;">
                         <h2 class="accordion-header" id="faqHeading2">
                             <button class="accordion-button collapsed fw-semibold text-dark bg-white" type="button" data-bs-toggle="collapse" data-bs-target="#faqCollapse2">
-                                Is my personal information safe?
+                                How does {{ site_config.site_name|default:"VerifyNG" }} protect against fake reports or blackmail?
                             </button>
                         </h2>
                         <div id="faqCollapse2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                            <div class="accordion-body small text-muted border-top">
-                                Yes. Sensitive identifiers are never stored in plaintext. They are protected by cryptographic peppered HMAC-SHA256 hashing.
+                            <div class="accordion-body small text-muted border-top" style="line-height: 1.65;">
+                                Every report requires verifiable proof (payment receipts, bank statements, contract agreements, or chat logs). Reports are reviewed by human compliance officers before approval. If an entity is reported, they receive an immediate right of rebuttal and formal dispute resolution.
                             </div>
                         </div>
                     </div>
 
                     <!-- FAQ 3 -->
-                    <div class="vng-card mb-3 overflow-hidden">
+                    <div class="vng-card mb-3 overflow-hidden shadow-sm" style="border: 1px solid #E2E8F0; border-radius: 12px;">
                         <h2 class="accordion-header" id="faqHeading3">
                             <button class="accordion-button collapsed fw-semibold text-dark bg-white" type="button" data-bs-toggle="collapse" data-bs-target="#faqCollapse3">
-                                How do I report fraud?
+                                Is my personal data protected under NDPR?
                             </button>
                         </h2>
                         <div id="faqCollapse3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                            <div class="accordion-body small text-muted border-top">
-                                Click "Report Fraud" in the navigation or on the homepage. You can submit details of the allegation and securely upload evidence.
+                            <div class="accordion-body small text-muted border-top" style="line-height: 1.65;">
+                                Yes. Sensitive identifiers (such as NIN, BVN, and financial records) are cryptographically hashed using peppered HMAC-SHA256 algorithms. {{ site_config.site_name|default:"VerifyNG" }} never sells personal data and complies strictly with the Nigeria Data Protection Act.
                             </div>
                         </div>
                     </div>
 
                     <!-- FAQ 4 -->
-                    <div class="vng-card mb-3 overflow-hidden">
+                    <div class="vng-card mb-3 overflow-hidden shadow-sm" style="border: 1px solid #E2E8F0; border-radius: 12px;">
                         <h2 class="accordion-header" id="faqHeading4">
                             <button class="accordion-button collapsed fw-semibold text-dark bg-white" type="button" data-bs-toggle="collapse" data-bs-target="#faqCollapse4">
-                                What happens after I submit a report?
+                                What is a TrustPass™ Certificate?
                             </button>
                         </h2>
                         <div id="faqCollapse4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                            <div class="accordion-body small text-muted border-top">
-                                Reports undergo moderation before publication. Confidential evidence is protected and accessible only to moderators and the original reporter.
+                            <div class="accordion-body small text-muted border-top" style="line-height: 1.65;">
+                                A TrustPass™ Certificate is an official, tamper-proof digital badge issued to individuals and businesses who have completed verified compliance checks. It can be shared with clients, landlords, or partners as verifiable proof of authenticity.
                             </div>
                         </div>
                     </div>
 
                     <!-- FAQ 5 -->
-                    <div class="vng-card mb-3 overflow-hidden">
+                    <div class="vng-card mb-3 overflow-hidden shadow-sm" style="border: 1px solid #E2E8F0; border-radius: 12px;">
                         <h2 class="accordion-header" id="faqHeading5">
                             <button class="accordion-button collapsed fw-semibold text-dark bg-white" type="button" data-bs-toggle="collapse" data-bs-target="#faqCollapse5">
-                                Does VerifyNG guarantee the accuracy of results?
+                                Can businesses use {{ site_config.site_name|default:"VerifyNG" }} for staff and vendor screening?
                             </button>
                         </h2>
                         <div id="faqCollapse5" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                            <div class="accordion-body small text-muted border-top">
-                                VerifyNG provides information and risk indicators based on verified submissions, but does not replace formal law enforcement investigations.
+                            <div class="accordion-body small text-muted border-top" style="line-height: 1.65;">
+                                Yes! Our dedicated Employer &amp; Agency Portal allows companies to perform bulk candidate screenings, verify contractor authenticity, and securely log verified employee misconduct records.
                             </div>
                         </div>
                     </div>
+
                 </div>
             </div>
         </div>
     </div>
 </section>
-{% endblock %}
 
+<!-- ══ 7. FINAL COMMUNITY CALL TO ACTION ═════════════════════════ -->
+<section class="py-5" style="background: linear-gradient(135deg, #011B33 0%, #0B2B4C 100%); color: #FFFFFF;">
+    <div class="container py-4 text-center">
+        <h2 class="h2 fw-extrabold mb-3 text-white" style="font-weight: 800;">
+            A Safer Nigeria Starts With Checking First.
+        </h2>
+        <p class="lead mb-4 text-white-50" style="max-width: 600px; margin-inline: auto; font-size: 1rem;">
+            Join thousands of individuals and verified organizations protecting themselves, their finances, and their communities against scams every day.
+        </p>
+        <div class="d-flex flex-column flex-sm-row justify-content-center gap-3">
+            <a href="{% url 'check' %}" class="btn btn-vng-primary px-4 py-3 fw-bold fs-6">
+                Search &amp; Verify Now &rarr;
+            </a>
+            <a href="{% url 'reports:create' %}" class="btn btn-outline-light px-4 py-3 fw-bold fs-6" style="border-radius: 12px;">
+                Report a Scam or Incident
+            </a>
+        </div>
+    </div>
+</section>
+{% endblock %}
