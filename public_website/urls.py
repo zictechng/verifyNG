@@ -10,5 +10,8 @@ urlpatterns = [
     path('help/', views.help_support, name='help'),
     path('privacy-legal/', views.privacy_legal, name='privacy_legal'),
     path('privacy/', views.privacy_legal, {'tab': 'privacy'}, name='privacy'),
+    path('policy/', views.privacy_legal, {'tab': 'privacy'}, name='policy'),
     path('legal/', views.privacy_legal, {'tab': 'legal'}, name='legal'),
+    path('terms/', views.privacy_legal, {'tab': 'legal'}, name='terms'),
+    path('terms-of-service/', views.privacy_legal, {'tab': 'legal'}, name='terms_of_service'),
 ]

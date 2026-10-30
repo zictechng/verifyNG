@@ -1,109 +1,517 @@
-
 {% extends 'public/base.html' %}
 {% load static %}
 
-{% block title %}Privacy & Legal Information | {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
+{% block title %}Terms of Use, Privacy Policy & Legal Governance | {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
 
 {% block content %}
-<div class="container py-3 py-md-4" style="max-width: 680px;">
+<style>
+    .legal-toc-pill {
+        display: inline-block;
+        padding: 0.35rem 0.75rem;
+        background: #F1F5F9;
+        color: #0F172A;
+        border: 1px solid #E2E8F0;
+        border-radius: 9999px;
+        font-size: 0.825rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.15s ease;
+        margin-right: 0.35rem;
+        margin-bottom: 0.5rem;
+    }
+    .legal-toc-pill:hover {
+        background: #011B33;
+        color: #FFFFFF;
+        border-color: #011B33;
+    }
+    .legal-clause-card {
+        border-bottom: 1px solid #E2E8F0;
+        padding-bottom: 2rem;
+        margin-bottom: 2rem;
+    }
+    .legal-clause-card:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+        padding-bottom: 0;
+    }
+    .legal-section-number {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        background: #EAF6FC;
+        color: #011B33;
+        border: 1.5px solid #BCDFF4;
+        font-weight: 700;
+        font-size: 0.85rem;
+        border-radius: 8px;
+        margin-right: 0.75rem;
+        flex-shrink: 0;
+    }
+</style>
 
-    <!-- Back to Account button for easy navigation -->
-    <div class="mb-3">
+<div class="container py-4 py-md-5" style="max-width: 1040px;">
+
+    <!-- Navigation Trail -->
+    <div class="mb-4">
         {% if request.user.is_authenticated %}
-        <a href="{% url 'users:account_hub' %}" class="d-inline-flex align-items-center gap-1 text-decoration-none fw-semibold small" style="color:var(--vng-primary);">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-            Back to Account
+        <a href="{% url 'users:account_hub' %}" class="d-inline-flex align-items-center gap-1 text-decoration-none fw-semibold small" style="color: var(--vng-primary);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+            &larr; Return to Account Hub
         </a>
         {% else %}
-        <a href="{% url 'home' %}" class="d-inline-flex align-items-center gap-1 text-decoration-none fw-semibold small" style="color:var(--vng-primary);">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-            Home
+        <a href="{% url 'home' %}" class="d-inline-flex align-items-center gap-1 text-decoration-none fw-semibold small" style="color: var(--vng-primary);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+            &larr; Return to Homepage
         </a>
         {% endif %}
     </div>
 
-    <!-- Page Title -->
-    <div class="mb-3">
-        <h1 class="h3 fw-bold mb-1" style="color:#0b1a30;">Privacy & Legal Information</h1>
-        <p class="small text-muted mb-0">Official compliance disclosures for {{ site_config.site_name|default:"VerifyNG" }}.</p>
+    <!-- Header Banner -->
+    <div class="p-4 p-md-5 rounded-4 mb-4 text-white shadow-sm" style="background: linear-gradient(135deg, #011B33 0%, #0A2540 100%); border: 1px solid #1E3A5F;">
+        <div class="d-flex align-items-center gap-2 mb-2">
+            <span class="badge rounded-pill px-3 py-1.5 fw-bold text-uppercase" style="background: rgba(11, 184, 89, 0.2); color: #34D399; font-size: 11px; letter-spacing: 0.05em; border: 1px solid rgba(11, 184, 89, 0.4);">
+                Official Legal Governance
+            </span>
+            <span class="small text-white-50">&bull; Effective Date: October 2026</span>
+        </div>
+        <h1 class="display-6 fw-extrabold mb-2 text-white" style="letter-spacing: -0.02em;">
+            Terms of Service &amp; Data Protection Policy
+        </h1>
+        <p class="lead text-white-50 mb-0" style="max-width: 820px; font-size: 1.05rem; line-height: 1.6;">
+            Legally binding terms governing platform access, safe harbor intermediary immunity, community fraud defense, evidentiary standards, privacy protections, and user rights under the laws of the Federal Republic of Nigeria.
+        </p>
     </div>
 
-    <!-- Dual Mobile/Desktop Tabs -->
-    <ul class="nav nav-pills nav-fill p-1 bg-light rounded-3 mb-4 border" id="legalTabs" role="tablist">
-        <li class="nav-item" role="presentation">
-            <button class="nav-link py-2 fw-semibold {% if active_tab == 'privacy' %}active shadow-sm{% endif %}"
-                    id="privacy-tab" data-bs-toggle="tab" data-bs-target="#privacy-pane"
-                    type="button" role="tab" aria-controls="privacy-pane"
-                    aria-selected="{% if active_tab == 'privacy' %}true{% else %}false{% endif %}">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                Privacy Policy
-            </button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link py-2 fw-semibold {% if active_tab == 'legal' %}active shadow-sm{% endif %}"
-                    id="legal-tab" data-bs-toggle="tab" data-bs-target="#legal-pane"
-                    type="button" role="tab" aria-controls="legal-pane"
-                    aria-selected="{% if active_tab == 'legal' %}true{% else %}false{% endif %}">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                Legal Information & Terms
-            </button>
-        </li>
-    </ul>
+    <!-- Interactive Navigation Tabs -->
+    <div class="card p-2 rounded-3 mb-4 shadow-sm border bg-white">
+        <ul class="nav nav-pills nav-fill gap-2" id="legalTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link py-3 fw-bold fs-6 {% if active_tab == 'legal' or not active_tab %}active shadow-sm{% endif %}"
+                        id="legal-tab" data-bs-toggle="tab" data-bs-target="#legal-pane"
+                        type="button" role="tab" aria-controls="legal-pane"
+                        aria-selected="{% if active_tab == 'legal' or not active_tab %}true{% else %}false{% endif %}">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="me-2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    1. Terms of Use &amp; Platform Legal Defense Policy
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link py-3 fw-bold fs-6 {% if active_tab == 'privacy' %}active shadow-sm{% endif %}"
+                        id="privacy-tab" data-bs-toggle="tab" data-bs-target="#privacy-pane"
+                        type="button" role="tab" aria-controls="privacy-pane"
+                        aria-selected="{% if active_tab == 'privacy' %}true{% else %}false{% endif %}">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="me-2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    2. Privacy, Data Protection &amp; NDPA Compliance
+                </button>
+            </li>
+        </ul>
+    </div>
 
-    <!-- Tab Contents -->
+    <!-- Tab Panels Container -->
     <div class="tab-content" id="legalTabContent">
 
-        <!-- TAB 1: Privacy Policy -->
-        <div class="tab-pane fade {% if active_tab == 'privacy' %}show active{% endif %}" id="privacy-pane" role="tabpanel" aria-labelledby="privacy-tab">
-            <div class="vng-card p-4 shadow-sm">
-                <h2 class="h5 fw-bold mb-3 text-primary">Data Protection & Privacy Policy</h2>
+        <!-- ═══════════════════════════════════════════════════════════════════════
+             TAB 1: COMPREHENSIVE TERMS OF SERVICE & LEGAL SAFEGUARDS
+             ═══════════════════════════════════════════════════════════════════════ -->
+        <div class="tab-pane fade {% if active_tab == 'legal' or not active_tab %}show active{% endif %}" id="legal-pane" role="tabpanel" aria-labelledby="legal-tab">
+            <div class="card p-4 p-md-5 shadow-sm border rounded-4 bg-white">
 
-                <h3 class="h6 fw-bold mt-3 mb-1">1. Nigeria Data Protection Regulation (NDPR)</h3>
-                <p class="small text-muted">
-                    {{ site_config.site_name|default:"VerifyNG" }} processes personal data in strict compliance with the Nigeria Data Protection Act (NDPA) and NDPR guidelines. We respect individual consent and privacy rights at every tier of our platform.
-                </p>
+                <!-- High-Impact Legal Notice -->
+                <div class="p-3 p-md-4 rounded-3 mb-4" style="background: #FEF3C7; border: 1.5px solid #F59E0B; color: #92400E;">
+                    <div class="d-flex align-items-start gap-3">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="flex-shrink-0 mt-0.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        <div>
+                            <div class="fw-bold mb-1" style="font-size: 1rem;">CRITICAL LEGAL NOTICE &mdash; PLEASE READ CAREFULLY</div>
+                            <div class="small" style="line-height: 1.6;">
+                                This Agreement contains mandatory binding arbitration, an unconditional waiver of class actions, strict safe harbor intermediary protections, evidentiary warranties, and unilateral platform rights to moderate, hold, suspend, edit, or delete any content or account without prior notice. By registering, browsing, searching, submitting evidence, or using {{ site_config.site_name|default:"VerifyNG" }}, you irrevocably assent to all terms herein.
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-                <h3 class="h6 fw-bold mt-3 mb-1">2. Cryptographic One-Way Hashing</h3>
-                <p class="small text-muted">
-                    National Identification Numbers (NIN), Bank Verification Numbers (BVN), and sensitive identifiers submitted for background checks or identity verification are converted to SHA-256 cryptographic hashes immediately upon receipt. Raw sensitive government numbers are never stored in plaintext within our databases.
-                </p>
+                <!-- Fast Jump Table of Contents -->
+                <div class="mb-4 pb-3 border-bottom">
+                    <div class="small fw-bold text-uppercase text-muted mb-2" style="letter-spacing: 0.05em;">Table of Contents:</div>
+                    <div class="d-flex flex-wrap">
+                        <a href="#tos-1" class="legal-toc-pill">&sect;1. Binding Contract</a>
+                        <a href="#tos-2" class="legal-toc-pill">&sect;2. Intermediary Status &amp; Immunity</a>
+                        <a href="#tos-3" class="legal-toc-pill">&sect;3. User Warranties &amp; Defamation Shield</a>
+                        <a href="#tos-4" class="legal-toc-pill">&sect;4. Moderation &amp; Discretion</a>
+                        <a href="#tos-5" class="legal-toc-pill">&sect;5. Notice Protocols</a>
+                        <a href="#tos-6" class="legal-toc-pill">&sect;6. Dispute &amp; Due Process</a>
+                        <a href="#tos-7" class="legal-toc-pill">&sect;7. Verification Disclaimers</a>
+                        <a href="#tos-8" class="legal-toc-pill">&sect;8. Suspension &amp; Deletion</a>
+                        <a href="#tos-9" class="legal-toc-pill">&sect;9. Site Availability &amp; Shutdowns</a>
+                        <a href="#tos-10" class="legal-toc-pill">&sect;10. Fees &amp; No-Refund Policy</a>
+                        <a href="#tos-11" class="legal-toc-pill">&sect;11. Limitation of Liability</a>
+                        <a href="#tos-12" class="legal-toc-pill">&sect;12. Indemnification</a>
+                        <a href="#tos-13" class="legal-toc-pill">&sect;13. Governing Law &amp; Arbitration</a>
+                    </div>
+                </div>
 
-                <h3 class="h6 fw-bold mt-3 mb-1">3. Real-Time "Who Checked Me" Transparency</h3>
-                <p class="small text-muted">
-                    Individuals have complete visibility into their data. When an employer, agency, or institution runs a background check against your credentials, the inquiry is recorded in your personal log so you can review who checked you and when.
-                </p>
+                <!-- Clause 1 -->
+                <div class="legal-clause-card" id="tos-1">
+                    <div class="d-flex align-items-center mb-3">
+                        <span class="legal-section-number">1</span>
+                        <h2 class="h5 fw-bold mb-0 text-dark">Parties, Scope &amp; Unconditional Acceptance of Terms</h2>
+                    </div>
+                    <p>
+                        This User Agreement, Terms of Service, and Acceptable Use Policy (collectively, the <strong>"Agreement"</strong>) constitutes a legally binding contract entered into by and between you (whether an individual consumer, accuser, reporter, accused party, vendor, small-and-medium enterprise (<strong>"SME"</strong>), corporate employer, staffing agency, commercial contractor, automated agent, or public user, hereinafter <strong>"User"</strong> or <strong>"You"</strong>) and <strong>{{ site_config.site_name|default:"VerifyNG" }}</strong>, together with its parent entities, subsidiaries, officers, directors, software engineers, moderation officers, and technology licensors (collectively, the <strong>"Platform"</strong>, <strong>"We"</strong>, <strong>"Us"</strong>, or <strong>"Our"</strong>).
+                    </p>
+                    <p>
+                        By accessing, visiting, browsing, registering an account, purchasing screening quotas, downloading digital certificates, verifying counterparties, submitting fraud reports, uploading allegations, filing dispute rebuttals, or interacting with any Application Programming Interface (<strong>"API"</strong>) provided by the Platform, you acknowledge that you have read, understood, and irrevocably agree to be bound by every term, condition, covenant, and limitation set forth in this Agreement. If you do not agree unconditionally to this Agreement in its entirety, you are strictly prohibited from accessing or using the Platform.
+                    </p>
+                </div>
 
-                <h3 class="h6 fw-bold mt-3 mb-1">4. Right of Access and Account Deletion</h3>
-                <p class="small text-muted mb-0">
-                    You retain the right to download your activity logs, update your contact details, or request permanent deletion of your profile via the Account Settings menu.
-                </p>
+                <!-- Clause 2 -->
+                <div class="legal-clause-card" id="tos-2">
+                    <div class="d-flex align-items-center mb-3">
+                        <span class="legal-section-number">2</span>
+                        <h2 class="h5 fw-bold mb-0 text-dark">Platform Status: Neutral Technological Intermediary &amp; Safe Harbor Immunity</h2>
+                    </div>
+                    <p>
+                        <strong>{{ site_config.site_name|default:"VerifyNG" }} is strictly a neutral technological communications platform, automated indexing hub, and public community defense infrastructure.</strong> The Platform facilitates the peer-to-peer reporting of fraudulent activities, commercial misconduct, and the verification of business credentials.
+                    </p>
+                    <p>
+                        <strong>No Authorship or Original Editorial Adoption:</strong> All scam complaints, fraud allegations, evidentiary exhibits (including bank statements, transfer receipts, WhatsApp/Telegram/SMS chat logs, invoice copies, and photographs), rebuttals, and counter-statements are authored, compiled, and published solely by independent third-party Users. Under no circumstance does the Platform author, originate, vouch for, adopt, guarantee, or substantively verify the absolute truth, accuracy, or underlying completeness of user-generated allegations.
+                    </p>
+                    <p>
+                        <strong>Statutory Safe Harbor Immunity:</strong> In accordance with the <em>Cybercrimes (Prohibition, Prevention, etc.) Act 2015</em>, the <em>Nigeria Data Protection Act 2023 (NDPA)</em>, and international intermediary immunity doctrines (including Section 230 safe harbor principles and the European E-Commerce Directive intermediary safe harbor standards), the Platform acts solely as an intermediary host and is immune from civil, administrative, or criminal liability arising from defamatory, inaccurate, offensive, fraudulent, or tortious user-submitted content.
+                    </p>
+                    <p class="mb-0">
+                        <strong>Not a Judicial or Law Enforcement Authority:</strong> The Platform is not a court of law, police force, judicial tribunal, arbitration panel, private investigative agency, or consumer protection regulator. Publication of any report, warning flag, risk metric, or TrustPass™ status does not constitute a legal determination, criminal indictment, civil judgment, or conviction. All platform records represent documented allegations and factual evidentiary summaries submitted for peer risk assessment.
+                    </p>
+                </div>
+
+                <!-- Clause 3 -->
+                <div class="legal-clause-card" id="tos-3">
+                    <div class="d-flex align-items-center mb-3">
+                        <span class="legal-section-number">3</span>
+                        <h2 class="h5 fw-bold mb-0 text-dark">User Warranties, Evidentiary Standard &amp; Anti-Defamation Shield</h2>
+                    </div>
+                    <p>
+                        Any User submitting an allegation, scam report, or counter-claim expressly agrees to the following legal covenants and warranties under penalty of perjury, statutory civil penalties, and criminal liability under Nigerian law:
+                    </p>
+                    <ul class="mb-3 ps-3">
+                        <li><strong>Verifiable Transaction Evidence:</strong> The reporter warrants that all submitted allegations arise from an authentic, first-hand commercial transaction, financial engagement, employment relationship, or verifiable interaction.</li>
+                        <li><strong>Evidentiary Authenticity:</strong> All uploaded receipts, bank account transfers, invoice records, identity proofs, and chat transcripts must be genuine, unaltered, and unedited. Digital manipulation, Photoshopping, generative AI fabrications, or malicious tampering with evidence is strictly prohibited.</li>
+                        <li><strong>Absolute Prohibition Against Smear Campaigns &amp; Extortion:</strong> Users shall not submit false, retaliatory, vindictive, extortionate, or commercially motivated reports intended to harm a competitor, ex-spouse, business rival, or innocent individual.</li>
+                        <li><strong>Immediate Criminal Referral:</strong> Submitting a knowingly fraudulent, malicious, or fabricated report constitutes criminal defamation, extortion, and cyberstalking under the <em>Cybercrimes (Prohibition, Prevention, etc.) Act 2015</em>. The Platform reserves the unconditional right to immediately refer offending parties to the Nigeria Police Force (NPF), the Economic and Financial Crimes Commission (EFCC), and the Department of State Services (DSS) with complete IP audit trails, device telemetry, and identity records.</li>
+                    </ul>
+                </div>
+
+                <!-- Clause 4 -->
+                <div class="legal-clause-card" id="tos-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <span class="legal-section-number">4</span>
+                        <h2 class="h5 fw-bold mb-0 text-dark">Sole &amp; Unilateral Discretion: Right to Hold, Moderate, Suppress or Delete Content</h2>
+                    </div>
+                    <p>
+                        The Platform retains the exclusive, unappealable, and unilateral discretion to govern all information submitted or hosted on its servers. Specifically, the Platform reserves the perpetual right to:
+                    </p>
+                    <ul class="mb-3 ps-3">
+                        <li><strong>Right to Hold Any Complaint:</strong> Hold any allegation, dispute, public inquiry, or background check in moderation or evidentiary audit status indefinitely without explanation, pending investigation, verification of bank records, or legal review.</li>
+                        <li><strong>Right to Refuse or Reject:</strong> Decline to publish, index, or display any report or document for any reason whatsoever, including lack of evidentiary clarity, excessive vulgarity, potential legal exposure, or administrative discretion.</li>
+                        <li><strong>Right to Redact &amp; Mask:</strong> Redact, truncate, sanitize, or mask sensitive personal information, third-party uninvolved identifiers, residential addresses, minor records, or unproven secondary allegations at will.</li>
+                        <li><strong>Right to Permanently Delete:</strong> Remove, purge, or expunge any report, profile, verification history, or evidentiary attachment at any time, with or without prior notice to the reporter or the subject, and without incurring liability of any kind to any party.</li>
+                    </ul>
+                </div>
+
+                <!-- Clause 5 -->
+                <div class="legal-clause-card" id="tos-5">
+                    <div class="d-flex align-items-center mb-3">
+                        <span class="legal-section-number">5</span>
+                        <h2 class="h5 fw-bold mb-0 text-dark">Notice Protocols: The Absolute Right to Inform or NOT Inform Any Party</h2>
+                    </div>
+                    <p>
+                        To safeguard community whistleblowers, prevent witness tampering, avoid the destruction of banking or digital evidence, and maintain operational security:
+                    </p>
+                    <p>
+                        <strong>No Mandatory Pre-Notification:</strong> The Platform owes no duty of pre-publication notice, post-publication notification, or real-time alert to any accused party, reported entity, counterparty, or vendor. The Platform may, at its sole discretion, choose to notify an accused party through registered contact details or may refrain completely from delivering any notice.
+                    </p>
+                    <p class="mb-0">
+                        <strong>No Status Notification Guarantee to Reporters:</strong> The Platform is not obligated to provide automated updates, explanatory rationales, or confirmation to a reporting user regarding why a report was withheld, suppressed, closed, published, or modified.
+                    </p>
+                </div>
+
+                <!-- Clause 6 -->
+                <div class="legal-clause-card" id="tos-6">
+                    <div class="d-flex align-items-center mb-3">
+                        <span class="legal-section-number">6</span>
+                        <h2 class="h5 fw-bold mb-0 text-dark">Dispute Rights, Fair Hearing &amp; Strict Right of Reply Framework</h2>
+                    </div>
+                    <p>
+                        To uphold constitutional standards of fair hearing and due process under Section 36 of the <em>Constitution of the Federal Republic of Nigeria 1999 (as amended)</em> and international natural justice guidelines:
+                    </p>
+                    <ul class="mb-3 ps-3">
+                        <li><strong>Structured Right of Reply:</strong> Any individual, business, or entity named in a public incident report has the designated legal right to file an official Dispute and submit exculpatory evidence (bank reversal receipts, signed delivery notes, formal waivers, or police clearance certificates).</li>
+                        <li><strong>Pleadings &amp; Procedural Stages:</strong> To prevent perpetual harassment, the Platform enforces a strict multi-stage pleading framework (Initial Report &rarr; Defense Submission &rarr; Rebuttal &rarr; Final Surrebuttal/Closing). Once pleadings close, the matter is submitted to platform moderation for final status designation.</li>
+                        <li><strong>No Automatic Removal Right:</strong> The submission of a dispute does NOT entitle the accused entity to automatic deletion of the report. The Platform may update the status to <em>"Under Dispute"</em>, <em>"Resolved / Refunded"</em>, <em>"Evidence Discredited"</em>, or uphold the report as <em>"Confirmed Scam"</em> based on authenticated records.</li>
+                        <li><strong>Frivolous Disputes:</strong> Submitting fraudulent defense claims or fake bank reversals constitutes aggravated platform misconduct and will be permanently appended to the public record.</li>
+                    </ul>
+                </div>
+
+                <!-- Clause 7 -->
+                <div class="legal-clause-card" id="tos-7">
+                    <div class="d-flex align-items-center mb-3">
+                        <span class="legal-section-number">7</span>
+                        <h2 class="h5 fw-bold mb-0 text-dark">Account Verification, TrustPass™ Certification &amp; Disclaimers</h2>
+                    </div>
+                    <p>
+                        The Platform offers Corporate Affairs Commission (CAC) business registration lookups, identity hashes, phone credential verifications, and digital TrustPass™ compliance certificates:
+                    </p>
+                    <p>
+                        <strong>Point-in-Time Technical Verification Only:</strong> A verified status badge or TrustPass™ certificate confirms only that, at the exact time of query, the presented registration records, cryptographic hashes, or government identifiers matched records provided to the Platform.
+                    </p>
+                    <p>
+                        <strong>No Moral, Commercial, or Solvency Guarantee:</strong> Verification does NOT constitute an endorsement, insurance policy, underwriting, financial warranty, or guarantee of a merchant's moral integrity, commercial reliability, creditworthiness, or future conduct. Users transact with verified businesses entirely at their own risk.
+                    </p>
+                    <p class="mb-0">
+                        <strong>Right of Unilateral Revocation:</strong> The Platform reserves the unconditional right to suspend, cancel, or revoke any TrustPass™ certificate or verification badge immediately upon the receipt of documented fraud allegations, regulatory sanctions, or discovery of misrepresentation.
+                    </p>
+                </div>
+
+                <!-- Clause 8 -->
+                <div class="legal-clause-card" id="tos-8">
+                    <div class="d-flex align-items-center mb-3">
+                        <span class="legal-section-number">8</span>
+                        <h2 class="h5 fw-bold mb-0 text-dark">Right to Suspend, Freeze, Restrict, or Terminate Accounts</h2>
+                    </div>
+                    <p>
+                        The Platform reserves the right to immediately suspend, restrict, freeze, or permanently terminate any User account (including individual reporters, verified businesses, enterprise employer portals, and API developers) with or without notice, and without liability, for any conduct that:
+                    </p>
+                    <ul class="mb-0 ps-3">
+                        <li>Violates any provision of this Agreement or any applicable Nigerian statute;</li>
+                        <li>Attempts to bypass or defeat identity verification, rate limits, access controls, or security firewalls;</li>
+                        <li>Involves chargeback fraud, payment clawbacks, or abusive dispute tactics;</li>
+                        <li>Poses a cyber security, legal, or reputational threat to the Platform or its community.</li>
+                    </ul>
+                </div>
+
+                <!-- Clause 9 -->
+                <div class="legal-clause-card" id="tos-9">
+                    <div class="d-flex align-items-center mb-3">
+                        <span class="legal-section-number">9</span>
+                        <h2 class="h5 fw-bold mb-0 text-dark">Platform Maintenance, Emergency Shutdowns &amp; Right to Bring the Site Down</h2>
+                    </div>
+                    <p>
+                        <strong>Zero Guarantee of Continuous Uptime:</strong> The Platform is provided on an <strong>"AS-IS"</strong> and <strong>"AS-AVAILABLE"</strong> basis. The Platform does NOT warrant uninterrupted, error-free, timely, or secure service.
+                    </p>
+                    <p class="mb-0">
+                        <strong>Unilateral Right to Suspend Operations:</strong> The Platform expressly reserves the absolute right to modify, suspend, interrupt, restrict, or take down the entire website, mobile application, database, or API infrastructure temporarily or permanently, with or without notice, for maintenance, emergency security patches, hardware repairs, telecommunications failures, cyber attacks, regulatory directives, or strategic commercial reasons. Under no circumstances shall the Platform be liable for any damages, missed commercial transactions, lost profits, or business disruption resulting from any such downtime or shutdown.
+                    </p>
+                </div>
+
+                <!-- Clause 10 -->
+                <div class="legal-clause-card" id="tos-10">
+                    <div class="d-flex align-items-center mb-3">
+                        <span class="legal-section-number">10</span>
+                        <h2 class="h5 fw-bold mb-0 text-dark">Payments, Subscriptions, Screening Quotas &amp; No-Refund Policy</h2>
+                    </div>
+                    <p>
+                        <strong>Non-Refundable Processing Fees:</strong> All payments made for verification searches, candidate screening quotas, Employer bulk uploads, and monthly/annual subscription plans are strictly non-refundable once automated processing, database queries, or certificate generation has commenced, regardless of whether the query returns a confirmed record, a blank record, or an inconclusive result.
+                    </p>
+                    <p class="mb-0">
+                        <strong>Disputed Charges &amp; Chargeback Penalties:</strong> If a User initiates an unauthorized or fraudulent chargeback or bank clawback for legitimate fees incurred on the Platform, the Platform reserves the right to immediately suspend the account, report the account details as a fraudulent transaction to financial clearing houses, and seek recovery of all legal collection costs.
+                    </p>
+                </div>
+
+                <!-- Clause 11 -->
+                <div class="legal-clause-card" id="tos-11">
+                    <div class="d-flex align-items-center mb-3">
+                        <span class="legal-section-number">11</span>
+                        <h2 class="h5 fw-bold mb-0 text-dark">Limitation of Liability &amp; Absolute Waiver of Consequential Damages</h2>
+                    </div>
+                    <p>
+                        TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL {{ site_config.site_name|default:"VerifyNG" }}, ITS DIRECTORS, EMPLOYEES, AGENTS, AFFILIATES, OR LICENSORS BE LIABLE FOR ANY DIRECT, INDIRECT, PUNITIVE, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR EXEMPLARY DAMAGES, INCLUDING BUT NOT LIMITED TO DAMAGES FOR LOSS OF PROFITS, REVENUE, GOODWILL, DATA, USE, COMMERCIAL CONTRACTS, OR OTHER INTANGIBLE LOSSES ARISING OUT OF OR IN CONNECTION WITH:
+                    </p>
+                    <ul class="mb-3 ps-3">
+                        <li>THE PUBLICATION, RETENTION, DISPLAY, SUPPRESSION, OR DELETION OF ANY FRAUD REPORT, SCAM COMPLAINT, OR VERIFICATION RECORD;</li>
+                        <li>ANY USER'S RELIANCE ON ANY RISK INDICATOR, TRUSTPASS™ CERTIFICATE, OR CAC STATUS RECORD;</li>
+                        <li>ANY UNLAWFUL, DEFAMATORY, OR TORTIOUS CONDUCT OF ANY THIRD-PARTY USER OR REPORTER;</li>
+                        <li>ANY UNPLANNED DOWNTIME, PLATFORM SHUTDOWN, SYSTEM ERROR, OR API LATENCY;</li>
+                        <li>ANY UNAUTHORIZED ACCESS, HACKING, ALTERATION, OR COMPROMISE OF TRANSMISSIONS OR DATA.</li>
+                    </ul>
+                    <p class="mb-0">
+                        <strong>MAXIMUM MONETARY CAP:</strong> IN THE EVENT THAT A COURT OF COMPETENT JURISDICTION FINDS THE PLATFORM LIABLE NOTWITHSTANDING THE FOREGOING LIMITATIONS, THE AGGREGATE TOTAL LIABILITY OF THE PLATFORM FOR ANY AND ALL CLAIMS UNDER ANY LEGAL THEORY SHALL BE STRICTLY CAPPED AT THE EXACT SUM ACTUALLY PAID BY THE CLAIMANT TO THE PLATFORM IN THE THIRTY (30) DAYS IMMEDIATELY PRECEDING THE INCIDENT, OR FIVE THOUSAND NIGERIAN NAIRA (&cent;5,000 NGN), WHICHEVER IS LESS.
+                    </p>
+                </div>
+
+                <!-- Clause 12 -->
+                <div class="legal-clause-card" id="tos-12">
+                    <div class="d-flex align-items-center mb-3">
+                        <span class="legal-section-number">12</span>
+                        <h2 class="h5 fw-bold mb-0 text-dark">Indemnification: User Defense of the Platform</h2>
+                    </div>
+                    <p class="mb-0">
+                        You agree to defend, indemnify, and hold harmless {{ site_config.site_name|default:"VerifyNG" }}, its parent company, affiliates, officers, directors, software developers, moderators, and legal advisors from and against any and all claims, damages, obligations, losses, liabilities, costs, debts, and expenses (including legal fees and court costs) arising from: (a) your use of or access to the Platform; (b) your violation of any term of this Agreement; (c) your violation of any third-party right, including any intellectual property, privacy, confidentiality, or defamation claim; (d) any fraudulent, inaccurate, or malicious allegation or evidence submitted under your account; or (e) any business or financial transaction you enter into with any party verified or reviewed on the Platform.
+                    </p>
+                </div>
+
+                <!-- Clause 13 -->
+                <div class="legal-clause-card" id="tos-13">
+                    <div class="d-flex align-items-center mb-3">
+                        <span class="legal-section-number">13</span>
+                        <h2 class="h5 fw-bold mb-0 text-dark">Governing Law, Dispute Escalation &amp; Mandatory Individual Arbitration</h2>
+                    </div>
+                    <p>
+                        <strong>Nigerian Law Governs:</strong> This Agreement shall be governed by, construed, and enforced in accordance with the substantive laws of the Federal Republic of Nigeria, without regard to conflict of law principles.
+                    </p>
+                    <p>
+                        <strong>Mandatory Informal Negotiation:</strong> Prior to initiating any formal legal proceeding, the parties agree to engage in good-faith informal negotiations for a minimum period of thirty (30) business days by delivering formal written notice to <code>legal@{{ site_config.domain|default:"verifyng.com" }}</code>.
+                    </p>
+                    <p>
+                        <strong>Binding Arbitration:</strong> Any controversy, claim, or dispute arising out of or relating to this Agreement that is not resolved informally shall be settled by binding confidential individual arbitration administered in Lagos, Nigeria, in accordance with the <em>Arbitration and Mediation Act 2023</em> by a single arbitrator appointed by the Chairman of the Chartered Institute of Arbitrators (UK, Nigeria Branch).
+                    </p>
+                    <p class="mb-0">
+                        <strong>Waiver of Class Actions:</strong> You expressly waive any right to commence, join, or participate in any class action lawsuit, collective arbitration, or representative proceeding against the Platform. All claims must be brought strictly in the party's individual capacity.
+                    </p>
+                </div>
+
             </div>
         </div>
 
-        <!-- TAB 2: Legal Information & Terms -->
-        <div class="tab-pane fade {% if active_tab == 'legal' %}show active{% endif %}" id="legal-pane" role="tabpanel" aria-labelledby="legal-tab">
-            <div class="vng-card p-4 shadow-sm">
-                <h2 class="h5 fw-bold mb-3 text-primary">Terms of Service & Legal Framework</h2>
+        <!-- ═══════════════════════════════════════════════════════════════════════
+             TAB 2: COMPREHENSIVE PRIVACY, DATA PROTECTION & NDPA COMPLIANCE POLICY
+             ═══════════════════════════════════════════════════════════════════════ -->
+        <div class="tab-pane fade {% if active_tab == 'privacy' %}show active{% endif %}" id="privacy-pane" role="tabpanel" aria-labelledby="privacy-tab">
+            <div class="card p-4 p-md-5 shadow-sm border rounded-4 bg-white">
 
-                <h3 class="h6 fw-bold mt-3 mb-1">1. Permitted Platform Use</h3>
-                <p class="small text-muted">
-                    {{ site_config.site_name|default:"VerifyNG" }} provides fraud reporting, candidate background verification, and identity credentialing. Access is granted solely for legitimate employment screening, anti-fraud prevention, and commercial due diligence.
-                </p>
+                <!-- Compliance Badge -->
+                <div class="p-3 p-md-4 rounded-3 mb-4" style="background: #EAF1FF; border: 1.5px solid #2457D6; color: #011B33;">
+                    <div class="d-flex align-items-start gap-3">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2457D6" stroke-width="2.5" class="flex-shrink-0 mt-0.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+                        <div>
+                            <div class="fw-bold mb-1" style="font-size: 1rem;">NIGERIA DATA PROTECTION ACT (NDPA 2023) COMPLIANT</div>
+                            <div class="small" style="line-height: 1.6; color: #1E293B;">
+                                {{ site_config.site_name|default:"VerifyNG" }} adheres strictly to the principles of lawful processing, purpose specification, data minimization, cryptographic storage, and individual transparency mandated by the Nigeria Data Protection Commission (NDPC) and the NDPA 2023.
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-                <h3 class="h6 fw-bold mt-3 mb-1">2. Good-Faith Reporting & Anti-Defamation</h3>
-                <p class="small text-muted">
-                    All fraud reports and dispute filings must be submitted in good faith with verifiable evidence. Submitting deliberately fabricated, malicious, or defamatory reports violates our Terms of Service and will result in immediate permanent account termination and referral to regulatory authorities.
-                </p>
+                <!-- Clause P-1 -->
+                <div class="legal-clause-card">
+                    <div class="d-flex align-items-center mb-3">
+                        <span class="legal-section-number">1</span>
+                        <h2 class="h5 fw-bold mb-0 text-dark">Categories of Data We Collect &amp; Process</h2>
+                    </div>
+                    <p>To deliver verification services, prevent crime, and operate our community fraud defense platform, we collect the following categories of data:</p>
+                    <ul class="mb-0 ps-3">
+                        <li><strong>Account &amp; Registration Information:</strong> Full legal name, official business entity name, verified email address, telephone number, role classification (Individual, SME, Corporate Employer, Agency), and cryptographic password hash.</li>
+                        <li><strong>Cryptographic Identity Tokens:</strong> Bank Account Numbers, Bank Verification Numbers (BVN), and National Identification Numbers (NIN) submitted for authentication. <em>(See Section 2 regarding our zero-plaintext cryptographic standard.)</em></li>
+                        <li><strong>Fraud Allegation &amp; Evidentiary Submissions:</strong> Suspect names, reported phone numbers, social media handles, website URLs, transaction dates, monetary loss figures, and documentary exhibits (transfer receipts, invoices, chat screenshots, contracts).</li>
+                        <li><strong>Automated Telemetry &amp; Device Metadata:</strong> IP addresses, browser fingerprint, device operating system, referring URL, time-stamps, geolocation indicators, and session tokens to combat bot traffic and detect fraudulent report stuffing.</li>
+                    </ul>
+                </div>
 
-                <h3 class="h6 fw-bold mt-3 mb-1">3. Employer & Agency Obligations</h3>
-                <p class="small text-muted">
-                    Employers, recruitment firms, and authorized security agencies screening candidates agree to obtain prospective employee consent in accordance with local employment laws before initiating checks.
-                </p>
+                <!-- Clause P-2 -->
+                <div class="legal-clause-card">
+                    <div class="d-flex align-items-center mb-3">
+                        <span class="legal-section-number">2</span>
+                        <h2 class="h5 fw-bold mb-0 text-dark">One-Way Cryptographic Hashing Standard (NIN, BVN &amp; Bank Accounts)</h2>
+                    </div>
+                    <p>
+                        We implement strict zero-knowledge cryptographic safeguards for sensitive government and financial identifiers:
+                    </p>
+                    <p>
+                        <strong>Irreversible Peppered SHA-256 Hashing:</strong> National Identification Numbers (NIN) and Bank Verification Numbers (BVN) submitted for verification queries are immediately converted into irreversible SHA-256 cryptographic hashes with a platform-side secret pepper. 
+                    </p>
+                    <p class="mb-0">
+                        <strong>No Plaintext Storage:</strong> Raw, plaintext NIN or BVN digits are never written to permanent disk storage, database tables, or application logs. Matches are computed strictly via mathematical hash comparisons. Even in the event of an unauthorized physical database extraction, reverse-engineering raw government identifiers from our records is cryptographically impossible.
+                    </p>
+                </div>
 
-                <h3 class="h6 fw-bold mt-3 mb-1">4. Contact & Legal Notices</h3>
-                <p class="small text-muted mb-0">
-                    For legal notices or data inquiries, please write to our compliance office at <code>support@verifyng.com</code>.
-                </p>
+                <!-- Clause P-3 -->
+                <div class="legal-clause-card">
+                    <div class="d-flex align-items-center mb-3">
+                        <span class="legal-section-number">3</span>
+                        <h2 class="h5 fw-bold mb-0 text-dark">Lawful Bases for Data Processing</h2>
+                    </div>
+                    <p>In strict accordance with Section 25 of the <em>Nigeria Data Protection Act 2023</em>, the Platform processes personal data under the following legitimate grounds:</p>
+                    <ul class="mb-0 ps-3">
+                        <li><strong>Public Interest &amp; Fraud Prevention:</strong> Processing is necessary for the performance of a task carried out in the public interest to combat cyber fraud, advance public security, protect consumer assets, and prevent economic crimes.</li>
+                        <li><strong>Contractual Performance:</strong> Processing necessary to execute transactions, background checks, certificate generation, and account authentication requested by the User.</li>
+                        <li><strong>Explicit Consent:</strong> Provided by users registering accounts, opting into background checks, or downloading compliance credentials.</li>
+                        <li><strong>Legal &amp; Regulatory Obligation:</strong> Compliance with lawful court orders, subpoenas, NDPC regulations, or statutory reporting mandates.</li>
+                    </ul>
+                </div>
+
+                <!-- Clause P-4 -->
+                <div class="legal-clause-card">
+                    <div class="d-flex align-items-center mb-3">
+                        <span class="legal-section-number">4</span>
+                        <h2 class="h5 fw-bold mb-0 text-dark">Third-Party Data Sharing, Disclosures &amp; Law Enforcement Cooperation</h2>
+                    </div>
+                    <p>
+                        <strong>We Never Sell Personal Data:</strong> {{ site_config.site_name|default:"VerifyNG" }} does not sell, rent, monetize, or trade user personal data to third-party data brokers, advertising networks, or marketing agencies.
+                    </p>
+                    <p>Data is shared strictly under the following controlled protocols:</p>
+                    <ul class="mb-0 ps-3">
+                        <li><strong>Law Enforcement &amp; Regulatory Bodies:</strong> We cooperate fully with recognized Nigerian law enforcement agencies (NPF, EFCC, ICPC, DSS, and the Courts). Where a formal court subpoena, warrant, or statutory directive is served, the Platform will disclose relevant audit trails, suspect reports, and evidentiary files.</li>
+                        <li><strong>Licensed Identity &amp; Banking Verification Partners:</strong> We interface securely via encrypted APIs with authorized verification registries (including CAC registries and payment settlement switches) strictly to confirm credential validity.</li>
+                        <li><strong>PCI-DSS Certified Payment Processors:</strong> Payment card details and settlement transactions are processed directly by licensed financial switches (such as Paystack or Flutterwave). We do not store raw credit card numbers or banking PINs.</li>
+                    </ul>
+                </div>
+
+                <!-- Clause P-5 -->
+                <div class="legal-clause-card">
+                    <div class="d-flex align-items-center mb-3">
+                        <span class="legal-section-number">5</span>
+                        <h2 class="h5 fw-bold mb-0 text-dark">Real-Time "Who Checked Me" Transparency &amp; Audit Logs</h2>
+                    </div>
+                    <p class="mb-0">
+                        In furtherance of individual data dignity, the Platform provides a real-time Audit Trail feature. Whenever a registered employer, staffing agency, or corporate user conducts an identity verification or background check against your verified profile, an entry is logged in your personal security ledger recording the inspecting entity, verification purpose, and timestamp. You maintain full visibility over who inspects your credentials.
+                    </p>
+                </div>
+
+                <!-- Clause P-6 -->
+                <div class="legal-clause-card">
+                    <div class="d-flex align-items-center mb-3">
+                        <span class="legal-section-number">6</span>
+                        <h2 class="h5 fw-bold mb-0 text-dark">Data Retention, Account Deletion &amp; Platform Integrity Archival</h2>
+                    </div>
+                    <p>
+                        <strong>Right to Delete Account:</strong> Registered Users may request the deletion of their user profile and personal contact credentials at any time through the Account Hub. Upon deletion, your personal profile is permanently scrubbed from our active directory.
+                    </p>
+                    <p class="mb-0">
+                        <strong>Public Safety &amp; Legal Defense Retention Exception:</strong> In accordance with the NDPA 2023 provisions permitting data retention for legal defense, statutory compliance, and public fraud prevention, verified fraud allegations, incident exhibits, and dispute determinations cannot be wiped simply by deleting an account. Allowing an accused fraudster or malicious reporter to erase documented evidence by deleting their login would defeat the platform's anti-crime mission. Such records remain securely archived in an anonymized or pseudonymized audit state for fraud prevention.
+                    </p>
+                </div>
+
+                <!-- Clause P-7 -->
+                <div class="legal-clause-card">
+                    <div class="d-flex align-items-center mb-3">
+                        <span class="legal-section-number">7</span>
+                        <h2 class="h5 fw-bold mb-0 text-dark">Your Statutory Data Subject Rights (NDPA 2023)</h2>
+                    </div>
+                    <p>Under the <em>Nigeria Data Protection Act 2023</em>, you possess the following protected rights:</p>
+                    <ul class="mb-0 ps-3">
+                        <li><strong>Right of Access:</strong> You may request an export of personal data we maintain concerning you;</li>
+                        <li><strong>Right to Rectification:</strong> You may correct inaccurate or outdated contact records;</li>
+                        <li><strong>Right to Object &amp; File Dispute:</strong> You may formally dispute any allegation, report, or status flag through our structured Dispute desk;</li>
+                        <li><strong>Right to Lodge a Complaint:</strong> If you believe your personal data has been processed unlawfully, you have the statutory right to file a complaint with the <strong>Nigeria Data Protection Commission (NDPC)</strong> (<code>info@ndpc.gov.ng</code>).</li>
+                    </ul>
+                </div>
+
+                <!-- Clause P-8 -->
+                <div class="legal-clause-card">
+                    <div class="d-flex align-items-center mb-3">
+                        <span class="legal-section-number">8</span>
+                        <h2 class="h5 fw-bold mb-0 text-dark">Data Protection Officer (DPO) &amp; Legal Notices Contact</h2>
+                    </div>
+                    <p>
+                        For formal legal service, compliance inquiries, NDPA data subject access requests, or urgent safety complaints, please address all correspondence to our designated Data Protection Officer:
+                    </p>
+                    <div class="p-3 rounded-3 bg-light border">
+                        <div class="fw-bold text-dark mb-1">{{ site_config.site_name|default:"VerifyNG" }} Legal &amp; Data Protection Directorate</div>
+                        <div class="small text-muted mb-1">Attention: Data Protection Officer (DPO) &amp; Legal Counsel</div>
+                        <div class="small text-muted mb-1">Email: <code>legal@{{ site_config.domain|default:"verifyng.com" }}</code> &bull; <code>compliance@{{ site_config.domain|default:"verifyng.com" }}</code></div>
+                        <div class="small text-muted">Federal Republic of Nigeria</div>
+                    </div>
+                </div>
+
             </div>
         </div>
 
@@ -111,4 +519,3 @@
 
 </div>
 {% endblock %}
-
