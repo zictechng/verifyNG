@@ -5,7 +5,7 @@
 
 {% block content %}
 <style>
-/* ══ HERO RESPONSIVE DOTTED MAP & AVATAR ══ */
+/* ══ HERO RESPONSIVE DOTTED MAP, AVATAR & FLOATING BADGES ══ */
 .hero-africa-map-wrap {
     position: absolute;
     top: 0;
@@ -24,13 +24,43 @@
     margin-inline: auto;
 }
 
+.hero-float-badge {
+    position: absolute;
+    display: flex !important;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.55rem 0.85rem;
+    border-radius: 12px;
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    box-shadow: 0 12px 28px -6px rgba(1, 27, 51, 0.18), 0 4px 10px -2px rgba(1, 27, 51, 0.08);
+    z-index: 3;
+    pointer-events: auto;
+    white-space: nowrap;
+}
+
+@media (min-width: 576px) {
+    .hero-float-badge-1 {
+        top: -18px;
+        left: -22px;
+    }
+    .hero-float-badge-2 {
+        top: 42%;
+        right: -26px;
+    }
+    .hero-float-badge-3 {
+        bottom: 28px;
+        left: -22px;
+    }
+}
+
 @media (max-width: 991.98px) {
     .hero-africa-map-wrap {
         width: 100%;
         opacity: 0.30;
     }
     .hero-avatar-wrapper {
-        max-width: 380px;
+        max-width: 360px;
         margin-top: 1.5rem;
     }
 }
@@ -41,8 +71,46 @@
         opacity: 0.25;
     }
     .hero-avatar-wrapper {
-        max-width: 300px;
-        margin-top: 1rem;
+        max-width: 310px !important;
+        margin-top: 1.25rem;
+        padding-inline: 4px;
+    }
+    .hero-float-badge {
+        padding: 0.35rem 0.5rem !important;
+        gap: 0.4rem !important;
+        border-radius: 10px !important;
+        box-shadow: 0 8px 18px -4px rgba(1, 27, 51, 0.16) !important;
+    }
+    .hero-float-badge .badge-icon-box {
+        width: 26px !important;
+        height: 26px !important;
+    }
+    .hero-float-badge .badge-icon-box svg {
+        width: 13px !important;
+        height: 13px !important;
+    }
+    .hero-float-badge .badge-title {
+        font-size: 11px !important;
+        line-height: 1.15 !important;
+    }
+    .hero-float-badge .badge-sub {
+        font-size: 9px !important;
+    }
+    .hero-float-badge .badge-tag {
+        font-size: 8px !important;
+        padding: 0.15rem 0.35rem !important;
+    }
+    .hero-float-badge-1 {
+        top: -10px !important;
+        left: -4px !important;
+    }
+    .hero-float-badge-2 {
+        top: 42% !important;
+        right: -4px !important;
+    }
+    .hero-float-badge-3 {
+        bottom: 10px !important;
+        left: -4px !important;
     }
 }
 </style>
@@ -60,14 +128,6 @@
         <div class="row">
             <div class="col-lg-6">
                 <!-- Trust Pill Badge -->
-                <div class="d-inline-flex align-items-center gap-2 px-3 py-1.5 rounded-pill mb-3"
-                     style="background: #FFFFFF; border: 1px solid #C7D9F8; box-shadow: 0 1px 3px rgba(1, 27, 51, 0.05);">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="#2457D6">
-                        <path d="M12 2L3 7V12C3 17.52 6.84 22.74 12 24C17.16 22.74 21 17.52 21 12V7L12 2Z"/>
-                    </svg>
-                    
-                </div>
-
                 <!-- Main Hero Headline -->
                 <h1 class="display-5 fw-bold mb-3" style="color: #011B33; line-height: 1.15; letter-spacing: -0.02em;">
                     Check first.<br>
@@ -157,6 +217,46 @@
             <!-- Right Hero Column: Professional Human Avatar Showcase (Visible & Scaled across Mobile & Desktop) -->
             <div class="col-lg-6 text-center my-3 my-lg-0">
                 <div class="hero-avatar-wrapper">
+
+                    <!-- Floating Badge 1 (Top-Left): Scam Incident Intelligence -->
+                    <div class="hero-float-badge hero-float-badge-1">
+                        <div class="badge-icon-box rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                             style="width: 34px; height: 34px; background: #FEE2E2; color: #DC2626;">
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        </div>
+                        <div class="text-start min-w-0">
+                            <div class="badge-title fw-bold text-dark" style="font-size: 12px; line-height: 1.2;">Scam Alert Flagged</div>
+                            <div class="badge-sub text-muted" style="font-size: 10.5px;">Active Fraud Database</div>
+                        </div>
+                        <span class="badge badge-tag ms-auto" style="background: #FEE2E2; color: #DC2626; font-size: 9.5px; font-weight: 700;">ALERT</span>
+                    </div>
+
+                    <!-- Floating Badge 2 (Middle-Right): Evidentiary Proof Standard -->
+                    <div class="hero-float-badge hero-float-badge-2">
+                        <div class="badge-icon-box rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                             style="width: 34px; height: 34px; background: #E6F8EF; color: #0BB859;">
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                        </div>
+                        <div class="text-start min-w-0">
+                            <div class="badge-title fw-bold text-dark" style="font-size: 12px; line-height: 1.2;">Evidence-Backed</div>
+                            <div class="badge-sub text-muted" style="font-size: 10.5px;">Receipts &amp; Chat Audited</div>
+                        </div>
+                        <span class="badge badge-tag ms-auto" style="background: #E6F8EF; color: #077A3C; font-size: 9.5px; font-weight: 700;">PROVEN</span>
+                    </div>
+
+                    <!-- Floating Badge 3 (Bottom-Left): Legal Rights & Due Process -->
+                    <div class="hero-float-badge hero-float-badge-3">
+                        <div class="badge-icon-box rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                             style="width: 34px; height: 34px; background: #EAF1FF; color: #2457D6;">
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        </div>
+                        <div class="text-start min-w-0">
+                            <div class="badge-title fw-bold text-dark" style="font-size: 12px; line-height: 1.2;">Dispute Rights</div>
+                            <div class="badge-sub text-muted" style="font-size: 10.5px;">Fair Due Process &amp; NDPR</div>
+                        </div>
+                        <span class="badge badge-tag ms-auto" style="background: #EAF1FF; color: #2457D6; font-size: 9.5px; font-weight: 700;">LEGAL</span>
+                    </div>
+
                     <!-- Human Avatar Card with Ambient Fintech Drop Shadow -->
                     <div class="position-relative rounded-4 overflow-hidden shadow-lg" 
                          style="background: #011B33; border: 1px solid #C7D9F8; box-shadow: 0 24px 50px -12px rgba(1, 27, 51, 0.22);">
@@ -166,6 +266,7 @@
                              style="object-fit: cover; aspect-ratio: 1/1;"
                              loading="eager">
                     </div>
+
                 </div>
             </div>
 
@@ -178,10 +279,6 @@
     <div class="container">
         <!-- Section Header -->
         <div class="text-center mb-5 max-w-700 mx-auto" style="max-width: 680px;">
-            <span class="badge rounded-pill mb-2 px-3 py-1.5 text-uppercase fw-bold"
-                  style="background: #EAF6FC; color: #011B33; font-size: 11.5px; letter-spacing: 0.05em;">
-                Everyday Protection
-            </span>
             <h2 class="h3 fw-bold mb-2" style="color: #011B33;">
                 What {{ site_config.site_name|default:"VerifyNG" }} Protects You From Every Day
             </h2>
@@ -454,7 +551,6 @@
         <div class="row justify-content-center">
             <div class="col-lg-8">
                 <div class="text-center mb-5">
-                    
                     <h2 class="h3 fw-bold" style="color: #011B33;">Frequently Asked Questions</h2>
                     <p class="text-muted small">Learn how {{ site_config.site_name|default:"VerifyNG" }} protects your safety, privacy, and business records.</p>
                 </div>
