@@ -5,6 +5,33 @@
 
 {% block content %}
 <style>
+    /* Signature Brand Button Tab Styling (#EAF6FC / #BCDFF4 / #011B33) */
+    #legalTabs {
+        background: transparent;
+    }
+    #legalTabs .nav-link {
+        color: #475569;
+        background: transparent;
+        border: 1.5px solid transparent;
+        border-radius: 12px;
+        transition: all 0.15s ease-in-out;
+    }
+    #legalTabs .nav-link:hover {
+        color: #011B33;
+        background: #F8FAFC;
+        border-color: #E2E8F0;
+    }
+    #legalTabs .nav-link.active {
+        background-color: var(--vng-btn-bg, #EAF6FC) !important;
+        border: 1.5px solid var(--vng-btn-border, #BCDFF4) !important;
+        color: var(--vng-btn-text, #011B33) !important;
+        font-weight: 700 !important;
+        box-shadow: 0 2px 6px rgba(1, 27, 51, 0.08) !important;
+    }
+    #legalTabs .nav-link.active svg {
+        stroke: var(--vng-btn-text, #011B33) !important;
+    }
+
     .legal-toc-pill {
         display: inline-block;
         padding: 0.35rem 0.75rem;
