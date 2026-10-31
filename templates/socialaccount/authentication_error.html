@@ -1,7 +1,7 @@
 {% extends 'public/base.html' %}
 {% load static %}
 
-{% block title %}Authentication Error — VerifyNG{% endblock %}
+{% block title %}Authentication Error — {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
 
 {% block content %}
 <div class="container py-4 py-md-5">

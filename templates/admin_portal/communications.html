@@ -1,6 +1,6 @@
 {% extends 'admin_portal/base_admin.html' %}
 
-{% block title %}Broadcast Center | VerifyNG Admin Portal{% endblock %}
+{% block title %}Broadcast Center | {{ site_config.site_name|default:"VerifyNG" }} Admin Portal{% endblock %}
 
 {% block breadcrumb %}
 <li class="breadcrumb-item"><a href="{% url 'admin_portal:overview' %}">Overview</a></li>
@@ -183,7 +183,7 @@
                 <div class="mb-3">
                     <label class="form-label" style="font-size:0.78rem;font-weight:700;color:var(--adm-muted);text-transform:uppercase;letter-spacing:0.05em;">Email Subject *</label>
                     <input type="text" name="subject" class="form-control" required
-                           placeholder="VerifyNG Platform Update: …"
+                           placeholder="{{ site_config.site_name|default:"VerifyNG" }} Platform Update: …"
                            value="{{ request.POST.subject|default:'' }}"
                            style="border-radius:7px;border-color:var(--adm-border);font-size:0.86rem;padding:8px 12px;">
                 </div>

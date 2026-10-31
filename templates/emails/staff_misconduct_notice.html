@@ -10,7 +10,7 @@
 
 <p>
     A formal workplace misconduct report has been submitted by <strong>{{ employer_name }}</strong> 
-    referencing your VerifyNG Workforce Clearance Certificate (<strong>{{ certificate_id }}</strong>).
+    referencing your {{ site_config.site_name|default:"VerifyNG" }} Workforce Clearance Certificate (<strong>{{ certificate_id }}</strong>).
 </p>
 
 <div class="notice" style="background:#FFFBEB;border:1px solid #FDE68A;">
@@ -20,7 +20,7 @@
 </div>
 
 <p>
-    In accordance with VerifyNG platform standards and natural justice principles, <strong>no adverse public flag has been placed on your certificate at this time</strong>. 
+    In accordance with {{ site_config.site_name|default:"VerifyNG" }} platform standards and natural justice principles, <strong>no adverse public flag has been placed on your certificate at this time</strong>. 
     You have a statutory 7-day window to review the factual summary and submit a formal dispute with any counter-evidence before compliance moderation adjudicates the report.
 </p>
 
@@ -35,6 +35,6 @@
 <hr class="divider">
 
 <p style="font-size:14px;color:#6e6e73;">
-    VerifyNG Dispute Resolution Desk &bull; Reference: {{ report_ref }} &bull; Need help? Contact <a href="mailto:{{ support_email }}" style="color:#0071e3;">{{ support_email }}</a>.
+    {{ site_config.site_name|default:"VerifyNG" }} Dispute Resolution Desk &bull; Reference: {{ report_ref }} &bull; Need help? Contact <a href="mailto:{{ support_email }}" style="color:#0071e3;">{{ support_email }}</a>.
 </p>
 {% endblock %}

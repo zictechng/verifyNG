@@ -2,7 +2,7 @@
 {% extends 'public/base.html' %}
 {% load static %}
 
-{% block title %}Certificate Monitoring Services (TrustPass) | VerifyNG{% endblock %}
+{% block title %}Certificate Monitoring Services (TrustPass) | {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
 
 {% block content %}
 <div class="container py-4 py-md-5">

@@ -1,6 +1,6 @@
 {% extends 'admin_portal/base_admin.html' %}
 
-{% block title %}Overview | VerifyNG Admin Portal{% endblock %}
+{% block title %}Overview | {{ site_config.site_name|default:"VerifyNG" }} Admin Portal{% endblock %}
 
 {% block breadcrumb %}<li class="breadcrumb-item active">Overview</li>{% endblock %}
 

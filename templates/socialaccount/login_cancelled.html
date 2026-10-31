@@ -1,7 +1,7 @@
 {% extends 'public/base.html' %}
 {% load static %}
 
-{% block title %}Sign-In Cancelled — VerifyNG{% endblock %}
+{% block title %}Sign-In Cancelled — {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
 
 {% block content %}
 <div class="container py-4 py-md-5">

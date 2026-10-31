@@ -2,7 +2,7 @@
 {% extends 'public/base.html' %}
 {% load static %}
 
-{% block title %}Who Checked Me | VerifyNG{% endblock %}
+{% block title %}Who Checked Me | {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
 
 {% block content %}
 <div class="container py-4 py-md-5" style="max-width:860px;">
@@ -109,7 +109,7 @@
             <p class="small text-muted mb-0">
                 <strong>Your rights:</strong> If you believe a check was conducted without your consent or for an unlawful purpose,
                 you may <a href="{% url 'reports:create' %}" class="text-decoration-underline">submit a report</a> or
-                contact VerifyNG support.
+                contact {{ site_config.site_name|default:"VerifyNG" }} support.
             </p>
         </div>
 
@@ -150,7 +150,7 @@
                     </div>
                     <div>
                         <div class="fw-semibold small mb-1">Apply for a Certificate</div>
-                        <p class="small text-muted mb-0">A VerifyNG Verification Certificate lets employers verify your background instantly.</p>
+                        <p class="small text-muted mb-0">A {{ site_config.site_name|default:"VerifyNG" }} Verification Certificate lets employers verify your background instantly.</p>
                     </div>
                 </div>
             </div>
@@ -161,7 +161,7 @@
                     </div>
                     <div>
                         <div class="fw-semibold small mb-1">Dispute a Check</div>
-                        <p class="small text-muted mb-0">If you see an unexpected check, you can report it to VerifyNG for review.</p>
+                        <p class="small text-muted mb-0">If you see an unexpected check, you can report it to {{ site_config.site_name|default:"VerifyNG" }} for review.</p>
                     </div>
                 </div>
             </div>

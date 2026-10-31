@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}VerifyNG Admin Portal{% endblock %}</title>
+    <title>{% block title %}{{ site_config.site_name|default:"VerifyNG" }} Admin Portal{% endblock %}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <style>[x-cloak] { display: none !important; }</style>
@@ -736,7 +736,7 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><path d="M12 2L3 7V12C3 17.52 6.84 22.74 12 24C17.16 22.74 21 17.52 21 12V7L12 2Z"/></svg>
         </div>
         <div class="logo-text">
-            VerifyNG
+            {{ site_config.site_name|default:"VerifyNG" }}
             <span class="logo-sub">Admin Portal</span>
         </div>
     </div>

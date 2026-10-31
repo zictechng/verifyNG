@@ -2,7 +2,7 @@
 {% extends 'public/base.html' %}
 {% load static %}
 
-{% block title %}Bulk Check Uploads | VerifyNG{% endblock %}
+{% block title %}Bulk Check Uploads | {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
 
 {% block content %}
 <div class="container py-4 py-md-5">

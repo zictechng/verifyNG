@@ -1,5 +1,5 @@
 {% extends "admin_portal/base_admin.html" %}
-{% block title %}Analytics — VerifyNG Admin{% endblock %}
+{% block title %}Analytics — {{ site_config.site_name|default:"VerifyNG" }} Admin{% endblock %}
 {% block admin_body %}
 <div class="adm-page-header">
   <h1 class="adm-page-title">Platform Analytics</h1>

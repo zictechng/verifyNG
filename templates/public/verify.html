@@ -1,7 +1,7 @@
 {% extends "public/base.html" %}
 {% load static %}
 
-{% block title %}Submit a Verification Request — VerifyNG{% endblock %}
+{% block title %}Submit a Verification Request — {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
 
 {% block extra_head %}
 <style>
@@ -54,7 +54,7 @@
                 <h1 class="h3 fw-bold">Submit a Verification Request</h1>
                 <p class="small text-muted mb-0">
                     Request an official identity, employment, address, or credential verification.
-                    A VerifyNG officer will review and complete the request.
+                    A {{ site_config.site_name|default:"VerifyNG" }} officer will review and complete the request.
                 </p>
             </div>
 
@@ -149,7 +149,7 @@
                     </h6>
                     <p class="small text-muted mb-3">
                         Providing a known identifier (phone number, email, or CAC registration) allows
-                        VerifyNG to link this verification to existing records and improves lookup accuracy.
+                        {{ site_config.site_name|default:"VerifyNG" }} to link this verification to existing records and improves lookup accuracy.
                         Your NIN and BVN are never shown or shared. We use high-security bank encryption to protect your privacy.
                     </p>
 

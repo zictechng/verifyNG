@@ -281,7 +281,7 @@
                         {{ report.allegation|linebreaks }}
                     </div>
                     <p class="small text-muted mt-2 mb-0">
-                        <strong>Notice:</strong> This is an unverified allegation submitted by a member. VerifyNG does not confirm the accuracy of this claim.
+                        <strong>Notice:</strong> This is an unverified allegation submitted by a member. {{ site_config.site_name|default:"VerifyNG" }} does not confirm the accuracy of this claim.
                     </p>
                 </div>
             </div>
@@ -554,7 +554,7 @@
             <div class="vng-card p-4">
                 <p class="small fw-semibold text-muted text-uppercase mb-2">Platform Notice</p>
                 <p class="small text-muted mb-0">
-                    VerifyNG Verification Reports document alleged incidents submitted by verified members. Reports are moderated before publication. Subjects have the right to dispute any allegation.
+                    {{ site_config.site_name|default:"VerifyNG" }} Verification Reports document alleged incidents submitted by verified members. Reports are moderated before publication. Subjects have the right to dispute any allegation.
                 </p>
             </div>
         </div>

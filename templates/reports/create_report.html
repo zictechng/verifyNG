@@ -1,7 +1,7 @@
 {% extends 'public/base.html' %}
 {% load static %}
 
-{% block title %}Report Suspicious Activity | VerifyNG{% endblock %}
+{% block title %}Report Suspicious Activity | {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
 
 {% block extra_head %}
 <style>
@@ -76,7 +76,7 @@
                             Your report protects honest businesses and stops repeat scammers
                         </div>
                         <div class="text-secondary" style="font-size: 0.95rem; line-height: 1.45;">
-                            Documenting fraud creates an official due-diligence record on VerifyNG that alerts 
+                            Documenting fraud creates an official due-diligence record on {{ site_config.site_name|default:"VerifyNG" }} that alerts 
                             future victims before they lose their hard-earned money. <br/>
                             <b>Report it, stop scammers, and protect the next victims.</b>
                         </div>

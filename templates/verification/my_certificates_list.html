@@ -27,7 +27,7 @@
                 {% if request.user.role == 'employer' or request.user.is_employer or request.user.role == 'business' %}
                     Clearance certificates and vetting checks submitted for your organization's candidates and staff.
                 {% else %}
-                    VerifyNG verification credentials issued to your account.
+                    {{ site_config.site_name|default:"VerifyNG" }} verification credentials issued to your account.
                 {% endif %}
             </p>
         </div>

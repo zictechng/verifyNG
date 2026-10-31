@@ -2,7 +2,7 @@
 {% extends 'public/base.html' %}
 {% load static %}
 
-{% block title %}Check — {{ check.full_name }} | VerifyNG{% endblock %}
+{% block title %}Check — {{ check.full_name }} | {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
 
 {% block content %}
 <div class="container py-4 py-md-5">
@@ -71,7 +71,7 @@
                     <span style="font-size:1.4rem;">⚠️</span>
                     <div>
                         <div class="fw-semibold">{{ check.fraud_flags }} fraud report{{ check.fraud_flags|pluralize }} found</div>
-                        <div class="small">This person has published fraud allegations on the VerifyNG platform.</div>
+                        <div class="small">This person has published fraud allegations on the {{ site_config.site_name|default:"VerifyNG" }} platform.</div>
                     </div>
                 </div>
                 {% else %}

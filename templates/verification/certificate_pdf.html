@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>VerifyNG Certificate — {{ certificate.certificate_id }}</title>
+    <title>{{ site_config.site_name|default:"VerifyNG" }} Certificate — {{ certificate.certificate_id }}</title>
     <style>
         /* ── Reset ── */
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -154,7 +154,7 @@
     <!-- Header -->
     <div class="header">
         <div>
-            <div class="brand-name">VerifyNG</div>
+            <div class="brand-name">{{ site_config.site_name|default:"VerifyNG" }}</div>
             <div class="brand-tagline">Nigeria's Public Trust &amp; Safety Platform</div>
         </div>
         <div class="doc-type">
@@ -238,7 +238,7 @@
             <div class="field-grid">
                 <div>
                     <div class="field-label">Issued By</div>
-                    <div class="field-value">VerifyNG</div>
+                    <div class="field-value">{{ site_config.site_name|default:"VerifyNG" }}</div>
                 </div>
                 <div>
                     <div class="field-label">Verification Type</div>
@@ -254,10 +254,10 @@
 
     <!-- Disclaimer -->
     <div class="disclaimer">
-        <strong>Important:</strong> This document is a <strong>VerifyNG Verification Certificate</strong>
+        <strong>Important:</strong> This document is a <strong>{{ site_config.site_name|default:"VerifyNG" }} Verification Certificate</strong>
         and is <strong>not</strong> a government-issued certificate, DBS certificate, or Police Clearance
-        Certificate. VerifyNG is an independent trust and safety platform. This certificate reflects
-        information verified by VerifyNG at the time of issue and may be subject to change.
+        Certificate. {{ site_config.site_name|default:"VerifyNG" }} is an independent trust and safety platform. This certificate reflects
+        information verified by {{ site_config.site_name|default:"VerifyNG" }} at the time of issue and may be subject to change.
         To verify the current status of this certificate, visit the Verification URL above.
     </div>
 
@@ -268,7 +268,7 @@
             Generated: {{ certificate.issued_at|date:"j F Y" }}
         </div>
         <div style="text-align:right;">
-            VerifyNG · Nigeria's Public Trust &amp; Safety Platform<br>
+            {{ site_config.site_name|default:"VerifyNG" }} · Nigeria's Public Trust &amp; Safety Platform<br>
             verify.ng
         </div>
     </div>

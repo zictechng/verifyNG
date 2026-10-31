@@ -1,7 +1,7 @@
 
 {% extends 'emails/base_email.html' %}
 
-{% block subject %}You've been invited to join {{ company_name }} on VerifyNG{% endblock %}
+{% block subject %}You've been invited to join {{ company_name }} on {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
 
 {% block body %}
 
@@ -9,13 +9,13 @@
 
 <p>
     <strong>{{ invited_by }}</strong> has invited you to join
-    <strong>{{ company_name }}</strong> on <strong>VerifyNG</strong>
+    <strong>{{ company_name }}</strong> on <strong>{{ site_config.site_name|default:"VerifyNG" }}</strong>
     as a <strong>{{ role_display }}</strong>.
 </p>
 
 <p>
     As a team member, you'll be able to run background and trust checks on
-    behalf of {{ company_name }} through the VerifyNG employer portal.
+    behalf of {{ company_name }} through the {{ site_config.site_name|default:"VerifyNG" }} employer portal.
 </p>
 
 <div class="btn-wrap">
@@ -39,7 +39,7 @@
 <hr class="divider">
 
 <p style="font-size:14px;color:#6e6e73;">
-    You are receiving this because {{ invited_by }} used VerifyNG to send you a team invitation.
+    You are receiving this because {{ invited_by }} used {{ site_config.site_name|default:"VerifyNG" }} to send you a team invitation.
     This invitation is intended for <strong>{{ invite_email }}</strong>.
     If this was sent to you by mistake, please disregard it.
 </p>

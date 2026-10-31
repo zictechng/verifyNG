@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VerifyNG — Activity Report — {{ target_user.username }}</title>
+<title>{{ site_config.site_name|default:"VerifyNG" }} — Activity Report — {{ target_user.username }}</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
@@ -336,7 +336,7 @@
         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
       </div>
       <div>
-        <div class="brand-name">VerifyNG</div>
+        <div class="brand-name">{{ site_config.site_name|default:"VerifyNG" }}</div>
         <div class="brand-tagline">Nigeria's Public Trust &amp; Safety Platform</div>
       </div>
     </div>
@@ -483,9 +483,9 @@
   <!-- ── Footer ── -->
   <div class="report-footer">
     <div class="footer-text">
-      <strong>VerifyNG Platform — Official Activity Extract</strong><br>
-      This document is a VerifyNG-generated activity statement and does not constitute a government-issued certificate or legal record.
-      Data is sourced from VerifyNG platform logs. All times are in West Africa Time (WAT, UTC+1).<br>
+      <strong>{{ site_config.site_name|default:"VerifyNG" }} Platform — Official Activity Extract</strong><br>
+      This document is a {{ site_config.site_name|default:"VerifyNG" }}-generated activity statement and does not constitute a government-issued certificate or legal record.
+      Data is sourced from {{ site_config.site_name|default:"VerifyNG" }} platform logs. All times are in West Africa Time (WAT, UTC+1).<br>
       For verification of this document, contact <strong>support@verifyng.com</strong>
     </div>
     <div class="footer-seal">
@@ -498,7 +498,7 @@
       <textPath href="#topArc" startOffset="50%" text-anchor="middle">VERIFIED EXTRACT</textPath>
     </text>
     <text font-family="Inter,sans-serif" font-size="6" font-weight="600" fill="#2457D6" letter-spacing="1.5">
-      <textPath href="#botArc" startOffset="50%" text-anchor="middle">VERIFYNG.COM</textPath>
+      <textPath href="#botArc" startOffset="50%" text-anchor="middle">{{ site_config.site_name|default:"VerifyNG"|upper }}.COM</textPath>
     </text>
     <!-- Shield icon -->
     <path d="M45 28 L53 31.5 V40 C53 46 49 51 45 53 C41 51 37 46 37 40 V31.5 Z" fill="#EEF3FF" stroke="#2457D6" stroke-width="1.5"/>

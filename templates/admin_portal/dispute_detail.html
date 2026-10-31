@@ -1,5 +1,5 @@
 {% extends "admin_portal/base_admin.html" %}
-{% block title %}Dispute for {{ dispute.report.reference_number }} — VerifyNG Admin{% endblock %}
+{% block title %}Dispute for {{ dispute.report.reference_number }} — {{ site_config.site_name|default:"VerifyNG" }} Admin{% endblock %}
 
 {% block admin_body %}
 <div class="adm-page-header d-flex align-items-center justify-content-between flex-wrap gap-3">

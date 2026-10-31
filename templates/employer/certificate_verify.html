@@ -128,7 +128,7 @@
                 {% if profile.verification_status == 'pending' %}
                 <strong class="d-block text-dark fw-bold" style="font-size:0.95rem;">Company Verification Under Compliance Review</strong>
                 <p class="small text-muted mb-0" style="line-height:1.45;">
-                    Your company CAC incorporation documents have been submitted and are currently being reviewed by VerifyNG compliance officers. Candidate workforce clearance records and full dossiers will be unlocked as soon as your company profile is verified. Any Pay-As-You-Go payments made remain safely credited to your wallet balance.
+                    Your company CAC incorporation documents have been submitted and are currently being reviewed by {{ site_config.site_name|default:"VerifyNG" }} compliance officers. Candidate workforce clearance records and full dossiers will be unlocked as soon as your company profile is verified. Any Pay-As-You-Go payments made remain safely credited to your wallet balance.
                 </p>
                 {% elif profile.verification_status == 'rejected' %}
                 <strong class="d-block text-danger fw-bold" style="font-size:0.95rem;">Company CAC Verification Declined</strong>
@@ -280,7 +280,7 @@
                 {% endif %}
 
                 <p class="text-muted small mb-4">
-                    In compliance with Nigerian Data Protection Regulations (NDPR), candidate identity data, background vetting history, and clearance certificate records can only be disclosed to organizations whose Corporate Affairs Commission (CAC) incorporation has been verified by VerifyNG compliance officers.
+                    In compliance with Nigerian Data Protection Regulations (NDPR), candidate identity data, background vetting history, and clearance certificate records can only be disclosed to organizations whose Corporate Affairs Commission (CAC) incorporation has been verified by {{ site_config.site_name|default:"VerifyNG" }} compliance officers.
                 </p>
 
                 <div class="d-flex flex-column flex-sm-row gap-2 gap-sm-3">

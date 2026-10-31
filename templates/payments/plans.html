@@ -3,8 +3,8 @@
 {% load static %}
 {% load humanize %}
 
-{% block title %}Plans & Pricing — VerifyNG{% endblock %}
-{% block meta_description %}Choose the right VerifyNG plan for background checks and fraud reports in Nigeria.{% endblock %}
+{% block title %}Plans & Pricing — {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
+{% block meta_description %}Choose the right {{ site_config.site_name|default:"VerifyNG" }} plan for background checks and fraud reports in Nigeria.{% endblock %}
 
 {% block content %}
 <div class="vng-plans-page py-5">

@@ -1,5 +1,5 @@
 {% extends "admin_portal/base_admin.html" %}
-{% block title %}Verifications — VerifyNG Admin{% endblock %}
+{% block title %}Verifications — {{ site_config.site_name|default:"VerifyNG" }} Admin{% endblock %}
 {% block admin_body %}
 <div class="adm-page-header mb-3">
   <h1 class="adm-page-title">Verifications Queue</h1>

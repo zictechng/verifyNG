@@ -1,14 +1,14 @@
 {% extends 'public/base.html' %}
 {% load static socialaccount %}
 
-{% block title %}Create Account — VerifyNG{% endblock %}
+{% block title %}Create Account — {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
 
 {% block content %}
 <div class="container py-4 py-md-5">
     <div class="row justify-content-center">
         <div class="col-lg-6 col-md-8">
             <div class="text-center mb-4">
-                <span class="vng-badge-trust mb-2">Join VerifyNG</span>
+                <span class="vng-badge-trust mb-2">Join {{ site_config.site_name|default:"VerifyNG" }}</span>
                 <h1 class="h3 fw-bold">Create an Account</h1>
                 <p class="small text-muted mb-0">Join our trust community to track reports, verify profiles, and access more features.</p>
             </div>

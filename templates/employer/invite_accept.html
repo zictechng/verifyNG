@@ -2,12 +2,12 @@
 {% extends 'public/base.html' %}
 {% load static %}
 
-{% block title %}Team Invitation | VerifyNG{% endblock %}
+{% block title %}Team Invitation | {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
 
 {% block content %}
 <div class="container py-5" style="max-width:520px;">
     <div class="text-center mb-4">
-        <img src="{% static 'images/logo.png' %}" alt="VerifyNG" height="36" class="mb-3"
+        <img src="{% static 'images/logo.png' %}" alt="{{ site_config.site_name|default:"VerifyNG" }}" height="36" class="mb-3"
              onerror="this.style.display='none'">
         <h1 class="h4 fw-bold">Team Invitation</h1>
     </div>
@@ -47,7 +47,7 @@
             <dd class="col-7 fw-semibold">{{ invite.get_team_role_display }}</dd>
 
             <dt class="col-5 text-muted fw-normal">Invited by</dt>
-            <dd class="col-7">{{ invite.invited_by.get_full_name|default:invite.invited_by.username|default:"VerifyNG Admin" }}</dd>
+            <dd class="col-7">{% if invite.invited_by %}{{ invite.invited_by.get_full_name|default:invite.invited_by.username }}{% else %}{{ site_config.site_name|default:"VerifyNG" }} Admin{% endif %}</dd>
 
             <dt class="col-5 text-muted fw-normal">Expires</dt>
             <dd class="col-7">{{ invite.expires_at|date:"d M Y, H:i" }}</dd>

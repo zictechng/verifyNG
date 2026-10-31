@@ -1,6 +1,6 @@
 
 {% extends "admin_portal/base_admin.html" %}
-{% block title %}{% if plan %}Edit Plan{% else %}New Plan{% endif %} — VerifyNG Admin{% endblock %}
+{% block title %}{% if plan %}Edit Plan{% else %}New Plan{% endif %} — {{ site_config.site_name|default:"VerifyNG" }} Admin{% endblock %}
 
 {% block breadcrumb %}
   <li class="breadcrumb-item"><a href="{% url 'admin_portal:overview' %}">Admin</a></li>

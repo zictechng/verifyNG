@@ -1,7 +1,7 @@
 {% extends "admin_portal/base_admin.html" %}
 {% load humanize %}
 
-{% block title %}Subscription Plans — VerifyNG Admin{% endblock %}
+{% block title %}Subscription Plans — {{ site_config.site_name|default:"VerifyNG" }} Admin{% endblock %}
 
 {% block breadcrumb %}
   <li class="breadcrumb-item"><a href="{% url 'admin_portal:overview' %}">Admin</a></li>

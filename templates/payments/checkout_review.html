@@ -2,7 +2,7 @@
 {% load static %}
 {% load humanize %}
 
-{% block title %}Order Review: {{ plan.name }} — VerifyNG{% endblock %}
+{% block title %}Order Review: {{ plan.name }} — {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
 
 {% block content %}
 <div class="container py-5">
@@ -119,7 +119,7 @@
               </tr>
               <tr>
                 <td class="text-muted">Payment Processing Fee</td>
-                <td class="text-end text-success fw-semibold">₦0 (Covered by VerifyNG)</td>
+                <td class="text-end text-success fw-semibold">₦0 (Covered by {{ site_config.site_name|default:"VerifyNG" }})</td>
               </tr>
               <tr class="border-top">
                 <td class="pt-2 fw-bold text-dark fs-6">Total Due Today:</td>

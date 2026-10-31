@@ -2,7 +2,7 @@
 {% extends 'public/base.html' %}
 {% load static %}
 
-{% block title %}Report Staff Misconduct | VerifyNG{% endblock %}
+{% block title %}Report Staff Misconduct | {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
 
 {% block extra_head %}
 <style>
@@ -192,7 +192,7 @@
                             <h5 class="fw-bold mb-0">Staff Member & Clearance Certificate</h5>
                         </div>
                         <p class="small text-muted mb-4">
-                            Specify the employee and their VerifyNG Clearance Certificate ID. This ensures the incident is correctly linked to their platform record.
+                            Specify the employee and their {{ site_config.site_name|default:"VerifyNG" }} Clearance Certificate ID. This ensures the incident is correctly linked to their platform record.
                         </p>
 
                         <!-- Certificate ID -->
@@ -205,7 +205,7 @@
                                    x-model="certId" 
                                    @input="errors.certId = ''">
                             <div class="invalid-feedback d-block" x-show="errors.certId" x-text="errors.certId" x-cloak></div>
-                            <div class="form-text" x-show="!errors.certId">Enter the 16-character certificate ID from the staff member's VerifyNG certificate.</div>
+                            <div class="form-text" x-show="!errors.certId">Enter the 16-character certificate ID from the staff member's {{ site_config.site_name|default:"VerifyNG" }} certificate.</div>
                         </div>
                         <!-- Staff Full Name & Job Role -->
                         <div class="row g-3 mb-4">
@@ -318,7 +318,7 @@
                             <h5 class="fw-bold mb-0">Mandatory Documentary Evidence</h5>
                         </div>
                         <p class="small text-muted mb-4">
-                            To ensure legal protection for both your company and VerifyNG, you must attach verifiable documentary proof.
+                            To ensure legal protection for both your company and {{ site_config.site_name|default:"VerifyNG" }}, you must attach verifiable documentary proof.
                         </p>
 
                         <!-- Evidence Document Type -->
@@ -417,7 +417,7 @@
 
                         <!-- Natural Justice Notice -->
                         <div class="alert alert-warning small mb-4">
-                            <strong>7-Day Natural Justice Notice:</strong> Upon submission, VerifyNG compliance will review your documentary proof. Once validated, the staff member will receive an automated 7-day notice allowing them to review the allegation and provide counter-evidence before any permanent public flag is displayed on their certificate.
+                            <strong>7-Day Natural Justice Notice:</strong> Upon submission, {{ site_config.site_name|default:"VerifyNG" }} compliance will review your documentary proof. Once validated, the staff member will receive an automated 7-day notice allowing them to review the allegation and provide counter-evidence before any permanent public flag is displayed on their certificate.
                         </div>
 
                         <!-- Legal Warranties Checkboxes -->
@@ -430,7 +430,7 @@
                         <div class="form-check mb-4">
                             <input class="form-check-input" type="checkbox" name="indemnify_platform" id="indemnify_platform" x-model="indemnify" required>
                             <label class="form-check-label small" for="indemnify_platform">
-                                <strong>Employer Indemnity Agreement:</strong> My company warrants that it holds original documentary evidence supporting this report and agrees to fully indemnify VerifyNG against any third-party claims or damages resulting from this submission.
+                                <strong>Employer Indemnity Agreement:</strong> My company warrants that it holds original documentary evidence supporting this report and agrees to fully indemnify {{ site_config.site_name|default:"VerifyNG" }} against any third-party claims or damages resulting from this submission.
                             </label>
                         </div>
 

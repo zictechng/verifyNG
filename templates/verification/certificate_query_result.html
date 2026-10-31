@@ -27,7 +27,7 @@
                         </div>
                         <div>
                             <div class="fw-bold text-success">Certificate Active</div>
-                            <div class="small text-muted">This certificate is valid and currently active in the VerifyNG system.</div>
+                            <div class="small text-muted">This certificate is valid and currently active in the {{ site_config.site_name|default:"VerifyNG" }} system.</div>
                         </div>
                     {% else %}
                         <div class="rounded-circle bg-danger d-flex align-items-center justify-content-center flex-shrink-0" style="width:48px;height:48px;">
@@ -104,7 +104,7 @@
                     <dd class="col-sm-8 small">{{ certificate.created_at|date:"j F Y" }}</dd>
 
                     <dt class="col-sm-4 small text-muted fw-normal">Issued By</dt>
-                    <dd class="col-sm-8 small">VerifyNG Trust &amp; Safety Platform</dd>
+                    <dd class="col-sm-8 small">{{ site_config.site_name|default:"VerifyNG" }} Trust &amp; Safety Platform</dd>
                 </dl>
             </div>
         </div>
@@ -113,7 +113,7 @@
             <div class="vng-card p-4 border-warning">
                 <h2 class="h6 fw-semibold mb-2 text-warning">Important Notice</h2>
                 <p class="small text-muted mb-0">
-                    This is a <strong>VerifyNG Verification Certificate</strong> and is not a government-issued document.
+                    This is a <strong>{{ site_config.site_name|default:"VerifyNG" }} Verification Certificate</strong> and is not a government-issued document.
                     It reflects information verified at the time of issue and may not reflect subsequent changes.
                     Always use this result alongside your own due diligence.
                 </p>

@@ -304,7 +304,7 @@
 <section class="py-5 bg-white border-bottom">
     <div class="container py-3">
         <div class="text-center max-w-700 mx-auto mb-5" style="max-width: 800px;">
-            <h2 class="fw-bold mb-3" style="color: #011B33; font-size: 2rem;">Why VerifyNG Was Created</h2>
+            <h2 class="fw-bold mb-3" style="color: #011B33; font-size: 2rem;">Why {{ site_config.site_name|default:"VerifyNG" }} Was Created</h2>
             <p class="safety-lead-p" style="max-width: 760px; margin-inline: auto;">
                 Millions of hard-working Nigerians buy, sell, and send money online every single day on Instagram, WhatsApp, and banking apps. But fake sellers and online scammers have cost people millions of Naira in hard-earned savings.
             </p>
@@ -345,7 +345,7 @@
                     </div>
                     <h5 class="mb-2">The Solution: Check Before Paying</h5>
                     <p class="safety-card-p mb-0">
-                        Instead of crying over lost money, waiting weeks for bank recalls, or queuing at police stations after being scammed, VerifyNG lets you check the truth in 10 seconds so you never send money into a trap.
+                        Instead of crying over lost money, waiting weeks for bank recalls, or queuing at police stations after being scammed, {{ site_config.site_name|default:"VerifyNG" }} lets you check the truth in 10 seconds so you never send money into a trap.
                     </p>
                 </div>
             </div>
@@ -374,7 +374,7 @@
                             <span class="safety-rule-badge bg-danger text-white">Critical</span>
                         </div>
                         <p class="safety-card-p mb-0">
-                            Before sending money to any individual or business, copy their 10-digit bank account number and phone number and paste them into <a href="{% url 'check' %}" class="fw-bold text-primary">VerifyNG Quick Check</a>. You will immediately see if other victims have flagged the account for fraudulent activity.
+                            Before sending money to any individual or business, copy their 10-digit bank account number and phone number and paste them into <a href="{% url 'check' %}" class="fw-bold text-primary">{{ site_config.site_name|default:"VerifyNG" }} Quick Check</a>. You will immediately see if other victims have flagged the account for fraudulent activity.
                         </p>
                     </div>
                 </div>
@@ -732,7 +732,7 @@
                     <span class="badge bg-danger mb-2.5 px-3 py-1.5" style="font-size: 0.85rem;">Step 3 &bull; Official Report</span>
                     <h6 class="text-dark mb-2">Report to Police / EFCC</h6>
                     <div class="safety-card-p">
-                        Visit the nearest Police station (Cybercrime division) or EFCC office to lodge a formal petition with your bank statements, chats, and VerifyNG case reference to secure a court order for refund.
+                        Visit the nearest Police station (Cybercrime division) or EFCC office to lodge a formal petition with your bank statements, chats, and {{ site_config.site_name|default:"VerifyNG" }} case reference to secure a court order for refund.
                     </div>
                 </div>
             </div>
@@ -740,10 +740,10 @@
             <!-- Urgent Step 4 -->
             <div class="col-md-6 col-lg-3">
                 <div class="emergency-step-box h-100">
-                    <span class="badge bg-danger mb-2.5 px-3 py-1.5" style="font-size: 0.85rem;">Step 4 &bull; File on VerifyNG</span>
+                    <span class="badge bg-danger mb-2.5 px-3 py-1.5" style="font-size: 0.85rem;">Step 4 &bull; File on {{ site_config.site_name|default:"VerifyNG" }}</span>
                     <h6 class="text-dark mb-2">Submit Incident Report</h6>
                     <div class="safety-card-p">
-                        File an incident report on <a href="{% url 'reports:create' %}" class="fw-bold text-danger">VerifyNG</a>. This alerts our national moderation desk, flags the account across our platform, and shields others immediately.
+                        File an incident report on <a href="{% url 'reports:create' %}" class="fw-bold text-danger">{{ site_config.site_name|default:"VerifyNG" }}</a>. This alerts our national moderation desk, flags the account across our platform, and shields others immediately.
                     </div>
                 </div>
             </div>

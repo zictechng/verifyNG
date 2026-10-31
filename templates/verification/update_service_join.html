@@ -321,7 +321,7 @@
                                            for="{{ form.declaration.id_for_label }}"
                                            style="cursor: pointer; line-height: 1.5;"
                                            onclick="event.stopPropagation(); toggleDeclaration();">
-                                        <strong>Good-faith legal declaration:</strong> I confirm that the contact details above are accurate and represent my true personal record. I request enrollment of certificate <span class="font-monospace fw-bold">{{ cert.certificate_id }}</span> into the VerifyNG Continuous Update Service.
+                                        <strong>Good-faith legal declaration:</strong> I confirm that the contact details above are accurate and represent my true personal record. I request enrollment of certificate <span class="font-monospace fw-bold">{{ cert.certificate_id }}</span> into the {{ site_config.site_name|default:"VerifyNG" }} Continuous Update Service.
                                     </label>
                                 </div>
                                 {% if form.declaration.errors %}

@@ -3,7 +3,7 @@
 {% load static %}
 {% load humanize %}
 
-{% block title %}{% if success %}Payment Successful{% else %}Payment Failed{% endif %} — VerifyNG{% endblock %}
+{% block title %}{% if success %}Payment Successful{% else %}Payment Failed{% endif %} — {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
 
 {% block content %}
 <div class="container py-5 d-flex justify-content-center">

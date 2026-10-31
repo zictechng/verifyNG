@@ -2,7 +2,7 @@
 {% extends 'public/base.html' %}
 {% load static %}
 
-{% block title %}Create Account — VerifyNG{% endblock %}
+{% block title %}Create Account — {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
 
 {% block content %}
 <div class="container py-5">
@@ -12,7 +12,7 @@
             <div class="text-center mb-5">
                 <span class="vng-badge-trust mb-2">Get Started</span>
                 <h1 class="h3 fw-bold">Choose Your Account Type</h1>
-                <p class="text-muted">Select the type that best describes how you'll use VerifyNG.</p>
+                <p class="text-muted">Select the type that best describes how you'll use {{ site_config.site_name|default:"VerifyNG" }}.</p>
             </div>
 
             <div class="row g-4">

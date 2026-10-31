@@ -1,6 +1,6 @@
 {% extends 'admin_portal/base_admin.html' %}
 
-{% block title %}User Operations | VerifyNG Admin Portal{% endblock %}
+{% block title %}User Operations | {{ site_config.site_name|default:"VerifyNG" }} Admin Portal{% endblock %}
 
 {% block breadcrumb %}<li class="breadcrumb-item active">User Operations</li>{% endblock %}
 

@@ -581,7 +581,7 @@
                         <div class="form-check mb-4 p-3 rounded" :class="{'border border-danger bg-danger-subtle': errors.declaration || {% if form.declaration.errors %}true{% else %}false{% endif %}}">
                             <input class="form-check-input" type="checkbox" name="declaration" id="{{ form.declaration.id_for_label }}" x-model="declared" @change="errors.declaration = ''" value="on" {% if form.declaration.value %}checked{% endif %}>
                             <label class="form-check-label small" for="{{ form.declaration.id_for_label }}">
-                                <strong>Good-faith legal declaration:</strong> I declare under penalty of platform suspension and legal liability that the information provided in this clearance application is accurate and represents my true identity. I consent to VerifyNG performing background checks against national registries and community integrity databases.
+                                <strong>Good-faith legal declaration:</strong> I declare under penalty of platform suspension and legal liability that the information provided in this clearance application is accurate and represents my true identity. I consent to {{ site_config.site_name|default:"VerifyNG" }} performing background checks against national registries and community integrity databases.
                             </label>
                             <div class="text-danger small mt-1 fw-semibold" x-show="errors.declaration" x-text="errors.declaration" x-cloak></div>
                             {% if form.declaration.errors %}

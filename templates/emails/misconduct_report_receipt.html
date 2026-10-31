@@ -1,7 +1,7 @@
 
 {% extends 'emails/base_email.html' %}
 
-{% block subject %}Misconduct Report Received [{{ report_ref }}] — VerifyNG Compliance Desk{% endblock %}
+{% block subject %}Misconduct Report Received [{{ report_ref }}] — {{ site_config.site_name|default:"VerifyNG" }} Compliance Desk{% endblock %}
 
 {% block body %}
 <h1>Misconduct Report Received</h1>

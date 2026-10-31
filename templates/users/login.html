@@ -1,7 +1,7 @@
 {% extends 'public/base.html' %}
 {% load static socialaccount %}
 
-{% block title %}Login — VerifyNG{% endblock %}
+{% block title %}Login — {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
 
 {% block content %}
 <div class="container py-4 py-md-5">
@@ -9,7 +9,6 @@
         <div class="col-lg-5 col-md-7">
             <!-- Header (Matching Mockup Card 4) -->
             <div class="text-center mb-4">
-                <span class="vng-badge-trust mb-2">Member Portal</span>
                 <h1 class="h3 fw-bold">Welcome Back</h1>
                 <p class="small text-muted mb-0">Login to manage your submitted reports, tracking, and dashboard.</p>
             </div>

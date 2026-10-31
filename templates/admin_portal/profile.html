@@ -1,7 +1,7 @@
 {% extends "admin_portal/base_admin.html" %}
 {% load static %}
 
-{% block title %}My Profile &amp; Security — VerifyNG Admin{% endblock %}
+{% block title %}My Profile &amp; Security — {{ site_config.site_name|default:"VerifyNG" }} Admin{% endblock %}
 
 {% block breadcrumb %}
 <li class="breadcrumb-item active">My Profile &amp; Security</li>
@@ -96,7 +96,7 @@
         </h6>
       </div>
       <p class="small text-muted mb-0">
-        Your account permissions and module-level access are governed by VerifyNG's Two-Tier RBAC security architecture.
+        Your account permissions and module-level access are governed by {{ site_config.site_name|default:"VerifyNG" }}'s Two-Tier RBAC security architecture.
         Group assignments are managed by Superadmins in
         <a href="{% url 'admin_portal:menu_access' %}" class="fw-semibold text-decoration-none" style="color:var(--adm-accent);">Staff Access</a>.
       </p>

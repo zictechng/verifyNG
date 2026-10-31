@@ -1,7 +1,7 @@
 {% extends "public/base.html" %}
 {% load static %}
 
-{% block title %}Submit a Fraud Report — VerifyNG{% endblock %}
+{% block title %}Submit a Fraud Report — {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
 
 {% block content %}
 <div class="container py-4 py-md-5">

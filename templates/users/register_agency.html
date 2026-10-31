@@ -2,7 +2,7 @@
 {% extends 'public/base.html' %}
 {% load static %}
 
-{% block title %}Agency Registration — VerifyNG{% endblock %}
+{% block title %}Agency Registration — {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
 
 {% block content %}
 <div class="container py-4 py-md-5">
@@ -22,7 +22,7 @@
                     <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
                 </svg>
                 <div class="small" style="color:#92400E;">
-                    <strong>Verification required.</strong> Agency accounts must be verified by VerifyNG before access is granted.
+                    <strong>Verification required.</strong> Agency accounts must be verified by {{ site_config.site_name|default:"VerifyNG" }} before access is granted.
                     You will still be able to sign in, but enhanced access will be restricted until approval.
                 </div>
             </div>
