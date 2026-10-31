@@ -1,11 +1,10 @@
-
 {% extends 'public/base.html' %}
 {% load static %}
 
 {% block title %}Help & Support | {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
 
 {% block content %}
-<div class="container py-3 py-md-4" style="max-width: 620px;">
+<div class="container py-3 py-md-4" style="max-width: 640px;">
 
     <!-- Back Navigation -->
     <div class="mb-3">
@@ -23,78 +22,114 @@
     </div>
 
     <!-- Title Header -->
-    <div class="mb-3">
-        <h1 class="h3 fw-bold mb-1" style="color:#0b1a30;">Help & Support</h1>
-        <p class="small text-muted mb-0">Have a question, technical issue, or complaint? Submit your inquiry directly to our support team.</p>
+    <div class="mb-4">
+        <h1 class="h3 fw-bold mb-1" style="color:#011B33;">Help &amp; Support Desk</h1>
+        <p class="text-muted mb-0" style="font-size: 0.95rem; line-height: 1.55;">
+            Have a question, technical issue, billing inquiry, or complaint? Submit your ticket directly to our compliance and technical support teams.
+        </p>
     </div>
 
-    <!-- Alerts (Success / Error) -->
-    {% if messages %}
-        {% for message in messages %}
-            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show rounded-3 shadow-sm d-flex align-items-start gap-2 mb-4" role="alert">
-                {% if message.tags == 'success' %}
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-success flex-shrink-0 mt-1"><polyline points="20 6 9 17 4 12"/></svg>
-                {% else %}
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-danger flex-shrink-0 mt-1"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                {% endif %}
-                <div class="small flex-grow-1">
-                    {{ message }}
-                </div>
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        {% endfor %}
-    {% endif %}
-
     <!-- Support Form Card -->
-    <div class="vng-card p-3 p-sm-4 shadow-sm mb-4">
-        <form method="post" id="supportHelpForm" novalidate>
+    <div class="vng-card p-3 p-sm-4 shadow-sm mb-4 bg-white rounded-4 border">
+        <form method="post" id="supportHelpForm" class="needs-validation" novalidate>
             {% csrf_token %}
 
             <div class="row g-3 mb-3">
                 <div class="col-sm-6">
-                    <label class="form-label small fw-semibold text-dark">Your Name <span class="text-danger">*</span></label>
-                    <input type="text" name="name" value="{{ name|default:'' }}" class="form-control" placeholder="Enter your full name" required>
+                    <label class="form-label small fw-semibold text-dark mb-1">
+                        Your Full Name <span class="text-danger">*</span>
+                    </label>
+                    <input type="text" 
+                           name="name" 
+                           id="help_name"
+                           value="{{ name|default:'' }}" 
+                           class="form-control {% if errors.name %}is-invalid{% endif %}" 
+                           placeholder="e.g. Adebayo Johnson" 
+                           required 
+                           minlength="2">
+                    <div class="invalid-feedback">
+                        {{ errors.name|default:"Please provide your full name (at least 2 characters)." }}
+                    </div>
                 </div>
+
                 <div class="col-sm-6">
-                    <label class="form-label small fw-semibold text-dark">Email Address <span class="text-danger">*</span></label>
-                    <input type="email" name="email" value="{{ email|default:'' }}" class="form-control" placeholder="name@example.com" required>
+                    <label class="form-label small fw-semibold text-dark mb-1">
+                        Email Address <span class="text-danger">*</span>
+                    </label>
+                    <input type="email" 
+                           name="email" 
+                           id="help_email"
+                           value="{{ email|default:'' }}" 
+                           class="form-control {% if errors.email %}is-invalid{% endif %}" 
+                           placeholder="name@example.com" 
+                           required>
+                    <div class="invalid-feedback">
+                        {{ errors.email|default:"Please provide a valid email address." }}
+                    </div>
                 </div>
             </div>
 
             <div class="mb-3">
-                <label class="form-label small fw-semibold text-dark">Inquiry Type</label>
-                <select name="category" class="form-select w-100 text-truncate" style="max-width:100%;box-sizing:border-box;">
-                    <option value="">Select Type</option>
-                    <option value="Account Approval" {% if category == 'Account Approval' %}selected{% endif %}>Account Approval</option>
-                    <option value="Account & Login Assistance" {% if category == 'Account & Login Assistance' %}selected{% endif %}>Account & Login Assistance</option>
-                    <option value="Identity & NIN Verification" {% if category == 'Identity & NIN Verification' %}selected{% endif %}>Identity & NIN Verification</option>
+                <label class="form-label small fw-semibold text-dark mb-1">
+                    Inquiry Type <span class="text-danger">*</span>
+                </label>
+                <select name="category" 
+                        id="help_category"
+                        class="form-select w-100 {% if errors.category %}is-invalid{% endif %}" 
+                        required>
+                    <option value="">-- Select Category --</option>
+                    <option value="Account & Login Assistance" {% if category == 'Account & Login Assistance' %}selected{% endif %}>Account &amp; Login Assistance</option>
+                    <option value="Identity & NIN Verification" {% if category == 'Identity & NIN Verification' %}selected{% endif %}>Identity &amp; NIN Verification</option>
                     <option value="Employer / Agency Screening" {% if category == 'Employer / Agency Screening' %}selected{% endif %}>Employer / Agency Screening</option>
-                    <option value="Billing & Subscription Plans" {% if category == 'Billing & Subscription Plans' %}selected{% endif %}>Billing & Subscription Plans</option>
-                    <option value="Report an Issue / Complaint" {% if category == 'Report an Issue / Complaint' %}selected{% endif %}>Report an Issue / Complaint</option>
+                    <option value="Billing & Subscription Plans" {% if category == 'Billing & Subscription Plans' %}selected{% endif %}>Billing &amp; Subscription Plans</option>
+                    <option value="Report an Issue / Scam Complaint" {% if category == 'Report an Issue / Scam Complaint' %}selected{% endif %}>Report an Issue / Scam Complaint</option>
                     <option value="General Support" {% if category == 'General Support' %}selected{% endif %}>General Support</option>
                 </select>
+                <div class="invalid-feedback">
+                    {{ errors.category|default:"Please select an inquiry category." }}
+                </div>
             </div>
 
             <div class="mb-3">
-                <label class="form-label small fw-semibold text-dark">Subject (optional)</label>
-                <input type="text" name="subject" value="{{ subject|default:'' }}" class="form-control" placeholder="Brief summary of your inquiry">
+                <label class="form-label small fw-semibold text-dark mb-1">
+                    Subject (Optional)
+                </label>
+                <input type="text" 
+                       name="subject" 
+                       id="help_subject"
+                       value="{{ subject|default:'' }}" 
+                       class="form-control" 
+                       placeholder="Brief summary of your inquiry">
             </div>
 
             <div class="mb-4">
-                <label class="form-label small fw-semibold text-dark">Message / Complaint Details <span class="text-danger">*</span></label>
-                <textarea name="message" rows="5" class="form-control" placeholder="Please describe your question or issue in detail..." required>{{ message|default:'' }}</textarea>
-                <div class="form-text small text-muted">Include any relevant reference numbers, names, or error details to help us resolve faster.</div>
+                <label class="form-label small fw-semibold text-dark mb-1">
+                    Message / Complaint Details <span class="text-danger">*</span>
+                </label>
+                <textarea name="message" 
+                          id="help_message"
+                          rows="5" 
+                          class="form-control {% if errors.message %}is-invalid{% endif %}" 
+                          placeholder="Please describe your question or issue in detail..." 
+                          required 
+                          minlength="10">{{ message|default:'' }}</textarea>
+                <div class="invalid-feedback">
+                    {{ errors.message|default:"Please describe your question or issue in detail (at least 10 characters)." }}
+                </div>
+                <div class="form-text small text-muted mt-1.5" style="font-size: 12px;">
+                    Include any relevant transaction reference numbers, phone numbers, or account details to expedite resolution.
+                </div>
             </div>
 
-            <!-- Submit Button with Spinner -->
-            <button type="submit" id="supportSubmitBtn" class="btn btn-vng-primary w-100 py-2 fw-semibold rounded-3 shadow-sm">
-                <span id="supportBtnText" class="d-inline-flex align-items-center gap-1">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                    Send Support Request
+            <!-- Submit Button with Dynamic Loading State -->
+            <button type="submit" id="supportSubmitBtn" class="btn btn-vng-primary w-100 py-2.5 fw-bold fs-6 rounded-3 shadow-sm">
+                <span id="supportBtnText" class="d-inline-flex align-items-center justify-content-center gap-2">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                    Submit Support Ticket &rarr;
                 </span>
                 <span id="supportBtnSpinner" class="d-none">
                     <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                    Submitting request...
+                    Submitting ticket...
                 </span>
             </button>
         </form>
@@ -102,10 +137,10 @@
 
     <!-- Direct Email fallback card -->
     <div class="p-3 rounded-3 bg-light border text-center small text-muted">
-        Need immediate help? You can also reach our administrative desk directly at
+        Need immediate direct assistance? You can also reach our administrative desk at
         <a href="mailto:{{ support_email }}" class="fw-semibold text-decoration-none" style="color:var(--vng-primary);">
             {{ support_email }}
-        </a>.
+        </a>
     </div>
 
 </div>
@@ -118,17 +153,41 @@ document.addEventListener('DOMContentLoaded', function () {
     const btnSpinner = document.getElementById('supportBtnSpinner');
 
     if (form && submitBtn) {
-        form.addEventListener('submit', function () {
+        form.addEventListener('submit', function (event) {
+            // Client-side HTML5 validation check
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+                form.classList.add('was-validated');
+
+                // Focus first invalid element
+                const firstInvalid = form.querySelector(':invalid');
+                if (firstInvalid) {
+                    firstInvalid.focus();
+                }
+                return false;
+            }
+
+            form.classList.add('was-validated');
             btnText.classList.add('d-none');
             btnSpinner.classList.remove('d-none');
             submitBtn.disabled = true;
+        });
+
+        // Real-time input listener to clear validation styling as user types
+        form.querySelectorAll('input, select, textarea').forEach(function(field) {
+            field.addEventListener('input', function() {
+                if (field.checkValidity()) {
+                    field.classList.remove('is-invalid');
+                }
+            });
         });
     }
 });
 </script>
 
 <style>
-/* Prevent select dropdown and inputs from overflowing mobile viewports */
+/* Responsive input fixes */
 #supportHelpForm select.form-select,
 #supportHelpForm input.form-control,
 #supportHelpForm textarea.form-control {
@@ -136,16 +195,10 @@ document.addEventListener('DOMContentLoaded', function () {
     max-width: 100% !important;
     box-sizing: border-box !important;
 }
-#supportHelpForm select.form-select {
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    overflow: hidden;
-    padding-right: 2.2rem; /* Keep native select arrow from covering text */
-}
-#supportHelpForm select.form-select option {
-    white-space: normal;
-    word-break: break-word;
+#supportHelpForm .form-control:focus,
+#supportHelpForm .form-select:focus {
+    border-color: #011B33;
+    box-shadow: 0 0 0 0.2rem rgba(1, 27, 51, 0.12);
 }
 </style>
 {% endblock %}
-

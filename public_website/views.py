@@ -341,25 +341,56 @@ def help_support(request):
     """
     Dedicated Help & Support / Complaint submission view.
     Routes user inquiries directly to the platform Support Email configured in admin settings.
+    Includes strict validation and automated acknowledgment receipt.
     """
+    from django.core.validators import validate_email as django_validate_email
     config = SiteConfiguration.get_solo()
     admin_support_email = config.support_email or getattr(settings, 'SUPPORT_EMAIL', 'support@verifyng.com')
+
+    errors = {}
+    default_name = ''
+    default_email = ''
+    if request.user.is_authenticated:
+        default_name = request.user.get_full_name() or request.user.username
+        default_email = request.user.email
+
     if request.method == 'POST':
         name = request.POST.get('name', '').strip()
         email = request.POST.get('email', '').strip()
-        category = request.POST.get('category', 'General Support').strip()
+        category = request.POST.get('category', '').strip()
         subject = request.POST.get('subject', '').strip()
         message = request.POST.get('message', '').strip()
-        if not name or not email or not message:
-            messages.error(request, "Please fill in all required fields (Name, Email, and Message).")
+
+        # Validation
+        if not name or len(name) < 2:
+            errors['name'] = "Please provide your full name (at least 2 characters)."
+
+        if not email:
+            errors['email'] = "Please provide a valid email address."
+        else:
+            try:
+                django_validate_email(email)
+            except ValidationError:
+                errors['email'] = "Please provide a valid email address (e.g. name@example.com)."
+
+        if not category:
+            errors['category'] = "Please select an inquiry type."
+
+        if not message or len(message) < 10:
+            errors['message'] = "Please describe your question or issue in detail (at least 10 characters)."
+
+        if errors:
+            messages.error(request, "Please correct the highlighted errors below before submitting.")
             return render(request, 'public/help.html', {
                 'name': name,
                 'email': email,
                 'category': category,
                 'subject': subject,
                 'message': message,
+                'errors': errors,
                 'support_email': admin_support_email,
             })
+
         account_info = "Guest User (Unauthenticated)"
         if request.user.is_authenticated:
             account_info = (
@@ -368,10 +399,10 @@ def help_support(request):
                 f"Public ID: {request.user.public_id}"
             )
 
-        email_subject = f"[{config.site_name}] {category}: {subject or 'New Inquiry'}"
+        email_subject = f"[{config.site_name}] {category}: {subject or 'New Support Inquiry'}"
         submitted_at = timezone.now().strftime('%d %b %Y, %I:%M %p UTC')
 
-        # 1. Render Admin Notification using the official VerifyNG email layout
+        # 1. Render Admin Notification
         html_body, text_body = render_email('support_inquiry', {
             'sender_name': name,
             'sender_email': email,
@@ -382,6 +413,7 @@ def help_support(request):
             'message_content': message,
         })
 
+        admin_sent = False
         try:
             send_broadcast_email_task.delay(
                 to_email=admin_support_email,
@@ -389,6 +421,7 @@ def help_support(request):
                 html_body=html_body,
                 text_body=text_body,
             )
+            admin_sent = True
         except Exception:
             try:
                 send_email(
@@ -397,22 +430,11 @@ def help_support(request):
                     html_body=html_body,
                     text_body=text_body,
                 )
+                admin_sent = True
             except Exception as e:
                 logger.exception("Failed to send support inquiry email: %s", e)
-                messages.error(
-                    request,
-                    f"Unable to deliver your request right now. Please email us directly at {admin_support_email}."
-                )
-                return render(request, 'public/help.html', {
-                    'name': name,
-                    'email': email,
-                    'category': category,
-                    'subject': subject,
-                    'message': message,
-                    'support_email': admin_support_email,
-                })
 
-        # 2. Send an automated branded acknowledgment receipt to the user
+        # 2. Send automated branded acknowledgment receipt to user
         try:
             ack_html, ack_text = render_email('generic_notification', {
                 'user_name': name,
@@ -436,38 +458,33 @@ def help_support(request):
                 text_body=ack_text,
             )
         except Exception:
-            pass
             try:
                 send_email(
-                    to_email=admin_support_email,
-                    subject=email_subject,
-                    html_body=html_body,
-                    text_body=text_body,
+                    to_email=email,
+                    subject=f'[{config.site_name}] Support Request Received: {category}',
+                    html_body=ack_html,
+                    text_body=ack_text,
                 )
-            except Exception as e:
-                logger.exception("Failed to send support inquiry email: %s", e)
-                messages.error(
-                    request,
-                    f"Unable to deliver your request right now. Please email us directly at {admin_support_email}."
-                )
-                return render(request, 'public/help.html', {
-                    'name': name,
-                    'email': email,
-                    'category': category,
-                    'subject': subject,
-                    'message': message,
-                    'support_email': admin_support_email,
-                })
-        messages.success(
-            request,
-            "Your support request has been submitted successfully! Our support team will review it and get back to you shortly."
-        )
+            except Exception:
+                pass
+
+        if not admin_sent:
+            messages.warning(
+                request,
+                f"Your request was received by our portal, but automated email relay was slow. You may also reach us directly at {admin_support_email}."
+            )
+        else:
+            messages.success(
+                request,
+                "Your support request has been submitted successfully! Our support team will review it and get back to you shortly."
+            )
         return redirect('help')
-    default_name = ''
-    default_email = ''
-    if request.user.is_authenticated:
-        default_name = request.user.get_full_name() or request.user.username
-        default_email = request.user.email
+
+    return render(request, 'public/help.html', {
+        'name': default_name,
+        'email': default_email,
+        'support_email': admin_support_email,
+    })
     return render(request, 'public/help.html', {
         'name': default_name,
         'email': default_email,
