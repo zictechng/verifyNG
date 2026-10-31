@@ -100,14 +100,14 @@
                 <!-- ── Section 1: Subject Details ── -->
                 <div class="vng-card p-4 mb-4">
                     <h6 class="fw-bold text-uppercase small text-muted mb-3 border-bottom pb-2">
-                        Target Subject Details
+                        Who Are You Verifying?
                     </h6>
 
                     <div class="row g-3">
                         <!-- Subject Name -->
                         <div class="col-md-8">
                             <label for="{{ form.subject_name.id_for_label }}" class="form-label small fw-semibold">
-                                Full Legal Name or Business Title <span class="text-danger">*</span>
+                                Full Name or Registered Business Name <span class="text-danger">*</span>
                             </label>
                             {{ form.subject_name }}
                             {% if form.subject_name.errors %}
@@ -118,7 +118,7 @@
                         <!-- Subject Type -->
                         <div class="col-md-4">
                             <label for="{{ form.subject_type.id_for_label }}" class="form-label small fw-semibold">
-                                Target Type <span class="text-danger">*</span>
+                                Person or Business <span class="text-danger">*</span>
                             </label>
                             {{ form.subject_type }}
                             {% if form.subject_type.errors %}
@@ -145,12 +145,12 @@
                 <!-- ── Section 2: Identifier (Optional) ── -->
                 <div class="vng-card p-4 mb-4">
                     <h6 class="fw-bold text-uppercase small text-muted mb-3 border-bottom pb-2">
-                        Official Document or Reference Number <span class="fw-normal text-muted">(Optional but recommended)</span>
+                        ID or Registration Number (NIN, CAC, Bank, Phone) <span class="fw-normal text-muted">(Optional but recommended)</span>
                     </h6>
                     <p class="small text-muted mb-3">
                         Providing a known identifier (phone number, email, or CAC registration) allows
                         VerifyNG to link this verification to existing records and improves lookup accuracy.
-                        NIN and BVN are never stored in plain text — only an irreversible cryptographic hash is kept.
+                        Your NIN and BVN are never shown or shared. We use high-security bank encryption to protect your privacy.
                     </p>
 
                     <div class="row g-3">
@@ -196,8 +196,7 @@
                     </label>
                     {{ form.notes }}
                     <div class="form-text">
-                        Provide context — e.g. the purpose of the check, specific areas of concern, or
-                        additional information that may assist the verification officer.
+                        Provide context — e.g. what you are buying, reason for the check, or any details to help verify this person.
                     </div>
                     {% if form.notes.errors %}
                     <div class="invalid-feedback d-block">{{ form.notes.errors|join:", " }}</div>
