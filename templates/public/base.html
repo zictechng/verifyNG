@@ -638,7 +638,7 @@
                         </li>
                         
                         <li class="nav-item">
-                            <a class="nav-link vng-nav-link" href="#">Safety &amp; Security</a>
+                            <a class="nav-link vng-nav-link {% if request.resolver_match.url_name in 'safety,security,safety_security' %}active{% endif %}" href="{% url 'safety' %}">Safety &amp; Security</a>
                         </li>
                         {% elif user.is_authenticated and user.is_staff or user.is_superuser or user.role in 'moderator,officer' %}
                         <li class="nav-item">
@@ -649,6 +649,9 @@
                         </li>
                         <li class="nav-item">
                             <a class="nav-link vng-nav-link {% if request.resolver_match.app_name == 'reports' %}active{% endif %}" href="{% url 'reports:moderation_queue' %}">Moderation Desk</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link vng-nav-link {% if request.resolver_match.url_name in 'safety,security,safety_security' %}active{% endif %}" href="{% url 'safety' %}">Safety &amp; Security</a>
                         </li>
                         {% else %}
                         {% if user.is_authenticated %}
@@ -666,7 +669,7 @@
                             <a class="nav-link vng-nav-link {% if request.resolver_match.app_name == 'reports' or request.resolver_match.url_name == 'report' %}active{% endif %}" href="{% url 'reports:create' %}">Report Fraud</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link vng-nav-link" href="#">Safety &amp; Security</a>
+                            <a class="nav-link vng-nav-link {% if request.resolver_match.url_name in 'safety,security,safety_security' %}active{% endif %}" href="{% url 'safety' %}">Safety &amp; Security</a>
                         </li>
                         {% endif %}
                     </ul>
@@ -937,6 +940,7 @@
                     <h6 class="text-white fw-bold mb-3">Platform</h6>
                     <ul class="list-unstyled small mb-0 d-flex flex-column gap-2">
                         <li><a href="{% url 'home' %}">Home</a></li>
+                        <li><a href="{% url 'safety' %}">Safety &amp; Security</a></li>
                         <li><a href="{% url 'business' %}">For Business (SMEs)</a></li>
                         <li><a href="{% url 'check' %}">Verify Record</a></li>
                         <li><a href="{% url 'reports:create' %}">Submit Report</a></li>
@@ -968,6 +972,8 @@
                     <a href="{% url 'terms' %}">Terms</a>
                     <span class="mx-1">&bull;</span>
                     <a href="{% url 'privacy' %}">Privacy</a>
+                    <span class="mx-1">&bull;</span>
+                    <a href="{% url 'safety' %}">Safety</a>
                 </div>
                 <div class="vng-footer-muted">{{ site_config.footer_text|default:"Built for a safer Nigerian digital ecosystem." }}</div>
             </div>
@@ -1000,15 +1006,21 @@
 
         {% if user.is_authenticated and user.role in 'employer,agency,business' %}
         <!-- Employer Navigation: 5 Dedicated Tabs -->
-        <!-- Tab 2: Staff Checks -->
-        
-        <!-- Tab 3: Public Verify -->
+        <!-- Tab 2: Public Verify -->
         <a href="{% url 'check' %}" class="vng-bottom-tab {% if request.resolver_match.url_name == 'check' %}active{% endif %}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <circle cx="11" cy="11" r="8"/>
                 <path d="M21 21L16.65 16.65"/>
             </svg>
             <span>Verify</span>
+        </a>
+        <!-- Tab 3: Safety & Security -->
+        <a href="{% url 'safety' %}" class="vng-bottom-tab {% if request.resolver_match.url_name in 'safety,security,safety_security' %}active{% endif %}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                <polyline points="9 12 11 14 15 10"/>
+            </svg>
+            <span>Safety</span>
         </a>
         <!-- Tab 4: Report Fraud -->
         <a href="{% url 'reports:create' %}" class="vng-bottom-tab {% if request.resolver_match.app_name == 'reports' or request.resolver_match.url_name == 'report' %}active{% endif %}">
@@ -1025,7 +1037,7 @@
         </a>
 
         {% else %}
-        <!-- Individuals, Admins, and Guests: 4 Standard Tabs -->
+        <!-- Individuals, Admins, and Guests: 5 Tabs -->
         <!-- Tab 2: Verify -->
         <a href="{% url 'check' %}" class="vng-bottom-tab {% if request.resolver_match.url_name == 'check' %}active{% endif %}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -1034,15 +1046,23 @@
             </svg>
             <span>Verify</span>
         </a>
-        <!-- Tab 3: Report Fraud -->
+        <!-- Tab 3: Safety & Security -->
+        <a href="{% url 'safety' %}" class="vng-bottom-tab {% if request.resolver_match.url_name in 'safety,security,safety_security' %}active{% endif %}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                <polyline points="9 12 11 14 15 10"/>
+            </svg>
+            <span>Safety</span>
+        </a>
+        <!-- Tab 4: Report Fraud -->
         <a href="{% url 'reports:create' %}" class="vng-bottom-tab {% if request.resolver_match.app_name == 'reports' or request.resolver_match.url_name == 'report' %}active{% endif %}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                 <path d="M12 8v4M12 16h.01"/>
             </svg>
-            <span>Report Fraud</span>
+            <span>Report</span>
         </a>
-        <!-- Tab 4: Account (or Log In) -->
+        <!-- Tab 5: Account (or Log In) -->
         {% if user.is_authenticated %}
             <a href="{% url 'users:account_hub' %}" class="vng-bottom-tab {% if request.resolver_match.url_name in 'account_hub,profile,password_change,delete_account' %}active{% endif %}">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="7" r="4"/><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/></svg>

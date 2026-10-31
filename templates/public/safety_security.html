@@ -1,0 +1,667 @@
+{% extends "public/base.html" %}
+{% load static %}
+
+{% block title %}Safety, Security & Trust Center | {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
+
+{% block content %}
+<style>
+/* ══ SAFETY & SECURITY PORTAL STYLING ══ */
+.safety-hero {
+    background: linear-gradient(180deg, #F0F6FC 0%, #FFFFFF 100%);
+    border-bottom: 1px solid var(--vng-border);
+}
+
+.safety-pill-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.85rem;
+    background: #EAF6FC;
+    border: 1px solid #BCDFF4;
+    color: #011B33;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    border-radius: 9999px;
+}
+
+.safety-card {
+    background: #FFFFFF;
+    border: 1px solid var(--vng-border);
+    border-radius: 14px;
+    padding: 1.5rem;
+    height: 100%;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.safety-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 28px -6px rgba(1, 27, 51, 0.1);
+}
+
+.safety-icon-box {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-bottom: 1rem;
+}
+
+.safety-icon-blue { background: #EAF6FC; color: #011B33; }
+.safety-icon-green { background: #ECFDF5; color: #059669; }
+.safety-icon-amber { background: #FFFBEB; color: #D97706; }
+.safety-icon-purple { background: #F3E8FF; color: #7E22CE; }
+.safety-icon-red { background: #FEF2F2; color: #DC2626; }
+
+.safety-step-number {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #011B33;
+    color: #FFFFFF;
+    font-weight: 700;
+    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.safety-callout-info {
+    background-color: #CFF4FC;
+    border-left: 5px solid #0DCAF0;
+    border-radius: 0.375rem;
+    padding: 1rem 1.25rem;
+    color: #055160;
+}
+
+.safety-callout-warning {
+    background-color: #FEF3C7;
+    border-left: 5px solid #F59E0B;
+    border-radius: 0.375rem;
+    padding: 1rem 1.25rem;
+    color: #78350F;
+}
+
+.safety-rule-badge {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 0.2rem 0.5rem;
+    border-radius: 6px;
+}
+
+.emergency-step-box {
+    border-left: 3px solid #DC2626;
+    background: #FFF5F5;
+    padding: 1rem;
+    border-radius: 0 10px 10px 0;
+    margin-bottom: 0.85rem;
+}
+</style>
+
+<!-- ══ 1. HERO SECTION ═══════════════════════════════════════════════ -->
+<section class="safety-hero py-4 py-md-5">
+    <div class="container">
+        <div class="row align-items-center g-4">
+            <div class="col-lg-8">
+                <div class="safety-pill-badge mb-3">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    National Trust &amp; Safety Architecture
+                </div>
+                <h1 class="display-6 fw-bold mb-3" style="color: #011B33; line-height: 1.2;">
+                    Building Unbreakable Trust for Nigeria’s Digital Economy
+                </h1>
+                <p class="fs-6 text-muted mb-4" style="line-height: 1.6; max-width: 680px;">
+                    {{ site_config.site_name|default:"VerifyNG" }} was engineered with a clear mandate: to protect everyday citizens, consumers, freelancers, and businesses from payment fraud, impersonation, rogue vendors, and financial loss through instant pre-transaction verification and transparent, human-moderated fraud intelligence.
+                </p>
+
+                <!-- Quick Action Buttons -->
+                <div class="d-flex flex-wrap gap-2 mb-4">
+                    <a href="{% url 'check' %}" class="btn btn-vng-primary py-2.5 px-4 fw-bold fs-6 shadow-sm">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="me-1.5"><circle cx="11" cy="11" r="8"/><path d="M21 21L16.65 16.65"/></svg>
+                        Verify Someone Now
+                    </a>
+                    <a href="{% url 'reports:create' %}" class="btn btn-outline-danger py-2.5 px-4 fw-bold fs-6 shadow-sm">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="me-1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        Report a Scam / Bad Actor
+                    </a>
+                    <a href="#emergency-guide" class="btn btn-light border py-2.5 px-3 fw-semibold text-dark shadow-sm">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2.5" class="me-1"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        Scammed? Start Here
+                    </a>
+                </div>
+
+                <!-- Trust Badges Bar -->
+                <div class="d-flex flex-wrap align-items-center gap-3 pt-2 text-muted small">
+                    <span class="d-inline-flex align-items-center gap-1.5">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        Strict Human Moderation
+                    </span>
+                    <span class="d-inline-flex align-items-center gap-1.5">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        Proof of Payment Required
+                    </span>
+                    <span class="d-inline-flex align-items-center gap-1.5">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        NDPA 2023 Regulated
+                    </span>
+                    <span class="d-inline-flex align-items-center gap-1.5">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        Fair Hearing &amp; Dispute Rights
+                    </span>
+                </div>
+            </div>
+
+            <!-- Hero Side Graphic / Quick Diagnostic Card -->
+            <div class="col-lg-4">
+                <div class="p-4 rounded-4 shadow-sm border bg-white position-relative">
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <div class="safety-icon-box safety-icon-blue mb-0" style="width: 40px; height: 40px;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                        </div>
+                        <div>
+                            <h6 class="fw-bold mb-0" style="color: #011B33;">Pre-Payment Verification</h6>
+                            <span class="small text-muted">Never send money blindly</span>
+                        </div>
+                    </div>
+
+                    <div class="safety-callout-info mb-3 p-2.5">
+                        <p class="mb-0" style="font-size: 13px; line-height: 1.45; color: #055160 !important;">
+                            <strong style="color: #055160;">Pro-tip:</strong> Always verify the vendor's 10-digit bank account or phone number on {{ site_config.site_name|default:"VerifyNG" }} <em>before</em> authorizing any payment or bank transfer.
+                        </p>
+                    </div>
+
+                    <div class="d-grid">
+                        <a href="{% url 'check' %}" class="btn btn-vng-primary py-2 fw-bold small">
+                            Instant Risk Lookup &rarr;
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ══ 2. WHY THIS PLATFORM WAS DESIGNED (THE CORE PURPOSE) ═════════ -->
+<section class="py-5 bg-white border-bottom">
+    <div class="container">
+        <div class="text-center max-w-700 mx-auto mb-5" style="max-width: 760px;">
+            <div class="safety-pill-badge mb-2">Our Mission &amp; Purpose</div>
+            <h2 class="fw-bold" style="color: #011B33;">Why VerifyNG Was Created</h2>
+            <p class="text-muted" style="line-height: 1.6;">
+                Millions of hard-working Nigerians engage in digital transactions daily across social media, e-commerce, real estate, and freelance marketplaces. But rapid growth brought unprecedented risks.
+            </p>
+        </div>
+
+        <div class="row g-4">
+            <!-- Problem 1: Social Commerce Scams -->
+            <div class="col-md-4">
+                <div class="safety-card">
+                    <div class="safety-icon-box safety-icon-red">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+                    </div>
+                    <h5 class="fw-bold mb-2" style="color: #011B33;">The Social Media Scammers</h5>
+                    <p class="text-muted small mb-0" style="line-height: 1.6;">
+                        Fraudulent Instagram, WhatsApp, and Facebook sellers who clone legitimate store names, demand 100% upfront payment, and instantly block buyers upon receiving funds.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Problem 2: Fake Payment Alerts & Impersonation -->
+            <div class="col-md-4">
+                <div class="safety-card">
+                    <div class="safety-icon-box safety-icon-amber">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                    </div>
+                    <h5 class="fw-bold mb-2" style="color: #011B33;">Fake Alerts &amp; Cloned Identities</h5>
+                    <p class="text-muted small mb-0" style="line-height: 1.6;">
+                        Vendors losing merchandise to sophisticated fake SMS bank alerts, forged CAC certificates, and impersonators posing as authorized business directors or dispatch logistics.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Problem 3: The Traditional Recourse Gap -->
+            <div class="col-md-4">
+                <div class="safety-card">
+                    <div class="safety-icon-box safety-icon-blue">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                    </div>
+                    <h5 class="fw-bold mb-2" style="color: #011B33;">The Solution: Proactive Trust</h5>
+                    <p class="text-muted small mb-0" style="line-height: 1.6;">
+                        Instead of struggling with weeks of bank disputes or police queues after you have been scammed, VerifyNG equips you with pre-transaction intelligence so you never send money into a trap.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ══ 3. HOW TO PROTECT YOURSELF (CONSUMER SAFETY SHIELD) ════════════ -->
+<section class="py-5" style="background: #F8FAFC;">
+    <div class="container">
+        <div class="text-center max-w-700 mx-auto mb-5" style="max-width: 760px;">
+            <div class="safety-pill-badge mb-2">Consumer Defense Shield</div>
+            <h2 class="fw-bold" style="color: #011B33;">5 Golden Rules to Protect Yourself Online</h2>
+            <p class="text-muted" style="line-height: 1.6;">
+                Follow these battle-tested security practices before making any online purchase, hiring a contractor, or transferring funds.
+            </p>
+        </div>
+
+        <div class="row g-4">
+            <!-- Rule 1 -->
+            <div class="col-lg-6">
+                <div class="safety-card d-flex gap-3 align-items-start">
+                    <div class="safety-step-number">1</div>
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <h5 class="fw-bold mb-0" style="color: #011B33;">Run a 10-Second Pre-Check</h5>
+                            <span class="safety-rule-badge bg-danger text-white">Critical</span>
+                        </div>
+                        <p class="text-muted small mb-2" style="line-height: 1.55;">
+                            Before sending money to any individual or business, copy their 10-digit bank account number and phone number and paste them into <a href="{% url 'check' %}" class="fw-semibold text-primary">VerifyNG Quick Check</a>. You will immediately see if other victims have flagged the account for fraud.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rule 2 -->
+            <div class="col-lg-6">
+                <div class="safety-card d-flex gap-3 align-items-start">
+                    <div class="safety-step-number">2</div>
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <h5 class="fw-bold mb-0" style="color: #011B33;">Beware of Mismatched Bank Names</h5>
+                            <span class="safety-rule-badge bg-warning text-dark">Watch Out</span>
+                        </div>
+                        <p class="text-muted small mb-2" style="line-height: 1.55;">
+                            If an online store calls itself "Lagos Luxury Hub" but asks you to pay into a personal savings account under an unrelated individual's name with excuses like "that's our accountant's account," stop immediately. Demand a verified corporate account or a registered business entity.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rule 3 -->
+            <div class="col-lg-6">
+                <div class="safety-card d-flex gap-3 align-items-start">
+                    <div class="safety-step-number">3</div>
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <h5 class="fw-bold mb-0" style="color: #011B33;">Reject Manufactured Urgency</h5>
+                            <span class="safety-rule-badge bg-info text-dark">Psychology</span>
+                        </div>
+                        <p class="text-muted small mb-2" style="line-height: 1.55;">
+                            Scammers use psychological pressure: <em>"Pay in 15 minutes or it sells to someone else,"</em> or <em>"Clearance price valid for today only."</em> Legitimate, honest vendors respect your right to verify their credentials and do not rush financial decisions.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rule 4 -->
+            <div class="col-lg-6">
+                <div class="safety-card d-flex gap-3 align-items-start">
+                    <div class="safety-step-number">4</div>
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <h5 class="fw-bold mb-0" style="color: #011B33;">Demand Video Calls or Physical Pickup</h5>
+                            <span class="safety-rule-badge bg-primary text-white">Verification</span>
+                        </div>
+                        <p class="text-muted small mb-2" style="line-height: 1.55;">
+                            For high-value items (smartphones, electronics, vehicles, rental apartments), request a live video call showing the merchandise with today's date written on paper, or opt for payment on delivery via a reputable escrow or verified logistics agent.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rule 5 -->
+            <div class="col-12">
+                <div class="safety-callout-warning d-flex align-items-start gap-3">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="flex-shrink-0 mt-1"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    <div>
+                        <strong class="d-block mb-1" style="color: #78350F; font-size: 15px;">Golden Rule #5: Never Share OTPs, BVN, or Card PINs</strong>
+                        <p class="mb-0 small" style="line-height: 1.5; color: #78350F !important;">
+                            No official from {{ site_config.site_name|default:"VerifyNG" }}, your commercial bank, or any government agency will ever call, text, or WhatsApp you requesting your 4-digit card PIN, banking password, or 6-digit One-Time Password (OTP). Anyone asking for these is an active fraudster.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ══ 4. HOW BUSINESSES & SMES CAN PROTECT THEMSELVES ═══════════════ -->
+<section class="py-5 bg-white border-bottom">
+    <div class="container">
+        <div class="row align-items-center g-5">
+            <div class="col-lg-6">
+                <div class="safety-pill-badge mb-2">Enterprise &amp; SME Shield</div>
+                <h2 class="fw-bold mb-3" style="color: #011B33;">Protecting Your Business from Commercial Fraud</h2>
+                <p class="text-muted" style="line-height: 1.6;">
+                    Businesses lose millions annually to fake payment receipts, dishonest suppliers, rogue dispatch riders, and internal theft. Here is how {{ site_config.site_name|default:"VerifyNG" }} safeguards your operations:
+                </p>
+
+                <div class="d-flex flex-column gap-3 mb-4">
+                    <div class="d-flex gap-3">
+                        <div class="safety-icon-box safety-icon-green mb-0" style="width: 40px; height: 40px;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
+                        </div>
+                        <div>
+                            <h6 class="fw-bold mb-1" style="color: #011B33;">Supplier &amp; B2B Vendor Due Diligence</h6>
+                            <p class="small text-muted mb-0" style="line-height: 1.5;">
+                                Confirm Corporate Affairs Commission (CAC) incorporation records, verify company registration status, and inspect director identity before releasing bulk purchase deposits.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-3">
+                        <div class="safety-icon-box safety-icon-blue mb-0" style="width: 40px; height: 40px;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        </div>
+                        <div>
+                            <h6 class="fw-bold mb-1" style="color: #011B33;">Staff &amp; Dispatch Rider Screening</h6>
+                            <p class="small text-muted mb-0" style="line-height: 1.5;">
+                                Prevent internal inventory loss, dispatch parcel interception, and payroll fraud by conducting verified background and identity verification on new hires.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-3">
+                        <div class="safety-icon-box safety-icon-purple mb-0" style="width: 40px; height: 40px;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                        </div>
+                        <div>
+                            <h6 class="fw-bold mb-1" style="color: #011B33;">The TrustPass™ Verified Business Badge</h6>
+                            <p class="small text-muted mb-0" style="line-height: 1.5;">
+                                Stand out from anonymous online vendors. Earn an official verified certificate and badge that demonstrates to buyers that your business is verified, legitimate, and safe.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <a href="{% url 'business' %}" class="btn btn-vng-primary py-2.5 px-4 fw-bold shadow-sm">
+                    Explore Solutions for Business &rarr;
+                </a>
+            </div>
+
+            <!-- SME Comparison Box -->
+            <div class="col-lg-6">
+                <div class="vng-card p-4 shadow-sm border rounded-4 bg-white">
+                    <h5 class="fw-bold mb-3" style="color: #011B33;">False Allegation Protection for Businesses</h5>
+                    <p class="small text-muted mb-3" style="line-height: 1.6;">
+                        Unlike uncontrolled social media platforms where malicious competitors can slander your business anonymously without accountability, {{ site_config.site_name|default:"VerifyNG" }} enforces strict legal due process:
+                    </p>
+
+                    <ul class="list-unstyled small d-flex flex-column gap-2.5 mb-4">
+                        <li class="d-flex align-items-start gap-2">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5" class="flex-shrink-0 mt-0.5"><polyline points="20 6 9 17 4 12"/></svg>
+                            <span><strong>Strict Human Review:</strong> No report is published automatically. Every allegation is scrutinized by trained compliance officers.</span>
+                        </li>
+                        <li class="d-flex align-items-start gap-2">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5" class="flex-shrink-0 mt-0.5"><polyline points="20 6 9 17 4 12"/></svg>
+                            <span><strong>Mandatory Proof:</strong> Accusers must provide genuine transfer receipts, order confirmations, and unedited conversation logs.</span>
+                        </li>
+                        <li class="d-flex align-items-start gap-2">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5" class="flex-shrink-0 mt-0.5"><polyline points="20 6 9 17 4 12"/></svg>
+                            <span><strong>7-Day Dispute Window:</strong> Businesses are given notification and full rights to present delivery evidence, dispute claims, or settle customer misunderstandings.</span>
+                        </li>
+                        <li class="d-flex align-items-start gap-2">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5" class="flex-shrink-0 mt-0.5"><polyline points="20 6 9 17 4 12"/></svg>
+                            <span><strong>Zero Extortion Policy:</strong> Bad-faith accusers submitting forged evidence are permanently banned and reported to cybercrime authorities.</span>
+                        </li>
+                    </ul>
+
+                    <div class="p-3 rounded-3" style="background: #F0FDF4; border: 1px solid #BBF7D0; color: #166534;">
+                        <span class="small fw-semibold d-block">Fairness Guarantee:</span>
+                        <span class="small" style="font-size: 12.5px;">We uphold commercial integrity. Legitimate businesses are protected, while genuine fraudsters are held accountable.</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ══ 5. HOW TO VERIFY ANYONE (QUICK & RELIABLE VERIFICATION GUIDE) ═ -->
+<section class="py-5" style="background: #F8FAFC;">
+    <div class="container">
+        <div class="text-center max-w-700 mx-auto mb-5" style="max-width: 760px;">
+            <div class="safety-pill-badge mb-2">Verification Engine</div>
+            <h2 class="fw-bold" style="color: #011B33;">Verify Anyone in 4 Easy Steps</h2>
+            <p class="text-muted" style="line-height: 1.6;">
+                Our multi-tier verification engine lets you instantly look up individuals, vendors, contractors, and registered companies across Nigeria.
+            </p>
+        </div>
+
+        <div class="row g-4 mb-4">
+            <!-- Stream 1: Bank Account -->
+            <div class="col-md-6 col-lg-3">
+                <div class="safety-card text-center">
+                    <div class="safety-icon-box safety-icon-blue mx-auto">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                    </div>
+                    <h5 class="fw-bold mb-2" style="color: #011B33;">1. Bank Account</h5>
+                    <p class="text-muted small mb-3" style="line-height: 1.5;">
+                        Enter any 10-digit NUBAN account number. Check for known scam tags, past dispute alerts, and account legitimacy.
+                    </p>
+                    <span class="badge bg-light text-primary border">10 Digits</span>
+                </div>
+            </div>
+
+            <!-- Stream 2: Phone Number -->
+            <div class="col-md-6 col-lg-3">
+                <div class="safety-card text-center">
+                    <div class="safety-icon-box safety-icon-green mx-auto">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                    </div>
+                    <h5 class="fw-bold mb-2" style="color: #011B33;">2. Phone / WhatsApp</h5>
+                    <p class="text-muted small mb-3" style="line-height: 1.5;">
+                        Screen mobile numbers used for WhatsApp inquiries, sales chats, or freelance job negotiations.
+                    </p>
+                    <span class="badge bg-light text-success border">All Networks</span>
+                </div>
+            </div>
+
+            <!-- Stream 3: CAC Business -->
+            <div class="col-md-6 col-lg-3">
+                <div class="safety-card text-center">
+                    <div class="safety-icon-box safety-icon-purple mx-auto">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 21h18M3 7v14M21 7v14M6 11h4M6 15h4M14 11h4M14 15h4M9 3l3 4 3-4"/></svg>
+                    </div>
+                    <h5 class="fw-bold mb-2" style="color: #011B33;">3. CAC Business</h5>
+                    <p class="text-muted small mb-3" style="line-height: 1.5;">
+                        Verify RC, BN, or LLP registration status directly against official corporate filings in Nigeria.
+                    </p>
+                    <span class="badge bg-light text-purple border">RC / BN / LLP</span>
+                </div>
+            </div>
+
+            <!-- Stream 4: TrustPass ID -->
+            <div class="col-md-6 col-lg-3">
+                <div class="safety-card text-center">
+                    <div class="safety-icon-box safety-icon-amber mx-auto">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                    </div>
+                    <h5 class="fw-bold mb-2" style="color: #011B33;">4. TrustPass™ Certificate</h5>
+                    <p class="text-muted small mb-3" style="line-height: 1.5;">
+                        Validate any `VNG-XXXXXX` digital credential to confirm authenticity and active validity.
+                    </p>
+                    <span class="badge bg-light text-warning border">VNG-ID</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Direct CTA to Check Engine -->
+        <div class="text-center pt-2">
+            <a href="{% url 'check' %}" class="btn btn-vng-primary px-5 py-2.5 fw-bold fs-6 shadow-sm">
+                Launch Instant Verification Engine &rarr;
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- ══ 6. HOW REPORTING WORKS (COMMUNITY SAFETY & MODERATION) ═════════ -->
+<section class="py-5 bg-white border-bottom">
+    <div class="container">
+        <div class="row align-items-center g-5">
+            <div class="col-lg-6">
+                <div class="safety-pill-badge mb-2">Community Defense</div>
+                <h2 class="fw-bold mb-3" style="color: #011B33;">How Scam Reporting Works</h2>
+                <p class="text-muted" style="line-height: 1.6;">
+                    When you report a fraudulent transaction on {{ site_config.site_name|default:"VerifyNG" }}, your action helps save hundreds of potential victims from losing their money. Here is our rigorous due process:
+                </p>
+
+                <div class="d-flex flex-column gap-3 mb-4">
+                    <div class="d-flex gap-3 align-items-start">
+                        <div class="safety-step-number">1</div>
+                        <div>
+                            <h6 class="fw-bold mb-1" style="color: #011B33;">Submit Evidence-Backed Report</h6>
+                            <p class="small text-muted mb-0">Provide the fraudster’s bank details, phone number, screenshots of chats, and bank debit receipts.</p>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-3 align-items-start">
+                        <div class="safety-step-number">2</div>
+                        <div>
+                            <h6 class="fw-bold mb-1" style="color: #011B33;">Human Officer Moderation</h6>
+                            <p class="small text-muted mb-0">Our trained compliance officers verify the transaction proof and cross-reference with banking registries.</p>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-3 align-items-start">
+                        <div class="safety-step-number">3</div>
+                        <div>
+                            <h6 class="fw-bold mb-1" style="color: #011B33;">7-Day Due Process Notice</h6>
+                            <p class="small text-muted mb-0">The reported entity is notified to provide counter-evidence or resolve the issue before a permanent alert is recorded.</p>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-3 align-items-start">
+                        <div class="safety-step-number">4</div>
+                        <div>
+                            <h6 class="fw-bold mb-1" style="color: #011B33;">National Scam Index Alert</h6>
+                            <p class="small text-muted mb-0">Unresolved verified cases are published to the public search index, protecting millions nationwide.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <a href="{% url 'reports:create' %}" class="btn btn-outline-danger py-2.5 px-4 fw-bold shadow-sm">
+                    Submit a Documented Scam Report &rarr;
+                </a>
+            </div>
+
+            <!-- Moderation Policy Highlight Card -->
+            <div class="col-lg-6">
+                <div class="p-4 rounded-4 shadow-sm border bg-white">
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <div class="safety-icon-box safety-icon-green mb-0" style="width: 42px; height: 42px;">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+                        </div>
+                        <div>
+                            <h5 class="fw-bold mb-0" style="color: #011B33;">Whistleblower Protection</h5>
+                            <span class="small text-muted">Safe, Confidential &amp; Protected</span>
+                        </div>
+                    </div>
+
+                    <p class="small text-muted mb-3" style="line-height: 1.6;">
+                        We understand the anxiety of reporting scammers. {{ site_config.site_name|default:"VerifyNG" }} is fully compliant with the <strong>Nigeria Data Protection Act (NDPA) 2023</strong>:
+                    </p>
+
+                    <div class="safety-callout-info mb-3">
+                        <p class="mb-0" style="font-size: 13.5px; line-height: 1.5; color: #055160 !important;">
+                            <strong style="color: #055160;">Your Identity is Shielded:</strong> Your personal contact details and residential address are strictly protected and never published to the public risk index. Only verified incident facts and the suspect’s transaction identifiers are displayed to warn others.
+                        </p>
+                    </div>
+
+                    <p class="small text-muted mb-0" style="font-size: 12.5px; line-height: 1.5;">
+                        Read our exhaustive <a href="{% url 'terms' %}" class="fw-semibold text-primary">Terms of Service</a> and <a href="{% url 'privacy' %}" class="fw-semibold text-primary">Data Protection Policy</a> for legal governance details.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ══ 7. EMERGENCY PROTOCOL: WHAT TO DO IF YOU JUST GOT SCAMMED ═════ -->
+<section id="emergency-guide" class="py-5" style="background: #F8FAFC;">
+    <div class="container">
+        <div class="text-center max-w-700 mx-auto mb-5" style="max-width: 760px;">
+            <div class="safety-pill-badge mb-2 bg-danger-subtle text-danger border-danger-subtle">
+                Emergency Fraud Protocol
+            </div>
+            <h2 class="fw-bold text-danger">Just Sent Money to a Scammer? Act Now!</h2>
+            <p class="text-muted" style="line-height: 1.6;">
+                Time is critical. Follow these four urgent steps within the first 1 to 24 hours to maximize your chances of freezing funds and recovering your money.
+            </p>
+        </div>
+
+        <div class="row g-4">
+            <!-- Urgent Step 1 -->
+            <div class="col-md-6 col-lg-3">
+                <div class="emergency-step-box h-100">
+                    <span class="badge bg-danger mb-2">Step 1 &bull; Immediate</span>
+                    <h6 class="fw-bold text-dark mb-1">Call Your Bank's Fraud Desk</h6>
+                    <p class="small text-muted mb-0" style="line-height: 1.5;">
+                        Call your bank's emergency customer care line immediately. State that you made a fraudulent transfer, provide the session ID and the recipient's bank details, and request an urgent inter-bank recall (NIP recall).
+                    </p>
+                </div>
+            </div>
+
+            <!-- Urgent Step 2 -->
+            <div class="col-md-6 col-lg-3">
+                <div class="emergency-step-box h-100">
+                    <span class="badge bg-danger mb-2">Step 2 &bull; Within 1 Hour</span>
+                    <h6 class="fw-bold text-dark mb-1">Contact Recipient's Bank</h6>
+                    <p class="small text-muted mb-0" style="line-height: 1.5;">
+                        Reach out to the fraud department of the bank that received your money. Notify them that the beneficiary account has been used to perpetrate fraud so they can place a Post-No-Debit (PND) restriction.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Urgent Step 3 -->
+            <div class="col-md-6 col-lg-3">
+                <div class="emergency-step-box h-100">
+                    <span class="badge bg-danger mb-2">Step 3 &bull; File on VerifyNG</span>
+                    <h6 class="fw-bold text-dark mb-1">Submit Incident Report</h6>
+                    <p class="small text-muted mb-0" style="line-height: 1.5;">
+                        File an incident report on <a href="{% url 'reports:create' %}" class="fw-semibold text-danger">VerifyNG</a>. This alerts our national moderation desk, flags the account across our platform, and shields others immediately.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Urgent Step 4 -->
+            <div class="col-md-6 col-lg-3">
+                <div class="emergency-step-box h-100">
+                    <span class="badge bg-danger mb-2">Step 4 &bull; Official Report</span>
+                    <h6 class="fw-bold text-dark mb-1">Report to Police / EFCC</h6>
+                    <p class="small text-muted mb-0" style="line-height: 1.5;">
+                        Visit the nearest Police station (Cybercrime division) or EFCC office to lodge a formal petition with your bank statements, chats, and VerifyNG case reference to secure a court order for refund.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ══ 8. CALL TO ACTION BAR ═════════════════════════════════════════ -->
+<section class="py-5" style="background: #011B33; color: #FFFFFF;">
+    <div class="container text-center py-3">
+        <h2 class="display-7 fw-bold mb-3 text-white">Together, We Can Eliminate Digital Fraud in Nigeria</h2>
+        <p class="text-white-50 max-w-700 mx-auto mb-4 fs-6" style="max-width: 680px; line-height: 1.6;">
+            Every search protects your hard-earned money. Every report keeps your family, friends, and fellow citizens safe.
+        </p>
+        <div class="d-flex flex-wrap justify-content-center gap-3">
+            <a href="{% url 'check' %}" class="btn btn-vng-primary py-2.5 px-4 fw-bold fs-6 shadow-sm">
+                Check an Account or Phone Now &rarr;
+            </a>
+            <a href="{% url 'reports:create' %}" class="btn btn-outline-light py-2.5 px-4 fw-bold fs-6">
+                Report a Suspicious Entity
+            </a>
+            <a href="{% url 'help' %}" class="btn btn-link text-white-50 text-decoration-none py-2.5 px-3">
+                Contact Security Desk
+            </a>
+        </div>
+    </div>
+</section>
+{% endblock %}

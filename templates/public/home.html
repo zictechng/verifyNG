@@ -190,65 +190,27 @@
 
                     <!-- Tab 1: Instant Public Check Form -->
                     <div x-show="activeTab === 'verify'">
-                        <form method="get" action="{% url 'check' %}" onsubmit="
-                            const input = document.getElementById('heroSearchInput');
-                            const typeSelect = document.getElementById('heroSearchType');
-                            const v = input ? input.value.trim() : '';
-                            if (typeSelect && !typeSelect.value && v) {
-                                if (v.toUpperCase().startsWith('VNG-')) typeSelect.value = 'certificate_id';
-                                else if (v.includes('@')) typeSelect.value = 'email';
-                                else if (/^(RC|BN|IT|LLP|CAC)/i.test(v)) typeSelect.value = 'cac';
-                                else {
-                                    const digits = v.replace(/[\s\-\+]/g, '');
-                                    if (digits.length === 10) typeSelect.value = 'account';
-                                    else typeSelect.value = 'phone';
-                                }
-                            }
-                        ">
-                            <div class="mb-3">
-                                <!-- Verification Search Tip Callout Box (100% matched to UI specs) -->
-                                <div class="p-3 rounded-3 mb-3" style="background-color: #CFF4FC; border-left: 4.5px solid #0DCAF0; color: #055160;">
-                                    <p class="mb-0" style="font-size: 0.885rem; line-height: 1.55; color: #055160 !important;">
-                                        <strong style="color: #055160;">Verification tip:</strong> Quick lookup automatically scans active scam alerts, registered bank accounts, CAC records, phone numbers, and TrustPass™ certificates across Nigeria. For full multi-tier queries or bulk checks, use <a href="{% url 'check' %}" style="color: #084298; text-decoration: underline; font-weight: 600;">Advanced Search</a>.
-                                    </p>
-                                </div>
-
-                                <label for="heroSearchInput" class="form-label small fw-semibold text-muted mb-1.5">
-                                    Quick Verification Lookup
-                                </label>
-                                <div class="input-group mb-2">
-                                    <span class="input-group-text bg-white" style="border-color: #CBD5E1; border-right: none;">
-                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="2">
-                                            <circle cx="11" cy="11" r="8"/>
-                                            <path d="M21 21L16.65 16.65"/>
-                                        </svg>
-                                    </span>
-                                    <input type="text" 
-                                           id="heroSearchInput"
-                                           name="q" 
-                                           class="form-control py-2.5 fs-6" 
-                                           style="border-color: #CBD5E1; border-left: none;"
-                                           placeholder="Enter phone number, bank account, or CAC number"
-                                           required>
-                                </div>
-                                <div class="form-text small" style="color: #64748B; font-size: 11.5px;">
-                                    Checks verified scam reports, incident histories, and verified credentials.
-                                </div>
-                            </div>
-                            <button type="submit" class="btn btn-vng-primary w-100 py-2.5 fw-bold fs-6 shadow-sm">
-                                Check Now &rarr;
-                            </button>
-                        </form>
+                        <!-- Verification Search Tip Callout Box (100% matched to Bootstrap docs callout) -->
+                        <div class="rounded-3 mb-3" style="background-color: #CFF4FC; border-left: 5px solid #0DCAF0; padding: 1rem 1.15rem; color: #055160;">
+                            <p class="mb-0" style="font-size: 14px; line-height: 1.55; color: #055160 !important;">
+                                <strong style="color: #055160; font-weight: 700;">Verification tip:</strong> 
+                                Quick lookup automatically scans active scam alerts, registered bank accounts, 
+                                CAC records, phone numbers, NIN, and TrustPass™ certificates across Nigeria. 
+                            </p>
+                        </div>
+                        <a href="{% url 'check' %}" class="btn btn-vng-primary w-100 py-2.5 fw-bold fs-6 shadow-sm text-center text-decoration-none d-block">
+                            Quick Check &rarr;
+                        </a>
                     </div>
 
                     <!-- Tab 2: Report Suspicious Entity -->
                     <div x-show="activeTab === 'report'" style="display: none;">
-                        <p class="small mb-3" style="color: #475569; line-height: 1.55;">
-                            Encountered a scam, fake online vendor, bad real estate agent, or fraudulent company? Submit a documented allegation report to protect the public.
+                        <p class="mb-3" style="color: #475569; line-height: 1.55;">
+                            Have you ever be scammed or encountered a scam, fake online vendor, bad real estate agent, or fraudulent company? Share your story by submitting a documented allegation report to protect the public.
                         </p>
-                        <div class="p-2.5 rounded-3 mb-3 d-flex align-items-center gap-2" style="background: #FEF3C7; border: 1px solid #FDE68A; color: #92400E; font-size: 12.5px;">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="flex-shrink-0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                            <span>All reports undergo human moderation with proof of transaction and strict due process.</span>
+                        <div class="p-2.5 rounded-3 mb-3 d-flex align-items-center gap-2" style="background: #FEF3C7; border: 1px solid #FDE68A; color: #78350F;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="flex-shrink-0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                            <span class="fw-semibold" style="font-size: 14px; line-height: 1.35; color: #78350F;">All reports undergo human moderation with proof of transaction and strict due process.</span>
                         </div>
                         <a href="{% url 'reports:create' %}" class="btn btn-vng-primary w-100 py-2.5 fw-bold fs-6 shadow-sm">
                             Report Suspicious Activity &rarr;

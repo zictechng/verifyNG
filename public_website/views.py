@@ -203,6 +203,19 @@ def check(request):
 
 
 
+def safety_security(request):
+    """
+    Comprehensive Platform Purpose, Safety, Security & Fraud Prevention Guide.
+    Showcases:
+    - National Mission: Why VerifyNG was designed (stopping financial fraud, impersonation, rogue actors).
+    - Individual Protection Shield: Golden rules for online transactions and consumer safety.
+    - Business & SME Shield: Supplier due diligence, worker verification, and TrustPass™ reputation.
+    - Community Reporting: Evidence requirements, human moderation, due process, and dispute rights.
+    - Quick & Reliable Verification: Step-by-step guidance on checking bank accounts, phones, CAC, certificates.
+    """
+    return render(request, 'public/safety_security.html')
+
+
 def privacy_legal(request, tab=None):
     """
     Dual-tab Privacy Policy and Legal/Terms view with instant mobile tab switching.
