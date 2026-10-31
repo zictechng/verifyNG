@@ -638,7 +638,7 @@
                         </li>
                         
                         <li class="nav-item">
-                            <a class="nav-link vng-nav-link {% if request.resolver_match.app_name == 'payments' %}active{% endif %}" href="{% url 'payments:plans' %}">Plans &amp; Pricing</a>
+                            <a class="nav-link vng-nav-link" href="#">Safety &amp; Security</a>
                         </li>
                         {% elif user.is_authenticated and user.is_staff or user.is_superuser or user.role in 'moderator,officer' %}
                         <li class="nav-item">
@@ -666,7 +666,7 @@
                             <a class="nav-link vng-nav-link {% if request.resolver_match.app_name == 'reports' or request.resolver_match.url_name == 'report' %}active{% endif %}" href="{% url 'reports:create' %}">Report Fraud</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link vng-nav-link {% if request.resolver_match.app_name == 'payments' %}active{% endif %}" href="{% url 'payments:plans' %}">Plans &amp; Pricing</a>
+                            <a class="nav-link vng-nav-link {% if request.resolver_match.app_name == 'payments' %}active{% endif %}" href="{% url 'payments:plans' %}">Safety &amp; Security</a>
                         </li>
                         {% endif %}
                     </ul>

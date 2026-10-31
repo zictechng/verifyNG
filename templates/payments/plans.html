@@ -122,25 +122,25 @@
           <div class="mt-auto">
             {% if user.is_authenticated %}
               {% if active_subscription and active_subscription.plan.id == plan.id %}
-                <button class="btn w-100 fw-600" style="border:2px solid var(--vng-border);color:var(--vng-muted);border-radius:9999px;padding:.75rem;cursor:default;">
+                <button class="btn w-100 fw-600" style="border:1.5px solid var(--vng-btn-border, #BCDFF4);color:var(--vng-btn-text, #011B33);background:#EAF6FC;border-radius:12px;padding:.75rem;cursor:default;">
                   Current Plan
                 </button>
               {% elif site_settings.maintenance_mode %}
-                <button class="btn w-100 fw-600" disabled style="background:#CBD5E1;color:#fff;border:none;border-radius:9999px;padding:.75rem;">
+                <button class="btn w-100 fw-600" disabled style="background:#CBD5E1;color:#fff;border:none;border-radius:12px;padding:.75rem;">
                   Unavailable
                 </button>
               {% else %}
                 <a href="{% url 'payments:checkout_review' plan.slug %}"
-                   class="btn w-100 fw-700 {% if plan.is_featured %}btn-vng-primary{% else %}btn-vng-outline{% endif %}"
-                   style="border-radius:9999px;padding:.75rem;">
-                  {% if plan.is_free %}Get Started Free{% else %}Get {{ plan.name }}{% endif %}
+                   class="btn btn-vng-primary w-100 py-2.5 fw-bold fs-6 shadow-sm"
+                   style="border-radius:12px;">
+                  {% if plan.is_free %}Get Started Free{% else %}Get {{ plan.name }}{% endif %} &rarr;
                 </a>
               {% endif %}
             {% else %}
               <a href="{% url 'users:login' %}?next={% url 'payments:checkout_review' plan.slug %}"
-                 class="btn w-100 fw-700 {% if plan.is_featured %}btn-vng-primary{% else %}btn-vng-outline{% endif %}"
-                 style="border-radius:9999px;padding:.75rem;">
-                Sign in to Subscribe
+                 class="btn btn-vng-primary w-100 py-2.5 fw-bold fs-6 shadow-sm"
+                 style="border-radius:12px;">
+                Sign in to Subscribe &rarr;
               </a>
             {% endif %}
           </div>
@@ -593,16 +593,6 @@
   .vng-plan-card:hover {
     box-shadow: var(--vng-shadow-lg);
     transform: translateY(-2px);
-  }
-  .btn-vng-outline {
-    border: 2px solid var(--vng-primary) !important;
-    color: var(--vng-primary) !important;
-    background: transparent !important;
-    transition: background .2s, color .2s;
-  }
-  .btn-vng-outline:hover {
-    background: var(--vng-primary) !important;
-    color: #fff !important;
   }
 </style>
 {% endblock %}

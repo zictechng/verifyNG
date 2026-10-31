@@ -190,25 +190,58 @@
 
                     <!-- Tab 1: Instant Public Check Form -->
                     <div x-show="activeTab === 'verify'">
-                        <form method="get" action="{% url 'check' %}">
+                        <form method="get" action="{% url 'check' %}" onsubmit="
+                            const input = document.getElementById('heroSearchInput');
+                            const typeSelect = document.getElementById('heroSearchType');
+                            const v = input ? input.value.trim() : '';
+                            if (typeSelect && !typeSelect.value && v) {
+                                if (v.toUpperCase().startsWith('VNG-')) typeSelect.value = 'certificate_id';
+                                else if (v.includes('@')) typeSelect.value = 'email';
+                                else if (/^(RC|BN|IT|LLP|CAC)/i.test(v)) typeSelect.value = 'cac';
+                                else {
+                                    const digits = v.replace(/[\s\-\+]/g, '');
+                                    if (digits.length === 10) typeSelect.value = 'account';
+                                    else typeSelect.value = 'phone';
+                                }
+                            }
+                        ">
                             <div class="mb-3">
-                                <label for="heroSearchInput" class="form-label small fw-semibold text-muted mb-1.5">
-                                    Quick Verification Lookup
-                                </label>
-                                <div class="input-group">
-                                    <span class="input-group-text bg-white" style="border-color: #CBD5E1; border-right: none;">
-                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="2">
-                                            <circle cx="11" cy="11" r="8"/>
-                                            <path d="M21 21L16.65 16.65"/>
-                                        </svg>
-                                    </span>
-                                    <input type="text" 
-                                           id="heroSearchInput"
-                                           name="q" 
-                                           class="form-control py-2.5 fs-6" 
-                                           style="border-color: #CBD5E1; border-left: none;"
-                                           placeholder="Enter phone number, bank account, or CAC number"
-                                           required>
+                                <div class="d-flex justify-content-between align-items-center mb-1.5">
+                                    <label for="heroSearchInput" class="form-label small fw-semibold text-muted mb-0">
+                                        Quick Verification Lookup
+                                    </label>
+                                    <a href="{% url 'check' %}" class="small text-decoration-none fw-semibold" style="color: var(--vng-primary); font-size: 12px;">
+                                        Advanced Search &rarr;
+                                    </a>
+                                </div>
+                                <div class="row g-2 mb-2">
+                                    <div class="col-sm-5">
+                                        <select id="heroSearchType" name="type" class="form-select py-2 fs-6" style="border-color: #CBD5E1; color: #1E293B; font-weight: 500;">
+                                            <option value="" selected>Auto-Detect Type</option>
+                                            <option value="phone">Phone Number</option>
+                                            <option value="account">Bank Account (10 Digits)</option>
+                                            <option value="cac">CAC / Business</option>
+                                            <option value="certificate_id">Certificate ID</option>
+                                            <option value="email">Email Address</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-sm-7">
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-white" style="border-color: #CBD5E1; border-right: none;">
+                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="2">
+                                                    <circle cx="11" cy="11" r="8"/>
+                                                    <path d="M21 21L16.65 16.65"/>
+                                                </svg>
+                                            </span>
+                                            <input type="text" 
+                                                   id="heroSearchInput"
+                                                   name="q" 
+                                                   class="form-control py-2 fs-6" 
+                                                   style="border-color: #CBD5E1; border-left: none;"
+                                                   placeholder="e.g. 08012345678 or 0123456789"
+                                                   required>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="form-text small" style="color: #64748B; font-size: 11.5px;">
                                     Checks verified scam reports, incident histories, and verified credentials.

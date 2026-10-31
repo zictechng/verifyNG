@@ -45,7 +45,22 @@
                 quotaExceeded: false,
                 serviceRestricted: {% if user_entitlement and user_entitlement.reason == 'service_restricted' %}true{% else %}false{% endif %},
                 trustNoticeDismissed: false,
+                detectType(val) {
+                    if (!val) return '';
+                    const v = val.trim();
+                    if (v.toUpperCase().startsWith('VNG-')) return 'certificate_id';
+                    if (v.includes('@')) return 'email';
+                    if (/^[a-f0-9]{64}$/i.test(v)) return 'hash';
+                    if (/^(RC|BN|IT|LLP|CAC)[\-\s]?\d+/i.test(v)) return 'cac';
+                    const digitsOnly = v.replace(/[\s\-\+]/g, '');
+                    if (/^\d{10}$/.test(digitsOnly)) return 'account';
+                    if (/^(070|080|081|090|091|071|\+?234\d{10})\d*/.test(digitsOnly) || digitsOnly.length === 11) return 'phone';
+                    return 'phone';
+                },
                 performSearch() {
+                    if (!this.idType && this.identifier.trim()) {
+                        this.idType = this.detectType(this.identifier);
+                    }
                     const paidQuery = this.paidRef ? ('?paid_ref=' + encodeURIComponent(this.paidRef)) : '';
                     if (!this.idType || !this.identifier.trim()) return;
                     this.loading = true;
@@ -222,7 +237,14 @@
                         });
                     }
                 }
-            }" x-init="if (idType && identifier) performSearch()">
+            }" x-init="
+                if (!idType && identifier) {
+                    idType = detectType(identifier);
+                }
+                if (idType && identifier) {
+                    performSearch();
+                }
+            ">
                 
                 {% if request.user.is_authenticated and user_entitlement and user_entitlement.details.remaining != 0 and user_entitlement.reason != 'quota_exceeded' %}
                 <div class="mb-3 d-flex flex-wrap align-items-center justify-content-between p-2 px-3 rounded-2 bg-light border small gap-2">
