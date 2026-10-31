@@ -390,7 +390,7 @@ class Phase7Batch72WorkflowTestCase(TestCase):
             username='rep_user', email='reporter@example.com', password='password123', role='individual'
         )
         self.disputant = User.objects.create_user(
-            username='disp_user', email='disputant@example.com', password='password123', role='individual'
+            username='disp_user', email='disputant@example.com', password='password123', role='individual', identity_verified=True
         )
         self.moderator = User.objects.create_user(
             username='mod_user', email='mod@example.com', password='password123', role='moderator'
@@ -693,7 +693,7 @@ class DueProcessRebuttalCycleTestCase(TestCase):
         )
         self.respondent = User.objects.create_user(
             username='respondent_user', email='respondent@test.com',
-            password='Password123!', role='individual'
+            password='Password123!', role='individual', identity_verified=True
         )
         self.moderator = User.objects.create_user(
             username='mod_user', email='moderator@test.com',

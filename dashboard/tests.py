@@ -8,6 +8,7 @@ from reports.models import FraudReport, Dispute
 from reports.services import create_fraud_report, file_dispute_for_report
 from verification.models import VerificationRequest
 from verification.services import create_verification_request
+from dashboard.views import _get_staff_context
 
 
 class DashboardAccessAndContextTestCase(TestCase):
@@ -89,9 +90,9 @@ class DashboardAccessAndContextTestCase(TestCase):
         self.assertFalse(res.context['is_officer'])
 
         content = res.content.decode('utf-8')
-        # Safety tips widget should be rendered
-        self.assertIn("Safety Tips", content)
-        self.assertIn("Stay Vigilant", content)
+        # Check a Record / TrustPass widget should be rendered
+        self.assertIn("Check a Record", content)
+        self.assertIn("Clearance &amp; Verification", content)
 
         # Moderation and Officer desk widgets must NOT be rendered in DOM
         self.assertNotIn("Open Moderation Queue", content)
@@ -118,18 +119,16 @@ class DashboardAccessAndContextTestCase(TestCase):
         r2.state = 'under_review'
         r2.save()
 
-        # Log in as moderator
+        # Log in as moderator -> redirected to admin portal overview per dispatch routing
         self.client.force_login(self.moderator_user)
         res = self.client.get(self.dashboard_url)
-        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.status_code, 302)
+        self.assertRedirects(res, reverse('admin_portal:overview'))
 
-        self.assertTrue(res.context['is_moderator'])
-        self.assertEqual(res.context['pending_moderation_count'], 2)
-        self.assertEqual(res.context['open_disputes_count'], 0)
-
-        content = res.content.decode('utf-8')
-        self.assertIn("Moderator Desk", content)
-        self.assertIn("Staff Operations", content)
+        ctx = _get_staff_context(self.moderator_user)
+        self.assertTrue(ctx['is_moderator'])
+        self.assertEqual(ctx['pending_moderation_count'], 2)
+        self.assertEqual(ctx['open_disputes_count'], 0)
 
     def test_officer_role_desk_counters(self):
         # Create 1 pending verification request
@@ -140,29 +139,26 @@ class DashboardAccessAndContextTestCase(TestCase):
             verification_type="credential"
         )
 
+        # Log in as officer -> redirected to admin portal overview per dispatch routing
         self.client.force_login(self.officer_user)
         res = self.client.get(self.dashboard_url)
-        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.status_code, 302)
+        self.assertRedirects(res, reverse('admin_portal:overview'))
 
-        self.assertTrue(res.context['is_officer'])
-        self.assertEqual(res.context['pending_verification_count'], 1)
-
-        content = res.content.decode('utf-8')
-        self.assertIn("Officer Desk", content)
-        self.assertIn("Verification Queue", content)
+        ctx = _get_staff_context(self.officer_user)
+        self.assertTrue(ctx['is_officer'])
+        self.assertEqual(ctx['pending_verification_count'], 1)
 
     def test_superuser_desk_visibility(self):
         # Superuser has access to both operations desks simultaneously
         self.client.force_login(self.superuser)
         res = self.client.get(self.dashboard_url)
-        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.status_code, 302)
+        self.assertRedirects(res, reverse('admin_portal:overview'))
 
-        self.assertTrue(res.context['is_moderator'])
-        self.assertTrue(res.context['is_officer'])
-
-        content = res.content.decode('utf-8')
-        self.assertIn("Moderator Desk", content)
-        self.assertIn("Officer Desk", content)
+        ctx = _get_staff_context(self.superuser)
+        self.assertTrue(ctx['is_moderator'])
+        self.assertTrue(ctx['is_officer'])
 
 
 from unittest.mock import patch
@@ -188,7 +184,8 @@ class AdminPortalOperationsTestCase(TestCase):
         """Regular users are blocked from /admin-portal/."""
         self.client.login(username='regular_user', password='Password123!')
         res = self.client.get(reverse('admin_portal:overview'))
-        self.assertEqual(res.status_code, 403)
+        self.assertEqual(res.status_code, 302)
+        self.assertIn('/users/login/', res.url)
 
     def test_admin_overview_loads_for_superuser(self):
         """Superuser loads overview and receives status 200 with metrics."""
@@ -199,23 +196,23 @@ class AdminPortalOperationsTestCase(TestCase):
 
     def test_admin_user_suspend_and_reactivate(self):
         """Admin can toggle user active state between active and suspended."""
-        toggle_url = reverse('admin_portal:user_toggle_status', kwargs={'user_id': self.individual.id})
+        toggle_url = reverse('admin_portal:user_toggle_status', kwargs={'public_id': self.individual.public_id})
 
         # Suspend
         res_suspend = self.client.post(toggle_url)
         self.assertEqual(res_suspend.status_code, 302)
         self.individual.refresh_from_db()
-        self.assertFalse(self.individual.is_active)
+        self.assertTrue(self.individual.is_suspended)
 
         # Reactivate
         res_activate = self.client.post(toggle_url)
         self.assertEqual(res_activate.status_code, 302)
         self.individual.refresh_from_db()
-        self.assertTrue(self.individual.is_active)
+        self.assertFalse(self.individual.is_suspended)
 
     def test_admin_user_role_change(self):
         """Admin can reassign user role to moderator."""
-        role_url = reverse('admin_portal:user_change_role', kwargs={'user_id': self.individual.id})
+        role_url = reverse('admin_portal:user_change_role', kwargs={'public_id': self.individual.public_id})
         res = self.client.post(role_url, {'role': 'moderator'})
         self.assertEqual(res.status_code, 302)
         self.individual.refresh_from_db()

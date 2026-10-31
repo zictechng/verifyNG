@@ -105,7 +105,6 @@ def lookup_public_record(identifier_hash: str) -> dict | None:
         'trust_score':       getattr(ts, 'score', None),
         'trust_label':       getattr(ts, 'label', 'Unknown'),
         'trust_label_colour': getattr(ts, 'label_colour', 'secondary'),
-        'identity_verified': getattr(ts, 'is_identity_verified', False),
         "certificates":            certificates,
     }
 

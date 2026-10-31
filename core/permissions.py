@@ -9,11 +9,16 @@ from django.contrib.auth.views import redirect_to_login
 
 def is_moderator(user):
     """
-    Returns True if user is authenticated and is a moderator, staff, or superuser.
+    Returns True if user is authenticated and is a moderator, staff (non-officer), or superuser.
+    Verification officers are strictly separated from fraud moderation.
     """
     if not user or not user.is_authenticated:
         return False
-    return user.is_superuser or user.is_staff or getattr(user, 'role', None) == 'moderator'
+    if getattr(user, 'is_superuser', False):
+        return True
+    if getattr(user, 'role', None) == 'officer':
+        return False
+    return bool(getattr(user, 'is_staff', False) or getattr(user, 'role', None) == 'moderator')
 
 
 def is_verification_officer(user):

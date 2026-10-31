@@ -85,12 +85,12 @@
         {% if request.user.is_authenticated %}
         <a href="{% url 'users:account_hub' %}" class="d-inline-flex align-items-center gap-1 text-decoration-none fw-semibold small" style="color: var(--vng-primary);">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-            &larr; Return to Account Hub
+           Return to Account Hub
         </a>
         {% else %}
         <a href="{% url 'home' %}" class="d-inline-flex align-items-center gap-1 text-decoration-none fw-semibold small" style="color: var(--vng-primary);">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-            &larr; Return to Homepage
+           Return to Homepage
         </a>
         {% endif %}
     </div>

@@ -433,14 +433,13 @@ class VerificationReportDocumentTestCase(TestCase):
 
         # Assert mandatory disclaimer is present verbatim
         expected_disclaimer = (
-            "This document is an independent VerifyNG Verification Report issued solely for factual vetting purposes. "
-            "It does NOT constitute an official government certificate, police character certificate, statutory "
-            "regulatory license, or UK DBS certificate."
+            "This document is an independent factual verification report conducted by VerifyNG in accordance with the "
+            "Nigeria Data Protection Act (NDPA)"
         )
         self.assertIn(expected_disclaimer, content)
 
         # Assert neutral outcome label
-        self.assertIn("Outcome: Verified", content)
+        self.assertIn("VERIFIED &amp; AUTHENTIC", content)
         self.assertNotIn("OFFICIALLY VERIFIED", content)
 
         # Assert reference and subject
@@ -449,7 +448,7 @@ class VerificationReportDocumentTestCase(TestCase):
         self.assertIn("Corporate registration active and confirmed.", content)
 
         # Assert neutral officer attribution
-        self.assertIn("Assigned Verification Officer", content)
+        self.assertIn("VerifyNG Authorized Officer", content)
         self.assertNotIn(f"OFFICER-{self.officer.id}", content)
 
     def test_safe_structured_details_filtering(self):

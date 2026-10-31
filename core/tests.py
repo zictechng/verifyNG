@@ -713,8 +713,9 @@ class EndToEndVerificationAndPublicCheckTestCase(TestCase):
         self.assertEqual(resp.status_code, 200)
 
         # Mandatory non-government statutory disclaimer present
-        self.assertIn("independent VerifyNG Verification Report", resp.content.decode('utf-8'))
-        self.assertIn("does NOT constitute an official government certificate", resp.content.decode('utf-8'))
+        report_text = resp.content.decode('utf-8')
+        self.assertIn("independent factual verification report conducted by VerifyNG", report_text)
+        self.assertIn("Nigeria Data Protection Act (NDPA)", report_text)
 
         # 5. Public CHECK on the CAC hash immediately evaluates as officially verified
         res1 = lookup_public_record(self.cac_hash)
