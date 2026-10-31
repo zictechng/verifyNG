@@ -1051,21 +1051,22 @@
             </svg>
             <span>Verify</span>
         </a>
-        <!-- Tab 3: For Business (SMEs) -->
-        <a href="{% url 'business' %}" class="vng-bottom-tab {% if request.resolver_match.url_name == 'business' %}active{% endif %}">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
-                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
-            </svg>
-            <span>Business</span>
-        </a>
-        <!-- Tab 4: Report Fraud -->
+        
+        <!-- Tab 3: Report Fraud -->
         <a href="{% url 'reports:create' %}" class="vng-bottom-tab {% if request.resolver_match.app_name == 'reports' or request.resolver_match.url_name == 'report' %}active{% endif %}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                 <path d="M12 8v4M12 16h.01"/>
             </svg>
             <span>Report</span>
+        </a>
+        <!-- Tab 4: For Safety (SMEs) -->
+        <a href="{% url 'safety' %}" class="vng-bottom-tab {% if request.resolver_match.url_name in 'safety,security,safety_security' %}active{% endif %}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                <polyline points="9 12 11 14 15 10"/>
+            </svg>
+            <span>Safety</span>
         </a>
         <!-- Tab 5: Account Hub -->
         <a href="{% url 'users:account_hub' %}" class="vng-bottom-tab {% if request.resolver_match.url_name in 'account_hub,profile,password_change,delete_account' %}active{% endif %}">
@@ -1083,14 +1084,7 @@
             </svg>
             <span>Verify</span>
         </a>
-        <!-- Tab 3: For Business (SMEs) -->
-        <a href="{% url 'business' %}" class="vng-bottom-tab {% if request.resolver_match.url_name == 'business' %}active{% endif %}">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
-                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
-            </svg>
-            <span>Business</span>
-        </a>
+        
         <!-- Tab 4: Safety & Security -->
         <a href="{% url 'safety' %}" class="vng-bottom-tab {% if request.resolver_match.url_name in 'safety,security,safety_security' %}active{% endif %}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -1100,12 +1094,28 @@
             <span>Safety</span>
         </a>
         {% if user.is_authenticated %}
+        <!-- Tab 3: Report Fraud -->
+        <a href="{% url 'reports:create' %}" class="vng-bottom-tab {% if request.resolver_match.app_name == 'reports' or request.resolver_match.url_name == 'report' %}active{% endif %}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                <path d="M12 8v4M12 16h.01"/>
+            </svg>
+            <span>Report Fraud</span>
+        </a>
         <!-- Tab 5: Account Hub (Authenticated Users) -->
         <a href="{% url 'users:account_hub' %}" class="vng-bottom-tab {% if request.resolver_match.url_name in 'account_hub,profile,password_change,delete_account' %}active{% endif %}">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="7" r="4"/><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/></svg>
             <span>Account</span>
         </a>
         {% else %}
+        <!-- Tab 3: For Business (SMEs) -->
+        <a href="{% url 'business' %}" class="vng-bottom-tab {% if request.resolver_match.url_name == 'business' %}active{% endif %}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+            </svg>
+            <span>Business</span>
+        </a>
         <!-- Tab 5: Report Fraud (Guests) -->
         <a href="{% url 'reports:create' %}" class="vng-bottom-tab {% if request.resolver_match.app_name == 'reports' or request.resolver_match.url_name == 'report' %}active{% endif %}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -1114,6 +1124,7 @@
             </svg>
             <span>Report</span>
         </a>
+
         {% endif %}
         {% endif %}
     </nav>
