@@ -87,7 +87,7 @@
                         Register Business Portal &rarr;
                     </a>
                     <a href="{% url 'check' %}" class="btn px-4 py-3 fw-bold fs-6 shadow-sm" style="background: #FFFFFF !important; border: 1px solid #CBD5E1 !important; color: #011B33 !important; border-radius: 12px;">
-                        Verify Counterparty / Vendor
+                        Check Supplier or Partner
                     </a>
                 </div>
 
@@ -135,7 +135,7 @@
                             <div class="progress-bar bg-success" style="width: 98%;"></div>
                         </div>
                         <div class="d-flex justify-content-between text-muted" style="font-size: 11px;">
-                            <span>Counterparty Risk: Low</span>
+                            <span>Fraud Risk: Clean (0 Reports)</span>
                             <span>Audit Score: 98/100</span>
                         </div>
                     </div>
@@ -147,7 +147,7 @@
                                 <span class="biz-check-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>
                                 <div class="text-start">
                                     <div class="fw-bold" style="color: #011B33; font-size: 12px;">Corporate CAC Validation</div>
-                                    <div class="text-muted" style="font-size: 10.5px;">Active Registered Business Entity</div>
+                                    <div class="text-muted" style="font-size: 10.5px;">Active Registered Company (CAC)</div>
                                 </div>
                             </div>
                             <span class="badge" style="background: #EAF1FF; color: #2457D6; font-size: 10px;">CERTIFIED</span>
@@ -291,20 +291,20 @@
                 How {{ site_config.site_name|default:"VerifyNG" }} Empowers Your Business
             </h2>
             <p class="text-muted mb-0">
-                We replace guesswork and blind trust with cryptographically backed records, rapid lookup intelligence, and community-moderated fraud defense.
+                We replace guesswork and blind trust with real government records, 10-second lookup checks, and verified scam alerts.
             </p>
         </div>
 
         <!-- 4 Core Bridges -->
         <div class="row g-4">
             
-            <!-- Bridge 1: Pre-Transaction Due Diligence -->
+            <!-- Bridge 1: Check Before You Pay -->
             <div class="col-md-6 col-lg-3">
                 <div class="vng-card p-4 h-100 d-flex flex-column shadow-sm bg-white" style="border: 1px solid #E2E8F0; border-radius: 14px;">
                     <div class="rounded-circle d-flex align-items-center justify-content-center mb-3" style="width: 48px; height: 48px; background: #EAF6FC; color: #2457D6;">
                         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><path d="M21 21L16.65 16.65"/></svg>
                     </div>
-                    <h3 class="h6 fw-bold mb-2" style="color: #011B33;">Instant Pre-Trade Lookup</h3>
+                    <h3 class="h6 fw-bold mb-2" style="color: #011B33;">Instant Supplier Check</h3>
                     <p class="text-muted mb-3 flex-grow-1" style="font-size: 0.95rem; line-height: 1.6;">
                         Run a fast check on any phone number, corporate CAC number, or bank account before dispatching orders or paying raw material invoices.
                     </p>
@@ -354,10 +354,10 @@
                     </div>
                     <h3 class="h6 fw-bold mb-2" style="color: #011B33;">Smear Campaign Protection</h3>
                     <p class="text-muted mb-3 flex-grow-1" style="font-size: 0.95rem; line-height: 1.6;">
-                        Legitimate businesses are shielded under NDPR rules. We require documented proof and offer full dispute rebuttal before any public allegation is considered.
+                        Honest businesses are completely protected. We never accept anonymous rumors. Every complaint must have bank receipts and chat proof, and you get direct right of reply to clear any misunderstanding.
                     </p>
                     <a href="{% url 'reports:create' %}" class="small fw-bold text-decoration-none mt-auto" style="color: #011B33;">
-                        Learn Due Process &rarr;
+                        How We Protect Honest Businesses &rarr;
                     </a>
                 </div>
             </div>
@@ -480,7 +480,7 @@
                     Powering Trust for Intra-African Trade
                 </h2>
                 <p class="text-white-50 mb-4" style="line-height: 1.65; font-size: 1.05rem;">
-                    The African Continental Free Trade Area (AfCFTA) creates a 1.3-billion-person single market. But commerce cannot flow without verifiable counterparty trust. {{ site_config.site_name|default:"VerifyNG" }} is building the commercial trust infrastructure for businesses trading across Nigeria, West Africa, and the entire continent.
+                    Trading across Africa holds huge opportunities, but sending money or goods across borders without knowing who you're dealing with is risky. {{ site_config.site_name|default:"VerifyNG" }} gives you the confidence to verify cross-border partners and trade safely.
                 </p>
                 <div class="row g-3">
                     <div class="col-sm-6">
@@ -530,7 +530,7 @@
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :class="open ? 'rotate-180' : ''" style="transition: transform 0.2s; color: #0099cc; flex-shrink: 0; margin-left: 12px;"><polyline points="6 9 12 15 18 9"/></svg>
                     </button>
                     <div class="border-top" x-show="open" style="display: none; padding: 1.25rem; font-size: 1.05rem; line-height: 1.75; color: #1E293B; background: #F8FAFC;">
-                        TrustPass™ gives your business an official, cryptographically verified link and badge confirming your CAC incorporation, verified bank accounts, and clean record with zero fraud complaints. Displaying this on your Instagram bio, WhatsApp, and invoices removes customer fear and dramatically reduces abandoned carts.
+                        TrustPass™ gives your business an official verified badge and link showing your confirmed CAC registration, verified corporate bank accounts, and a clean record with zero scam complaints. Putting this badge on your Instagram bio, WhatsApp catalog, and invoices reassures buyers and boosts your daily sales.
                     </div>
                 </div>
 
@@ -540,7 +540,7 @@
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :class="open ? 'rotate-180' : ''" style="transition: transform 0.2s; color: #0099cc; flex-shrink: 0; margin-left: 12px;"><polyline points="6 9 12 15 18 9"/></svg>
                     </button>
                     <div class="border-top" x-show="open" style="display: none; padding: 1.25rem; font-size: 1.05rem; line-height: 1.75; color: #1E293B; background: #F8FAFC;">
-                        {{ site_config.site_name|default:"VerifyNG" }} strictly forbids smear campaigns. No allegation is published without audited evidence (receipts, transaction records, and verified chat histories). Every business is given formal notice, full dispute rights, and independent human review under NDPR compliance guidelines.
+                        {{ site_config.site_name|default:"VerifyNG" }} strictly forbids fake reports and blackmail. No complaint is ever published without audited evidence (bank transfer receipts, invoice records, and chat screenshots). Every business is contacted directly, given full right to reply, and reviewed by a real person to ensure 100% fairness.
                     </div>
                 </div>
 

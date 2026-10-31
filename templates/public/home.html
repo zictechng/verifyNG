@@ -206,17 +206,17 @@
                         </a>
                     </div>
 
-                    <!-- Tab 2: Report Suspicious Entity -->
+                    <!-- Tab 2: Report Suspicious Person or Business -->
                     <div x-show="activeTab === 'report'" style="display: none;">
                         <p class="mb-3" style="color: #475569; line-height: 1.55;">
-                            Have you ever be scammed or encountered a scam, fake online vendor, bad real estate agent, or fraudulent company? Share your story by submitting a documented allegation report to protect the public.
+                            Have you ever been scammed or encountered a fake online seller, dishonest real estate agent, or rogue business? Share what happened and upload your payment proof to protect other Nigerians.
                         </p>
                         <div class="p-2.5 rounded-3 mb-3 d-flex align-items-center gap-2" style="background: #FEF3C7; border: 1px solid #FDE68A; color: #78350F;">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="flex-shrink-0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                            <span class="fw-semibold" style="font-size: 14px; line-height: 1.35; color: #78350F;">All reports undergo human moderation with proof of transaction and strict due process.</span>
+                            <span class="fw-semibold" style="font-size: 14px; line-height: 1.35; color: #78350F;">Every report is verified by real people with payment receipts and bank proofs before it goes live.</span>
                         </div>
                         <a href="{% url 'reports:create' %}" class="btn btn-vng-primary w-100 py-2.5 fw-bold fs-6 shadow-sm">
-                            Report Suspicious Activity &rarr;
+                            Report a Scammer or Fake Seller &rarr;
                         </a>
                     </div>
                 </div>
@@ -270,7 +270,7 @@
                         </div>
                         <div class="text-start min-w-0">
                             <div class="badge-title fw-bold text-dark" style="font-size: 12px; line-height: 1.2;">Dispute Rights</div>
-                            <div class="badge-sub" style="font-size: 10.5px; color: #475569; font-weight: 500;">Fair Due Process &amp; NDPR</div>
+                            <div class="badge-sub" style="font-size: 10.5px; color: #475569; font-weight: 500;">Fair Hearing &amp; Law Protected</div>
                         </div>
                         <span class="badge badge-tag ms-auto" style="background: #EAF1FF; color: #2457D6; font-size: 9.5px; font-weight: 700;">LEGAL</span>
                     </div>
@@ -291,7 +291,7 @@
                 What {{ site_config.site_name|default:"VerifyNG" }} Protects You From Every Day
             </h2>
             <p class="text-muted small fs-6 mb-0">
-                Millions of Naira are lost daily to preventable scams. {{ site_config.site_name|default:"VerifyNG" }} gives you verified, pre-transaction clarity before you send money or sign documents.
+                Millions of Naira are lost every day to online tricks and fake transfers. {{ site_config.site_name|default:"VerifyNG" }} lets you check the truth in seconds before you pay or sign any agreement.
             </p>
         </div>
 
@@ -310,7 +310,7 @@
                         Found a vendor on Instagram, TikTok, or WhatsApp? Check their bank account number and phone records to confirm they don't have past unfulfilled delivery complaints.
                     </p>
                     <a href="{% url 'check' %}" class="small fw-bold text-decoration-none mt-auto" style="color: #011B33;">
-                        Verify a Vendor &rarr;
+                        Check Online Seller &rarr;
                     </a>
                 </div>
             </div>
@@ -327,7 +327,7 @@
                         Don't pay for ghost land or fake rentals. Verify real estate developers, property managers, and independent house agents before paying inspection or buying any property.
                     </p>
                     <a href="{% url 'check' %}" class="small fw-bold text-decoration-none mt-auto" style="color: #011B33;">
-                        Verify Real Estate Entity &rarr;
+                        Verify Property Agent &rarr;
                     </a>
                 </div>
             </div>
@@ -358,7 +358,7 @@
                     </div>
                     <h3 class="h6 fw-bold mb-2" style="color: #011B33;">Staff, Drivers &amp; Freelancers</h3>
                     <p class="text-muted mb-3 flex-grow-1" style="font-size: 0.95rem; line-height: 1.6;">
-                        Hiring a personal driver, domestic helper, or contractor? Screen their verifiable identity and past misconduct records to ensure complete safety in your home or office.
+                        Hiring a driver, home cleaner, or artisan? Confirm who they really are and check if they have past theft or fraud reports before welcoming them into your home or office.
                     </p>
                     <a href="{% url 'users:register_employer' %}" class="small fw-bold text-decoration-none mt-auto" style="color: #011B33;">
                         Employer Screening Portal &rarr;
@@ -380,7 +380,7 @@
                 Simple &bull; Secure &bull; Fast
             </span>
             <h2 class="h3 fw-bold mb-2" style="color: #011B33; font-size: 1.85rem;">How {{ site_config.site_name|default:"VerifyNG" }} Works</h2>
-            <p class="text-muted mb-0" style="font-size: 1.05rem; line-height: 1.6;">Three transparent steps to verify entities and protect yourself from fraud.</p>
+            <p class="text-muted mb-0" style="font-size: 1.05rem; line-height: 1.6;">Three simple steps to check anyone and avoid losing your money.</p>
         </div>
 
         <div class="row g-4">
@@ -391,9 +391,9 @@
                          style="width: 48px; height: 48px; background: var(--vng-primary-light); border: 1px solid #C7D9F8; color: #011B33; font-size: 18px;">
                         1
                     </div>
-                    <h4 class="fw-bold mb-2.5 fs-5" style="color: #011B33;">Enter Entity Details</h4>
+                    <h4 class="fw-bold mb-2.5 fs-5" style="color: #011B33;">1. Enter Details</h4>
                     <p class="mb-0" style="font-size: 1.025rem; line-height: 1.65; color: #475569 !important;">
-                        Type in any mobile phone number, Nigerian bank account number, CAC company registration number, or full legal name into the search console.
+                        Type in any mobile phone number, Nigerian bank account number, CAC company name, or person's name into the search box.
                     </p>
                 </div>
             </div>
@@ -405,9 +405,9 @@
                          style="width: 48px; height: 48px; background: var(--vng-primary-light); border: 1px solid #C7D9F8; color: #011B33; font-size: 18px;">
                         2
                     </div>
-                    <h4 class="fw-bold mb-2.5 fs-5" style="color: #011B33;">Inspect Verified History</h4>
+                    <h4 class="fw-bold mb-2.5 fs-5" style="color: #011B33;">2. See Real Records</h4>
                     <p class="mb-0" style="font-size: 1.025rem; line-height: 1.65; color: #475569 !important;">
-                        {{ site_config.site_name|default:"VerifyNG" }} cross-references our human-moderated database, past dispute outcomes, verified credentials, and active risk alerts in real-time.
+                        {{ site_config.site_name|default:"VerifyNG" }} instantly checks if there are past scam complaints, confirms matching bank account names, and validates CAC business registration.
                     </p>
                 </div>
             </div>
@@ -419,9 +419,9 @@
                          style="width: 48px; height: 48px; background: var(--vng-primary-light); border: 1px solid #C7D9F8; color: #011B33; font-size: 18px;">
                         3
                     </div>
-                    <h4 class="fw-bold mb-2.5 fs-5" style="color: #011B33;">Transact Safely or Report</h4>
+                    <h4 class="fw-bold mb-2.5 fs-5" style="color: #011B33;">3. Pay Safely or Report</h4>
                     <p class="mb-0" style="font-size: 1.025rem; line-height: 1.65; color: #475569 !important;">
-                        Proceed with complete confidence knowing the risk profile, or submit a formal, evidence-backed report to warn the wider community.
+                        Send your money with complete peace of mind knowing they are genuine, or submit a report with your payment proof to warn other buyers.
                     </p>
                 </div>
             </div>
@@ -454,9 +454,9 @@
                          style="background: #EAF6FC; color: #011B33; font-size: 13.5px; font-weight: 700; width: fit-content;">
                         FOR INDIVIDUALS &amp; CONSUMERS
                     </div>
-                    <h3 class="h4 fw-bold mb-3" style="color: #011B33; font-size: 1.35rem;">Protect Yourself &amp; Transact Safely</h3>
+                    <h3 class="h4 fw-bold mb-3" style="color: #011B33; font-size: 1.35rem;">Protect Yourself &amp; Pay Safely</h3>
                     <p class="text-muted mb-4" style="font-size: 1.05rem; line-height: 1.68;">
-                        Search any counterparty before making payments, get verify official TrustPass™ certificates to prove your credibility to landlords and employers in real time.
+                        Check any seller or receiver before you transfer money, and get your own verified TrustPass™ badge to prove to buyers and clients that you are 100% genuine.
                     </p>
                     <ul class="list-unstyled mb-4 d-flex flex-column gap-2.5 text-muted" style="font-size: 1.025rem;">
                         <li class="d-flex align-items-center gap-2">
@@ -539,9 +539,9 @@
                     </svg>
                 </div>
                 <div>
-                    <h4 class="fw-bold mb-1 fs-6" style="color: #011B33;">Our Commitment to Fairness &amp; Due Process</h4>
+                    <h4 class="fw-bold mb-1 fs-6" style="color: #011B33;">Fair Hearing &amp; No False Accusations</h4>
                     <p class="small mb-0 text-muted" style="line-height: 1.6;">
-                        {{ site_config.site_name|default:"VerifyNG" }} strictly prohibits malicious smear campaigns. Every reported entity has the right to dispute, submit counter-evidence, and have allegations independently reviewed by human compliance officers under Nigerian Data Protection Regulation (NDPR) guidelines.
+                        {{ site_config.site_name|default:"VerifyNG" }} never allows false rumors or smear campaigns. We demand real bank payment receipts and chat proof. If anyone is reported, they are notified immediately and given the right to share their side of the story and clear their name.
                     </p>
                 </div>
             </div>
@@ -574,7 +574,7 @@
                         </h2>
                         <div id="faqCollapse1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
                             <div class="accordion-body small text-muted border-top" style="line-height: 1.65;">
-                                You can search mobile phone numbers, Nigerian bank account numbers, Corporate Affairs Commission (CAC) business registration numbers, and individual identities. {{ site_config.site_name|default:"VerifyNG" }} checks against verified public fraud reports, resolved dispute histories, and active TrustPass credentials.
+                                You can search mobile phone numbers, Nigerian bank account numbers, Corporate Affairs Commission (CAC) registered business names, and individual IDs. {{ site_config.site_name|default:"VerifyNG" }} checks against verified scam reports, past dispute outcomes, and official TrustPass badges.
                             </div>
                         </div>
                     </div>
@@ -588,7 +588,7 @@
                         </h2>
                         <div id="faqCollapse2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
                             <div class="accordion-body small text-muted border-top" style="line-height: 1.65;">
-                                Every report requires verifiable proof (payment receipts, bank statements, contract agreements, or chat logs). Reports are reviewed by human compliance officers before approval. If an entity is reported, they receive an immediate right of rebuttal and formal dispute resolution.
+                                No report is published without real proof — such as bank transfer receipts, WhatsApp chat screenshots, or invoices. Our team reviews every piece of evidence by hand. If a business or person is mentioned, they are contacted directly to respond and resolve any genuine misunderstanding.
                             </div>
                         </div>
                     </div>
@@ -602,7 +602,7 @@
                         </h2>
                         <div id="faqCollapse3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
                             <div class="accordion-body small text-muted border-top" style="line-height: 1.65;">
-                                Yes. Sensitive identifiers (such as NIN, BVN, and financial records) are cryptographically hashed using peppered HMAC-SHA256 algorithms. {{ site_config.site_name|default:"VerifyNG" }} never sells personal data and complies strictly with the Nigeria Data Protection Act.
+                                Yes. We use military-grade bank encryption to protect your information (like your NIN or BVN). {{ site_config.site_name|default:"VerifyNG" }} never sells your personal data to anyone, and we follow Nigeria's data protection laws (NDPA 2023) to keep you safe.
                             </div>
                         </div>
                     </div>

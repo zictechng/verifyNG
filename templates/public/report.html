@@ -13,8 +13,7 @@
                 <span class="vng-badge-trust mb-2">Community Safety</span>
                 <h1 class="h3 fw-bold">Submit a Fraud or Scam Report</h1>
                 <p class="small text-muted mb-0">
-                    Reports undergo a neutral moderation review before publication.
-                    Allegations are user-submitted claims and are not treated as established facts.
+                    Every report is carefully reviewed with proof of payment before publication. We verify bank receipts and chat proof to ensure 100% honesty.
                 </p>
             </div>
 
@@ -56,7 +55,7 @@
                 <!-- ── Section 1: Subject Identity ── -->
                 <div class="vng-card p-4 mb-4">
                     <h6 class="fw-bold text-uppercase small text-muted mb-3 border-bottom pb-2">
-                        Section 1 — Subject Identification
+                        Section 1 — Who Are You Reporting?
                     </h6>
                     <p class="small text-muted mb-3">
                         Identify the person or business you are reporting. Provide as many identifiers as you
@@ -78,7 +77,7 @@
                         <!-- Subject Type -->
                         <div class="col-md-4">
                             <label for="{{ form.subject_type.id_for_label }}" class="form-label small fw-semibold">
-                                Entity Type <span class="text-danger">*</span>
+                                Who Are You Reporting? (Person or Business) <span class="text-danger">*</span>
                             </label>
                             {{ form.subject_type }}
                             {% if form.subject_type.errors %}
@@ -234,12 +233,11 @@
                         <!-- Allegation -->
                         <div class="col-12">
                             <label for="{{ form.allegation.id_for_label }}" class="form-label small fw-semibold">
-                                Detailed Allegation <span class="text-danger">*</span>
+                                What Happened? (Describe the Incident) <span class="text-danger">*</span>
                             </label>
                             {{ form.allegation }}
                             <div class="form-text">
-                                Provide a clear, factual, chronological account. Include transaction references,
-                                dates, amounts, and any other verifiable details.
+                                Tell us what happened step-by-step. Mention what you were buying, how much money you sent, the date, and what the seller or person did.
                             </div>
                             {% if form.allegation.errors %}
                             <div class="invalid-feedback d-block">{{ form.allegation.errors|join:", " }}</div>
@@ -254,8 +252,7 @@
                         Section 3 — Supporting Evidence <span class="fw-normal text-muted">(Optional)</span>
                     </h6>
                     <p class="small text-muted mb-3">
-                        Attach one file to support your allegation. Accepted formats: PNG, JPG, PDF, DOC, DOCX
-                        (maximum 10 MB). Evidence is stored privately and shared only with VerifyNG moderators.
+                        Upload your bank transfer receipt, debit alert, or WhatsApp chat screenshot (PNG, JPG, PDF, max 10MB). Your proof is kept secure and seen only by our moderation team.
                     </p>
 
                     <div class="row g-3">
