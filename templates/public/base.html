@@ -603,7 +603,7 @@
     
     {% block extra_head %}{% endblock %}
 </head>
-<body class="{% block body_class %}{% if request.resolver_match.url_name != 'login' and request.resolver_match.url_name != 'register' and request.resolver_match.url_name != 'password_reset' %}has-bottom-nav{% endif %}{% endblock %}">
+<body class="{% block body_class %}has-bottom-nav{% endblock %}">
 
     <!-- Top Navigation Header (Sticky on Desktop and Mobile) -->
     <header class="sticky-top" style="position: sticky !important; top: 0 !important; z-index: 1020 !important;">
@@ -1019,7 +1019,6 @@
 
     <!-- Mobile-First Sticky App Bottom Navigation -->
     {% block mobile_bottom_nav %}
-    {% if request.resolver_match.url_name != 'login' and request.resolver_match.url_name != 'register' and request.resolver_match.url_name != 'password_reset' %}
     <nav class="vng-bottom-nav d-md-none" aria-label="Mobile Navigation">
        
         <!-- Tab 1: Home / Dashboard -->
@@ -1128,7 +1127,6 @@
         {% endif %}
         {% endif %}
     </nav>
-    {% endif %}
     {% endblock %}
 
     <!-- Logout Confirmation Modal — lives here, hidden until triggered -->
