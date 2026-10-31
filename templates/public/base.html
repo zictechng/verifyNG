@@ -102,18 +102,36 @@
             font-weight: 400;
         }
 
-        /* Small Paragraphs & Secondary notes across cards, tables, sections */
-        p.small, .card p.small, .vng-card p.small, p.text-muted, .text-muted p, p.fs-6 {
-            font-size: 0.95rem !important;
+        /* Small Paragraphs, Divs & Secondary notes across cards, tables, sections */
+        .small, small,
+        p.small, .card p.small, .vng-card p.small, p.text-muted, .text-muted p, p.fs-6,
+        .card .small, .vng-card .small, .card div.small, .vng-card div.small {
+            font-size: 0.975rem !important;
             line-height: 1.62 !important;
             color: #334155 !important; /* Crisp, readable contrast (never washed-out light gray) */
         }
 
-        /* Inside cards and content containers */
+        /* Inside cards and content containers (p, div, span, li) */
+        .card, .vng-card {
+            font-size: 1.0625rem;
+        }
+
         .card p, .vng-card p, .modal-body p {
-            font-size: 1.025rem !important;
-            line-height: 1.65 !important;
+            font-size: 1.0625rem !important;
+            line-height: 1.68 !important;
             color: #1E293B !important;
+        }
+
+        .card div:not(.btn):not(.badge):not(.dropdown-menu), 
+        .vng-card div:not(.btn):not(.badge):not(.dropdown-menu) {
+            font-size: 1.025rem;
+            line-height: 1.62;
+        }
+
+        .card ul li, .vng-card ul li {
+            font-size: 1.025rem;
+            line-height: 1.65;
+            color: #334155;
         }
 
         /* Paragraphs & Text on Dark Surfaces (Footer, Dark Cards/Banners) */
@@ -122,6 +140,8 @@
         .vng-footer .vng-footer-muted,
         .vng-footer p.vng-footer-muted,
         .vng-footer div,
+        .vng-footer ul,
+        .vng-footer li,
         .bg-dark p,
         .text-white p,
         p.text-white {
@@ -130,19 +150,24 @@
 
         @media (max-width: 767.98px) {
             p {
-                font-size: 1rem !important;
+                font-size: 1.025rem !important;
                 line-height: 1.62 !important;
                 color: #1E293B !important;
             }
             p.lead, .lead {
-                font-size: 1.075rem !important;
-                line-height: 1.58 !important;
+                font-size: 1.125rem !important;
+                line-height: 1.6 !important;
                 color: #0F172A !important;
             }
-            p.small, .card p.small, .vng-card p.small, p.text-muted {
-                font-size: 0.925rem !important;
-                line-height: 1.55 !important;
+            p.small, .card p.small, .vng-card p.small, p.text-muted, .small {
+                font-size: 0.95rem !important;
+                line-height: 1.58 !important;
                 color: #334155 !important;
+            }
+            .card div:not(.btn):not(.badge):not(.dropdown-menu), 
+            .vng-card div:not(.btn):not(.badge):not(.dropdown-menu) {
+                font-size: 0.975rem;
+                line-height: 1.58;
             }
         }
 
@@ -368,37 +393,42 @@
             padding: 3.5rem 0 2.5rem 0 !important;
             margin-top: auto;
             border-top: 1px solid #1E293B;
-            font-size: 0.925rem;
+            font-size: 1.025rem;
         }
 
         .vng-footer p,
         .vng-footer p.small,
         .vng-footer .small,
         .vng-footer p.vng-footer-muted,
-        .vng-footer .vng-footer-muted {
+        .vng-footer .vng-footer-muted,
+        .vng-footer ul,
+        .vng-footer li {
             color: #CBD5E1 !important; /* Luminous, highly visible silver-slate */
-            font-size: 0.95rem !important;
-            line-height: 1.65 !important;
+            font-size: 1.025rem !important;
+            line-height: 1.68 !important;
         }
 
         .vng-footer div {
             color: #E2E8F0 !important;
+            font-size: 1rem;
         }
 
         .vng-footer h6 {
             color: #FFFFFF !important;
             font-weight: 700 !important;
-            font-size: 1rem !important;
+            font-size: 1.15rem !important;
             letter-spacing: -0.01em;
         }
 
         @media (max-width: 767.98px) {
             .vng-footer p,
             .vng-footer p.small,
-            .vng-footer .vng-footer-muted {
+            .vng-footer .vng-footer-muted,
+            .vng-footer a,
+            .vng-footer li {
                 color: #CBD5E1 !important;
-                font-size: 0.925rem !important;
-                line-height: 1.6 !important;
+                font-size: 0.975rem !important;
+                line-height: 1.65 !important;
             }
             .vng-footer.vng-footer-authenticated {
                 padding: 1.25rem 0 1.25rem 0 !important;
@@ -413,7 +443,7 @@
             color: #E2E8F0 !important;
             text-decoration: none;
             transition: color 0.15s ease;
-            font-size: 0.95rem;
+            font-size: 1.025rem !important;
         }
 
         .vng-footer a:hover {
@@ -1014,13 +1044,13 @@
             </svg>
             <span>Verify</span>
         </a>
-        <!-- Tab 3: Safety & Security -->
-        <a href="{% url 'safety' %}" class="vng-bottom-tab {% if request.resolver_match.url_name in 'safety,security,safety_security' %}active{% endif %}">
+        <!-- Tab 3: For Business (SMEs) -->
+        <a href="{% url 'business' %}" class="vng-bottom-tab {% if request.resolver_match.url_name == 'business' %}active{% endif %}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                <polyline points="9 12 11 14 15 10"/>
+                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
             </svg>
-            <span>Safety</span>
+            <span>Business</span>
         </a>
         <!-- Tab 4: Report Fraud -->
         <a href="{% url 'reports:create' %}" class="vng-bottom-tab {% if request.resolver_match.app_name == 'reports' or request.resolver_match.url_name == 'report' %}active{% endif %}">
@@ -1037,7 +1067,7 @@
         </a>
 
         {% else %}
-        <!-- Individuals, Admins, and Guests: 5 Tabs -->
+        <!-- Individuals, Admins, and Guests: 5 Clean Tabs (No Login Tab) -->
         <!-- Tab 2: Verify -->
         <a href="{% url 'check' %}" class="vng-bottom-tab {% if request.resolver_match.url_name == 'check' %}active{% endif %}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -1046,7 +1076,15 @@
             </svg>
             <span>Verify</span>
         </a>
-        <!-- Tab 3: Safety & Security -->
+        <!-- Tab 3: For Business (SMEs) -->
+        <a href="{% url 'business' %}" class="vng-bottom-tab {% if request.resolver_match.url_name == 'business' %}active{% endif %}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+            </svg>
+            <span>Business</span>
+        </a>
+        <!-- Tab 4: Safety & Security -->
         <a href="{% url 'safety' %}" class="vng-bottom-tab {% if request.resolver_match.url_name in 'safety,security,safety_security' %}active{% endif %}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
@@ -1054,7 +1092,14 @@
             </svg>
             <span>Safety</span>
         </a>
-        <!-- Tab 4: Report Fraud -->
+        {% if user.is_authenticated %}
+        <!-- Tab 5: Account Hub (Authenticated Users) -->
+        <a href="{% url 'users:account_hub' %}" class="vng-bottom-tab {% if request.resolver_match.url_name in 'account_hub,profile,password_change,delete_account' %}active{% endif %}">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="7" r="4"/><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/></svg>
+            <span>Account</span>
+        </a>
+        {% else %}
+        <!-- Tab 5: Report Fraud (Guests) -->
         <a href="{% url 'reports:create' %}" class="vng-bottom-tab {% if request.resolver_match.app_name == 'reports' or request.resolver_match.url_name == 'report' %}active{% endif %}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
@@ -1062,21 +1107,6 @@
             </svg>
             <span>Report</span>
         </a>
-        <!-- Tab 5: Account (or Log In) -->
-        {% if user.is_authenticated %}
-            <a href="{% url 'users:account_hub' %}" class="vng-bottom-tab {% if request.resolver_match.url_name in 'account_hub,profile,password_change,delete_account' %}active{% endif %}">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="7" r="4"/><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/></svg>
-                <span>Account</span>
-            </a>
-        {% else %}
-            <a href="{% url 'users:login' %}" class="vng-bottom-tab {% if request.resolver_match.url_name == 'login' %}active{% endif %}">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
-                    <polyline points="10 17 15 12 10 7"/>
-                    <line x1="15" y1="12" x2="3" y2="12"/>
-                </svg>
-                <span>Log In</span>
-            </a>
         {% endif %}
         {% endif %}
     </nav>
