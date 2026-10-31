@@ -517,49 +517,49 @@
 <section class="py-5" style="background: #FFFFFF;">
     <div class="container py-3">
         <div class="text-center mb-5 max-w-700 mx-auto" style="max-width: 680px;">
-            <h2 class="h3 fw-bold mb-2" style="color: #011B33;">Business &amp; SME Frequently Asked Questions</h2>
-            <p class="text-muted mb-0">Learn how {{ site_config.site_name|default:"VerifyNG" }} works for your company, staff, and partners.</p>
+            <h2 class="h3 fw-bold mb-2" style="color: #011B33; font-size: 1.75rem;">Business &amp; SME Frequently Asked Questions</h2>
+            <p class="mb-0" style="color: #475569; font-size: 1.1rem; line-height: 1.6;">Learn how {{ site_config.site_name|default:"VerifyNG" }} works for your company, staff, and partners.</p>
         </div>
 
         <div class="row justify-content-center">
             <div class="col-lg-8">
                 
                 <div class="vng-card mb-3 overflow-hidden shadow-sm" style="border: 1px solid #E2E8F0; border-radius: 12px;" x-data="{ open: false }">
-                    <button class="w-100 p-3 text-start bg-white border-0 d-flex justify-content-between align-items-center" @click="open = !open">
-                        <span class="fw-bold" style="color: #011B33; font-size: 15px;">How does TrustPass™ help my business increase sales?</span>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :class="open ? 'rotate-180' : ''" style="transition: transform 0.2s;"><polyline points="6 9 12 15 18 9"/></svg>
+                    <button class="w-100 p-3.5 px-4 text-start bg-white border-0 d-flex justify-content-between align-items-center" @click="open = !open" style="padding: 1.15rem 1.25rem;">
+                        <span class="fw-bold" style="color: #011B33; font-size: 1.1rem; line-height: 1.45;">How does TrustPass™ help my business increase sales?</span>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :class="open ? 'rotate-180' : ''" style="transition: transform 0.2s; color: #0099cc; flex-shrink: 0; margin-left: 12px;"><polyline points="6 9 12 15 18 9"/></svg>
                     </button>
-                    <div class="p-3 pt-0 border-top text-muted" x-show="open" style="display: none; font-size: 14px; line-height: 1.6;">
+                    <div class="border-top" x-show="open" style="display: none; padding: 1.25rem; font-size: 1.05rem; line-height: 1.75; color: #1E293B; background: #F8FAFC;">
                         TrustPass™ gives your business an official, cryptographically verified link and badge confirming your CAC incorporation, verified bank accounts, and clean record with zero fraud complaints. Displaying this on your Instagram bio, WhatsApp, and invoices removes customer fear and dramatically reduces abandoned carts.
                     </div>
                 </div>
 
                 <div class="vng-card mb-3 overflow-hidden shadow-sm" style="border: 1px solid #E2E8F0; border-radius: 12px;" x-data="{ open: false }">
-                    <button class="w-100 p-3 text-start bg-white border-0 d-flex justify-content-between align-items-center" @click="open = !open">
-                        <span class="fw-bold" style="color: #011B33; font-size: 15px;">What if a dishonest competitor maliciously reports my company?</span>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :class="open ? 'rotate-180' : ''" style="transition: transform 0.2s;"><polyline points="6 9 12 15 18 9"/></svg>
+                    <button class="w-100 p-3.5 px-4 text-start bg-white border-0 d-flex justify-content-between align-items-center" @click="open = !open" style="padding: 1.15rem 1.25rem;">
+                        <span class="fw-bold" style="color: #011B33; font-size: 1.1rem; line-height: 1.45;">What if a dishonest competitor maliciously reports my company?</span>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :class="open ? 'rotate-180' : ''" style="transition: transform 0.2s; color: #0099cc; flex-shrink: 0; margin-left: 12px;"><polyline points="6 9 12 15 18 9"/></svg>
                     </button>
-                    <div class="p-3 pt-0 border-top text-muted" x-show="open" style="display: none; font-size: 14px; line-height: 1.6;">
+                    <div class="border-top" x-show="open" style="display: none; padding: 1.25rem; font-size: 1.05rem; line-height: 1.75; color: #1E293B; background: #F8FAFC;">
                         {{ site_config.site_name|default:"VerifyNG" }} strictly forbids smear campaigns. No allegation is published without audited evidence (receipts, transaction records, and verified chat histories). Every business is given formal notice, full dispute rights, and independent human review under NDPR compliance guidelines.
                     </div>
                 </div>
 
                 <div class="vng-card mb-3 overflow-hidden shadow-sm" style="border: 1px solid #E2E8F0; border-radius: 12px;" x-data="{ open: false }">
-                    <button class="w-100 p-3 text-start bg-white border-0 d-flex justify-content-between align-items-center" @click="open = !open">
-                        <span class="fw-bold" style="color: #011B33; font-size: 15px;">Can our business verify candidates and drivers in bulk?</span>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :class="open ? 'rotate-180' : ''" style="transition: transform 0.2s;"><polyline points="6 9 12 15 18 9"/></svg>
+                    <button class="w-100 p-3.5 px-4 text-start bg-white border-0 d-flex justify-content-between align-items-center" @click="open = !open" style="padding: 1.15rem 1.25rem;">
+                        <span class="fw-bold" style="color: #011B33; font-size: 1.1rem; line-height: 1.45;">Can our business verify candidates and drivers in bulk?</span>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :class="open ? 'rotate-180' : ''" style="transition: transform 0.2s; color: #0099cc; flex-shrink: 0; margin-left: 12px;"><polyline points="6 9 12 15 18 9"/></svg>
                     </button>
-                    <div class="p-3 pt-0 border-top text-muted" x-show="open" style="display: none; font-size: 14px; line-height: 1.6;">
+                    <div class="border-top" x-show="open" style="display: none; padding: 1.25rem; font-size: 1.05rem; line-height: 1.75; color: #1E293B; background: #F8FAFC;">
                         Yes. Our dedicated Employer Portal allows registered businesses to upload candidate CSV lists, perform batch verification checks, and maintain safe records for warehouse employees, drivers, and store managers.
                     </div>
                 </div>
 
                 <div class="vng-card mb-3 overflow-hidden shadow-sm" style="border: 1px solid #E2E8F0; border-radius: 12px;" x-data="{ open: false }">
-                    <button class="w-100 p-3 text-start bg-white border-0 d-flex justify-content-between align-items-center" @click="open = !open">
-                        <span class="fw-bold" style="color: #011B33; font-size: 15px;">Can we screen suppliers located in other African countries?</span>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :class="open ? 'rotate-180' : ''" style="transition: transform 0.2s;"><polyline points="6 9 12 15 18 9"/></svg>
+                    <button class="w-100 p-3.5 px-4 text-start bg-white border-0 d-flex justify-content-between align-items-center" @click="open = !open" style="padding: 1.15rem 1.25rem;">
+                        <span class="fw-bold" style="color: #011B33; font-size: 1.1rem; line-height: 1.45;">Can we screen suppliers located in other African countries?</span>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :class="open ? 'rotate-180' : ''" style="transition: transform 0.2s; color: #0099cc; flex-shrink: 0; margin-left: 12px;"><polyline points="6 9 12 15 18 9"/></svg>
                     </button>
-                    <div class="p-3 pt-0 border-top text-muted" x-show="open" style="display: none; font-size: 14px; line-height: 1.6;">
+                    <div class="border-top" x-show="open" style="display: none; padding: 1.25rem; font-size: 1.05rem; line-height: 1.75; color: #1E293B; background: #F8FAFC;">
                         Yes. While starting strongly in Nigeria, our fraud network accepts cross-border reports and verified vendor records across Ghana, Kenya, South Africa, and other African trade corridors to protect intra-African commerce.
                     </div>
                 </div>
