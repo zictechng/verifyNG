@@ -989,6 +989,7 @@
                         <li><a href="{% url 'terms' %}">Terms of Service</a></li>
                         <li><a href="{% url 'privacy' %}">Privacy Policy</a></li>
                         <li><a href="{% url 'privacy_legal' %}">NDPA Compliance</a></li>
+                        <li><a href="{% url 'contact' %}">Contact Us</a></li>
                         <li><a href="{% url 'users:login' %}">Account Login</a></li>
                     </ul>
                 </div>
@@ -1011,6 +1012,8 @@
                     <a href="{% url 'privacy' %}">Privacy</a>
                     <span class="mx-1">&bull;</span>
                     <a href="{% url 'safety' %}">Safety</a>
+                    <span class="mx-1">&bull;</span>
+                    <a href="{% url 'contact' %}">Contact</a>
                 </div>
                 <div class="vng-footer-muted">{{ site_config.footer_text|default:"Built for a safer Nigerian digital ecosystem." }}</div>
             </div>
