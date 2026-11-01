@@ -43,7 +43,7 @@
             border-radius: 4px;
         }
 
-        /* Typography & Tables */
+        /* Typography & Core Elements */
         h1, h2, h3, h4, h5, h6 {
             color: #0F172A;
             font-weight: 700;
@@ -53,21 +53,46 @@
             line-height: 1.65;
             color: #1E293B;
         }
-        .table-dossier th {
-            background-color: #F8FAFC !important;
-            color: #334155;
-            font-weight: 700;
-            text-transform: uppercase;
-            font-size: 9.5pt;
-            letter-spacing: 0.04em;
-            border-bottom: 1.5px solid #CBD5E1;
-            padding: 9px 12px;
+
+        /* Standardized Inset Card Containers (Generous Left & Right Margins) */
+        .dossier-card {
+            padding: 20px 24px !important;
+            border: 1.5px solid #CBD5E1;
+            border-radius: 8px;
+            margin-bottom: 22px;
+            background: #FFFFFF;
+            box-sizing: border-box;
         }
-        .table-dossier td {
-            border-bottom: 1px solid #E2E8F0;
-            padding: 9px 12px;
+        .dossier-card-alt {
+            padding: 20px 24px !important;
+            border: 1.5px solid #CBD5E1;
+            border-radius: 8px;
+            margin-bottom: 22px;
+            background: #F8FAFC;
+            box-sizing: border-box;
+        }
+        .dossier-card-danger {
+            padding: 22px 26px !important;
+            border: 1.5px solid #FECACA;
+            border-radius: 8px;
+            margin-bottom: 22px;
+            background: #FEF2F2;
+            box-sizing: border-box;
+        }
+        .dossier-card-loss {
+            padding: 22px 26px !important;
+            border: 2px solid #F87171;
+            border-radius: 10px;
+            margin-bottom: 22px;
+            background: #FEF2F2;
+            box-sizing: border-box;
+        }
+
+        /* Table Inset Formatting */
+        .dossier-table td {
+            padding: 7px 10px;
             vertical-align: top;
-            font-size: 10.5pt;
+            font-size: 10pt;
         }
 
         .dossier-seal-box {
@@ -165,8 +190,8 @@
         </div>
     </div>
 
-    <!-- Addressed Authority -->
-    <div class="p-3.5 rounded mb-4" style="background:#F8FAFC; border: 1.5px solid #CBD5E1;">
+    <!-- Addressed Authority (Spacious Inset Box) -->
+    <div class="dossier-card-alt mb-4">
         <div class="text-uppercase fw-bold text-secondary mb-2" style="font-size:9pt; letter-spacing:0.05em;">DIRECTED TO LAW ENFORCEMENT &amp; FINANCIAL COMPLIANCE DESKS:</div>
         <div class="fw-bold text-dark" style="font-size:10.5pt; line-height:1.65;">
             1. THE DIVISIONAL POLICE OFFICER (DPO) / INVESTIGATING POLICE OFFICER (IPO) &mdash; NIGERIA POLICE FORCE<br>
@@ -185,40 +210,40 @@
         </div>
     </div>
 
-    <!-- Parties Identification Grid -->
+    <!-- Parties Identification Grid (Generous Side Padding & Clean Tables) -->
     <div class="row g-3 mb-4">
         <div class="col-6">
-            <div class="p-3.5 rounded h-100" style="background:#FFFFFF; border:1.5px solid #CBD5E1;">
+            <div class="dossier-card h-100 mb-0">
                 <div class="fw-bold text-uppercase text-secondary border-bottom pb-2 mb-3" style="font-size:9.5pt; letter-spacing:0.04em;">
                     A. COMPLAINANT / REPORTING CITIZEN
                 </div>
-                <table class="w-100" style="font-size:10pt;">
-                    <tr><td class="text-muted py-1.5" style="width:38%;">Full Name:</td><td class="fw-bold text-dark">{{ report.reporter.get_full_name|default:report.reporter.username }}</td></tr>
-                    <tr><td class="text-muted py-1.5">Phone:</td><td class="text-dark">{{ report.reporter.phone_number|default:"Verified on file" }}</td></tr>
-                    <tr><td class="text-muted py-1.5">Email:</td><td class="text-dark">{{ report.reporter.email }}</td></tr>
-                    <tr><td class="text-muted py-1.5">Identity Status:</td><td><span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1" style="font-size:8pt;">Verified Citizen</span></td></tr>
+                <table class="w-100 dossier-table">
+                    <tr><td class="text-muted" style="width:38%;">Full Name:</td><td class="fw-bold text-dark">{{ report.reporter.get_full_name|default:report.reporter.username }}</td></tr>
+                    <tr><td class="text-muted">Phone:</td><td class="text-dark">{{ report.reporter.phone_number|default:"Verified on file" }}</td></tr>
+                    <tr><td class="text-muted">Email:</td><td class="text-dark">{{ report.reporter.email }}</td></tr>
+                    <tr><td class="text-muted">Identity Status:</td><td><span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1" style="font-size:8pt;">Verified Citizen</span></td></tr>
                 </table>
             </div>
         </div>
 
         <div class="col-6">
-            <div class="p-3.5 rounded h-100" style="background:#FFFFFF; border:1.5px solid #CBD5E1;">
+            <div class="dossier-card h-100 mb-0">
                 <div class="fw-bold text-uppercase text-secondary border-bottom pb-2 mb-3" style="font-size:9.5pt; letter-spacing:0.04em;">
                     B. ACCUSED SUSPECT / BENEFICIARY ENTITY
                 </div>
-                <table class="w-100" style="font-size:10pt;">
-                    <tr><td class="text-muted py-1.5" style="width:38%;">Suspect Name:</td><td class="fw-bold text-danger">{{ report.target_subject.name }}</td></tr>
-                    <tr><td class="text-muted py-1.5">Phone:</td><td class="font-monospace text-dark">{{ suspect_context.phone|default:"Not provided" }}</td></tr>
-                    <tr><td class="text-muted py-1.5">Bank Name:</td><td class="fw-semibold text-dark">{{ suspect_context.bank_name|default:"Not specified" }}</td></tr>
-                    <tr><td class="text-muted py-1.5">Account No:</td><td class="fw-bold font-monospace text-danger">{{ suspect_context.bank_account|default:"Not specified" }}</td></tr>
-                    <tr><td class="text-muted py-1.5">CAC / RC:</td><td class="font-monospace text-dark">{{ suspect_context.cac_number|default:"Unregistered / Individual" }}</td></tr>
+                <table class="w-100 dossier-table">
+                    <tr><td class="text-muted" style="width:38%;">Suspect Name:</td><td class="fw-bold text-danger">{{ report.target_subject.name }}</td></tr>
+                    <tr><td class="text-muted">Phone:</td><td class="font-monospace text-dark">{{ suspect_context.phone|default:"Not provided" }}</td></tr>
+                    <tr><td class="text-muted">Bank Name:</td><td class="fw-semibold text-dark">{{ suspect_context.bank_name|default:"Not specified" }}</td></tr>
+                    <tr><td class="text-muted">Account No:</td><td class="fw-bold font-monospace text-danger">{{ suspect_context.bank_account|default:"Not specified" }}</td></tr>
+                    <tr><td class="text-muted">CAC / RC:</td><td class="font-monospace text-dark">{{ suspect_context.cac_number|default:"Unregistered / Individual" }}</td></tr>
                 </table>
             </div>
         </div>
     </div>
 
-    <!-- Financial Loss Box (Generous Spacing & Large Font) -->
-    <div class="p-4 rounded mb-4" style="background:#FEF2F2; border:2px solid #F87171;">
+    <!-- Financial Loss Box (Generous Inset Padding & High Contrast) -->
+    <div class="dossier-card-loss mb-4">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
             <div>
                 <div class="text-uppercase fw-bold text-danger mb-2" style="font-size:10pt; letter-spacing:0.05em;">Total Financial Loss / Stolen Funds:</div>
@@ -234,15 +259,15 @@
         </div>
     </div>
 
-    <!-- Executive Incident Summary -->
-    <div class="mb-4">
+    <!-- Executive Incident Synopsis (Enclosed in Spacious Inset Card) -->
+    <div class="dossier-card-alt mb-4">
         <div class="fw-bold text-dark text-uppercase border-bottom pb-2 mb-2" style="font-size:9.5pt; letter-spacing:0.04em;">Incident Synopsis:</div>
         <p class="text-dark mb-0" style="font-size:10.5pt; line-height:1.75; text-align:justify; white-space:pre-wrap;">{{ report.allegation|truncatewords:140 }}</p>
     </div>
 
     <!-- Footer Page 1 -->
     <div class="position-absolute bottom-0 start-0 end-0 px-4 pb-3 text-center border-top pt-2 mx-4" style="font-size:8.5pt; color:#64748B;">
-        Page 1 of 4 &bull; Official Evidence Dossier &bull; {{ dossier.tracking_id }} &bull; Verify Live at {{ site_config.base_url|default:"https://verifyng.com" }}/verify/dossier/{{ dossier.tracking_id }}/
+        Page 1 of 4 &bull; Official Evidence Dossier &bull; {{ dossier.tracking_id }} &bull; Digital Verification Seal Attached
     </div>
 </div>
 
@@ -258,21 +283,23 @@
     <div class="fw-bold text-dark text-uppercase border-bottom pb-2 mb-3" style="font-size:10.5pt; letter-spacing:0.04em;">
         1. Comprehensive Chronological Statement of Incident
     </div>
-    <div class="p-3.5 rounded mb-4" style="background:#F8FAFC; border:1.5px solid #CBD5E1; font-size:10.5pt; line-height:1.75; white-space:pre-wrap; color:#1E293B;">
+    <!-- Statement Box with Generous Left & Right Margins -->
+    <div class="dossier-card-alt mb-4" style="font-size:10.5pt; line-height:1.75; white-space:pre-wrap; color:#1E293B;">
 {{ report.allegation }}
     </div>
 
     <div class="fw-bold text-dark text-uppercase border-bottom pb-2 mb-3" style="font-size:10.5pt; letter-spacing:0.04em;">
         2. Pre-Action Due Process &amp; Fair Hearing Status
     </div>
-    <div class="p-3.5 rounded mb-4" style="background:#FFFFFF; border:1.5px solid #CBD5E1; font-size:10pt;">
-        <table class="w-100">
+    <!-- Due Process Inset Card -->
+    <div class="dossier-card mb-4">
+        <table class="w-100 dossier-table">
             <tr>
-                <td class="text-muted py-2" style="width:42%;">7-Day Right-of-Response Notice Dispatched:</td>
+                <td class="text-muted" style="width:42%;">7-Day Right-of-Response Notice Dispatched:</td>
                 <td class="fw-bold text-dark">YES (Automated dispatch via registered electronic channels)</td>
             </tr>
             <tr>
-                <td class="text-muted py-2">Dispute / Rebuttal Status:</td>
+                <td class="text-muted">Dispute / Rebuttal Status:</td>
                 <td class="fw-bold text-dark">
                     {% if report.disputes.exists %}
                         ACTIVE DISPUTE ON FILE ({{ report.disputes.count }} defense statement(s) submitted)
@@ -282,7 +309,7 @@
                 </td>
             </tr>
             <tr>
-                <td class="text-muted py-2">Platform Risk Assessment:</td>
+                <td class="text-muted">Platform Risk Assessment:</td>
                 <td class="fw-bold text-danger">HIGH RISK SUSPECT &mdash; FLAGGED IN PUBLIC SAFETY REPOSITORY</td>
             </tr>
         </table>
@@ -291,7 +318,8 @@
     <div class="fw-bold text-dark text-uppercase border-bottom pb-2 mb-3" style="font-size:10.5pt; letter-spacing:0.04em;">
         3. Specific Prayers &amp; Reliefs Sought by Complainant
     </div>
-    <div class="p-4 rounded mb-4" style="background:#FEF2F2; border:1.5px solid #FECACA;">
+    <!-- Specific Prayers Inset Card -->
+    <div class="dossier-card-danger mb-4">
         <div class="mb-3">
             <div class="fw-bold text-danger mb-1" style="font-size:11pt;">Post-No-Debit (PND) Account Freeze:</div>
             <div class="text-dark" style="font-size:10.5pt; line-height:1.7;">
@@ -332,10 +360,11 @@
 
     {% if exhibits %}
         {% for exh in exhibits %}
-        <div class="mb-4 p-3.5 rounded" style="border:1.5px solid #CBD5E1; background:#FFFFFF;">
+        <!-- Exhibit Card with Generous Left & Right Padding -->
+        <div class="dossier-card mb-4">
             <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
                 <span class="fw-bold text-dark" style="font-size:10.5pt;">
-                    EXHIBIT {{ forloop.counter }}: {{ exh.get_file_type_display|upper }} &mdash; {{ exh.description|default:"Transaction Exhibit" }}
+                    EXHIBIT {{ forloop.counter }}: {{ exh.get_file_type_display|upper }} &mdash; {{ exh.description|default:"Payment evidence" }}
                 </span>
                 <span class="font-monospace text-muted" style="font-size:9pt;">Uploaded: {{ exh.uploaded_at|date:"d M Y, H:i" }} WAT</span>
             </div>
@@ -343,7 +372,7 @@
             <div class="text-center py-2" style="max-height: 180mm; overflow: hidden;">
                 {% if exh.is_image %}
                     <!-- Image Exhibit (PNG, JPG, JPEG, WEBP) -->
-                    <div class="p-2 bg-light rounded text-center">
+                    <div class="p-3 bg-light rounded text-center">
                         <img src="{{ exh.file.url }}" alt="Exhibit {{ forloop.counter }}" class="img-fluid rounded border shadow-sm" style="max-height: 160mm; object-fit: contain; max-width: 100%;">
                         <div class="mt-2 text-muted" style="font-size:9pt;">High-resolution graphic reproduction captured from original device and cryptographically preserved.</div>
                     </div>
@@ -351,7 +380,6 @@
                     <!-- Word Document Exhibit (.DOCX / .DOC) -->
                     <div class="p-4 rounded text-center" style="background:#F0F7FF; border:1.5px solid #93C5FD;">
                         <div class="d-inline-flex align-items-center justify-content-center p-3 rounded-circle bg-white shadow-sm mb-3">
-                            <!-- Microsoft Word DOCX Icon -->
                             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M14 2H6C4.89543 2 4 2.89543 4 4V20C4 21.1046 4.89543 22 6 22H18C19.1046 22 20 21.1046 20 20V8L14 2Z" fill="#2563EB" opacity="0.15"/>
                                 <path d="M14 2H6C4.89543 2 4 2.89543 4 4V20C4 21.1046 4.89543 22 6 22H18C19.1046 22 20 21.1046 20 20V8L14 2Z" stroke="#2563EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -363,7 +391,7 @@
                             MICROSOFT WORD DOCUMENT (.DOCX / .DOC)
                         </span>
                         <div class="fw-bold font-monospace text-dark mt-2" style="font-size:11.5pt;">{{ exh.filename|default:exh.file.name }}</div>
-                        <div class="p-3 my-3 rounded text-start" style="background:#FFFFFF; border:1px solid #BFDBFE; font-size:10pt; line-height:1.65; color:#1E3A8A;">
+                        <div class="p-3.5 my-3 rounded text-start" style="background:#FFFFFF; border:1px solid #BFDBFE; font-size:10pt; line-height:1.65; color:#1E3A8A;">
                             <strong>SECTION 84 EVIDENCE ACT CUSTODY NOTICE:</strong> This exhibit was uploaded as a native Microsoft Word document (.docx/.doc). Pursuant to Section 84 computer-evidence standards, the document has been cryptographically preserved in its native binary format without format distortion or conversion artifacts. Police investigators, prosecutor desks, and bank fraud analysts can inspect or download the original sealed electronic file directly from the VerifyNG Digital Vault.
                         </div>
                         <div class="mt-2">
@@ -377,7 +405,6 @@
                     <!-- PDF Document Exhibit (.PDF) -->
                     <div class="p-4 rounded text-center" style="background:#FEF2F2; border:1.5px solid #FCA5A5;">
                         <div class="d-inline-flex align-items-center justify-content-center p-3 rounded-circle bg-white shadow-sm mb-3">
-                            <!-- Adobe PDF Icon -->
                             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M14 2H6C4.89543 2 4 2.89543 4 4V20C4 21.1046 4.89543 22 6 22H18C19.1046 22 20 21.1046 20 20V8L14 2Z" fill="#DC2626" opacity="0.15"/>
                                 <path d="M14 2H6C4.89543 2 4 2.89543 4 4V20C4 21.1046 4.89543 22 6 22H18C19.1046 22 20 21.1046 20 20V8L14 2Z" stroke="#DC2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -389,7 +416,7 @@
                             PORTABLE DOCUMENT FORMAT (.PDF)
                         </span>
                         <div class="fw-bold font-monospace text-dark mt-2" style="font-size:11.5pt;">{{ exh.filename|default:exh.file.name }}</div>
-                        <div class="p-3 my-3 rounded text-start" style="background:#FFFFFF; border:1px solid #FECACA; font-size:10pt; line-height:1.65; color:#991B1B;">
+                        <div class="p-3.5 my-3 rounded text-start" style="background:#FFFFFF; border:1px solid #FECACA; font-size:10pt; line-height:1.65; color:#991B1B;">
                             <strong>MULTI-PAGE DOCUMENTARY EXHIBIT:</strong> This evidence file comprises a certified multi-page PDF document preserved in the VerifyNG Digital Vault. Its internal structure, metadata timestamps, and cryptographic integrity have been sealed under Section 84 of the Evidence Act 2011.
                         </div>
                         <div class="mt-2">
@@ -442,8 +469,8 @@
         </div>
     </div>
 
-    <!-- Solemn Declaration Box (Generous Padding & Readable Font) -->
-    <div class="p-4 rounded mb-4" style="background:#F8FAFC; border:1.5px solid #CBD5E1; font-size:10.5pt; line-height:1.75; color:#1E293B;">
+    <!-- Solemn Declaration Box (Spacious Padding & Readable Text) -->
+    <div class="dossier-card-alt mb-4">
         <p class="mb-3 fw-medium" style="font-size:10.5pt; line-height:1.75;">
             I, the undersigned <strong>Electronic Records Custodian &amp; Head of Technical Operations</strong> of {{ site_config.site_name|default:"VerifyNG" }} (operated under neutral technological intermediary compliance protocols), do hereby solemnly declare and certify as follows:
         </p>
@@ -466,19 +493,18 @@
     <!-- Cryptographic Seal and Live Dynamic QR Code Section -->
     <div class="row g-3 align-items-center mb-4">
         <div class="col-8">
-            <div class="p-3.5 rounded border h-100" style="background:#FFFFFF; border:1.5px solid #CBD5E1;">
+            <div class="dossier-card h-100 mb-0">
                 <div class="fw-bold text-uppercase text-secondary mb-2" style="font-size:9.5pt; letter-spacing:0.04em;">Cryptographic Digital Custody Seal:</div>
-                <div class="font-monospace text-break text-danger fw-bold mb-2 p-2 rounded" style="font-size:10pt; line-height:1.45; background:#FEF2F2; border:1px solid #FECACA;">
+                <div class="font-monospace text-break text-danger fw-bold mb-2 p-2.5 rounded" style="font-size:10pt; line-height:1.45; background:#FEF2F2; border:1px solid #FECACA;">
                     SHA256: {{ section84_hash }}
                 </div>
                 <div class="text-secondary mb-2" style="font-size:9.5pt; line-height:1.6;">
                     Mathematical checksum verified across report data, timestamps, and attached documentary exhibits.
                 </div>
-                {% if qr_verify_url %}
-                <div class="text-muted" style="font-size:8.5pt;">
-                    Online Verification Portal: <a href="{{ qr_verify_url }}" target="_blank" class="text-primary text-decoration-underline font-monospace">{{ qr_verify_url }}</a>
+                <div class="text-muted small mt-2 d-flex align-items-center gap-1.5" style="font-size:8.5pt;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2457D6" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                    <span>Section 84 digital custody &amp; PND restriction status verifiable via dynamic QR seal.</span>
                 </div>
-                {% endif %}
             </div>
         </div>
 
@@ -503,13 +529,13 @@
         </div>
     </div>
 
-    <!-- Statutory Safe Harbor Disclaimer -->
-    <div class="p-3.5 rounded text-secondary mb-4" style="background:#F1F5F9; border:1px solid #CBD5E1; font-size:8.5pt; line-height:1.65;">
+    <!-- Statutory Safe Harbor Disclaimer (Generous Inset Padding) -->
+    <div class="dossier-card-alt text-secondary mb-4" style="font-size:8.5pt; line-height:1.65;">
         <strong>STATUTORY DISCLAIMER &amp; SAFE HARBOR:</strong> This document is an electronic evidence audit repository prepared under Section 84 of the Nigerian Evidence Act 2011 to assist authorized law enforcement and financial institutions. {{ site_config.site_name|default:"VerifyNG" }} is a neutral technological intermediary and does not operate as a court of law. Submitting fabricated, fraudulent, or altered electronic receipts constitutes criminal forgery under the Cybercrimes (Prohibition, Prevention, etc.) Act 2015.
     </div>
 
     <div class="position-absolute bottom-0 start-0 end-0 px-4 pb-3 text-center border-top pt-2 mx-4" style="font-size:8.5pt; color:#64748B;">
-        Page 4 of 4 &bull; Section 84 Compliance Certification &bull; {{ dossier.tracking_id }} &bull; Verify Online: {{ site_config.base_url|default:"https://verifyng.com" }}/verify/dossier/{{ dossier.tracking_id }}/
+        Page 4 of 4 &bull; Section 84 Compliance Certification &bull; {{ dossier.tracking_id }} &bull; Digital Verification Seal Attached
     </div>
 </div>
 

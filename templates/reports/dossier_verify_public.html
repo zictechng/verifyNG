@@ -85,7 +85,7 @@
                             {% endif %}
                             <tr>
                                 <td class="text-muted py-2">Date of Issuance:</td>
-                                <td class="text-dark py-2">{{ dossier.issued_at|date:"d F Y, H:i"|default:dossier.created_at|date:"d F Y, H:i" }} WAT</td>
+                                <td class="text-dark py-2">{{ dossier.issuance_date|date:"d F Y, H:i" }} WAT</td>
                             </tr>
                             <tr>
                                 <td class="text-muted py-2">Verification Scans:</td>

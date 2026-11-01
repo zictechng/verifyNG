@@ -681,6 +681,11 @@ class EvidenceDossier(models.Model):
     def is_unlocked(self):
         return self.payment_status == 'verified'
 
+    @property
+    def issuance_date(self):
+        """Returns the issuance timestamp, falling back to created_at if issued_at is null."""
+        return self.issued_at or self.created_at
+
 
 
 class DossierAccessLog(models.Model):
