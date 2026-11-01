@@ -204,11 +204,12 @@ class EvidenceFileValidationTestCase(TestCase):
         form = self._make_form(SimpleUploadedFile("doc.pdf", b'%PDF-1.4 content', content_type="application/pdf"))
         self.assertTrue(form.is_valid(), form.errors)
 
-    def test_valid_doc_accepted(self):
+    def test_doc_rejected_as_unsupported(self):
         form = self._make_form(SimpleUploadedFile("doc.doc", b'\xd0\xcf\x11\xe0rest', content_type="application/msword"))
-        self.assertTrue(form.is_valid(), form.errors)
+        self.assertFalse(form.is_valid())
+        self.assertIn('evidence_file', form.errors)
 
-    def test_valid_docx_accepted(self):
+    def test_docx_rejected_as_unsupported(self):
         buf = io.BytesIO()
         with zipfile.ZipFile(buf, 'w') as zf:
             zf.writestr('[Content_Types].xml', '<Types/>')
@@ -218,7 +219,8 @@ class EvidenceFileValidationTestCase(TestCase):
             "doc.docx", buf.read(),
             content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         ))
-        self.assertTrue(form.is_valid(), form.errors)
+        self.assertFalse(form.is_valid())
+        self.assertIn('evidence_file', form.errors)
 
     def test_corrupted_image_rejected(self):
         form = self._make_form(SimpleUploadedFile("broken.png", b"\x89PNG\r\nGARBAGE", content_type="image/png"))
@@ -227,18 +229,6 @@ class EvidenceFileValidationTestCase(TestCase):
 
     def test_fake_pdf_rejected(self):
         form = self._make_form(SimpleUploadedFile("fake.pdf", b"MZ\x90\x00not a pdf", content_type="application/pdf"))
-        self.assertFalse(form.is_valid())
-        self.assertIn('evidence_file', form.errors)
-
-    def test_zip_without_docx_structure_rejected(self):
-        buf = io.BytesIO()
-        with zipfile.ZipFile(buf, 'w') as zf:
-            zf.writestr('random.txt', 'not a docx')
-        buf.seek(0)
-        form = self._make_form(SimpleUploadedFile(
-            "fake.docx", buf.read(),
-            content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-        ))
         self.assertFalse(form.is_valid())
         self.assertIn('evidence_file', form.errors)
 

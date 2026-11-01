@@ -10,14 +10,13 @@ from reports.models import ReportEvidence
 
 MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB
 
-ALLOWED_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.pdf', '.doc', '.docx']
+ALLOWED_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.webp', '.pdf']
 
 ALLOWED_MIME_TYPES = [
     'image/png',
     'image/jpeg',
+    'image/webp',
     'application/pdf',
-    'application/msword',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
 ]
 
 NIGERIAN_STATES = [
@@ -75,23 +74,7 @@ def validate_file_upload(file):
             if header != b'%PDF':
                 raise ValidationError("The uploaded file does not appear to be a valid PDF.")
 
-        elif ext == '.doc':
-            header = file.read(4)
-            if header != b'\xd0\xcf\x11\xe0':
-                raise ValidationError("The uploaded file does not appear to be a valid DOC file.")
 
-        elif ext == '.docx':
-            header = file.read(4)
-            if header != b'PK\x03\x04':
-                raise ValidationError("The uploaded file does not appear to be a valid DOCX file.")
-            file.seek(0)
-            try:
-                with zipfile.ZipFile(file, 'r') as zf:
-                    names = zf.namelist()
-                    if '[Content_Types].xml' not in names or 'word/document.xml' not in names:
-                        raise ValidationError("The uploaded file does not contain the expected DOCX structure.")
-            except zipfile.BadZipFile:
-                raise ValidationError("The uploaded file is not a valid ZIP/DOCX archive.")
     finally:
         file.seek(0)
 
@@ -333,7 +316,7 @@ class ComplainantRebuttalForm(forms.Form):
     )
     rebuttal_evidence = forms.FileField(
         required=False,
-        help_text="Optional rebuttal proof (bank reversal slip, delivery proof, chat export, police report — PNG, JPG, PDF, DOCX up to 10 MB)."
+        help_text="Optional rebuttal proof (bank reversal slip, delivery proof, chat export, police report — PNG, JPG, PDF, WEBP up to 10 MB)."
     )
 
     def clean_rebuttal_evidence(self):
@@ -378,7 +361,7 @@ class InfoRequestFulfillForm(forms.Form):
     )
     response_file = forms.FileField(
         required=False,
-        help_text="Attach requested document if requested (PNG, JPG, PDF, DOCX up to 10 MB)."
+        help_text="Attach requested document if requested (PNG, JPG, PDF, WEBP up to 10 MB)."
     )
 
     def clean_response_file(self):
