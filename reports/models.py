@@ -373,6 +373,36 @@ class ReportEvidence(models.Model):
     def __str__(self):
         return f"Evidence ({self.get_file_type_display()}) for {self.report.reference_number}"
 
+    @property
+    def file_extension(self):
+        """Returns lowercased file extension without leading dot."""
+        if self.storage_format:
+            return self.storage_format.lower().lstrip('.')
+        if self.file and hasattr(self.file, 'name') and self.file.name:
+            import os
+            _, ext = os.path.splitext(self.file.name)
+            return ext.lower().lstrip('.')
+        return ''
+
+    @property
+    def is_image(self):
+        return self.file_extension in ['png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp']
+
+    @property
+    def is_pdf(self):
+        return self.file_extension == 'pdf'
+
+    @property
+    def is_word_doc(self):
+        return self.file_extension in ['doc', 'docx', 'rtf', 'odt']
+
+    @property
+    def filename(self):
+        if self.file and hasattr(self.file, 'name') and self.file.name:
+            import os
+            return os.path.basename(self.file.name)
+        return ''
+
 
 class Dispute(models.Model):
     public_id = models.UUIDField(

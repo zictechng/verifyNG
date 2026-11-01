@@ -977,6 +977,32 @@ class DossierDownloadView(View):
         from core.models import SiteConfiguration
         site_config = SiteConfiguration.objects.filter(pk=1).first()
 
+        # Dynamic Section 84 QR verification generation
+        qr_code_data_uri = None
+        qr_verify_url = ""
+        try:
+            from django.urls import reverse
+            import qrcode
+            import io
+            import base64
+            qr_verify_url = request.build_absolute_uri(
+                reverse('reports:dossier_verify_public', args=[dossier.tracking_id])
+            )
+            qr = qrcode.QRCode(
+                version=1,
+                error_correction=qrcode.constants.ERROR_CORRECT_M,
+                box_size=6,
+                border=1,
+            )
+            qr.add_data(qr_verify_url)
+            qr.make(fit=True)
+            qr_img = qr.make_image(fill_color="#0F172A", back_color="white")
+            buffer = io.BytesIO()
+            qr_img.save(buffer, format="PNG")
+            qr_code_data_uri = f"data:image/png;base64,{base64.b64encode(buffer.getvalue()).decode('utf-8')}"
+        except Exception as qr_err:
+            logger.warning("Failed to generate dossier QR code for %s: %s", getattr(dossier, 'tracking_id', 'unknown'), qr_err)
+
         context = {
             'report': report,
             'dossier': dossier,
@@ -985,6 +1011,8 @@ class DossierDownloadView(View):
             'section84_hash': section84_hash,
             'suspect_context': report.suspect_context,
             'issued_date': dossier.issued_at or timezone.now(),
+            'qr_code_data_uri': qr_code_data_uri,
+            'qr_verify_url': qr_verify_url,
         }
         return render(request, 'reports/dossier_print.html', context)
 

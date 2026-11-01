@@ -2,6 +2,7 @@ from functools import wraps
 from django.shortcuts import render
 from django.contrib import admin
 from django.urls import path, include
+from reports.views import DossierVerifyPublicView
 from django_otp.admin import OTPAdminSite
 from django.conf import settings
 
@@ -48,6 +49,7 @@ urlpatterns = [
     path('api/v1/', get_api_urls()),
     path('users/', include('users.urls', namespace='users')),
     path('reports/', include('reports.urls', namespace='reports')),
+    path('verify/dossier/<str:tracking_id>/', DossierVerifyPublicView.as_view(), name='dossier_verify_short'),
     path('dashboard/', include('dashboard.urls', namespace='dashboard')),
     path('verification/', include('verification.urls', namespace='verification')),
     path('notifications/', include('notifications.urls', namespace='notifications')),
