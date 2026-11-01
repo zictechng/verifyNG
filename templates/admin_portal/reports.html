@@ -38,6 +38,7 @@
         <th>Reference</th>
         <th>Title</th>
         <th>Reporter</th>
+        <th>Amount Lost</th>
         <th>State</th>
         <th>Date</th>
         <th>Actions</th>
@@ -49,6 +50,13 @@
         <td><code>{{ r.reference_number }}</code></td>
         <td>{{ r.title|truncatechars:50 }}</td>
         <td>{{ r.reporter.username|default:"—" }}</td>
+        <td>
+          {% if r.amount_lost %}
+            <span class="fw-bold text-danger">{{ r.amount_lost_formatted }}</span>
+          {% else %}
+            <span class="text-muted small">—</span>
+          {% endif %}
+        </td>
         <td>
           {% if r.state == 'published' %}<span class="adm-badge adm-badge-green">{{ r.get_state_display }}</span>
           {% elif r.state in 'submitted under_review' %}<span class="adm-badge adm-badge-amber">{{ r.get_state_display }}</span>

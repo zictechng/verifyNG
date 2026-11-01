@@ -87,11 +87,74 @@
             {% endif %}
           </td>
         </tr>
+        <tr>
+          <th>Financial Loss (Claimed)</th>
+          <td>
+            {% if report.amount_lost %}
+              <div class="d-flex align-items-center gap-2">
+                <span class="fs-6 fw-bold text-danger">{{ report.amount_lost_formatted }}</span>
+                {% if report.has_unlocked_dossier %}
+                  <span class="adm-badge adm-badge-green">Petition Dossier Generated</span>
+                {% elif report.dossiers.exists %}
+                  <span class="adm-badge adm-badge-amber">Petition Dossier Requested</span>
+                {% endif %}
+              </div>
+            {% else %}
+              <span class="text-muted small">No specific financial amount declared</span>
+            {% endif %}
+          </td>
+        </tr>
         <tr><th>Incident Date</th><td>{{ report.incident_date|default:"Not specified" }}</td></tr>
         <tr><th>Submitted</th><td>{{ report.created_at|date:"d M Y H:i" }}</td></tr>
         <tr><th>Last Updated</th><td>{{ report.updated_at|date:"d M Y H:i" }}</td></tr>
       </table>
     </div>
+
+    <!-- Police & Bank Evidence Dossier Records -->
+    {% if report.dossiers.all %}
+    <div class="adm-card mb-4">
+      <div class="adm-card-header d-flex justify-content-between align-items-center">
+        <span>Police &amp; Bank Evidence Dossier Records</span>
+        <span class="adm-badge adm-badge-blue">{{ report.dossiers.count }} Dossier Record(s)</span>
+      </div>
+      <table class="adm-table">
+        <thead>
+          <tr>
+            <th>Tracking ID</th>
+            <th>Purchaser</th>
+            <th>Payment Status</th>
+            <th>Amount Paid</th>
+            <th>QR Scans</th>
+            <th>Date</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for dos in report.dossiers.all %}
+          <tr>
+            <td><code>{{ dos.tracking_id }}</code></td>
+            <td>{{ dos.user.username|default:"Complainant" }}</td>
+            <td>
+              {% if dos.payment_status == 'verified' %}<span class="adm-badge adm-badge-green">Verified</span>
+              {% elif dos.payment_status == 'pending' %}<span class="adm-badge adm-badge-amber">Pending Verification</span>
+              {% elif dos.payment_status == 'failed' %}<span class="adm-badge adm-badge-red">Failed</span>
+              {% else %}<span class="adm-badge adm-badge-gray">{{ dos.get_payment_status_display }}</span>{% endif %}
+            </td>
+            <td>{% if dos.amount_paid %}₦{{ dos.amount_paid|floatformat:2 }}{% else %}Free{% endif %}</td>
+            <td><span class="badge bg-light text-dark border">{{ dos.scan_count }} scan(s)</span></td>
+            <td>{{ dos.created_at|date:"d M Y H:i" }}</td>
+            <td>
+              <div class="d-flex gap-1">
+                <a href="{% url 'reports:dossier_pdf' report.reference_number %}" target="_blank" class="btn btn-adm-sm btn-adm-outline">PDF</a>
+                <a href="{% url 'reports:dossier_verify_public' dos.tracking_id %}" target="_blank" class="btn btn-adm-sm btn-adm-outline">QR Desk</a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
 
     <!-- Legal Evidentiary Audit Footprint Table -->
     <div class="adm-card mb-4">
