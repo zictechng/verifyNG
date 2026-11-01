@@ -795,6 +795,16 @@
             Disputes
         </a>
         {% endif %}
+        {% if request.user.is_superuser or perms.reports.view_fraudreport %}
+        <a href="{% url 'admin_portal:dossier_payments' %}"
+           class="adm-nav-link {% if request.resolver_match.url_name == 'dossier_payments' %}active{% endif %}">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+            Petition Payments
+            {% if pending_dossier_payments_count > 0 %}
+            <span class="nav-badge" style="background:#EF4444; color:#fff;">{{ pending_dossier_payments_count }}</span>
+            {% endif %}
+        </a>
+        {% endif %}
     </nav>
     {% endif %}
 

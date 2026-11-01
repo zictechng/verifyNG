@@ -5,6 +5,7 @@ import logging
 from datetime import timedelta, datetime
 from django.utils import timezone
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 from django.views.generic import TemplateView, View
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib import messages
@@ -1100,6 +1101,179 @@ class AdminReportTransitionView(SuperAdminRequiredMixin, View):
         messages.success(request, f"Report {report.reference_number} transitioned from '{old_state}' → '{new_state}'.")
         return redirect('admin_portal:report_detail', public_id=report.public_id)
 
+
+# ── Dossier & Petition Payments ──────────────────────────────────────────
+
+class AdminDossierPaymentsView(AdminPermissionRequiredMixin, TemplateView):
+    section_name = "Petition Payments"
+    required_permission = "reports.view_fraudreport"
+    template_name = "admin_portal/dossier_payments.html"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        from reports.models import EvidenceDossier
+        from django.db.models import Q
+        from django.core.paginator import Paginator
+
+        qs = EvidenceDossier.objects.select_related('report', 'user').order_by('-created_at')
+
+        # Status filter
+        status_filter = self.request.GET.get('status', '').strip()
+        # Method filter
+        method_filter = self.request.GET.get('method', '').strip()
+
+        if status_filter and status_filter != 'all':
+            qs = qs.filter(payment_status=status_filter)
+
+        if method_filter and method_filter != 'all':
+            qs = qs.filter(payment_method=method_filter)
+
+        # Search query
+        q = self.request.GET.get('q', '').strip()
+        if q:
+            qs = qs.filter(
+                Q(tracking_id__icontains=q) |
+                Q(report__reference_number__icontains=q) |
+                Q(manual_transfer_ref__icontains=q) |
+                Q(user__username__icontains=q) |
+                Q(user__email__icontains=q) |
+                Q(report__title__icontains=q)
+            )
+
+        # Summary KPIs
+        all_dossiers = EvidenceDossier.objects.all()
+        ctx['total_dossiers'] = all_dossiers.count()
+        ctx['pending_count'] = all_dossiers.filter(payment_status='pending', payment_method='manual_transfer').count()
+        ctx['verified_count'] = all_dossiers.filter(payment_status='verified').count()
+        ctx['rejected_count'] = all_dossiers.filter(payment_status='rejected').count()
+
+        # Pagination
+        paginator = Paginator(qs, 15)
+        page_number = self.request.GET.get('page', 1)
+        ctx['dossiers_page'] = paginator.get_page(page_number)
+        ctx['status_filter'] = status_filter or 'all'
+        ctx['method_filter'] = method_filter or 'all'
+        ctx['search_query'] = q
+        return ctx
+
+
+class AdminDossierPaymentActionView(AdminPermissionRequiredMixin, View):
+    section_name = "Petition Payments"
+    required_permission = "reports.change_fraudreport"
+
+    def post(self, request, pk):
+        from reports.models import EvidenceDossier, AuditLog
+        from payments.models import Transaction
+        from notifications.services import dispatch_notification
+        import hashlib
+
+        dossier = get_object_or_404(EvidenceDossier.objects.select_related('report', 'user'), pk=pk)
+        action = request.POST.get('action', '').strip()
+        admin_notes = request.POST.get('admin_notes', '').strip()
+
+        if action == 'approve':
+            dossier.payment_status = 'verified'
+            dossier.issued_at = timezone.now()
+
+            # Ensure Section 84 cryptographic seal is generated
+            if not dossier.section84_hash:
+                hash_input = f"{dossier.report.reference_number}:{dossier.report.incident_date}:{dossier.report.amount_lost}:{dossier.tracking_id}"
+                dossier.section84_hash = hashlib.sha256(hash_input.encode('utf-8')).hexdigest()
+
+            dossier.save(update_fields=['payment_status', 'issued_at', 'section84_hash'])
+
+            # Record / update Transaction in ledger so it shows in Financial Reports
+            try:
+                ref = f"VNG-MAN-DOS-{dossier.tracking_id}"
+                amount_kobo = int(float(dossier.amount_paid or 1000) * 100)
+                Transaction.objects.update_or_create(
+                    reference=ref,
+                    defaults={
+                        'user': dossier.user or dossier.report.reporter,
+                        'amount_kobo': amount_kobo,
+                        'status': 'success',
+                        'is_active': False,
+                        'paystack_response': {
+                            'data': {
+                                'metadata': {
+                                    'service': 'police_dossier',
+                                    'report_ref': dossier.report.reference_number,
+                                    'tracking_id': dossier.tracking_id,
+                                    'method': 'manual_transfer',
+                                    'verified_by': request.user.username,
+                                    'sender_reference': dossier.manual_transfer_ref,
+                                }
+                            }
+                        }
+                    }
+                )
+            except Exception as e:
+                logger.error("Failed to record manual dossier transaction: %s", e)
+
+            # Audit log
+            AuditLog.objects.create(
+                action_type="PAYMENT",
+                action="ADMIN_DOSSIER_PAYMENT_APPROVED",
+                performed_by=request.user,
+                report=dossier.report,
+                details={
+                    "dossier_id": dossier.id,
+                    "tracking_id": dossier.tracking_id,
+                    "amount": str(dossier.amount_paid),
+                    "sender_ref": dossier.manual_transfer_ref,
+                    "notes": admin_notes,
+                }
+            )
+
+            # Notify complainant
+            target_user = dossier.user or dossier.report.reporter
+            if target_user:
+                try:
+                    dispatch_notification(
+                        recipient=target_user,
+                        event_type='REPORT_SUBMITTED',
+                        title="Payment Approved: Legal Petition Unlocked",
+                        body=f"Your bank transfer payment for Evidence Dossier ({dossier.tracking_id}) has been confirmed and verified. Your court-ready petition and Section 84 package are ready to print.",
+                        object_reference=dossier.report.reference_number,
+                    )
+                except Exception:
+                    pass
+
+            messages.success(request, f"Payment for Dossier {dossier.tracking_id} successfully APPROVED. Complainant can now print and download the official petition package.")
+
+        elif action == 'reject':
+            dossier.payment_status = 'rejected'
+            dossier.save(update_fields=['payment_status'])
+
+            AuditLog.objects.create(
+                action_type="PAYMENT",
+                action="ADMIN_DOSSIER_PAYMENT_REJECTED",
+                performed_by=request.user,
+                report=dossier.report,
+                details={
+                    "dossier_id": dossier.id,
+                    "tracking_id": dossier.tracking_id,
+                    "reason": admin_notes or "Bank payment could not be verified on corporate statement.",
+                }
+            )
+
+            target_user = dossier.user or dossier.report.reporter
+            if target_user:
+                try:
+                    dispatch_notification(
+                        recipient=target_user,
+                        event_type='REPORT_SUBMITTED',
+                        title="Payment Verification Failed: Evidence Dossier",
+                        body=f"Your bank transfer payment for Evidence Dossier ({dossier.tracking_id}) could not be verified. Note: {admin_notes or 'Please ensure the transfer matches the exact required amount.'}",
+                        object_reference=dossier.report.reference_number,
+                    )
+                except Exception:
+                    pass
+
+            messages.warning(request, f"Payment for Dossier {dossier.tracking_id} has been marked as REJECTED.")
+
+        next_url = request.POST.get('next') or request.META.get('HTTP_REFERER') or reverse('admin_portal:dossier_payments')
+        return redirect(next_url)
 
 # ── Disputes ───────────────────────────────────────────────────────────────
 

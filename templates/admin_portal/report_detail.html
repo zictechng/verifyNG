@@ -114,17 +114,17 @@
     {% if report.dossiers.all %}
     <div class="adm-card mb-4">
       <div class="adm-card-header d-flex justify-content-between align-items-center">
-        <span>Police &amp; Bank Evidence Dossier Records</span>
-        <span class="adm-badge adm-badge-blue">{{ report.dossiers.count }} Dossier Record(s)</span>
+        <span>Official Police &amp; Bank Evidence Dossiers</span>
+        <a href="{% url 'admin_portal:dossier_payments' %}" class="btn btn-adm-sm btn-adm-outline">All Dossier Payments &rarr;</a>
       </div>
       <table class="adm-table">
         <thead>
           <tr>
             <th>Tracking ID</th>
-            <th>Purchaser</th>
+            <th>User</th>
             <th>Payment Status</th>
-            <th>Amount Paid</th>
-            <th>QR Scans</th>
+            <th>Amount &amp; Method</th>
+            <th>Payment Proof / Ref</th>
             <th>Date</th>
             <th>Actions</th>
           </tr>
@@ -137,16 +137,51 @@
             <td>
               {% if dos.payment_status == 'verified' %}<span class="adm-badge adm-badge-green">Verified</span>
               {% elif dos.payment_status == 'pending' %}<span class="adm-badge adm-badge-amber">Pending Verification</span>
-              {% elif dos.payment_status == 'failed' %}<span class="adm-badge adm-badge-red">Failed</span>
+              {% elif dos.payment_status == 'rejected' %}<span class="adm-badge adm-badge-red">Rejected</span>
               {% else %}<span class="adm-badge adm-badge-gray">{{ dos.get_payment_status_display }}</span>{% endif %}
             </td>
-            <td>{% if dos.amount_paid %}₦{{ dos.amount_paid|floatformat:2 }}{% else %}Free{% endif %}</td>
-            <td><span class="badge bg-light text-dark border">{{ dos.scan_count }} scan(s)</span></td>
+            <td>
+              <div class="fw-bold">{% if dos.amount_paid %}₦{{ dos.amount_paid|floatformat:2 }}{% else %}Free / Waiver{% endif %}</div>
+              <div class="small text-muted">{{ dos.get_payment_method_display }}</div>
+            </td>
+            <td>
+              {% if dos.manual_transfer_ref %}
+                <div class="small fw-semibold text-dark">Ref: {{ dos.manual_transfer_ref }}</div>
+              {% endif %}
+              {% if dos.manual_receipt %}
+                <a href="{{ dos.manual_receipt.url }}" target="_blank" class="btn btn-adm-sm btn-adm-outline mt-1 d-inline-flex align-items-center gap-1">
+                  View Receipt Proof &rarr;
+                </a>
+              {% elif dos.payment_method == 'manual_transfer' %}
+                <span class="text-danger small">No receipt uploaded</span>
+              {% else %}
+                <span class="text-muted small">—</span>
+              {% endif %}
+            </td>
             <td>{{ dos.created_at|date:"d M Y H:i" }}</td>
             <td>
-              <div class="d-flex gap-1">
-                <a href="{% url 'reports:dossier_download' report.reference_number %}" target="_blank" class="btn btn-adm-sm btn-adm-outline">PDF</a>
-                <a href="{% url 'reports:dossier_verify_public' dos.tracking_id %}" target="_blank" class="btn btn-adm-sm btn-adm-outline">QR Desk</a>
+              <div class="d-flex gap-1 flex-wrap align-items-center">
+                {% if dos.payment_status == 'pending' %}
+                  <form action="{% url 'admin_portal:dossier_payment_action' dos.pk %}" method="post" class="d-inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="approve">
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                    <button type="submit" class="btn btn-adm-sm btn-adm-success fw-bold" onclick="return confirm('Approve payment for {{ dos.tracking_id }} and unlock petition?')">
+                      Approve
+                    </button>
+                  </form>
+                  <form action="{% url 'admin_portal:dossier_payment_action' dos.pk %}" method="post" class="d-inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="reject">
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                    <button type="submit" class="btn btn-adm-sm btn-adm-danger" onclick="return confirm('Reject payment for {{ dos.tracking_id }}?')">
+                      Reject
+                    </button>
+                  </form>
+                {% else %}
+                  <a href="{% url 'reports:dossier_download' report.reference_number %}" target="_blank" class="btn btn-adm-sm btn-adm-outline">PDF</a>
+                  <a href="{% url 'reports:dossier_verify_public' dos.tracking_id %}" target="_blank" class="btn btn-adm-sm btn-adm-outline">QR Desk</a>
+                {% endif %}
               </div>
             </td>
           </tr>

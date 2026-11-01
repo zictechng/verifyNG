@@ -22,6 +22,8 @@ from dashboard.admin_views import (
     AdminReportDetailView,
     AdminReportTransitionView,
     AdminReportLegacyRedirectView,
+    AdminDossierPaymentsView,
+    AdminDossierPaymentActionView,
     # Disputes
     AdminDisputesView,
     AdminDisputeActionView,
@@ -98,6 +100,10 @@ urlpatterns = [
     path('reports/<uuid:public_id>/transition/', AdminReportTransitionView.as_view(), name='report_transition'),
     path('reports/<int:pk>/transition/', AdminReportTransitionView.as_view(), name='report_transition_legacy'),
     path('reports/<int:pk>/', AdminReportLegacyRedirectView.as_view(), name='report_legacy_redirect'),
+
+    # ── Dossier & Petition Payments ──────────────────────────────────────────
+    path('dossier-payments/', AdminDossierPaymentsView.as_view(), name='dossier_payments'),
+    path('dossier-payments/<int:pk>/action/', AdminDossierPaymentActionView.as_view(), name='dossier_payment_action'),
 
     # ── Disputes ────────────────────────────────────────────────────────────
     path('disputes/', AdminDisputesView.as_view(), name='disputes'),
