@@ -535,7 +535,17 @@ class Transaction(models.Model):
         meta = (self.paystack_response or {}).get('data', {}).get('metadata', {})
         if not meta and isinstance(self.paystack_response, dict):
             meta = self.paystack_response.get('metadata', {})
-        return meta.get('reason', '')
+        reason = meta.get('reason', '')
+        if not reason:
+            service = meta.get('service')
+            if service in ('police_dossier', 'dossier', 'evidence_dossier'):
+                report_ref = meta.get('report_ref')
+                tracking_id = meta.get('tracking_id')
+                if report_ref:
+                    return f"Petition Report: {report_ref}"
+                elif tracking_id:
+                    return f"Dossier: {tracking_id}"
+        return reason
 
     @property
     def item_display_name(self) -> str:
@@ -588,6 +598,8 @@ class Transaction(models.Model):
             return "Certificate Monitoring Service"
         elif service in ('bulk_upload', 'bulk_check'):
             return "Bulk Candidate Screening"
+        elif service in ('police_dossier', 'dossier', 'evidence_dossier'):
+            return "Official Police Petition & Section 84 Dossier"
 
         return "Direct Payment"
 

@@ -3290,6 +3290,11 @@ class AdminFinancialReportView(SuperAdminRequiredMixin, TemplateView):
                 qs = qs.filter(plan__isnull=True)
             elif type_filter in ('subscription', 'subscriptions'):
                 qs = qs.filter(plan__isnull=False)
+            elif type_filter in ('police_dossier', 'dossier', 'evidence_dossier'):
+                qs = qs.filter(
+                    Q(paystack_response__data__metadata__service__in=['police_dossier', 'dossier', 'evidence_dossier']) |
+                    Q(paystack_response__metadata__service__in=['police_dossier', 'dossier', 'evidence_dossier'])
+                )
             elif type_filter in ('bulk_upload', 'bulk_check'):
                 qs = qs.filter(
                     Q(paystack_response__data__metadata__service__in=['bulk_upload', 'bulk_check']) |

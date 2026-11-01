@@ -298,6 +298,22 @@ class PrepaidAutoDetectionTests(TestCase):
         )
         self.assertEqual(tx_direct.item_display_name, "Direct Payment")
 
+        tx_dossier = Transaction.objects.create(
+            user=self.user,
+            reference='VNG-DOSSIER-TEST',
+            amount_kobo=100000,
+            paystack_response={
+                'data': {
+                    'metadata': {
+                        'service': 'police_dossier',
+                        'report_ref': 'VNG-20261010-3FF8'
+                    }
+                }
+            }
+        )
+        self.assertEqual(tx_dossier.item_display_name, "Official Police Petition & Section 84 Dossier")
+        self.assertEqual(tx_dossier.reason, "Petition Report: VNG-20261010-3FF8")
+
     def test_payment_success_message_format_and_single_display(self):
         """Unified success message format is used and displayed exactly once with close button."""
         tx = Transaction.objects.create(

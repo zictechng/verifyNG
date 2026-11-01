@@ -40,6 +40,7 @@
                         </optgroup>
                         <optgroup label="Pay-As-You-Go / Direct Services">
                             <option value="payg" {% if plan_filter == 'payg' %}selected{% endif %}>All Pay-As-You-Go Payments</option>
+                            <option value="police_dossier" {% if plan_filter == 'police_dossier' %}selected{% endif %}>Official Police Petition &amp; Section 84 Dossier</option>
                             <option value="bulk_upload" {% if plan_filter == 'bulk_upload' %}selected{% endif %}>Bulk Candidate Screening</option>
                             <option value="monitoring" {% if plan_filter == 'monitoring' %}selected{% endif %}>Certificate Monitoring Services (TrustPass)</option>
                             <option value="certificate" {% if plan_filter == 'certificate' %}selected{% endif %}>TrustPass Clearance Certificate</option>

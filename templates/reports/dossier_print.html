@@ -265,12 +265,11 @@
 
     <!-- Executive Forensic Matter Brief (Distinct from Page 2's sworn statement) -->
     <div class="dossier-card-alt mb-4">
-        <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-2">
-            <span class="fw-bold text-dark text-uppercase" style="font-size:9.5pt; letter-spacing:0.04em;">Executive Forensic Matter Brief:</span>
-            <span class="badge bg-light text-secondary border font-monospace" style="font-size:7.5pt;">SUMMARY OF OFFENSE</span>
+        <div class="border-bottom pb-2 mb-2">
+            <span class="fw-bold text-dark text-uppercase" style="font-size:11pt; letter-spacing:0.04em;">Executive Forensic Matter Brief &mdash; Summary of Offense</span>
         </div>
-        <div class="fw-bold text-dark mb-1" style="font-size:10.5pt;">Reported Allegation: {{ report.title }}</div>
-        <p class="text-dark mb-0" style="font-size:10.5pt; line-height:1.75; text-align:justify;">
+        <div class="fw-bold text-dark mb-1" style="font-size:11pt;">Reported Allegation: {{ report.title }}</div>
+        <p class="text-dark mb-0" style="font-size:11pt; line-height:1.75; text-align:justify;">
             This formal complaint is submitted pursuant to statutory anti-fraud mandates regarding obtaining financial advantage under false pretence, criminal breach of trust, and unlawful electronic fund diversion occurring on or about <strong>{{ report.incident_date|date:"d F Y"|default:"the material date" }}</strong>. The complainant was induced into transferring the total sum of <strong>{{ report.amount_lost_formatted }}</strong> (<span class="fst-italic text-secondary">{{ report.amount_lost_in_words }}</span>) to suspect entity <strong>{{ report.target_subject.name }}</strong>, with proceeds routed to <strong>{{ suspect_context.bank_name|default:"the designated bank" }}</strong> Account Number: <strong class="font-monospace text-danger">{{ suspect_context.bank_account|default:"specified on record" }}</strong>. Immediate Post-No-Debit (PND) account restriction, BVN profiling across NIBSS, and formal police inquiry are urgently solicited.
         </p>
     </div>
@@ -291,11 +290,13 @@
     </div>
 
     <!-- Complainant's Full Verbatim Deposition -->
-    <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
-        <span class="fw-bold text-dark text-uppercase" style="font-size:10.5pt; letter-spacing:0.04em;">
+    <div class="border-bottom pb-2 mb-3">
+        <div class="fw-bold text-dark text-uppercase" style="font-size:11pt; letter-spacing:0.04em;">
             1. Sworn Detailed Statement of Facts &amp; Chronological Deposition
-        </span>
-        <span class="badge bg-danger-subtle text-danger border border-danger-subtle" style="font-size:7.5pt;">COMPLAINANT'S VERBATIM TESTIMONY</span>
+        </div>
+        <div class="text-danger fw-bold text-uppercase" style="font-size:9.5pt; letter-spacing:0.03em; margin-top:3px;">
+            (Complainant's Verbatim Testimony &amp; Incident Deposition)
+        </div>
     </div>
     <div class="dossier-card-alt mb-4" style="font-size:10.5pt; line-height:1.8; white-space:pre-wrap; color:#1E293B; text-align:justify;">
 {{ report.allegation }}
@@ -501,8 +502,8 @@
                 {% if qr_code_data_uri %}
                     <!-- Dynamic Live Verification QR Code -->
                     <img src="{{ qr_code_data_uri }}" width="115" height="115" alt="Live Verification QR Code" class="rounded border shadow-sm mb-2" style="padding:2px; background:#fff;">
-                    <div class="fw-bold text-dark" style="font-size:8.5pt; letter-spacing:0.04em;">LIVE QR VERIFICATION</div>
-                    <div class="text-primary font-monospace fw-bold" style="font-size:7.5pt;">SCAN TO VERIFY AUTHENTICITY</div>
+                    <div class="fw-bold text-dark" style="font-size:9.5pt; letter-spacing:0.04em;">LIVE QR VERIFICATION</div>
+                    <div class="text-primary font-monospace fw-bold" style="font-size:8.5pt;">SCAN TO VERIFY AUTHENTICITY</div>
                 {% else %}
                     <!-- Fallback Hologram Seal -->
                     <svg width="56" height="56" viewBox="0 0 24 24" fill="none" class="mb-2">
@@ -510,15 +511,15 @@
                         <path d="M12 2L15 8L21 9L17 14L18 20L12 17L6 20L7 14L3 9L9 8L12 2Z" fill="#2457D6" opacity="0.25"/>
                         <path d="M9 12L11 14L15 10" stroke="#2457D6" stroke-width="2" stroke-linecap="round"/>
                     </svg>
-                    <div class="fw-bold text-dark" style="font-size:8.5pt;">VERIFYNG DIGITAL SEAL</div>
-                    <div class="text-muted font-monospace" style="font-size:7.5pt;">OFFICIALLY CERTIFIED</div>
+                    <div class="fw-bold text-dark" style="font-size:9.5pt;">VERIFYNG DIGITAL SEAL</div>
+                    <div class="text-muted font-monospace" style="font-size:8.5pt;">OFFICIALLY CERTIFIED</div>
                 {% endif %}
             </div>
         </div>
     </div>
 
     <!-- Statutory Safe Harbor Disclaimer (Generous Inset Padding) -->
-    <div class="dossier-card-alt text-secondary mb-4" style="font-size:8.5pt; line-height:1.65;">
+    <div class="dossier-card-alt text-secondary mb-4" style="font-size:9pt; line-height:1.65;">
         <strong>STATUTORY DISCLAIMER &amp; SAFE HARBOR:</strong> This document is an electronic evidence audit repository prepared under Section 84 of the Nigerian Evidence Act 2011 to assist authorized law enforcement and financial institutions. {{ site_config.site_name|default:"VerifyNG" }} is a neutral technological intermediary and does not operate as a court of law. Submitting fabricated, fraudulent, or altered electronic receipts constitutes criminal forgery under the Cybercrimes (Prohibition, Prevention, etc.) Act 2015.
     </div>
 
@@ -596,12 +597,12 @@
                     pageDiv.innerHTML = `
                         <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
                             <div>
-                                <span class="badge bg-danger text-white text-uppercase px-2.5 py-1 fw-bold me-2" style="font-size:7.5pt;">
+                                <span class="badge bg-danger text-white text-uppercase px-2.5 py-1.5 fw-bold me-2" style="font-size:9pt;">
                                     EXHIBIT ${item.counter} APPENDIX
                                 </span>
-                                <span class="fw-bold text-dark font-monospace" style="font-size:9.5pt;">${item.filename}</span>
+                                <span class="fw-bold text-dark font-monospace" style="font-size:10pt;">${item.filename}</span>
                             </div>
-                            <div class="text-end text-muted font-monospace small" style="font-size:8pt;">
+                            <div class="text-end text-muted font-monospace small" style="font-size:9pt;">
                                 Page ${pageNum} of ${pageCount} &bull; Ref: {{ report.reference_number }}
                             </div>
                         </div>
@@ -610,7 +611,7 @@
                             <img src="${imgDataUrl}" class="img-fluid border rounded shadow-sm" style="max-height: 245mm; width: auto; max-width: 100%; object-fit: contain;">
                         </div>
 
-                        <div class="position-absolute bottom-0 start-0 end-0 px-4 pb-3 text-center border-top pt-2 mx-4" style="font-size:8pt; color:#64748B;">
+                        <div class="position-absolute bottom-0 start-0 end-0 px-4 pb-3 text-center border-top pt-2 mx-4" style="font-size:9pt; color:#64748B;">
                             Evidence Docket Appendix &bull; Exhibit ${item.counter}: ${item.filename} (Page ${pageNum} of ${pageCount}) &bull; Tracking ID: {{ dossier.tracking_id }} &bull; Certified Section 84 Proof
                         </div>
                     `;
