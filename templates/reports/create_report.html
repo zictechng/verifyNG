@@ -106,6 +106,7 @@
                 city: '{{ form.suspect_city.value|default:''|escapejs }}',
                 location: '{{ form.suspect_location.value|default:''|escapejs }}',
                 allegation: `{{ form.allegation.value|default:''|escapejs }}`,
+                amountLost: '{{ form.amount_lost.value|default:''|escapejs }}',
                 declared: false,
                 errors: {
                     subjectName: '',
@@ -454,6 +455,26 @@
                             <input type="date" name="incident_date" id="{{ form.incident_date.id_for_label }}" class="form-control" value="{{ form.incident_date.value|date:'Y-m-d'|default:'' }}">
                         </div>
 
+                        <!-- Total Financial Loss -->
+                        <div class="mb-3">
+                            <label for="{{ form.amount_lost.id_for_label }}" class="form-label small fw-semibold">
+                                Total Financial Loss / Transferred Amount (₦) (Optional)
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light fw-bold" style="color: var(--vng-ink); border-color: #CBD5E1;">₦</span>
+                                <input type="number" name="amount_lost" id="{{ form.amount_lost.id_for_label }}" 
+                                       class="form-control" 
+                                       step="0.01" min="0" 
+                                       placeholder="e.g. 150000" 
+                                       x-model="amountLost"
+                                       value="{{ form.amount_lost.value|default:'' }}">
+                            </div>
+                            <div class="form-text small">Enter the total monetary value lost. Required if you wish to generate an Official Police &amp; Bank Evidence Dossier.</div>
+                            {% if form.amount_lost.errors %}
+                                <div class="text-danger small mt-1">{{ form.amount_lost.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
                         <!-- Location, State, City -->
                         <div class="p-3 bg-light rounded border mb-3">
                             <h6 class="fw-bold small text-secondary mb-2">Location & Jurisdiction Context (Optional)</h6>
@@ -618,6 +639,11 @@
 
                                 <dt class="col-sm-4 text-muted">Title:</dt>
                                 <dd class="col-sm-8 fw-semibold" x-text="title"></dd>
+
+                                <dt class="col-sm-4 text-muted">Financial Loss:</dt>
+                                <dd class="col-sm-8 fw-bold text-danger">
+                                    <span x-text="amountLost ? '₦' + Number(amountLost).toLocaleString() : 'None declared'"></span>
+                                </dd>
 
                                 <dt class="col-sm-4 text-muted">Location:</dt>
                                 <dd class="col-sm-8">

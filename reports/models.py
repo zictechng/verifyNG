@@ -629,6 +629,15 @@ class EvidenceDossier(models.Model):
         blank=True,
         related_name='approved_dossiers'
     )
+    scan_count = models.PositiveIntegerField(
+        default=0,
+        help_text="Number of times this dossier's QR code has been verified"
+    )
+    last_scanned_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Timestamp of the most recent public QR verification scan"
+    )
 
     class Meta:
         verbose_name = 'Evidence Dossier'
@@ -644,4 +653,48 @@ class EvidenceDossier(models.Model):
 
 
 
+class DossierAccessLog(models.Model):
+    """
+    Forensic telemetry log tracking every QR scan, print, and view of an Evidence Dossier.
+    Records device type, operating system, browser, brand, and IP address for police and bank auditability.
+    """
+    ACCESS_TYPES = (
+        ('qr_scan', 'QR Code Scan (Public Verification Desk)'),
+        ('pdf_download', 'Print / PDF Download'),
+        ('dossier_order', 'Dossier Purchased / Generated'),
+    )
 
+    dossier = models.ForeignKey(
+        EvidenceDossier,
+        on_delete=models.CASCADE,
+        related_name='access_logs'
+    )
+    access_type = models.CharField(
+        max_length=30,
+        choices=ACCESS_TYPES,
+        default='qr_scan',
+        db_index=True
+    )
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.TextField(blank=True, default='')
+    device_type = models.CharField(max_length=50, blank=True, default='Unknown')
+    operating_system = models.CharField(max_length=50, blank=True, default='Unknown')
+    browser = models.CharField(max_length=50, blank=True, default='Unknown')
+    device_brand = models.CharField(max_length=100, blank=True, default='')
+    referer = models.CharField(max_length=255, blank=True, default='')
+    accessed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='dossier_access_logs'
+    )
+    created_at = models.DateTimeField(default=timezone.now, db_index=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Dossier Access & Scan Log'
+        verbose_name_plural = 'Dossier Access & Scan Logs'
+
+    def __str__(self):
+        return f"[{self.get_access_type_display()}] {self.dossier.tracking_id} via {self.device_type} ({self.operating_system} / {self.browser})"

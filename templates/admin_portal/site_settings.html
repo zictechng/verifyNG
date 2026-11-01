@@ -295,6 +295,27 @@
                   </td>
                 </tr>
 
+                <!-- 6.6 Police & Bank Evidence Dossier -->
+                <tr>
+                  <td>
+                    <div class="fw-semibold text-dark">Police &amp; Bank Evidence Dossier Generation</div>
+                    <div class="text-muted" style="font-size:0.74rem;">Formal 4-page Section 84 Certified Evidence Package for DPO &amp; Bank Fraud Desks</div>
+                  </td>
+                  <td>
+                    {% if settings_obj.service_police_dossier == 'free' %}
+                      <span class="adm-badge adm-badge-green">Complimentary (Free)</span>
+                    {% else %}
+                      <span class="adm-badge adm-badge-blue">Paid / Fee Required</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <select name="service_police_dossier" class="form-select form-select-sm">
+                      <option value="paid" {% if settings_obj.service_police_dossier == 'paid' %}selected{% endif %}>Paid (Official Fee Required)</option>
+                      <option value="free" {% if settings_obj.service_police_dossier == 'free' %}selected{% endif %}>Free / Complimentary (Community Support)</option>
+                    </select>
+                  </td>
+                </tr>
+
                 <!-- 7. Certificate ID QR Verification (LOCKED ALWAYS FREE) -->
                 <tr class="table-light">
                   <td>
@@ -436,6 +457,18 @@
               </div>
               <div class="form-text" style="font-size:0.75rem;">Full CAC corporate registration, vehicle, or real estate diligence.</div>
             </div>
+
+            <div class="mt-3 pt-3 border-top">
+              <label class="form-label small fw-semibold text-dark d-flex align-items-center gap-1.5" for="pricePoliceDossier">
+                <i class="bi bi-file-earmark-lock2-fill text-danger"></i> Official Police &amp; Bank Evidence Dossier Fee
+              </label>
+              <div class="input-group input-group-sm">
+                <span class="input-group-text bg-white fw-bold">₦</span>
+                <input type="number" name="price_police_dossier" id="pricePoliceDossier" class="form-control"
+                       value="{{ settings_obj.price_police_dossier|default:1000 }}" min="0" step="50" required>
+              </div>
+              <div class="form-text" style="font-size:0.75rem;">Automated Section 84 certified evidence package download fee in Naira.</div>
+            </div>
           </div>
         </div>
 
@@ -492,17 +525,7 @@
               </div>
               <div class="form-text" style="font-size:0.72rem;">24/7 background staff alerts per enrolled candidate.</div>
             </div>
-            <div class="mt-3 pt-3 border-top">
-              <label class="form-label small fw-semibold text-dark d-flex align-items-center gap-1.5" for="pricePoliceDossier">
-                <i class="bi bi-file-earmark-lock2-fill text-danger"></i> Official Police &amp; Bank Evidence Dossier Fee
-              </label>
-              <div class="input-group input-group-sm">
-                <span class="input-group-text bg-white fw-bold">₦</span>
-                <input type="number" name="price_police_dossier" id="pricePoliceDossier" class="form-control"
-                       value="{{ settings_obj.price_police_dossier|default:1000 }}" min="0" step="50" required>
-              </div>
-              <div class="form-text" style="font-size:0.72rem;">Automated Section 84 certified evidence package download fee in Naira.</div>
-            </div>
+            
           </div>
         </div>
 

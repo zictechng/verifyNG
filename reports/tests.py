@@ -918,3 +918,54 @@ class PoliceEvidenceDossierTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, dossier.tracking_id)
         self.assertContains(response, 'Section 84 of the Nigerian Evidence Act 2011')
+
+    def test_free_dossier_service_mode(self):
+        from payments.models import SiteSettings
+        site = SiteSettings.get()
+        site.service_police_dossier = 'free'
+        site.save()
+
+        self.assertTrue(site.is_service_free('police_dossier'))
+        self.assertEqual(site.get_service_price('police_dossier'), 0)
+
+        self.report.amount_lost = 95000.00
+        self.report.save()
+        dummy_file = SimpleUploadedFile('receipt.png', b'proof', content_type='image/png')
+        ReportEvidence.objects.create(report=self.report, file=dummy_file, file_type='receipt')
+
+        self.client.force_login(self.reporter)
+        url = reverse('reports:dossier_request', kwargs={'reference_number': self.report.reference_number})
+        response = self.client.post(url, {'payment_method': 'free'})
+        self.assertEqual(response.status_code, 302)
+
+        dossier = self.report.dossiers.first()
+        self.assertIsNotNone(dossier)
+        self.assertEqual(dossier.payment_status, 'verified')
+        self.assertEqual(dossier.amount_paid, 0)
+        self.assertEqual(dossier.payment_method, 'admin_waiver')
+
+    def test_qr_scan_device_telemetry_logging(self):
+        from reports.models import EvidenceDossier, generate_dossier_tracking_id, DossierAccessLog
+        dossier = EvidenceDossier.objects.create(
+            report=self.report,
+            user=self.reporter,
+            tracking_id=generate_dossier_tracking_id(),
+            payment_status='verified',
+            section84_hash='b'*64
+        )
+
+        iphone_ua = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1"
+        url = reverse('reports:dossier_verify_public', kwargs={'tracking_id': dossier.tracking_id})
+        
+        response = self.client.get(url, HTTP_USER_AGENT=iphone_ua)
+        self.assertEqual(response.status_code, 200)
+
+        dossier.refresh_from_db()
+        self.assertEqual(dossier.scan_count, 1)
+        self.assertIsNotNone(dossier.last_scanned_at)
+
+        log = DossierAccessLog.objects.filter(dossier=dossier, access_type='qr_scan').first()
+        self.assertIsNotNone(log)
+        self.assertEqual(log.device_brand, 'Apple iPhone')
+        self.assertIn('iOS', log.operating_system)
+        self.assertIn('Safari', log.browser)

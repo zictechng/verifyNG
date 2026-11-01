@@ -84,6 +84,12 @@ class SiteSettings(models.Model):
         default='paid',
         help_text="Certificate Monitoring Services (TrustPass)"
     )
+    service_police_dossier = models.CharField(
+        max_length=10,
+        choices=SERVICE_ACCESS_CHOICES,
+        default='paid',
+        help_text="Official Police & Bank Evidence Dossier Generation"
+    )
 
     # Pay-As-You-Go Per-Service Pricing (in Naira ₦)
     price_public_check = models.PositiveIntegerField(
@@ -168,13 +174,16 @@ class SiteSettings(models.Model):
             'trustpass': self.service_certificate_creation,
             'certificate_verify': getattr(self, 'service_certificate_verify', 'paid'),
             'monitoring': self.service_monitoring,
+            'police_dossier': getattr(self, 'service_police_dossier', 'paid'),
+            'dossier': getattr(self, 'service_police_dossier', 'paid'),
+            'evidence_dossier': getattr(self, 'service_police_dossier', 'paid'),
         }
         mode = mapping.get(service, 'paid')
         return mode == 'free'
 
     def get_service_price(self, service: str, tier: str = 'standard') -> int:
         """Returns the Pay-As-You-Go price in Naira for a service and tier."""
-        tier_clean = (tier or 'standard').lower()
+        tier_clean = str(tier or 'standard').lower()
         if service in ('public_check', 'check'):
             return self.price_public_check
         elif service in ('person_check', 'quick_check'):
@@ -194,6 +203,8 @@ class SiteSettings(models.Model):
         elif service in ('bulk_upload', 'bulk_check'):
             return self.price_bulk_check_per_row
         elif service in ('police_dossier', 'dossier', 'evidence_dossier'):
+            if self.is_service_free('police_dossier'):
+                return 0
             return self.price_police_dossier
         return 0
 

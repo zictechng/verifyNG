@@ -743,3 +743,168 @@ def get_pending_allegations_count_for_user(user) -> int:
     return pending_count
 
 
+def parse_client_device(user_agent_str: str) -> dict:
+    """
+    Parses a raw User-Agent header into structured device telemetry:
+    device_type (Mobile, Tablet, Desktop, Bot), operating_system, browser, device_brand.
+    """
+    ua = (user_agent_str or '').lower()
+    telemetry = {
+        'device_type': 'Desktop',
+        'operating_system': 'Unknown OS',
+        'browser': 'Unknown Browser',
+        'device_brand': 'PC'
+    }
+
+    if not ua:
+        return telemetry
+
+    if any(b in ua for b in ['bot', 'crawler', 'spider', 'curl', 'wget', 'slurp']):
+        telemetry['device_type'] = 'Bot / Crawler'
+        telemetry['operating_system'] = 'Automated Agent'
+        telemetry['browser'] = 'Bot'
+        return telemetry
+
+    if 'ipad' in ua:
+        telemetry['device_type'] = 'Tablet'
+        telemetry['device_brand'] = 'Apple iPad'
+    elif 'iphone' in ua:
+        telemetry['device_type'] = 'Mobile'
+        telemetry['device_brand'] = 'Apple iPhone'
+    elif 'android' in ua:
+        if 'mobile' in ua:
+            telemetry['device_type'] = 'Mobile'
+        else:
+            telemetry['device_type'] = 'Tablet'
+
+        if 'samsung' in ua or 'sm-' in ua:
+            telemetry['device_brand'] = 'Samsung Galaxy'
+        elif 'pixel' in ua:
+            telemetry['device_brand'] = 'Google Pixel'
+        elif 'redmi' in ua or 'xiaomi' in ua:
+            telemetry['device_brand'] = 'Xiaomi / Redmi'
+        elif 'huawei' in ua or 'honor' in ua:
+            telemetry['device_brand'] = 'Huawei / Honor'
+        elif 'transsion' in ua or 'infinix' in ua:
+            telemetry['device_brand'] = 'Infinix'
+        elif 'tecno' in ua:
+            telemetry['device_brand'] = 'Tecno'
+        elif 'oppo' in ua:
+            telemetry['device_brand'] = 'Oppo'
+        else:
+            telemetry['device_brand'] = 'Android Device'
+    elif 'windows' in ua:
+        telemetry['device_type'] = 'Desktop'
+        telemetry['device_brand'] = 'Windows PC'
+    elif 'macintosh' in ua or 'mac os' in ua:
+        telemetry['device_type'] = 'Desktop'
+        telemetry['device_brand'] = 'Apple Mac'
+    elif 'linux' in ua:
+        telemetry['device_type'] = 'Desktop'
+        telemetry['device_brand'] = 'Linux Workstation'
+
+    if 'iphone os' in ua or 'ipad; cpu os' in ua:
+        try:
+            import re
+            m = re.search(r'os (\d+[_.]\d+)', ua)
+            ver = m.group(1).replace('_', '.') if m else ''
+            telemetry['operating_system'] = f"iOS {ver}".strip()
+        except Exception:
+            telemetry['operating_system'] = 'iOS'
+    elif 'android' in ua:
+        try:
+            import re
+            m = re.search(r'android (\d+([.]\d+)?)', ua)
+            ver = m.group(1) if m else ''
+            telemetry['operating_system'] = f"Android {ver}".strip()
+        except Exception:
+            telemetry['operating_system'] = 'Android'
+    elif 'windows nt 10.0' in ua:
+        telemetry['operating_system'] = 'Windows 10/11'
+    elif 'windows' in ua:
+        telemetry['operating_system'] = 'Windows'
+    elif 'mac os x' in ua:
+        telemetry['operating_system'] = 'macOS'
+    elif 'linux' in ua:
+        telemetry['operating_system'] = 'Linux'
+
+    if 'whatsapp' in ua:
+        telemetry['browser'] = 'WhatsApp Browser'
+    elif 'fban' in ua or 'fbav' in ua:
+        telemetry['browser'] = 'Facebook App'
+    elif 'instagram' in ua:
+        telemetry['browser'] = 'Instagram App'
+    elif 'edg/' in ua or 'edge/' in ua:
+        telemetry['browser'] = 'Microsoft Edge'
+    elif 'opr/' in ua or 'opera' in ua:
+        telemetry['browser'] = 'Opera'
+    elif 'samsungbrowser' in ua:
+        telemetry['browser'] = 'Samsung Internet'
+    elif 'chrome' in ua and 'safari' in ua and 'crios' not in ua:
+        telemetry['browser'] = 'Google Chrome'
+    elif 'crios' in ua:
+        telemetry['browser'] = 'Chrome iOS'
+    elif 'safari' in ua and 'chrome' not in ua:
+        telemetry['browser'] = 'Apple Safari'
+    elif 'firefox' in ua or 'fxios' in ua:
+        telemetry['browser'] = 'Mozilla Firefox'
+
+    return telemetry
+
+
+def record_dossier_access(dossier, access_type: str, request, user=None):
+    """
+    Creates a forensic DossierAccessLog entry and system AuditLog with device telemetry.
+    """
+    from reports.models import DossierAccessLog, AuditLog
+    from core.rate_limiting import get_client_ip
+    from django.utils import timezone
+
+    ip = get_client_ip(request) if request else None
+    ua = request.META.get('HTTP_USER_AGENT', '') if request else ''
+    referer = (request.META.get('HTTP_REFERER', '') or '')[:255] if request else ''
+    telemetry = parse_client_device(ua)
+
+    log_user = user
+    if not log_user and request and getattr(request, 'user', None) and request.user.is_authenticated:
+        log_user = request.user
+
+    access_log = DossierAccessLog.objects.create(
+        dossier=dossier,
+        access_type=access_type,
+        ip_address=ip,
+        user_agent=ua,
+        device_type=telemetry['device_type'],
+        operating_system=telemetry['operating_system'],
+        browser=telemetry['browser'],
+        device_brand=telemetry['device_brand'],
+        referer=referer,
+        accessed_by=log_user
+    )
+
+    if access_type == 'qr_scan':
+        dossier.scan_count = (dossier.scan_count or 0) + 1
+        dossier.last_scanned_at = timezone.now()
+        dossier.save(update_fields=['scan_count', 'last_scanned_at'])
+
+    action_map = {
+        'qr_scan': 'DOSSIER_QR_SCANNED',
+        'pdf_download': 'DOSSIER_PRINTED_OR_DOWNLOADED',
+        'dossier_order': 'DOSSIER_ORDERED',
+    }
+    AuditLog.objects.create(
+        report=dossier.report,
+        action=action_map.get(access_type, 'DOSSIER_ACCESSED'),
+        performed_by=log_user,
+        ip_address=ip,
+        details={
+            'tracking_id': dossier.tracking_id,
+            'access_type': access_type,
+            'device_type': telemetry['device_type'],
+            'device_brand': telemetry['device_brand'],
+            'operating_system': telemetry['operating_system'],
+            'browser': telemetry['browser'],
+            'scan_count': dossier.scan_count,
+        }
+    )
+    return access_log

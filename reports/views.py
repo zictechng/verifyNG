@@ -6,6 +6,7 @@ from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.http import FileResponse, Http404, HttpResponseRedirect
 from django.urls import reverse
+from django.utils import timezone
 
 from reports.forms import (
     FraudReportSubmissionForm,
@@ -261,7 +262,8 @@ class ReportDetailView(DetailView):
         from core.models import SiteConfiguration
         site_settings = SiteSettings.get()
         site_config = SiteConfiguration.objects.filter(pk=1).first()
-        ctx['dossier_price'] = getattr(site_settings, 'price_police_dossier', 1000)
+        ctx['dossier_price'] = site_settings.get_service_price('police_dossier')
+        ctx['is_dossier_free'] = site_settings.is_service_free('police_dossier') or ctx['dossier_price'] == 0
         ctx['active_dossier'] = self.object.active_dossier
         ctx['has_unlocked_dossier'] = self.object.has_unlocked_dossier
         ctx['has_evidence_and_amount'] = self.object.has_evidence_and_amount
@@ -832,8 +834,30 @@ class DossierCheckoutView(LoginRequiredMixin, View):
 
         from payments.models import SiteSettings
         site_settings = SiteSettings.get()
-        dossier_price = getattr(site_settings, 'price_police_dossier', 1000)
+        dossier_price = site_settings.get_service_price('police_dossier')
+        is_free_mode = site_settings.is_service_free('police_dossier') or dossier_price == 0
         payment_method = request.POST.get('payment_method', 'paystack')
+
+        if is_free_mode or payment_method == 'free':
+            from reports.services import record_dossier_access
+            from reports.models import EvidenceDossier, generate_dossier_tracking_id
+            import hashlib
+            tracking_id = generate_dossier_tracking_id()
+            hash_input = f"{report.reference_number}:{report.incident_date}:{report.amount_lost}:{tracking_id}"
+            section84_hash = hashlib.sha256(hash_input.encode('utf-8')).hexdigest()
+            dossier = EvidenceDossier.objects.create(
+                tracking_id=tracking_id,
+                report=report,
+                user=request.user,
+                amount_paid=0,
+                payment_method='admin_waiver',
+                payment_status='verified',
+                section84_hash=section84_hash,
+                issued_at=timezone.now(),
+            )
+            record_dossier_access(dossier, 'dossier_order', request, user=request.user)
+            messages.success(request, "Official Police & Bank Evidence Dossier has been unlocked and is ready to print.")
+            return redirect('reports:detail', reference_number=reference_number)
 
         if payment_method == 'manual_transfer':
             manual_ref = request.POST.get('manual_transfer_ref', '').strip()
@@ -946,6 +970,10 @@ class DossierDownloadView(View):
             dossier.section84_hash = section84_hash
             dossier.save(update_fields=['section84_hash'])
 
+        if dossier.pk:
+            from reports.services import record_dossier_access
+            record_dossier_access(dossier, 'pdf_download', request, user=request.user)
+
         from core.models import SiteConfiguration
         site_config = SiteConfiguration.objects.filter(pk=1).first()
 
@@ -970,11 +998,19 @@ class DossierVerifyPublicView(View):
         from reports.models import EvidenceDossier
         dossier = get_object_or_404(EvidenceDossier, tracking_id=tracking_id)
         from core.models import SiteConfiguration
+        from reports.services import record_dossier_access
         site_config = SiteConfiguration.objects.filter(pk=1).first()
+
+        # Telemetry & Audit log on every QR scan
+        scan_log = record_dossier_access(dossier, 'qr_scan', request, user=request.user if request.user.is_authenticated else None)
+
         context = {
             'dossier': dossier,
             'report': dossier.report,
             'site_config': site_config,
             'is_valid': dossier.payment_status == 'verified',
+            'scan_count': dossier.scan_count,
+            'last_scanned_at': dossier.last_scanned_at,
+            'scan_telemetry': scan_log,
         }
         return render(request, 'reports/dossier_verify_public.html', context)

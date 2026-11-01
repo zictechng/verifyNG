@@ -2645,6 +2645,10 @@ class AdminSiteSettingsView(SuperAdminRequiredMixin, TemplateView):
         if site.service_monitoring not in valid_modes:
             site.service_monitoring = 'paid'
 
+            site.service_police_dossier = request.POST.get('service_police_dossier', getattr(site, 'service_police_dossier', 'paid'))
+        if site.service_police_dossier not in valid_modes:
+            site.service_police_dossier = 'paid'
+
         try:
             site.price_public_check = max(0, int(request.POST.get('price_public_check', site.price_public_check)))
             site.price_person_check = max(0, int(request.POST.get('price_person_check', site.price_person_check)))

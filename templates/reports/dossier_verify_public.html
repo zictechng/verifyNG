@@ -88,6 +88,15 @@
                                 <td class="text-dark py-2">{{ dossier.issued_at|date:"d F Y, H:i"|default:dossier.created_at|date:"d F Y, H:i" }} WAT</td>
                             </tr>
                             <tr>
+                                <td class="text-muted py-2">Verification Scans:</td>
+                                <td class="text-dark py-2">
+                                    <span class="badge bg-light text-primary border font-monospace px-2 py-1">Scan #{{ scan_count|default:1 }}</span>
+                                    {% if scan_telemetry %}
+                                    <span class="small text-muted ms-1.5" style="font-size:0.82rem;">Detected: {{ scan_telemetry.device_brand|default:scan_telemetry.device_type }} ({{ scan_telemetry.operating_system }} &bull; {{ scan_telemetry.browser }})</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
                                 <td class="text-muted py-2">Section 84 Hash:</td>
                                 <td class="font-monospace text-muted py-2 small text-break" style="font-size: 0.78rem;">
                                     {{ dossier.section84_hash|default:"sha256:verified_authentic" }}
