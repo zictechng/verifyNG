@@ -394,11 +394,14 @@
                         <div class="p-3.5 my-3 rounded text-start" style="background:#FFFFFF; border:1px solid #BFDBFE; font-size:10pt; line-height:1.65; color:#1E3A8A;">
                             <strong>SECTION 84 EVIDENCE ACT CUSTODY NOTICE:</strong> This exhibit was uploaded as a native Microsoft Word document (.docx/.doc). Pursuant to Section 84 computer-evidence standards, the document has been cryptographically preserved in its native binary format without format distortion or conversion artifacts. Police investigators, prosecutor desks, and bank fraud analysts can inspect or download the original sealed electronic file directly from the VerifyNG Digital Vault.
                         </div>
-                        <div class="mt-2">
-                            <a href="{{ exh.file.url }}" target="_blank" class="btn btn-primary btn-sm px-3.5 py-2 fw-bold d-inline-flex align-items-center gap-1.5 shadow-sm text-white">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                                <span>Download &amp; Inspect Original Word Exhibit</span>
-                            </a>
+                        <div class="p-3 my-2 rounded text-center" style="background:#FFFFFF; border:1px solid #BFDBFE;">
+                            <div class="fw-bold text-primary d-flex align-items-center justify-content-center gap-1.5" style="font-size:9pt;">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                                <span>SEALED DIGITAL DOCUMENT IN SECURE VAULT</span>
+                            </div>
+                            <div class="text-secondary small mt-1" style="font-size:8.5pt;">
+                                To inspect or download the complete original document, scan the dynamic QR verification seal on Page 1 or Page 4 with any smartphone.
+                            </div>
                         </div>
                     </div>
                 {% elif exh.is_pdf %}
@@ -419,11 +422,14 @@
                         <div class="p-3.5 my-3 rounded text-start" style="background:#FFFFFF; border:1px solid #FECACA; font-size:10pt; line-height:1.65; color:#991B1B;">
                             <strong>MULTI-PAGE DOCUMENTARY EXHIBIT:</strong> This evidence file comprises a certified multi-page PDF document preserved in the VerifyNG Digital Vault. Its internal structure, metadata timestamps, and cryptographic integrity have been sealed under Section 84 of the Evidence Act 2011.
                         </div>
-                        <div class="mt-2">
-                            <a href="{{ exh.file.url }}" target="_blank" class="btn btn-danger btn-sm px-3.5 py-2 fw-bold d-inline-flex align-items-center gap-1.5 shadow-sm text-white">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                                <span>Open / Download Full PDF Exhibit</span>
-                            </a>
+                        <div class="p-3 my-2 rounded text-center" style="background:#FFFFFF; border:1px solid #FECACA;">
+                            <div class="fw-bold text-danger d-flex align-items-center justify-content-center gap-1.5" style="font-size:9pt;">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                                <span>SEALED MULTI-PAGE PDF EXHIBIT IN SECURE VAULT</span>
+                            </div>
+                            <div class="text-secondary small mt-1" style="font-size:8.5pt;">
+                                Multi-page electronic document certified under Section 84. Scan the dynamic QR verification seal on Page 1 or Page 4 to view or download full PDF.
+                            </div>
                         </div>
                     </div>
                 {% else %}

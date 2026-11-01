@@ -49,6 +49,7 @@ urlpatterns = [
     path('api/v1/', get_api_urls()),
     path('users/', include('users.urls', namespace='users')),
     path('reports/', include('reports.urls', namespace='reports')),
+    path('verify/dossier/', DossierVerifyPublicView.as_view(), name='dossier_verify_short_index'),
     path('verify/dossier/<str:tracking_id>/', DossierVerifyPublicView.as_view(), name='dossier_verify_short'),
     path('dashboard/', include('dashboard.urls', namespace='dashboard')),
     path('verification/', include('verification.urls', namespace='verification')),

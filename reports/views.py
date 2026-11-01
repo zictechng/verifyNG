@@ -1019,15 +1019,49 @@ class DossierDownloadView(View):
 
 class DossierVerifyPublicView(View):
     """
-    Public digital verification endpoint scanned from the QR code on the printed dossier.
-    Allows Police Officers and Bank Compliance Officers to verify authenticity in real-time.
+    Public digital verification endpoint scanned from the QR code on the printed dossier,
+    or accessed directly by officers/citizens searching by Tracking ID or Report Reference.
     """
-    def get(self, request, tracking_id):
+    def get(self, request, tracking_id=None):
         from reports.models import EvidenceDossier
-        dossier = get_object_or_404(EvidenceDossier, tracking_id=tracking_id)
         from core.models import SiteConfiguration
         from reports.services import record_dossier_access
+
         site_config = SiteConfiguration.objects.filter(pk=1).first()
+        raw_query = request.GET.get('q') or request.GET.get('tracking_id')
+
+        # If user searched via GET parameter, resolve or redirect
+        if not tracking_id and raw_query:
+            query = raw_query.strip()
+            dossier = (
+                EvidenceDossier.objects.filter(tracking_id__iexact=query).first()
+                or EvidenceDossier.objects.filter(report__reference_number__iexact=query, payment_status='verified').first()
+            )
+            if dossier:
+                return redirect('reports:dossier_verify_public', tracking_id=dossier.tracking_id)
+            return render(request, 'reports/dossier_verify_search.html', {
+                'site_config': site_config,
+                'searched_query': query,
+                'not_found': True,
+            })
+
+        # If no tracking_id was supplied in the URL and no search was performed, show search portal
+        if not tracking_id:
+            return render(request, 'reports/dossier_verify_search.html', {
+                'site_config': site_config,
+            })
+
+        # Find dossier by tracking ID (case-insensitive) or by parent report reference
+        dossier = (
+            EvidenceDossier.objects.filter(tracking_id__iexact=tracking_id).first()
+            or EvidenceDossier.objects.filter(report__reference_number__iexact=tracking_id, payment_status='verified').first()
+        )
+        if not dossier:
+            return render(request, 'reports/dossier_verify_search.html', {
+                'site_config': site_config,
+                'searched_query': tracking_id,
+                'not_found': True,
+            })
 
         # Telemetry & Audit log on every QR scan
         scan_log = record_dossier_access(dossier, 'qr_scan', request, user=request.user if request.user.is_authenticated else None)
@@ -1040,5 +1074,6 @@ class DossierVerifyPublicView(View):
             'scan_count': dossier.scan_count,
             'last_scanned_at': dossier.last_scanned_at,
             'scan_telemetry': scan_log,
+            'exhibits': dossier.report.evidence_files.all(),
         }
         return render(request, 'reports/dossier_verify_public.html', context)

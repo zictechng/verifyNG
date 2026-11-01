@@ -145,7 +145,7 @@
             <td>{{ dos.created_at|date:"d M Y H:i" }}</td>
             <td>
               <div class="d-flex gap-1">
-                <a href="{% url 'reports:dossier_pdf' report.reference_number %}" target="_blank" class="btn btn-adm-sm btn-adm-outline">PDF</a>
+                <a href="{% url 'reports:dossier_download' report.reference_number %}" target="_blank" class="btn btn-adm-sm btn-adm-outline">PDF</a>
                 <a href="{% url 'reports:dossier_verify_public' dos.tracking_id %}" target="_blank" class="btn btn-adm-sm btn-adm-outline">QR Desk</a>
               </div>
             </td>

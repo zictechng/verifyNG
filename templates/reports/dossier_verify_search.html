@@ -1,0 +1,93 @@
+{% extends "public/base.html" %}
+{% load static %}
+
+{% block title %}Dossier Verification Portal — {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-xl-7">
+
+            <!-- Official Seal Header -->
+            <div class="text-center mb-4">
+                <div class="d-inline-flex align-items-center justify-content-center mb-3"
+                     style="width: 76px; height: 76px; border-radius: 50%; background: #EFF6FF; border: 4px solid #DBEAFE; color: #2457D6;">
+                    <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                        <polyline points="9 12 11 14 15 10"></polyline>
+                    </svg>
+                </div>
+                <h1 class="h3 fw-bold text-dark mb-2">
+                    Evidence Dossier Verification Desk
+                </h1>
+                <p class="text-muted" style="font-size: 0.95rem; line-height: 1.6;">
+                    Official Section 84 computer-generated evidence verification portal for the Nigeria Police Force (NPF / CID), EFCC, and Financial Institution Compliance Desks.
+                </p>
+            </div>
+
+            <!-- Search Card -->
+            <div class="card border-0 shadow-sm p-4 mb-4" style="border-radius: 16px; background: #FFFFFF; border: 1.5px solid #E2E8F0 !important;">
+                
+                {% if not_found %}
+                <div class="alert alert-danger d-flex align-items-center gap-2 mb-4" role="alert" style="border-radius: 10px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                    <div>
+                        <strong>Document Record Not Found:</strong> No authentic evidence dossier matches <code class="fw-bold">{{ searched_query }}</code>. Please verify the Tracking ID printed on the physical document or scan the dynamic QR seal.
+                    </div>
+                </div>
+                {% endif %}
+
+                <form method="get" action="{% url 'reports:dossier_verify_index' %}" class="mb-3">
+                    <label for="dossierQuery" class="form-label fw-bold text-dark small text-uppercase" style="letter-spacing: 0.04em;">
+                        Enter Dossier Tracking ID or Incident Reference Number
+                    </label>
+                    <div class="input-group input-group-lg mb-3">
+                        <span class="input-group-text bg-light text-muted border-end-0">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></polyline><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                        </span>
+                        <input type="text" 
+                               name="q" 
+                               id="dossierQuery" 
+                               class="form-control font-monospace" 
+                               placeholder="e.g. VNG-DOS-20261101-D452 or VNG-20261010-3FF8" 
+                               value="{{ searched_query|default:'' }}" 
+                               required 
+                               style="font-size: 1rem;">
+                        <button class="btn btn-primary px-4 fw-bold" type="submit">
+                            Verify Document
+                        </button>
+                    </div>
+                    <div class="form-text text-muted small">
+                        The Tracking ID can be found at the top right of Page 1 or on the Section 84 Certification box on Page 4 of the official Evidence Dossier.
+                    </div>
+                </form>
+
+                <div class="border-top pt-3 mt-3">
+                    <div class="d-flex align-items-center gap-2 text-muted small">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span>Instantly validates Post-No-Debit (PND) status, suspect financial records, and cryptographic custody seals.</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Guidance for Law Enforcement & Banks -->
+            <div class="p-3.5 p-md-4 rounded-3 border" style="background: #F8FAFC; border-color: #CBD5E1 !important; font-size: 0.9rem;">
+                <div class="fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2457D6" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                    <span>Guidance for Investigating Police Officers &amp; Fraud Desks</span>
+                </div>
+                <p class="text-muted mb-0" style="line-height: 1.6;">
+                    If you are holding a physical paper petition, you can also point any smartphone camera at the <strong>Live QR Code</strong> printed on Page 1 or Page 4. You will be automatically redirected to the authenticated digital case file and all original attached evidence documents.
+                </p>
+            </div>
+
+            <div class="text-center mt-4">
+                <a href="{% url 'home' %}" class="btn btn-outline-secondary px-4 py-2 fw-semibold" style="border-radius: 10px;">
+                    Return to Homepage
+                </a>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}
