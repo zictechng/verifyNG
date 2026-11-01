@@ -33,22 +33,28 @@
                 The server could not understand the request due to invalid syntax or an expired session. Please try again or return to the homepage.
             </p>
 
-            <!-- Action buttons -->
-            <div class="d-flex flex-wrap justify-content-center gap-2.5 pt-2">
-                <a href="{% url 'home' %}" class="btn btn-primary px-4 py-2.5 d-inline-flex align-items-center gap-2 fw-semibold" style="background-color: var(--vng-primary); border-color: var(--vng-primary); border-radius: 12px; font-size: 1.05rem !important;">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                        <polyline points="9 22 9 12 15 12 15 22"></polyline>
-                    </svg>
-                    <span>Return to Home</span>
-                </a>
+            <!-- Action buttons (Spacious, Mobile-Responsive Grid) -->
+            <div class="mt-4 pt-2 mb-3">
+                <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-auto g-2.5 g-md-3 justify-content-center">
+                    <div class="col">
+                        <a href="{% url 'home' %}" class="btn btn-primary w-100 px-4 py-2.5 d-inline-flex align-items-center justify-content-center gap-2 fw-semibold shadow-sm" style="background-color: var(--vng-primary); border-color: var(--vng-primary); border-radius: 12px; font-size: 1.05rem !important; min-height: 50px;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="flex-shrink-0">
+                                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                                <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                            </svg>
+                            <span>Return to Home</span>
+                        </a>
+                    </div>
 
-                <a href="{% url 'contact' %}" class="btn btn-light border px-4 py-2.5 d-inline-flex align-items-center gap-2 fw-semibold" style="border-radius: 12px; color: #0F172A; background: #FFFFFF; font-size: 1.05rem !important;">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                    </svg>
-                    <span>Contact Support</span>
-                </a>
+                    <div class="col">
+                        <a href="{% url 'contact' %}" class="btn btn-light border w-100 px-4 py-2.5 d-inline-flex align-items-center justify-content-center gap-2 fw-semibold shadow-sm" style="border-radius: 12px; color: #0F172A; background: #FFFFFF; font-size: 1.05rem !important; min-height: 50px;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="flex-shrink-0">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                            </svg>
+                            <span>Contact Support</span>
+                        </a>
+                    </div>
+                </div>
             </div>
 
         </div>
