@@ -861,6 +861,25 @@
                     <form action="{% url 'reports:dossier_request' report.reference_number %}" method="post" enctype="multipart/form-data">
                         {% csrf_token %}
                         <input type="hidden" name="payment_method" value="manual_transfer">
+
+                        <!-- Payment Proof Submission Notice (Readable, Professional, Mobile-friendly) -->
+                        <div class="p-3 rounded-3 mb-3" style="background: #F0FDF4; border: 1.5px solid #BBF7D0;">
+                            <div class="d-flex align-items-start gap-2">
+                                <div class="flex-shrink-0 mt-0.5">
+                                    <div class="d-flex align-items-center justify-content-center rounded-circle" style="width: 28px; height: 28px; background: #DCFCE7; color: #15803D;">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="fw-bold text-success-emphasis" style="font-size: 0.88rem; letter-spacing: -0.01em;">
+                                        Step 2: Submit Proof of Payment
+                                    </div>
+                                    <div class="text-secondary small mt-1" style="font-size: 0.82rem; line-height: 1.45;">
+                                        After you have made the payment to our corporate account above, please fill in your transfer details and upload your payment proof below for verification and approval.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         
                         <div class="mb-3">
                             <label for="id_manual_transfer_ref" class="form-label fw-bold small text-dark">Sender Name or Session ID <span class="text-danger">*</span></label>
