@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Evidence Dossier — {{ dossier.tracking_id }} — {{ report.reference_number }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --vng-primary: #2457D6;
+            --vng-ink: #0F172A;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #F1F5F9;
+            color: #0F172A;
+            margin: 0;
+            padding: 0;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        /* Screen Presentation Wrapper */
+        .dossier-screen-bar {
+            background: #0F172A;
+            color: #FFFFFF;
+            padding: 14px 20px;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .dossier-page {
+            background: #FFFFFF;
+            width: 210mm;
+            min-height: 297mm;
+            padding: 20mm;
+            margin: 25px auto;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            position: relative;
+            box-sizing: border-box;
+            border-radius: 4px;
+        }
+
+        /* Typography & Tables */
+        h1, h2, h3, h4, h5, h6 {
+            color: #0F172A;
+            font-weight: 700;
+        }
+        p, td, th {
+            font-size: 10.5pt;
+            line-height: 1.55;
+            color: #1E293B;
+        }
+        .table-dossier th {
+            background-color: #F8FAFC !important;
+            color: #475569;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 8.5pt;
+            letter-spacing: 0.04em;
+            border-bottom: 1.5px solid #CBD5E1;
+            padding: 7px 10px;
+        }
+        .table-dossier td {
+            border-bottom: 1px solid #E2E8F0;
+            padding: 8px 10px;
+            vertical-align: top;
+        }
+
+        .dossier-seal-box {
+            border: 2px dashed #2457D6;
+            background: #F8FAFC;
+            padding: 16px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .page-break {
+            page-break-after: always;
+            break-after: page;
+        }
+
+        /* Strict Print Rules */
+        @media print {
+            body {
+                background: #FFFFFF !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+            .dossier-screen-bar, .no-print {
+                display: none !important;
+            }
+            .dossier-page {
+                box-shadow: none !important;
+                margin: 0 !important;
+                width: 100% !important;
+                min-height: 297mm !important;
+                padding: 15mm !important;
+                page-break-after: always !important;
+                break-after: page !important;
+            }
+            @page {
+                size: A4;
+                margin: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Floating Screen Action Bar (Hidden during printing) -->
+<div class="dossier-screen-bar no-print d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div class="d-flex align-items-center gap-2">
+        <a href="{% url 'reports:detail' report.reference_number %}" class="btn btn-sm btn-outline-light d-inline-flex align-items-center gap-1">
+            &larr; Back to Report
+        </a>
+        <span class="badge bg-primary text-white font-monospace px-2.5 py-1.5" style="font-size:0.85rem;">
+            {{ dossier.tracking_id }}
+        </span>
+        <span class="small text-light d-none d-sm-inline">Official Evidence Dossier</span>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <button onclick="window.print()" class="btn btn-primary btn-sm px-3 fw-bold d-inline-flex align-items-center gap-1.5 shadow-sm">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+            <span>Print / Save as PDF</span>
+        </button>
+    </div>
+</div>
+
+<!-- ==========================================================================
+     PAGE 1: FORMAL COMPLAINT, SUMMARY & EXPOSURE BREAKDOWN
+     ========================================================================== -->
+<div class="dossier-page page-break">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-start border-bottom pb-3 mb-4">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2L3 7V12C3 17.52 6.84 22.74 12 24C17.16 22.74 21 17.52 21 12V7L12 2Z" fill="#2457D6"/>
+                    <path d="M10 15.5L6.5 12L7.91 10.59L10 12.67L16.09 6.59L17.5 8L10 15.5Z" fill="#FFFFFF"/>
+                </svg>
+                <span class="fs-4 fw-bold text-dark" style="letter-spacing:-0.02em;">{{ site_config.site_name|default:"VerifyNG" }}</span>
+            </div>
+            <div class="small text-muted fw-semibold" style="font-size:8.5pt;">PUBLIC TRUST &amp; DIGITAL CRIME INTELLIGENCE VAULT</div>
+            <div class="small text-muted" style="font-size:8pt;">RC: {{ site_config.company_reg_number|default:"7492104" }} &bull; verifyng.com &bull; support@verifyng.com</div>
+        </div>
+        <div class="text-end">
+            <span class="badge bg-danger text-white px-2.5 py-1 text-uppercase fw-bold" style="font-size:7.5pt;letter-spacing:0.05em;">
+                OFFICIAL EVIDENCE DOSSIER
+            </span>
+            <div class="font-monospace fw-bold text-dark mt-1" style="font-size:9.5pt;">{{ dossier.tracking_id }}</div>
+            <div class="small text-muted" style="font-size:8pt;">Ref: {{ report.reference_number }}</div>
+            <div class="small text-muted" style="font-size:8pt;">Date: {{ issued_date|date:"d F Y" }}</div>
+        </div>
+    </div>
+
+    <!-- Addressed Authority -->
+    <div class="p-3 rounded mb-4" style="background:#F8FAFC; border: 1px solid #CBD5E1;">
+        <div class="small text-uppercase fw-bold text-muted mb-1" style="font-size:8pt;">DIRECTED TO LAW ENFORCEMENT &amp; FINANCIAL COMPLIANCE DESKS:</div>
+        <div class="fw-bold text-dark" style="font-size:9.5pt;">
+            1. THE DIVISIONAL POLICE OFFICER (DPO) / INVESTIGATING POLICE OFFICER (IPO) &mdash; NIGERIA POLICE FORCE<br>
+            2. THE HEAD OF FRAUD RISK, RECALLS &amp; AML/CFT COMPLIANCE &mdash; BENEFICIARY FINANCIAL INSTITUTION
+        </div>
+    </div>
+
+    <div class="text-center mb-4">
+        <h5 class="fw-bold text-dark text-uppercase mb-1" style="letter-spacing:0.02em; font-size:12.5pt;">
+            FORMAL CRIMINAL COMPLAINT &amp; ELECTRONIC EVIDENCE AUDIT DOSSIER
+        </h5>
+        <div class="small text-muted fst-italic">
+            Matter: Advance-Fee Fraud, Obtaining Under False Pretence &amp; Electronic Fund Diversion (S. 419 Criminal Code / Cybercrimes Act 2015)
+        </div>
+    </div>
+
+    <!-- Parties Identification Grid -->
+    <div class="row g-3 mb-4">
+        <div class="col-6">
+            <div class="p-3 rounded h-100" style="background:#FFFFFF; border:1px solid #E2E8F0;">
+                <div class="fw-bold text-uppercase small text-muted border-bottom pb-1 mb-2" style="font-size:8pt;">
+                    A. COMPLAINANT / REPORTING CITIZEN
+                </div>
+                <table class="w-100 small" style="font-size:9pt;">
+                    <tr><td class="text-muted py-1" style="width:38%;">Full Name:</td><td class="fw-bold text-dark">{{ report.reporter.get_full_name|default:report.reporter.username }}</td></tr>
+                    <tr><td class="text-muted py-1">Phone:</td><td class="text-dark">{{ report.reporter.phone_number|default:"Verified on file" }}</td></tr>
+                    <tr><td class="text-muted py-1">Email:</td><td class="text-dark">{{ report.reporter.email }}</td></tr>
+                    <tr><td class="text-muted py-1">Identity Status:</td><td><span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size:7.5pt;">Verified Citizen</span></td></tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="col-6">
+            <div class="p-3 rounded h-100" style="background:#FFFFFF; border:1px solid #E2E8F0;">
+                <div class="fw-bold text-uppercase small text-muted border-bottom pb-1 mb-2" style="font-size:8pt;">
+                    B. ACCUSED SUSPECT / BENEFICIARY ENTITY
+                </div>
+                <table class="w-100 small" style="font-size:9pt;">
+                    <tr><td class="text-muted py-1" style="width:38%;">Suspect Name:</td><td class="fw-bold text-danger">{{ report.target_subject.name }}</td></tr>
+                    <tr><td class="text-muted py-1">Phone:</td><td class="font-monospace text-dark">{{ suspect_context.phone|default:"Not provided" }}</td></tr>
+                    <tr><td class="text-muted py-1">Bank Name:</td><td class="fw-semibold text-dark">{{ suspect_context.bank_name|default:"Not specified" }}</td></tr>
+                    <tr><td class="text-muted py-1">Account No:</td><td class="fw-bold font-monospace text-danger">{{ suspect_context.bank_account|default:"Not specified" }}</td></tr>
+                    <tr><td class="text-muted py-1">CAC / RC:</td><td class="font-monospace text-dark">{{ suspect_context.cac_number|default:"Unregistered / Individual" }}</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Financial Loss Box -->
+    <div class="p-3.5 rounded mb-4" style="background:#FEF2F2; border:1.5px solid #FCA5A5;">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <div class="small text-uppercase fw-bold text-danger mb-0" style="font-size:8.5pt;">Total Financial Loss / Stolen Funds:</div>
+                <div class="fs-3 fw-bold text-danger">{{ report.amount_lost_formatted }}</div>
+                <div class="small fw-semibold text-dark fst-italic">In Words: {{ report.amount_lost_in_words }}</div>
+            </div>
+            <div class="text-sm-end">
+                <div class="small text-muted" style="font-size:8pt;">Incident Date:</div>
+                <div class="fw-bold text-dark">{{ report.incident_date|date:"d F Y"|default:"Noted on record" }}</div>
+                <div class="small text-muted" style="font-size:8pt;">Exhibits Attached: <strong>{{ exhibits.count }} Document(s)</strong></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Executive Incident Summary -->
+    <div class="mb-4">
+        <h6 class="fw-bold text-dark text-uppercase small border-bottom pb-1 mb-2" style="font-size:8.5pt;">Incident Synopsis:</h6>
+        <p class="small text-dark text-justify mb-0" style="font-size:9.5pt; line-height:1.65; white-space:pre-wrap;">{{ report.allegation|truncatewords:150 }}</p>
+    </div>
+
+    <!-- Footer Page 1 -->
+    <div class="position-absolute bottom-0 start-0 end-0 px-4 pb-3 text-center border-top pt-2 mx-4" style="font-size:7.5pt; color:#64748B;">
+        Page 1 of 4 &bull; Official Evidence Dossier &bull; {{ dossier.tracking_id }} &bull; Verify Live at {{ site_config.base_url|default:"https://verifyng.com" }}/verify/dossier/{{ dossier.tracking_id }}/
+    </div>
+</div>
+
+<!-- ==========================================================================
+     PAGE 2: CHRONOLOGICAL INCIDENT BREAKDOWN & RELIEFS SOUGHT
+     ========================================================================== -->
+<div class="dossier-page page-break">
+    <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+        <span class="small fw-bold text-muted text-uppercase" style="font-size:8pt;">VerifyNG Digital Evidence Vault &mdash; Chronological Audit</span>
+        <span class="small font-monospace text-muted" style="font-size:8pt;">Ref: {{ report.reference_number }}</span>
+    </div>
+
+    <h6 class="fw-bold text-dark text-uppercase small border-bottom pb-2 mb-3" style="font-size:9.5pt;">
+        1. Comprehensive Chronological Statement of Incident
+    </h6>
+    <div class="p-3 rounded mb-4" style="background:#F8FAFC; border:1px solid #E2E8F0; font-size:9.5pt; line-height:1.7; white-space:pre-wrap; color:#1E293B;">
+{{ report.allegation }}
+    </div>
+
+    <h6 class="fw-bold text-dark text-uppercase small border-bottom pb-2 mb-3" style="font-size:9.5pt;">
+        2. Pre-Action Due Process &amp; Fair Hearing Status
+    </h6>
+    <div class="p-3 rounded mb-4" style="background:#FFFFFF; border:1px solid #CBD5E1; font-size:9pt;">
+        <table class="w-100">
+            <tr>
+                <td class="text-muted py-1" style="width:40%;">7-Day Right-of-Response Notice Dispatched:</td>
+                <td class="fw-bold text-dark">YES (Automated dispatch via registered electronic channels)</td>
+            </tr>
+            <tr>
+                <td class="text-muted py-1">Dispute / Rebuttal Status:</td>
+                <td class="fw-bold text-dark">
+                    {% if report.disputes.exists %}
+                        ACTIVE DISPUTE ON FILE ({{ report.disputes.count }} defense statement(s) submitted)
+                    {% else %}
+                        EXPIRED / NO DEFENSE OR REFUND REBUTTAL SUBMITTED BY SUSPECT
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <td class="text-muted py-1">Platform Risk Assessment:</td>
+                <td class="fw-bold text-danger">HIGH RISK SUSPECT &mdash; FLAGGED IN PUBLIC SAFETY REPOSITORY</td>
+            </tr>
+        </table>
+    </div>
+
+    <h6 class="fw-bold text-dark text-uppercase small border-bottom pb-2 mb-3" style="font-size:9.5pt;">
+        3. Specific Prayers &amp; Reliefs Sought by Complainant
+    </h6>
+    <div class="p-3 rounded mb-4" style="background:#FEF2F2; border:1px solid #FECACA; font-size:9pt; line-height:1.65; color:#1E293B;">
+        <ol class="mb-0 ps-3">
+            <li class="mb-2">
+                <strong>Post-No-Debit (PND) Account Freeze:</strong> That the designated beneficiary bank (<strong>{{ suspect_context.bank_name|default:"Beneficiary Bank" }}</strong>) immediately place a temporary lien / PND on Account Number: <strong class="text-danger font-monospace">{{ suspect_context.bank_account|default:"Specified Account" }}</strong> in accordance with CBN Anti-Fraud Directives.
+            </li>
+            <li class="mb-2">
+                <strong>BVN Watchlisting:</strong> That the suspect's Bank Verification Number linked to the beneficiary account be queried across NIBSS to prevent further electronic fund diversion.
+            </li>
+            <li>
+                <strong>Banker's Order &amp; Prosecution:</strong> That the Investigating Police Officer (IPO) obtain the requisite Court Warrant under the Evidence Act 2011 to obtain suspect KYC records and recall stolen funds.
+            </li>
+        </ol>
+    </div>
+
+    <div class="position-absolute bottom-0 start-0 end-0 px-4 pb-3 text-center border-top pt-2 mx-4" style="font-size:7.5pt; color:#64748B;">
+        Page 2 of 4 &bull; Official Evidence Dossier &bull; {{ dossier.tracking_id }} &bull; Ref: {{ report.reference_number }}
+    </div>
+</div>
+
+<!-- ==========================================================================
+     PAGE 3: EXHIBIT VAULT (REPRODUCED ARTIFACTS & RECEIPTS)
+     ========================================================================== -->
+<div class="dossier-page page-break">
+    <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+        <span class="small fw-bold text-muted text-uppercase" style="font-size:8pt;">VerifyNG Digital Evidence Vault &mdash; Documentary Exhibits</span>
+        <span class="small font-monospace text-muted" style="font-size:8pt;">Tracking ID: {{ dossier.tracking_id }}</span>
+    </div>
+
+    <h6 class="fw-bold text-dark text-uppercase small border-bottom pb-2 mb-3" style="font-size:9.5pt;">
+        Exhibits Vault: Authenticated Transfer Receipts &amp; Chat Transcripts
+    </h6>
+
+    {% if exhibits %}
+        {% for exh in exhibits %}
+        <div class="mb-4 p-3 rounded" style="border:1px solid #CBD5E1; background:#FFFFFF;">
+            <div class="d-flex justify-content-between align-items-center mb-2 pb-1 border-bottom">
+                <span class="fw-bold text-dark" style="font-size:9pt;">
+                    EXHIBIT {{ forloop.counter }}: {{ exh.get_file_type_display|upper }} &mdash; {{ exh.description|default:"Transaction Exhibit" }}
+                </span>
+                <span class="small font-monospace text-muted" style="font-size:8pt;">Uploaded: {{ exh.uploaded_at|date:"d M Y, H:i" }} WAT</span>
+            </div>
+            
+            <div class="text-center py-2" style="max-height: 180mm; overflow: hidden;">
+                {% if exh.file.name|lower|slice:"-4:" == ".pdf" %}
+                    <div class="p-4 bg-light rounded text-center">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#2457D6" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                        <div class="fw-bold mt-2" style="font-size:9pt;">{{ exh.file.name }}</div>
+                        <div class="text-muted small" style="font-size:8pt;">Attached as Electronic Multi-Page Document</div>
+                    </div>
+                {% else %}
+                    <img src="{{ exh.file.url }}" alt="Exhibit {{ forloop.counter }}" class="img-fluid rounded border" style="max-height: 160mm; object-fit: contain;">
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="p-5 text-center bg-light rounded border">
+            <p class="text-muted small mb-0">No primary exhibits were attached at the time of initial filing.</p>
+        </div>
+    {% endif %}
+
+    <div class="position-absolute bottom-0 start-0 end-0 px-4 pb-3 text-center border-top pt-2 mx-4" style="font-size:7.5pt; color:#64748B;">
+        Page 3 of 4 &bull; Exhibit Vault &bull; {{ dossier.tracking_id }} &bull; Ref: {{ report.reference_number }}
+    </div>
+</div>
+
+<!-- ==========================================================================
+     PAGE 4: SECTION 84 EVIDENCE ACT 2011 CERTIFICATION & QR SEAL
+     ========================================================================== -->
+<div class="dossier-page">
+    <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+        <span class="small fw-bold text-muted text-uppercase" style="font-size:8pt;">Statutory Certification Pursuant to Law</span>
+        <span class="small font-monospace text-muted" style="font-size:8pt;">Tracking ID: {{ dossier.tracking_id }}</span>
+    </div>
+
+    <div class="text-center mb-4">
+        <h5 class="fw-bold text-dark text-uppercase mb-1" style="font-size:12.5pt;">
+            CERTIFICATE OF COMPUTER-GENERATED EVIDENCE
+        </h5>
+        <div class="small fw-semibold text-primary">
+            PURSUANT TO SECTION 84 OF THE NIGERIAN EVIDENCE ACT 2011 (LAWS OF THE FEDERATION OF NIGERIA)
+        </div>
+    </div>
+
+    <div class="p-3.5 rounded mb-4" style="background:#F8FAFC; border:1px solid #CBD5E1; font-size:9.2pt; line-height:1.75; color:#1E293B;">
+        <p class="mb-2">
+            I, the undersigned <strong>Electronic Records Custodian &amp; Head of Technical Operations</strong> of {{ site_config.site_name|default:"VerifyNG" }} (operated under neutral technological intermediary compliance protocols), do hereby solemnly declare and certify as follows:
+        </p>
+        <ol class="mb-0 ps-3">
+            <li class="mb-2">
+                That I am in charge of the computer server infrastructure, cryptographic audit logs, and electronic storage devices utilized by {{ site_config.site_name|default:"VerifyNG" }} for the collection, preservation, and retrieval of electronic evidence.
+            </li>
+            <li class="mb-2">
+                That this Evidence Dossier bearing Tracking ID: <strong class="font-monospace">{{ dossier.tracking_id }}</strong> and parent reference <strong class="font-monospace">{{ report.reference_number }}</strong> was produced automatically by our secure computer servers during a period over which the computer was used regularly to store and process electronic records for the purposes of public trust and scam defense.
+            </li>
+            <li class="mb-2">
+                That throughout the material period, the computer system was operating properly and in a sound condition. There were no malfunctions, system breakdowns, or cyber compromises that could affect the accuracy or authenticity of the electronic records or the reproduction of the attached exhibits.
+            </li>
+            <li>
+                That the information contained herein was supplied by the complainant in the ordinary course of technological reporting on <strong>{{ report.created_at|date:"d F Y" }}</strong> and has remained unaltered, cryptographically preserved, and tamper-evident.
+            </li>
+        </ol>
+    </div>
+
+    <!-- Cryptographic Seal and QR Code Section -->
+    <div class="row g-3 align-items-center mb-4">
+        <div class="col-8">
+            <div class="p-3 rounded border" style="background:#FFFFFF; font-size:8.5pt;">
+                <div class="small fw-bold text-uppercase text-muted mb-1">Cryptographic Digital Custody Seal:</div>
+                <div class="font-monospace text-break text-danger fw-bold mb-1" style="font-size:8.5pt;">
+                    SHA256: {{ section84_hash }}
+                </div>
+                <div class="text-muted" style="font-size:7.5pt;">
+                    Mathematical checksum verified across report data, timestamps, and attached documentary exhibits.
+                </div>
+            </div>
+        </div>
+
+        <div class="col-4 text-center">
+            <div class="dossier-seal-box p-2">
+                <!-- Visual Hologram Seal Representation -->
+                <svg width="44" height="44" viewBox="0 0 24 24" fill="none" class="mb-1">
+                    <circle cx="12" cy="12" r="10" stroke="#2457D6" stroke-width="2"/>
+                    <path d="M12 2L15 8L21 9L17 14L18 20L12 17L6 20L7 14L3 9L9 8L12 2Z" fill="#2457D6" opacity="0.25"/>
+                    <path d="M9 12L11 14L15 10" stroke="#2457D6" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                <div class="fw-bold text-dark" style="font-size:7.5pt;">VERIFYNG DIGITAL SEAL</div>
+                <div class="text-muted font-monospace" style="font-size:6.5pt;">OFFICIALLY CERTIFIED</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statutory Safe Harbor Disclaimer -->
+    <div class="p-3 rounded text-muted" style="background:#F1F5F9; border:1px solid #E2E8F0; font-size:7.8pt; line-height:1.55;">
+        <strong>STATUTORY DISCLAIMER &amp; SAFE HARBOR:</strong> This document is an electronic evidence audit repository prepared under Section 84 of the Nigerian Evidence Act 2011 to assist authorized law enforcement and financial institutions. {{ site_config.site_name|default:"VerifyNG" }} is a neutral technological intermediary and does not operate as a court of law. Submitting fabricated, fraudulent, or altered electronic receipts constitutes criminal forgery under the Cybercrimes (Prohibition, Prevention, etc.) Act 2015.
+    </div>
+
+    <div class="position-absolute bottom-0 start-0 end-0 px-4 pb-3 text-center border-top pt-2 mx-4" style="font-size:7.5pt; color:#64748B;">
+        Page 4 of 4 &bull; Section 84 Compliance Certification &bull; {{ dossier.tracking_id }} &bull; Verify Online: {{ site_config.base_url|default:"https://verifyng.com" }}/verify/dossier/{{ dossier.tracking_id }}/
+    </div>
+</div>
+
+</body>
+</html>

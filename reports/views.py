@@ -16,7 +16,7 @@ from reports.forms import (
     ModeratorInfoRequestForm,
     InfoRequestFulfillForm,
 )
-from reports.models import FraudReport, ReportEvidence, Dispute
+from reports.models import FraudReport, ReportEvidence, Dispute, AuditLog, EvidenceDossier
 from reports.services import (
     create_fraud_report,
     transition_report_state,
@@ -255,6 +255,26 @@ class ReportDetailView(DetailView):
         ctx['fulfill_form'] = InfoRequestFulfillForm()
         if is_moderator(self.request.user):
             ctx['info_request_form'] = ModeratorInfoRequestForm()
+
+        # Police & Bank Evidence Dossier Context
+        from payments.models import SiteSettings
+        from core.models import SiteConfiguration
+        site_settings = SiteSettings.get()
+        site_config = SiteConfiguration.objects.filter(pk=1).first()
+        ctx['dossier_price'] = getattr(site_settings, 'price_police_dossier', 1000)
+        ctx['active_dossier'] = self.object.active_dossier
+        ctx['has_unlocked_dossier'] = self.object.has_unlocked_dossier
+        ctx['has_evidence_and_amount'] = self.object.has_evidence_and_amount
+        ctx['company_bank_name'] = getattr(site_config, 'company_bank_name', 'Zenith Bank')
+        ctx['company_bank_account_name'] = getattr(site_config, 'company_bank_account_name', 'VerifyNG Limited')
+        ctx['company_bank_account_number'] = getattr(site_config, 'company_bank_account_number', '')
+        ctx['is_reporter_or_staff'] = (
+            self.request.user.is_authenticated and (
+                self.request.user == self.object.reporter or
+                self.request.user.is_staff or
+                is_moderator(self.request.user)
+            )
+        )
 
         return ctx
 
@@ -735,3 +755,226 @@ class InfoRequestFulfillView(LoginRequiredMixin, View):
 
         return redirect('reports:detail', reference_number=reference_number)
 
+
+class DossierPrepareView(LoginRequiredMixin, View):
+    """
+    Validation Gate: Allows complainant to supply amount_lost or upload
+    an evidence file before generating the Police & Bank Evidence Dossier.
+    """
+    def post(self, request, reference_number):
+        report = get_object_or_404(FraudReport, reference_number=reference_number)
+        if report.reporter != request.user and not request.user.is_staff and not is_moderator(request.user):
+            raise PermissionDenied("You do not have authorization to prepare evidence for this report.")
+
+        amount_str = request.POST.get('amount_lost', '').strip()
+        evidence_file = request.FILES.get('evidence_file')
+        evidence_type = request.POST.get('evidence_type', 'receipt')
+        evidence_desc = request.POST.get('evidence_description', 'Transaction Proof for Evidence Dossier').strip()
+
+        updated = False
+        if amount_str:
+            try:
+                from decimal import Decimal
+                clean_amount = Decimal(amount_str.replace(',', ''))
+                if clean_amount > 0:
+                    report.amount_lost = clean_amount
+                    init_log = report.audit_logs.filter(action="REPORT_SUBMITTED").first()
+                    if init_log and isinstance(init_log.details, dict):
+                        ctx = init_log.details.get('suspect_context', {})
+                        ctx['amount_lost'] = str(clean_amount)
+                        init_log.details['suspect_context'] = ctx
+                        init_log.save(update_fields=['details'])
+                    report.save(update_fields=['amount_lost', 'updated_at'])
+                    updated = True
+            except Exception as e:
+                messages.error(request, f"Invalid amount provided: {e}")
+                return redirect('reports:detail', reference_number=reference_number)
+
+        if evidence_file:
+            try:
+                validate_file_upload(evidence_file)
+                storage = get_storage_service()
+                meta = storage.upload_evidence(evidence_file)
+                ReportEvidence.objects.create(
+                    report=report,
+                    file=evidence_file,
+                    file_type=evidence_type,
+                    description=evidence_desc or 'Bank Transaction Receipt',
+                    is_confidential=False,
+                    storage_provider=meta.get('storage_provider', 'local'),
+                    storage_public_id=meta.get('storage_public_id', ''),
+                    storage_resource_type=meta.get('storage_resource_type', 'image'),
+                    storage_format=meta.get('storage_format', ''),
+                )
+                updated = True
+            except Exception as e:
+                messages.error(request, f"Evidence upload failed: {e}")
+                return redirect('reports:detail', reference_number=reference_number)
+
+        if updated:
+            messages.success(request, "Your case evidence and financial claim have been updated. You can now proceed to generate the official dossier.")
+        return redirect('reports:detail', reference_number=reference_number)
+
+
+class DossierCheckoutView(LoginRequiredMixin, View):
+    """
+    Handles payment initiation for the Official Police & Bank Evidence Dossier.
+    Supports instant Paystack Pay-As-You-Go checkout and manual direct bank transfer.
+    """
+    def post(self, request, reference_number):
+        report = get_object_or_404(FraudReport, reference_number=reference_number)
+        if report.reporter != request.user and not request.user.is_staff and not is_moderator(request.user):
+            raise PermissionDenied("You do not have authorization to request a dossier for this report.")
+
+        if not report.has_evidence_and_amount:
+            messages.warning(request, "Please ensure both the financial amount lost and at least one evidence file are provided before generating the dossier.")
+            return redirect('reports:detail', reference_number=reference_number)
+
+        from payments.models import SiteSettings
+        site_settings = SiteSettings.get()
+        dossier_price = getattr(site_settings, 'price_police_dossier', 1000)
+        payment_method = request.POST.get('payment_method', 'paystack')
+
+        if payment_method == 'manual_transfer':
+            manual_ref = request.POST.get('manual_transfer_ref', '').strip()
+            manual_receipt = request.FILES.get('manual_receipt')
+
+            if not manual_ref and not manual_receipt:
+                messages.error(request, "Please provide your bank transfer session ID / sender name or upload your payment receipt.")
+                return redirect('reports:detail', reference_number=reference_number)
+
+            from reports.models import EvidenceDossier
+            dossier, created = EvidenceDossier.objects.get_or_create(
+                report=report,
+                user=request.user,
+                payment_status='pending',
+                defaults={
+                    'amount_paid': dossier_price,
+                    'payment_method': 'manual_transfer',
+                    'manual_transfer_ref': manual_ref,
+                    'manual_receipt': manual_receipt,
+                }
+            )
+            if not created:
+                dossier.manual_transfer_ref = manual_ref
+                if manual_receipt:
+                    dossier.manual_receipt = manual_receipt
+                dossier.amount_paid = dossier_price
+                dossier.payment_method = 'manual_transfer'
+                dossier.save()
+
+            AuditLog.objects.create(
+                report=report,
+                action="DOSSIER_MANUAL_PAYMENT_SUBMITTED",
+                performed_by=request.user,
+                ip_address=get_client_ip(request),
+                details={
+                    "tracking_id": dossier.tracking_id,
+                    "manual_ref": manual_ref,
+                    "amount_naira": dossier_price,
+                }
+            )
+            messages.success(
+                request,
+                f"Your payment proof of ₦{dossier_price:,.0f} has been submitted. Our compliance team will review and unlock your official dossier shortly."
+            )
+            return redirect('reports:detail', reference_number=reference_number)
+
+        else:
+            try:
+                from payments.services import initialize_service_checkout
+                from reports.models import EvidenceDossier, generate_dossier_tracking_id
+                tracking_id = generate_dossier_tracking_id()
+                EvidenceDossier.objects.create(
+                    tracking_id=tracking_id,
+                    report=report,
+                    user=request.user,
+                    amount_paid=dossier_price,
+                    payment_method='paystack',
+                    payment_status='pending',
+                )
+                checkout_data = initialize_service_checkout(
+                    user=request.user,
+                    service='police_dossier',
+                    tier='standard',
+                    amount_naira=dossier_price,
+                    metadata={
+                        'service': 'police_dossier',
+                        'report_ref': report.reference_number,
+                        'tracking_id': tracking_id,
+                    }
+                )
+                request.session['vng_pending_ref'] = checkout_data['reference']
+                return redirect(checkout_data['authorization_url'])
+            except Exception as e:
+                logger.error("Failed to initialize dossier Paystack checkout for %s: %s", reference_number, e)
+                messages.error(request, f"Unable to initialize payment: {e}")
+                return redirect('reports:detail', reference_number=reference_number)
+
+
+class DossierDownloadView(View):
+    """
+    Renders the formal, court- and police-ready Evidence Dossier
+    certified under Section 84 of the Nigerian Evidence Act 2011.
+    """
+    def get(self, request, reference_number):
+        report = get_object_or_404(FraudReport, reference_number=reference_number)
+        is_owner = (request.user.is_authenticated and report.reporter == request.user)
+        is_staff_user = (request.user.is_authenticated and (request.user.is_staff or is_moderator(request.user)))
+
+        dossier = report.dossiers.filter(payment_status='verified').first()
+        if not dossier:
+            if is_staff_user:
+                from reports.models import EvidenceDossier
+                dossier = EvidenceDossier(
+                    tracking_id=f"PREVIEW-{report.reference_number}",
+                    report=report,
+                    user=request.user,
+                    amount_paid=0,
+                    payment_method='admin_waiver',
+                    payment_status='verified',
+                    issued_at=timezone.now(),
+                )
+            else:
+                messages.warning(request, "An official dossier has not been unlocked for this report. Please complete payment to download.")
+                return redirect('reports:detail', reference_number=reference_number)
+
+        import hashlib
+        hash_input = f"{report.reference_number}:{report.incident_date}:{report.amount_lost}:{dossier.tracking_id}"
+        section84_hash = hashlib.sha256(hash_input.encode('utf-8')).hexdigest()
+        if not dossier.section84_hash and dossier.pk:
+            dossier.section84_hash = section84_hash
+            dossier.save(update_fields=['section84_hash'])
+
+        from core.models import SiteConfiguration
+        site_config = SiteConfiguration.objects.filter(pk=1).first()
+
+        context = {
+            'report': report,
+            'dossier': dossier,
+            'site_config': site_config,
+            'exhibits': report.evidence_files.all(),
+            'section84_hash': section84_hash,
+            'suspect_context': report.suspect_context,
+            'issued_date': dossier.issued_at or timezone.now(),
+        }
+        return render(request, 'reports/dossier_print.html', context)
+
+
+class DossierVerifyPublicView(View):
+    """
+    Public digital verification endpoint scanned from the QR code on the printed dossier.
+    Allows Police Officers and Bank Compliance Officers to verify authenticity in real-time.
+    """
+    def get(self, request, tracking_id):
+        from reports.models import EvidenceDossier
+        dossier = get_object_or_404(EvidenceDossier, tracking_id=tracking_id)
+        from core.models import SiteConfiguration
+        site_config = SiteConfiguration.objects.filter(pk=1).first()
+        context = {
+            'dossier': dossier,
+            'report': dossier.report,
+            'site_config': site_config,
+            'is_valid': dossier.payment_status == 'verified',
+        }
+        return render(request, 'reports/dossier_verify_public.html', context)

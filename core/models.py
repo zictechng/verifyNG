@@ -71,6 +71,24 @@ class SiteConfiguration(models.Model):
         default='',
         help_text="Physical or registered address shown in email footer.",
     )
+    company_bank_name = models.CharField(
+        max_length=100,
+        blank=True,
+        default='Zenith Bank',
+        help_text="Company bank name for receiving manual transfer payments.",
+    )
+    company_bank_account_name = models.CharField(
+        max_length=150,
+        blank=True,
+        default='VerifyNG Limited',
+        help_text="Company bank account name for manual transfer payments.",
+    )
+    company_bank_account_number = models.CharField(
+        max_length=20,
+        blank=True,
+        default='',
+        help_text="Company 10-digit NUBAN account number for manual transfer payments.",
+    )
 
     # ── Social Links ──────────────────────────────────────────────────────────
     twitter_url = models.URLField(

@@ -15,6 +15,10 @@ from reports.views import (
     RebuttalCreateView,
     ModeratorInfoRequestView,
     InfoRequestFulfillView,
+    DossierPrepareView,
+    DossierCheckoutView,
+    DossierDownloadView,
+    DossierVerifyPublicView,
 )
 
 app_name = 'reports'
@@ -29,6 +33,10 @@ urlpatterns = [
     path('disputes/<int:dispute_id>/resolve/', DisputeResolveView.as_view(), name='resolve_dispute'),
     path('disputes/<int:dispute_id>/counter-evidence/', DisputeCounterEvidenceView.as_view(), name='dispute_counter_evidence'),
     path('evidence/<int:evidence_id>/download/', EvidenceDownloadView.as_view(), name='evidence_download'),
+    path('dossier/verify/<str:tracking_id>/', DossierVerifyPublicView.as_view(), name='dossier_verify_public'),
+    path('<str:reference_number>/dossier/prepare/', DossierPrepareView.as_view(), name='dossier_prepare'),
+    path('<str:reference_number>/dossier/request/', DossierCheckoutView.as_view(), name='dossier_request'),
+    path('<str:reference_number>/dossier/download/', DossierDownloadView.as_view(), name='dossier_download'),
     path('<str:reference_number>/evidence/upload/', EvidenceUploadView.as_view(), name='upload_evidence'),
     path('<str:reference_number>/subject/photo/upload/', SubjectPhotoUploadView.as_view(), name='upload_subject_photo'),
     path('<str:reference_number>/dispute/', DisputeCreateView.as_view(), name='create_dispute'),

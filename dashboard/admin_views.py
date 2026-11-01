@@ -2657,6 +2657,7 @@ class AdminSiteSettingsView(SuperAdminRequiredMixin, TemplateView):
             site.price_certificate_verify = max(0, int(request.POST.get('price_certificate_verify', site.price_certificate_verify)))
             site.price_monitoring_annual = max(0, int(request.POST.get('price_monitoring_annual', site.price_monitoring_annual)))
             site.price_bulk_check_per_row = max(0, int(request.POST.get('price_bulk_check_per_row', site.price_bulk_check_per_row)))
+            site.price_police_dossier = max(0, int(request.POST.get('price_police_dossier', getattr(site, 'price_police_dossier', 1000))))
         except (ValueError, TypeError):
             pass
 

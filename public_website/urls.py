@@ -26,5 +26,7 @@ urlpatterns = [
     path('register/', RedirectView.as_view(pattern_name='users:register_landing', permanent=False, query_string=True), name='register_redirect'),
     path('signup/', RedirectView.as_view(pattern_name='users:register_landing', permanent=False, query_string=True), name='signup_redirect'),
     path('logout/', RedirectView.as_view(pattern_name='users:logout', permanent=False, query_string=True), name='logout_redirect'),
+    # Dossier public QR verification alias
+    path('verify/dossier/<str:tracking_id>/', RedirectView.as_view(pattern_name='reports:dossier_verify_public', permanent=False), name='dossier_verify_redirect'),
 ]
 

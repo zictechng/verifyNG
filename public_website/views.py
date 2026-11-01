@@ -261,6 +261,7 @@ def report(request):
                     suspect_location=cd.get('suspect_location'),
                     suspect_state=cd.get('suspect_state'),
                     suspect_city=cd.get('suspect_city'),
+                    amount_lost=cd.get('amount_lost'),
                 )
                 messages.success(
                     request,

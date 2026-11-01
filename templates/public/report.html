@@ -185,7 +185,7 @@
                         </div>
 
                         <!-- Incident Date -->
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <label for="{{ form.incident_date.id_for_label }}" class="form-label small fw-semibold">
                                 Incident Date
                             </label>
@@ -195,8 +195,23 @@
                             {% endif %}
                         </div>
 
+                        <!-- Amount Lost -->
+                        <div class="col-md-6">
+                            <label for="{{ form.amount_lost.id_for_label }}" class="form-label small fw-semibold">
+                                Total Amount Lost / Transferred (₦)
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light fw-bold" style="color: var(--vng-ink); border-color: #CBD5E1;">₦</span>
+                                {{ form.amount_lost }}
+                            </div>
+                            <div class="form-text">{{ form.amount_lost.help_text }}</div>
+                            {% if form.amount_lost.errors %}
+                            <div class="invalid-feedback d-block">{{ form.amount_lost.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+
                         <!-- State -->
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <label for="{{ form.suspect_state.id_for_label }}" class="form-label small fw-semibold">
                                 State
                             </label>
@@ -207,7 +222,7 @@
                         </div>
 
                         <!-- City -->
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <label for="{{ form.suspect_city.id_for_label }}" class="form-label small fw-semibold">
                                 City / LGA
                             </label>

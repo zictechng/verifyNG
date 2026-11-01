@@ -36,7 +36,8 @@ def create_fraud_report(reporter, subject_name, subject_type, title, allegation,
                         evidence_description="", suspect_phone=None,
                         suspect_bank_account=None, suspect_bank_name=None,
                         suspect_cac_number=None, suspect_email=None,
-                        suspect_location=None, suspect_state=None, suspect_city=None):
+                        suspect_location=None, suspect_state=None, suspect_city=None,
+                        amount_lost=None):
     """
     Creates FraudReport and optional initial evidence atomically.
     Normalizes and registers provided suspect identifiers into identities.Identifier
@@ -152,6 +153,7 @@ def create_fraud_report(reporter, subject_name, subject_type, title, allegation,
                     target_subject=subject,
                     title=title,
                     allegation=allegation,
+                    amount_lost=amount_lost,
                     incident_date=incident_date,
                     state='submitted'
                 )
@@ -174,6 +176,7 @@ def create_fraud_report(reporter, subject_name, subject_type, title, allegation,
                             "bank_name": suspect_bank_name or "",
                             "bank_account": suspect_bank_account or "",
                             "cac_number": suspect_cac_number or "",
+                            "amount_lost": str(amount_lost) if amount_lost is not None else "",
                             "location": suspect_location or "",
                             "state": suspect_state or "",
                             "city": suspect_city or "",

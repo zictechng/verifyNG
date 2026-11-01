@@ -813,6 +813,52 @@ def _fulfill_payg_transaction(transaction: Transaction, paystack_data: dict):
             transaction.is_active = False
             transaction.save(update_fields=['is_active'])
 
+    # 5. Police & Bank Evidence Dossier
+    elif service in ('police_dossier', 'dossier', 'evidence_dossier'):
+        report_ref = meta.get('report_ref')
+        tracking_id = meta.get('tracking_id')
+        if report_ref:
+            from reports.models import FraudReport, EvidenceDossier, AuditLog
+            report = FraudReport.objects.filter(reference_number=report_ref).first()
+            if report:
+                dossier = None
+                if tracking_id:
+                    dossier = EvidenceDossier.objects.filter(tracking_id=tracking_id).first()
+                if not dossier:
+                    dossier = EvidenceDossier.objects.filter(report=report, paystack_reference=transaction.reference).first()
+                if not dossier:
+                    dossier = EvidenceDossier.objects.create(
+                        report=report,
+                        user=transaction.user,
+                        amount_paid=transaction.amount_naira,
+                        payment_method='paystack',
+                        payment_status='verified',
+                        paystack_reference=transaction.reference,
+                        issued_at=timezone.now(),
+                    )
+                else:
+                    dossier.payment_status = 'verified'
+                    dossier.issued_at = timezone.now()
+                    dossier.paystack_reference = transaction.reference
+                    dossier.amount_paid = transaction.amount_naira
+                    dossier.save(update_fields=['payment_status', 'issued_at', 'paystack_reference', 'amount_paid'])
+
+                try:
+                    AuditLog.objects.create(
+                        report=report,
+                        action="DOSSIER_PAYMENT_SUCCESS",
+                        performed_by=transaction.user,
+                        details={
+                            "tracking_id": dossier.tracking_id,
+                            "reference": transaction.reference,
+                            "amount_naira": transaction.amount_naira,
+                        }
+                    )
+                except Exception:
+                    pass
+                logger.info("Evidence Dossier %s unlocked after payment %s", dossier.tracking_id, transaction.reference)
+
+
 
 # ---------------------------------------------------------------------------
 # Dynamic Pre-Paid Account Balance & Multi-Service Credit Engine

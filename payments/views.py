@@ -505,6 +505,16 @@ def _route_payg_success(request, transaction):
             )
             return redirect('dashboard:index')
 
+    elif service in ('police_dossier', 'dossier', 'evidence_dossier'):
+        from django.urls import reverse
+        report_ref = meta.get('report_ref')
+        if report_ref:
+            messages.success(
+                request,
+                f"Payment of ₦{transaction.amount_naira:,.0f} confirmed! Your Official Police & Bank Evidence Dossier is now unlocked."
+            )
+            return redirect(reverse('reports:detail', kwargs={'reference_number': report_ref}))
+
     return None
 
 @login_required

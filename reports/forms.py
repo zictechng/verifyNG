@@ -154,6 +154,18 @@ class FraudReportSubmissionForm(forms.Form):
         required=False,
         widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
     )
+    amount_lost = forms.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        min_value=0,
+        required=False,
+        widget=forms.NumberInput(attrs={
+            'placeholder': 'e.g. 85000',
+            'class': 'form-control',
+            'step': 'any'
+        }),
+        help_text="Optional. The monetary amount sent to or stolen by the suspect in Naira (₦)."
+    )
     suspect_location = forms.CharField(
         max_length=255,
         required=False,

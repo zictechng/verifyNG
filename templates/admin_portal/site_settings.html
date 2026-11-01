@@ -492,6 +492,17 @@
               </div>
               <div class="form-text" style="font-size:0.72rem;">24/7 background staff alerts per enrolled candidate.</div>
             </div>
+            <div class="mt-3 pt-3 border-top">
+              <label class="form-label small fw-semibold text-dark d-flex align-items-center gap-1.5" for="pricePoliceDossier">
+                <i class="bi bi-file-earmark-lock2-fill text-danger"></i> Official Police &amp; Bank Evidence Dossier Fee
+              </label>
+              <div class="input-group input-group-sm">
+                <span class="input-group-text bg-white fw-bold">₦</span>
+                <input type="number" name="price_police_dossier" id="pricePoliceDossier" class="form-control"
+                       value="{{ settings_obj.price_police_dossier|default:1000 }}" min="0" step="50" required>
+              </div>
+              <div class="form-text" style="font-size:0.72rem;">Automated Section 84 certified evidence package download fee in Naira.</div>
+            </div>
           </div>
         </div>
 

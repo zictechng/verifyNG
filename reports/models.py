@@ -6,6 +6,63 @@ from users.models import User
 from identities.models import SubjectEntity
 
 
+def number_to_naira_words(amount):
+    """
+    Converts a decimal or integer amount to Nigerian Naira in words.
+    Example: 185000 -> 'One Hundred and Eighty-Five Thousand Naira Only'
+    """
+    if amount is None or amount == 0:
+        return "Zero Naira Only"
+
+    units = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine",
+             "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen",
+             "Seventeen", "Eighteen", "Nineteen"]
+    tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"]
+
+    def _convert_hundreds(n):
+        res = []
+        if n >= 100:
+            res.append(units[n // 100] + " Hundred")
+            n %= 100
+            if n > 0:
+                res.append("and")
+        if 0 < n < 20:
+            res.append(units[n])
+        elif n >= 20:
+            t = tens[n // 10]
+            u = units[n % 10]
+            res.append(f"{t}-{u}" if u else t)
+        return " ".join(res)
+
+    int_part = int(amount)
+    kobo_part = int(round((float(amount) - int_part) * 100))
+
+    parts = []
+    billions = int_part // 1000000000
+    int_part %= 1000000000
+    millions = int_part // 1000000
+    int_part %= 1000000
+    thousands = int_part // 1000
+    remainder = int_part % 1000
+
+    if billions > 0:
+        parts.append(_convert_hundreds(billions) + " Billion")
+    if millions > 0:
+        parts.append(_convert_hundreds(millions) + " Million")
+    if thousands > 0:
+        parts.append(_convert_hundreds(thousands) + " Thousand")
+    if remainder > 0:
+        parts.append(_convert_hundreds(remainder))
+
+    words = " ".join(parts).strip() if parts else "Zero"
+    result = f"{words} Naira"
+    if kobo_part > 0:
+        kobo_words = _convert_hundreds(kobo_part)
+        result += f", {kobo_words} Kobo"
+    result += " Only"
+    return result
+
+
 class FraudReport(models.Model):
     public_id = models.UUIDField(
         default=uuid.uuid4,
@@ -49,6 +106,13 @@ class FraudReport(models.Model):
     )
     allegation = models.TextField(
         help_text="Detailed description of alleged incident"
+    )
+    amount_lost = models.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Total financial amount lost in Naira (₦)"
     )
     incident_date = models.DateField(
         null=True,
@@ -97,6 +161,36 @@ class FraudReport(models.Model):
         if init_log and isinstance(init_log.details, dict):
             return init_log.details.get('suspect_context', {})
         return {}
+
+    @property
+    def amount_lost_formatted(self):
+        """Returns formatted currency string, e.g. ₦185,000.00"""
+        if self.amount_lost is not None:
+            return f"₦{self.amount_lost:,.2f}"
+        ctx_amount = self.suspect_context.get('amount_lost')
+        if ctx_amount:
+            try:
+                from decimal import Decimal
+                return f"₦{Decimal(str(ctx_amount)):,.2f}"
+            except Exception:
+                return str(ctx_amount)
+        return "Not specified"
+
+    @property
+    def amount_lost_in_words(self):
+        """Returns amount in Nigerian Naira words, e.g. 'One Hundred and Eighty-Five Thousand Naira Only'"""
+        val = self.amount_lost
+        if val is None:
+            ctx_amount = self.suspect_context.get('amount_lost')
+            if ctx_amount:
+                try:
+                    from decimal import Decimal
+                    val = Decimal(str(ctx_amount))
+                except Exception:
+                    pass
+        if val is None:
+            return "Amount Not Specified"
+        return number_to_naira_words(val)
 
     @property
     def suspect_email(self):
@@ -191,6 +285,29 @@ class FraudReport(models.Model):
                 if (target_role == 'complainant' and is_reporter) or (target_role == 'respondent' and is_respondent):
                     return req
         return None
+
+    @property
+    def active_dossier(self):
+        """Returns the verified dossier if paid, or the latest pending dossier."""
+        if not self.pk:
+            return None
+        verified = self.dossiers.filter(payment_status='verified').first()
+        if verified:
+            return verified
+        return self.dossiers.first()
+
+    @property
+    def has_unlocked_dossier(self):
+        if not self.pk:
+            return False
+        return self.dossiers.filter(payment_status='verified').exists()
+
+    @property
+    def has_evidence_and_amount(self):
+        """Validates whether report has both an amount lost and at least one evidence file."""
+        has_amount = bool(self.amount_lost or (self.suspect_context and self.suspect_context.get('amount_lost')))
+        has_evidence = self.evidence_files.exists()
+        return has_amount and has_evidence
 
 
 class ReportEvidence(models.Model):
@@ -416,6 +533,115 @@ class AuditLog(models.Model):
     def __str__(self):
         actor = self.performed_by.username if self.performed_by else 'system'
         return f"[{self.action_type}] {self.action} by {actor} at {self.timestamp:%Y-%m-%d %H:%M}"
+
+
+def generate_dossier_tracking_id():
+    today_str = timezone.now().strftime('%Y%m%d')
+    suffix = uuid.uuid4().hex[:4].upper()
+    return f"VNG-DOS-{today_str}-{suffix}"
+
+
+class EvidenceDossier(models.Model):
+    """
+    Official Police & Bank Evidence Dossier issued for a FraudReport.
+    Certified under Section 84 of the Nigerian Evidence Act 2011.
+    """
+    PAYMENT_METHODS = (
+        ('paystack', 'Paystack Online (Instant)'),
+        ('manual_transfer', 'Direct Bank Transfer (Manual)'),
+        ('admin_waiver', 'Administrative Waiver'),
+    )
+    PAYMENT_STATUSES = (
+        ('pending', 'Pending Verification'),
+        ('verified', 'Verified / Paid'),
+        ('rejected', 'Payment Rejected'),
+    )
+
+    tracking_id = models.CharField(
+        max_length=50,
+        unique=True,
+        db_index=True,
+        default=generate_dossier_tracking_id,
+        help_text="Unique Dossier Tracking ID, e.g. VNG-DOS-YYYYMMDD-XXXX"
+    )
+    report = models.ForeignKey(
+        FraudReport,
+        on_delete=models.CASCADE,
+        related_name='dossiers'
+    )
+    user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='purchased_dossiers'
+    )
+    amount_paid = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0.00
+    )
+    payment_method = models.CharField(
+        max_length=30,
+        choices=PAYMENT_METHODS,
+        default='paystack'
+    )
+    payment_status = models.CharField(
+        max_length=20,
+        choices=PAYMENT_STATUSES,
+        default='pending',
+        db_index=True
+    )
+    paystack_reference = models.CharField(
+        max_length=100,
+        blank=True,
+        default=''
+    )
+    manual_transfer_ref = models.CharField(
+        max_length=150,
+        blank=True,
+        default='',
+        help_text="Sender account name, bank, or transaction session ID"
+    )
+    manual_receipt = models.FileField(
+        upload_to='dossier_payments/%Y/%m/',
+        blank=True,
+        null=True,
+        help_text="Uploaded proof of payment for manual transfer"
+    )
+    section84_hash = models.CharField(
+        max_length=64,
+        blank=True,
+        default='',
+        help_text="Cryptographic SHA-256 seal of the dossier content and exhibits"
+    )
+    issued_at = models.DateTimeField(
+        null=True,
+        blank=True
+    )
+    created_at = models.DateTimeField(
+        default=timezone.now
+    )
+    approved_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='approved_dossiers'
+    )
+
+    class Meta:
+        verbose_name = 'Evidence Dossier'
+        verbose_name_plural = 'Evidence Dossiers'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"[{self.tracking_id}] Dossier for {self.report.reference_number} ({self.get_payment_status_display()})"
+
+    @property
+    def is_unlocked(self):
+        return self.payment_status == 'verified'
+
 
 
 

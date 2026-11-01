@@ -130,6 +130,10 @@ class SiteSettings(models.Model):
         default=350,
         help_text="Bulk CSV screening price per candidate row in Naira"
     )
+    price_police_dossier = models.PositiveIntegerField(
+        default=1000,
+        help_text="Official Police & Bank Evidence Dossier fee in Naira"
+    )
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -189,6 +193,8 @@ class SiteSettings(models.Model):
             return self.price_monitoring_annual
         elif service in ('bulk_upload', 'bulk_check'):
             return self.price_bulk_check_per_row
+        elif service in ('police_dossier', 'dossier', 'evidence_dossier'):
+            return self.price_police_dossier
         return 0
 
 

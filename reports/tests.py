@@ -812,3 +812,109 @@ class DueProcessRebuttalCycleTestCase(TestCase):
         self.assertIsNone(self.report.pending_info_request_for_user(self.respondent))
 
 
+class PoliceEvidenceDossierTestCase(TestCase):
+    def setUp(self):
+        self.reporter = User.objects.create_user(
+            username='dossier_reporter', email='reporter@testdossier.com',
+            password='Password123!', role='individual'
+        )
+        self.stranger = User.objects.create_user(
+            username='stranger', email='stranger@testdossier.com',
+            password='Password123!', role='individual'
+        )
+        self.staff = User.objects.create_user(
+            username='staff_mod', email='staff@testdossier.com',
+            password='Password123!', is_staff=True
+        )
+        self.report = create_fraud_report(
+            reporter=self.reporter,
+            subject_name='Fraudster Ltd',
+            subject_type='business',
+            title='Fake Investment Scheme',
+            allegation='Refused to return capital.'
+        )
+        self.report.state = 'published'
+        self.report.save()
+
+    def test_amount_lost_formatting_and_words(self):
+        self.assertFalse(self.report.has_evidence_and_amount)
+        self.report.amount_lost = 250000.00
+        self.report.save()
+
+        self.assertEqual(self.report.amount_lost_formatted, '₦250,000.00')
+        self.assertIn('Two Hundred and Fifty Thousand', self.report.amount_lost_in_words)
+
+        # Still false because no evidence file yet
+        self.assertFalse(self.report.has_evidence_and_amount)
+
+        # Add evidence file
+        dummy_file = SimpleUploadedFile('receipt.pdf', b'%PDF-1.4 sample', content_type='application/pdf')
+        ReportEvidence.objects.create(
+            report=self.report,
+            file=dummy_file,
+            file_type='receipt',
+            description='Payment proof'
+        )
+        self.assertTrue(self.report.has_evidence_and_amount)
+
+    def test_dossier_prepare_view_updates_amount(self):
+        self.client.force_login(self.reporter)
+        url = reverse('reports:dossier_prepare', kwargs={'reference_number': self.report.reference_number})
+        
+        response = self.client.post(url, {'amount_lost': '185000'})
+        self.assertEqual(response.status_code, 302)
+        
+        self.report.refresh_from_db()
+        self.assertEqual(float(self.report.amount_lost), 185000.0)
+
+    @patch('reports.storage_services.CloudinaryEvidenceStorage.upload_evidence')
+    def test_manual_transfer_checkout_creates_pending_dossier(self, mock_upload):
+        mock_upload.return_value = {
+            'storage_path': 'dossier_receipts/sample.pdf',
+            'storage_provider': 'cloudinary'
+        }
+        # Pre-populate amount and evidence to satisfy the gate
+        self.report.amount_lost = 50000.00
+        self.report.save()
+        dummy_file = SimpleUploadedFile('bank_alert.png', b'fake image data', content_type='image/png')
+        ReportEvidence.objects.create(
+            report=self.report,
+            file=dummy_file,
+            file_type='receipt',
+            description='Debit alert screenshot'
+        )
+        self.assertTrue(self.report.has_evidence_and_amount)
+
+        self.client.force_login(self.reporter)
+        url = reverse('reports:dossier_request', kwargs={'reference_number': self.report.reference_number})
+
+        receipt_file = SimpleUploadedFile('transfer_proof.pdf', b'%PDF-1.4 dummy', content_type='application/pdf')
+        
+        response = self.client.post(url, {
+            'payment_method': 'manual_transfer',
+            'manual_transfer_ref': 'TRX-99887766',
+            'manual_receipt': receipt_file
+        })
+        self.assertEqual(response.status_code, 302)
+
+        dossier = self.report.dossiers.first()
+        self.assertIsNotNone(dossier)
+        self.assertEqual(dossier.payment_status, 'pending')
+        self.assertEqual(dossier.payment_method, 'manual_transfer')
+        self.assertEqual(dossier.manual_transfer_ref, 'TRX-99887766')
+
+    def test_dossier_verify_public_endpoint(self):
+        from reports.models import EvidenceDossier, generate_dossier_tracking_id
+        dossier = EvidenceDossier.objects.create(
+            report=self.report,
+            user=self.reporter,
+            tracking_id=generate_dossier_tracking_id(),
+            payment_status='verified',
+            section84_hash='a'*64
+        )
+
+        url = reverse('reports:dossier_verify_public', kwargs={'tracking_id': dossier.tracking_id})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, dossier.tracking_id)
+        self.assertContains(response, 'Section 84 of the Nigerian Evidence Act 2011')

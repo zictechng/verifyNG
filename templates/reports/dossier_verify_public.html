@@ -1,0 +1,122 @@
+{% extends "public/base.html" %}
+{% load static %}
+
+{% block title %}Dossier Verification: {{ dossier.tracking_id }} — {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-md-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-xl-7">
+
+            <!-- Official Status Banner -->
+            <div class="card border-0 shadow-sm p-4 text-center mb-4" style="border-radius: 18px; background: #FFFFFF; border: 1.5px solid {% if is_valid %}#BBF7D0{% else %}#FECACA{% endif %} !important;">
+                
+                <div class="d-inline-flex align-items-center justify-content-center mx-auto mb-3" 
+                     style="width: 80px; height: 80px; border-radius: 50%; background: {% if is_valid %}#DCFCE7; border: 6px solid #BBF7D0; color: #16A34A;{% else %}#FEE2E2; border: 6px solid #FECACA; color: #DC2626;{% endif %}">
+                    {% if is_valid %}
+                    <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                        <polyline points="9 12 11 14 15 10"></polyline>
+                    </svg>
+                    {% else %}
+                    <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    {% endif %}
+                </div>
+
+                <div class="mb-2">
+                    <span class="badge px-3 py-1.5 rounded-pill fw-bold text-uppercase" 
+                          style="font-size: 0.85rem; letter-spacing: 0.05em; background: {% if is_valid %}#DCFCE7; color: #15803D;{% else %}#FEE2E2; color: #B91C1C;{% endif %}">
+                        {% if is_valid %}Official Certified Document{% else %}Document Under Review{% endif %}
+                    </span>
+                </div>
+
+                <h1 class="h3 fw-bold mb-1 text-dark">
+                    {% if is_valid %}Authentic Police &amp; Bank Evidence Dossier{% else %}Dossier Status: Pending Clearance{% endif %}
+                </h1>
+                
+                <p class="text-muted small mb-0 font-monospace">
+                    Tracking ID: <strong class="text-dark">{{ dossier.tracking_id }}</strong>
+                </p>
+            </div>
+
+            <!-- Case Summary Card -->
+            <div class="card border-0 shadow-sm p-4 mb-4" style="border-radius: 16px; background: #FFFFFF; border: 1px solid #E2E8F0 !important;">
+                <h6 class="fw-bold text-uppercase small text-muted mb-3 border-bottom pb-2 d-flex align-items-center gap-2">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2457D6" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    <span>Dossier Cryptographic Audit Record</span>
+                </h6>
+
+                <div class="table-responsive">
+                    <table class="table table-sm table-borderless align-middle mb-0" style="font-size: 0.95rem;">
+                        <tbody>
+                            <tr>
+                                <td class="text-muted py-2" style="width: 40%;">Incident Reference:</td>
+                                <td class="fw-bold font-monospace text-dark py-2">{{ report.reference_number }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted py-2">Reported Incident:</td>
+                                <td class="fw-semibold text-dark py-2">{{ report.title }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted py-2">Total Financial Loss:</td>
+                                <td class="fw-bold text-danger py-2" style="font-size: 1.05rem;">
+                                    {{ report.amount_lost_formatted }}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted py-2">Amount in Words:</td>
+                                <td class="text-dark py-2 small fw-semibold">{{ report.amount_lost_in_words }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted py-2">Suspect / Entity:</td>
+                                <td class="fw-bold text-dark py-2">{{ report.target_subject.name }}</td>
+                            </tr>
+                            {% if report.suspect_context.bank_account %}
+                            <tr>
+                                <td class="text-muted py-2">Suspect Bank Account:</td>
+                                <td class="text-dark font-monospace fw-semibold py-2">
+                                    {{ report.suspect_context.bank_account }} ({{ report.suspect_context.bank_name|default:"Financial Institution" }})
+                                </td>
+                            </tr>
+                            {% endif %}
+                            <tr>
+                                <td class="text-muted py-2">Date of Issuance:</td>
+                                <td class="text-dark py-2">{{ dossier.issued_at|date:"d F Y, H:i"|default:dossier.created_at|date:"d F Y, H:i" }} WAT</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted py-2">Section 84 Hash:</td>
+                                <td class="font-monospace text-muted py-2 small text-break" style="font-size: 0.78rem;">
+                                    {{ dossier.section84_hash|default:"sha256:verified_authentic" }}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Law Enforcement Notice -->
+            <div class="p-3.5 p-md-4 rounded-3 border mb-4" style="background: #F8FAFC; border-color: #CBD5E1 !important; font-size: 0.925rem;">
+                <div class="fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2457D6" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                    <span>Information for Investigating Police Officers &amp; Bank Desks:</span>
+                </div>
+                <p class="text-muted mb-0" style="line-height: 1.65;">
+                    This confirmation verifies that the printed Evidence Dossier bearing Tracking ID <strong>{{ dossier.tracking_id }}</strong> corresponds exactly to digital records archived within the {{ site_config.site_name|default:"VerifyNG" }} digital evidence repository. Exhibits and timestamps attached to this case remain stored in tamper-evident custody in accordance with Section 84 of the Nigerian Evidence Act 2011.
+                </p>
+            </div>
+
+            <!-- Action buttons -->
+            <div class="text-center">
+                <a href="{% url 'home' %}" class="btn btn-outline-secondary px-4 py-2 fw-semibold" style="border-radius: 10px;">
+                    Return to Homepage
+                </a>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}
