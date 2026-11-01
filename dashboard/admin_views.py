@@ -2528,6 +2528,7 @@ class AdminPlatformSettingsView(SuperAdminRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx['config'] = PlatformConfiguration.get() if PlatformConfiguration else None
+        ctx['site_config'] = SiteConfiguration.get_solo()
         return ctx
 
     def post(self, request, *args, **kwargs):
@@ -2571,6 +2572,15 @@ class AdminPlatformSettingsView(SuperAdminRequiredMixin, TemplateView):
             config.favicon = request.FILES['favicon']
 
         config.updated_by = request.user
+        # Update corporate bank details for manual payments
+        site_config = SiteConfiguration.get_solo()
+        if 'company_bank_name' in request.POST:
+            site_config.company_bank_name = request.POST.get('company_bank_name', site_config.company_bank_name).strip()
+        if 'company_bank_account_name' in request.POST:
+            site_config.company_bank_account_name = request.POST.get('company_bank_account_name', site_config.company_bank_account_name).strip()
+        if 'company_bank_account_number' in request.POST:
+            site_config.company_bank_account_number = request.POST.get('company_bank_account_number', site_config.company_bank_account_number).strip()
+        site_config.save()
         config.save()
 
         AuditLog.objects.create(
@@ -2591,6 +2601,7 @@ class AdminSiteSettingsView(SuperAdminRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx['settings_obj'] = SiteSettings.get() if SiteSettings else None
+        ctx['site_config'] = SiteConfiguration.get_solo()
         if Plan:
             ctx['plans'] = Plan.objects.all().order_by('price_kobo')
         return ctx
@@ -2666,6 +2677,16 @@ class AdminSiteSettingsView(SuperAdminRequiredMixin, TemplateView):
             pass
 
         site.save()
+
+        # Update corporate bank details for manual payments if provided
+        site_config = SiteConfiguration.get_solo()
+        if 'company_bank_name' in request.POST:
+            site_config.company_bank_name = request.POST.get('company_bank_name', site_config.company_bank_name).strip()
+        if 'company_bank_account_name' in request.POST:
+            site_config.company_bank_account_name = request.POST.get('company_bank_account_name', site_config.company_bank_account_name).strip()
+        if 'company_bank_account_number' in request.POST:
+            site_config.company_bank_account_number = request.POST.get('company_bank_account_number', site_config.company_bank_account_number).strip()
+        site_config.save()
 
         AuditLog.objects.create(
             action="ADMIN_SITE_SETTINGS_UPDATE",

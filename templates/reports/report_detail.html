@@ -624,7 +624,7 @@
                             <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                             Transfer Proof Under Verification
                         </div>
-                        <div class="text-muted" style="font-size:11px;line-height:1.45;">
+                        <div class="text-muted" style="font-size:14px;line-height:1.45;">
                             Tracking ID: <code>{{ active_dossier.tracking_id }}</code>.<br>
                             Compliance team is verifying your manual bank transfer. Your certified petition will unlock automatically once confirmed.
                         </div>
@@ -638,9 +638,27 @@
                                 <input type="hidden" name="payment_method" value="free">
                                 <button type="submit" class="btn btn-success w-100 fw-bold py-2.5 shadow-sm d-flex align-items-center justify-content-center gap-2">
                                     <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                                    Generate Police Petition &amp; Bank Letter &rarr;
+                                    Generate Police Petition &amp; Bank Letter (Free) &rarr;
                                 </button>
                             </form>
+                        {% elif has_sub_entitlement %}
+                            <div class="p-3 mb-2 rounded bg-success-subtle border border-success-subtle text-start">
+                                <div class="d-flex align-items-center gap-2 text-success fw-bold small mb-1">
+                                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                                    <span>Included with your {{ sub_info.plan_name }} Package</span>
+                                </div>
+                                <div class="text-secondary small mb-2.5" style="font-size:12px;">
+                                    Your active commercial subscription covers official court-ready petition packages.
+                                </div>
+                                <form action="{% url 'reports:dossier_request' report.reference_number %}" method="post">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="payment_method" value="subscription">
+                                    <button type="submit" class="btn btn-success w-100 fw-bold py-2 shadow-sm d-flex align-items-center justify-content-center gap-2">
+                                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                                        Unlock via {{ sub_info.plan_name }} &rarr;
+                                    </button>
+                                </form>
+                            </div>
                         {% else %}
                             <button type="button" class="btn btn-danger w-100 fw-bold py-2.5 d-flex align-items-center justify-content-center gap-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#dossierPaymentModal">
                                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
@@ -832,11 +850,11 @@
                     <div class="p-3 rounded bg-light border mb-3">
                         <div class="row g-2 small">
                             <div class="col-4 text-muted">Bank:</div>
-                            <div class="col-8 fw-bold text-dark">{{ company_bank_name|default:"First Bank of Nigeria" }}</div>
+                            <div class="col-8 fw-bold text-dark">{{ site_config.company_bank_name|default:company_bank_name|default:"Zenith Bank" }}</div>
                             <div class="col-4 text-muted">Account Name:</div>
-                            <div class="col-8 fw-bold text-dark">{{ company_bank_account_name|default:"VerifyNG Limited" }}</div>
+                            <div class="col-8 fw-bold text-dark">{{ site_config.company_bank_account_name|default:company_bank_account_name|default:"VerifyNG Limited" }}</div>
                             <div class="col-4 text-muted">Account No:</div>
-                            <div class="col-8 fw-bold text-primary font-monospace fs-6">{{ company_bank_account_number|default:"3012345678" }}</div>
+                            <div class="col-8 fw-bold text-primary font-monospace fs-6">{% if site_config.company_bank_account_number %}{{ site_config.company_bank_account_number }}{% elif company_bank_account_number %}{{ company_bank_account_number }}{% else %}<span class="text-muted fw-normal" style="font-size:12px;">Contact Admin for Account No</span>{% endif %}</div>
                         </div>
                     </div>
 

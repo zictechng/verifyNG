@@ -386,6 +386,8 @@ def check_user_entitlement(user, service: str = 'check', cost: int = 1) -> tuple
             check_services.append('monitoring')
         elif service in ('fraud_report',):
             check_services.append('fraud_report')
+        elif service in ('police_dossier', 'dossier', 'evidence_dossier'):
+            check_services.extend(['police_dossier', 'dossier', 'evidence_dossier'])
 
         if UserServiceAccess.objects.filter(user__in=target_users, service__in=check_services, is_restricted=True).exists():
             return False, 'service_restricted', {
@@ -558,6 +560,8 @@ def consume_user_entitlement(user, service: str = 'check', cost: int = 1) -> boo
         check_services.extend(['verification', 'business_verification'])
     elif service in ('bulk_check', 'bulk_upload'):
         check_services.extend(['bulk_upload', 'bulk_check'])
+    elif service in ('police_dossier', 'dossier', 'evidence_dossier'):
+        check_services.extend(['police_dossier', 'dossier', 'evidence_dossier'])
 
     # Per-user or per-agency service exemption skips deduction
     user_master_exempt = getattr(user, 'is_billing_exempt', False)

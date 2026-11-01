@@ -261,7 +261,7 @@ class ReportDetailView(DetailView):
         from payments.models import SiteSettings
         from core.models import SiteConfiguration
         site_settings = SiteSettings.get()
-        site_config = SiteConfiguration.objects.filter(pk=1).first()
+        site_config = SiteConfiguration.get_solo()
         ctx['dossier_price'] = site_settings.get_service_price('police_dossier')
         ctx['is_dossier_free'] = site_settings.is_service_free('police_dossier') or ctx['dossier_price'] == 0
         ctx['active_dossier'] = self.object.active_dossier
@@ -270,6 +270,23 @@ class ReportDetailView(DetailView):
         ctx['company_bank_name'] = getattr(site_config, 'company_bank_name', 'Zenith Bank')
         ctx['company_bank_account_name'] = getattr(site_config, 'company_bank_account_name', 'VerifyNG Limited')
         ctx['company_bank_account_number'] = getattr(site_config, 'company_bank_account_number', '')
+
+        # Check Subscription Plan entitlement for active subscribers
+        has_sub_entitlement = False
+        sub_info = {}
+        if self.request.user.is_authenticated and not ctx['is_dossier_free']:
+            from payments.services import check_user_entitlement, get_active_subscription
+            allowed, ent_reason, ent_details = check_user_entitlement(self.request.user, service='police_dossier', cost=1)
+            active_sub = get_active_subscription(self.request.user)
+            if allowed and (active_sub or ent_reason in ('subscribed', 'unlimited', 'service_free_granted', 'organization_service_free_granted')):
+                has_sub_entitlement = True
+                sub_info = {
+                    'plan_name': active_sub.plan.name if (active_sub and active_sub.plan) else 'Subscription Plan',
+                    'reason': ent_reason,
+                    'details': ent_details,
+                }
+        ctx['has_sub_entitlement'] = has_sub_entitlement
+        ctx['sub_info'] = sub_info
         ctx['is_reporter_or_staff'] = (
             self.request.user.is_authenticated and (
                 self.request.user == self.object.reporter or
@@ -859,6 +876,64 @@ class DossierCheckoutView(LoginRequiredMixin, View):
             messages.success(request, "Official Police & Bank Evidence Dossier has been unlocked and is ready to print.")
             return redirect('reports:detail', reference_number=reference_number)
 
+        elif payment_method == 'subscription':
+            from payments.services import check_user_entitlement, consume_user_entitlement, get_active_subscription
+            from reports.services import record_dossier_access
+            from reports.models import EvidenceDossier, generate_dossier_tracking_id
+            import hashlib
+
+            allowed, ent_reason, ent_details = check_user_entitlement(request.user, service='police_dossier', cost=1)
+            active_sub = get_active_subscription(request.user)
+            if not allowed and not active_sub:
+                messages.error(request, "Your active subscription quota does not cover this service or has expired.")
+                return redirect('reports:detail', reference_number=reference_number)
+
+            consume_user_entitlement(request.user, service='police_dossier', cost=1)
+
+            tracking_id = generate_dossier_tracking_id()
+            hash_input = f"{report.reference_number}:{report.incident_date}:{report.amount_lost}:{tracking_id}"
+            section84_hash = hashlib.sha256(hash_input.encode('utf-8')).hexdigest()
+            plan_name = active_sub.plan.name if (active_sub and active_sub.plan) else "Subscription Plan"
+
+            dossier, _ = EvidenceDossier.objects.update_or_create(
+                report=report,
+                defaults={
+                    'tracking_id': tracking_id,
+                    'user': request.user,
+                    'amount_paid': 0,
+                    'payment_method': 'subscription',
+                    'payment_status': 'verified',
+                    'section84_hash': section84_hash,
+                    'issued_at': timezone.now(),
+                }
+            )
+
+            # Record internal transaction in ledger for audit trail
+            from payments.models import Transaction
+            Transaction.objects.create(
+                user=request.user,
+                reference=f"VNG-SUB-DOS-{tracking_id}",
+                amount_kobo=0,
+                status='success',
+                is_active=False,
+                plan=active_sub.plan if active_sub else None,
+                paystack_response={
+                    'data': {
+                        'metadata': {
+                            'service': 'police_dossier',
+                            'report_ref': report.reference_number,
+                            'tracking_id': tracking_id,
+                            'plan_name': plan_name,
+                            'method': 'subscription_package',
+                        }
+                    }
+                }
+            )
+
+            record_dossier_access(dossier, 'dossier_order', request, user=request.user)
+            messages.success(request, f"Official Police & Bank Evidence Dossier unlocked successfully via your {plan_name} subscription package.")
+            return redirect('reports:detail', reference_number=reference_number)
+
         if payment_method == 'manual_transfer':
             manual_ref = request.POST.get('manual_transfer_ref', '').strip()
             manual_receipt = request.FILES.get('manual_receipt')
@@ -975,7 +1050,7 @@ class DossierDownloadView(View):
             record_dossier_access(dossier, 'pdf_download', request, user=request.user)
 
         from core.models import SiteConfiguration
-        site_config = SiteConfiguration.objects.filter(pk=1).first()
+        site_config = SiteConfiguration.get_solo()
 
         # Dynamic Section 84 QR verification generation
         qr_code_data_uri = None
@@ -1027,7 +1102,7 @@ class DossierVerifyPublicView(View):
         from core.models import SiteConfiguration
         from reports.services import record_dossier_access
 
-        site_config = SiteConfiguration.objects.filter(pk=1).first()
+        site_config = SiteConfiguration.get_solo()
         raw_query = request.GET.get('q') or request.GET.get('tracking_id')
 
         # If user searched via GET parameter, resolve or redirect

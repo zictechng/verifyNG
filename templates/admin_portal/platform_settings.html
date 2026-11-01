@@ -77,6 +77,32 @@
         </div>
       </div>
 
+      <!-- Corporate Bank Account for Manual Payments -->
+      <div class="adm-card mb-4">
+        <div class="adm-card-header d-flex justify-content-between align-items-center">
+          <span>Corporate Bank Account (Manual Direct Transfers)</span>
+          <span class="badge bg-primary-subtle text-primary border border-primary-subtle">Payment Destination</span>
+        </div>
+        <div class="p-4">
+          <p class="small text-muted mb-3">
+            These corporate bank account details are dynamically shown to citizens and users on the payment checkout screen when selecting <strong>Direct Bank Transfer</strong> for police petitions, evidence dossiers, and manual subscriptions.
+          </p>
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Bank Name</label>
+              <input type="text" name="company_bank_name" class="form-control" value="{{ site_config.company_bank_name|default:'Zenith Bank' }}" placeholder="e.g. Zenith Bank">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Account Name</label>
+              <input type="text" name="company_bank_account_name" class="form-control" value="{{ site_config.company_bank_account_name|default:'VerifyNG Limited' }}" placeholder="e.g. VerifyNG Limited">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Account Number (10-Digit NUBAN)</label>
+              <input type="text" name="company_bank_account_number" class="form-control font-monospace" value="{{ site_config.company_bank_account_number }}" placeholder="e.g. 1012345678" maxlength="20">
+            </div>
+          </div>
+        </div>
+      </div>
       <!-- Social Links -->
       <div class="adm-card mb-4">
         <div class="adm-card-header">Social Links</div>
