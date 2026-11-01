@@ -403,6 +403,28 @@ class ReportEvidence(models.Model):
             return os.path.basename(self.file.name)
         return ''
 
+    @property
+    def secure_url(self):
+        """
+        Returns a direct viewable URL. For Cloudinary / cloud storage,
+        generates an authorized signed URL. For local files, returns the file.url.
+        """
+        if self.storage_provider and self.storage_provider != 'local':
+            try:
+                from reports.storage_services import get_storage_service_for_provider
+                storage = get_storage_service_for_provider(self.storage_provider)
+                return storage.generate_signed_url(
+                    public_id=self.storage_public_id,
+                    format=self.storage_format,
+                    resource_type=self.storage_resource_type or 'image',
+                    expires_in_seconds=3600
+                )
+            except Exception:
+                pass
+        if self.file and hasattr(self.file, 'url'):
+            return self.file.url
+        return ''
+
 
 class Dispute(models.Model):
     public_id = models.UUIDField(

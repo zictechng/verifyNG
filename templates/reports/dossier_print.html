@@ -390,35 +390,38 @@
 </div>
 
 <!-- ==========================================================================
-     PAGE 3: EXHIBIT VAULT (REPRODUCED ARTIFACTS, RECEIPTS & DOCUMENTS)
+     PAGE 3+: EXHIBIT VAULT (REPRODUCED ARTIFACTS, RECEIPTS & DOCUMENTS)
      ========================================================================== -->
-<div class="dossier-page page-break">
-    <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
-        <span class="fw-bold text-secondary text-uppercase" style="font-size:9.5pt; letter-spacing:0.04em;">VerifyNG Digital Evidence Vault &mdash; Documentary Exhibits</span>
-        <span class="font-monospace text-secondary fw-semibold" style="font-size:9.5pt;">Tracking ID: {{ dossier.tracking_id }}</span>
-    </div>
+{% if exhibits %}
+    {% for exh in exhibits %}
+    <!-- Self-Contained Exhibit Page (Guaranteed 1 Exhibit Per Page with No Overflow) -->
+    <div class="dossier-page page-break">
+        <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+            <span class="fw-bold text-secondary text-uppercase" style="font-size:9.5pt; letter-spacing:0.04em;">
+                VerifyNG Digital Evidence Vault &mdash; Exhibit {{ forloop.counter }} of {{ exhibits|length }}
+            </span>
+            <span class="font-monospace text-secondary fw-semibold" style="font-size:9.5pt;">Tracking ID: {{ dossier.tracking_id }}</span>
+        </div>
 
-    <div class="fw-bold text-dark text-uppercase border-bottom pb-2 mb-3" style="font-size:10.5pt; letter-spacing:0.04em;">
-        Exhibits Vault: Authenticated Transfer Receipts, Agreements &amp; Chat Transcripts
-    </div>
+        <div class="fw-bold text-dark text-uppercase border-bottom pb-2 mb-3" style="font-size:10.5pt; letter-spacing:0.04em;">
+            EXHIBIT {{ forloop.counter }}: {{ exh.get_file_type_display|upper }} &mdash; {{ exh.description|default:"Primary Documentary Evidence" }}
+        </div>
 
-    {% if exhibits %}
-        {% for exh in exhibits %}
         <!-- Exhibit Card with Generous Left & Right Padding -->
-        <div class="dossier-card mb-4">
-            <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
-                <span class="fw-bold text-dark" style="font-size:10.5pt;">
-                    EXHIBIT {{ forloop.counter }}: {{ exh.get_file_type_display|upper }} &mdash; {{ exh.description|default:"Payment evidence" }}
+        <div class="dossier-card mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                <span class="fw-bold text-dark font-monospace" style="font-size:10pt; word-break:break-all;">
+                    File: {{ exh.filename|default:exh.file.name }}
                 </span>
-                <span class="font-monospace text-muted" style="font-size:9pt;">Uploaded: {{ exh.uploaded_at|date:"d M Y, H:i" }} WAT</span>
+                <span class="font-monospace text-muted" style="font-size:9pt; white-space:nowrap; margin-left:12px;">Uploaded: {{ exh.uploaded_at|date:"d M Y, H:i" }} WAT</span>
             </div>
             
-            <div class="text-center py-2" style="max-height: 180mm; overflow: hidden;">
+            <div class="text-center py-1">
                 {% if exh.is_image %}
                     <!-- Image Exhibit (PNG, JPG, JPEG, WEBP) -->
                     <div class="p-3 bg-light rounded text-center">
-                        <img src="{{ exh.file.url }}" alt="Exhibit {{ forloop.counter }}" class="img-fluid rounded border shadow-sm" style="max-height: 160mm; object-fit: contain; max-width: 100%;">
-                        <div class="mt-2 text-muted" style="font-size:9pt;">High-resolution graphic reproduction captured from original device and cryptographically preserved.</div>
+                        <img src="{{ exh.secure_url|default:exh.file.url }}" alt="Exhibit {{ forloop.counter }}" class="img-fluid rounded border shadow-sm" style="max-height: 168mm; object-fit: contain; max-width: 100%;">
+                        <div class="mt-2 text-muted" style="font-size:8.5pt;">High-resolution graphic reproduction captured from original device and cryptographically preserved.</div>
                     </div>
                 {% elif exh.is_pdf %}
                     <!-- PDF Document Exhibit (.PDF) -->
@@ -458,7 +461,7 @@
                                 <span>DOCUMENTARY APPENDIX: VISUAL PAGES APPENDED BELOW</span>
                             </div>
                             <div class="text-secondary mt-1" style="font-size:8.5pt; line-height:1.5;">
-                                Complete visual pages of this PDF document are automatically appended immediately following Page 4 for unified single-file printing.
+                                Complete visual pages of this PDF document are automatically appended in the Appendix section for unified single-file printing.
                             </div>
                         </div>
                     </div>
@@ -472,17 +475,27 @@
                 {% endif %}
             </div>
         </div>
-        {% endfor %}
-    {% else %}
-        <div class="p-5 text-center bg-light rounded border">
+
+        <div class="position-absolute bottom-0 start-0 end-0 px-4 pb-3 text-center border-top pt-2 mx-4" style="font-size:8.5pt; color:#64748B;">
+            Exhibit Vault &bull; Exhibit {{ forloop.counter }} of {{ exhibits|length }} &bull; {{ dossier.tracking_id }} &bull; Ref: {{ report.reference_number }}
+        </div>
+    </div>
+    {% endfor %}
+{% else %}
+    <!-- Empty Exhibit Vault Page -->
+    <div class="dossier-page page-break">
+        <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+            <span class="fw-bold text-secondary text-uppercase" style="font-size:9.5pt; letter-spacing:0.04em;">VerifyNG Digital Evidence Vault &mdash; Documentary Exhibits</span>
+            <span class="font-monospace text-secondary fw-semibold" style="font-size:9.5pt;">Tracking ID: {{ dossier.tracking_id }}</span>
+        </div>
+        <div class="p-5 text-center bg-light rounded border mt-4">
             <p class="text-muted mb-0" style="font-size:10.5pt;">No primary exhibits were attached at the time of initial filing.</p>
         </div>
-    {% endif %}
-
-    <div class="position-absolute bottom-0 start-0 end-0 px-4 pb-3 text-center border-top pt-2 mx-4" style="font-size:8.5pt; color:#64748B;">
-        Page 3 of 4 &bull; Exhibit Vault &bull; {{ dossier.tracking_id }} &bull; Ref: {{ report.reference_number }}
+        <div class="position-absolute bottom-0 start-0 end-0 px-4 pb-3 text-center border-top pt-2 mx-4" style="font-size:8.5pt; color:#64748B;">
+            Exhibit Vault &bull; {{ dossier.tracking_id }} &bull; Ref: {{ report.reference_number }}
+        </div>
     </div>
-</div>
+{% endif %}
 
 <!-- ==========================================================================
      PAGE 4: SECTION 84 EVIDENCE ACT 2011 CERTIFICATION & QR SEAL
@@ -584,7 +597,7 @@
         {% for exh in exhibits %}
             {% if exh.is_pdf %}
             {
-                url: "{{ exh.file.url }}",
+                url: "{{ exh.secure_url|default:exh.file.url|escapejs }}",
                 filename: "{{ exh.filename|default:exh.file.name|escapejs }}",
                 counter: {{ forloop.counter }},
                 description: "{{ exh.description|default:'Transaction Exhibit'|escapejs }}"
