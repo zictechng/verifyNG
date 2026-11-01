@@ -585,3 +585,87 @@ def build_employer_unverified(company_name: str, username: str) -> Tuple[str, st
     except Exception:
         fallback_html = f"<h2>Employer Status Removed</h2><p>Hi {username}, verified status for {company_name} was removed.</p>"
         return subject, _html_fallback(subject, fallback_html), f"Hi {username}, verified status for {company_name} was removed."
+
+
+# ---------------------------------------------------------------------------
+# Evidence Dossier & Police Petition Payment Notifications
+# ---------------------------------------------------------------------------
+
+def build_dossier_payment_approved(dossier, username: str, admin_notes: str = "") -> Tuple[str, str, str]:
+    site_name, site_url = _get_site_meta()
+    report_ref = dossier.report.reference_number if getattr(dossier, 'report', None) else ""
+    amount_str = f"₦{dossier.amount_paid:,.2f}" if getattr(dossier, 'amount_paid', None) else "₦1,000.00"
+    tracking_id = getattr(dossier, 'tracking_id', '')
+
+    subject = f"Payment Confirmed: Legal Petition & Evidence Dossier Unlocked [{tracking_id}] — {site_name}"
+    
+    download_url = f"{site_url}/reports/dossier/{report_ref}/download/" if report_ref else f"{site_url}/reports/"
+
+    body_html = f"""
+    <p>Good news! Your direct bank transfer payment for the <strong>Official Police Petition &amp; Section 84 Evidence Dossier</strong> has been verified and confirmed by our administration.</p>
+    
+    <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-left:4px solid #16a34a;padding:14px 18px;border-radius:8px;margin:18px 0;font-size:14px;color:#166534;">
+        <div style="margin-bottom:6px;"><strong>Tracking ID:</strong> <span style="font-family:monospace;font-weight:700;">{tracking_id}</span></div>
+        <div style="margin-bottom:6px;"><strong>Case Report:</strong> {report_ref}</div>
+        <div style="margin-bottom:6px;"><strong>Amount Verified:</strong> {amount_str}</div>
+        <div><strong>Status:</strong> <span style="background:#dcfce7;color:#15803d;padding:2px 8px;border-radius:4px;font-weight:700;">Verified &amp; Active</span></div>
+    </div>
+
+    <p>Your court-ready petition package and certified Section 84 Evidence Act certificate are now completely unlocked and ready for printing or instant PDF download.</p>
+    
+    <p style="font-size:13px;color:#64748b;">You can present this official certified document directly to the Nigeria Police Force (NPF), EFCC, court, or your legal counsel. Each copy includes a tamper-evident cryptographic QR verification seal.</p>
+    """
+
+    try:
+        html_body, text_body = render_email('generic_notification', {
+            'user_name': username,
+            'heading': "Petition & Evidence Dossier Unlocked",
+            'body_html': body_html,
+            'cta_url': download_url,
+            'cta_label': "Download & Print Legal Petition (PDF) →",
+        })
+        return subject, html_body, text_body
+    except Exception:
+        fallback_html = f"<h2>Payment Approved</h2><p>Hi {username}, your petition payment for {tracking_id} has been approved. You can now download your petition at: {download_url}</p>"
+        return subject, _html_fallback(subject, fallback_html), f"Hi {username}, your petition payment for {tracking_id} has been approved. Download: {download_url}"
+
+
+def build_dossier_payment_rejected(dossier, username: str, reason: str = "") -> Tuple[str, str, str]:
+    site_name, site_url = _get_site_meta()
+    report_ref = dossier.report.reference_number if getattr(dossier, 'report', None) else ""
+    amount_str = f"₦{dossier.amount_paid:,.2f}" if getattr(dossier, 'amount_paid', None) else "₦1,000.00"
+    tracking_id = getattr(dossier, 'tracking_id', '')
+    reason_clean = reason or "Transaction could not be verified on corporate bank statement or transferred amount was incomplete."
+
+    subject = f"Notice: Petition Payment Verification Failed [{tracking_id}] — {site_name}"
+    report_url = f"{site_url}/reports/{report_ref}/#petition-section" if report_ref else f"{site_url}/reports/"
+
+    body_html = f"""
+    <p>We reviewed your submitted direct transfer payment for Evidence Dossier <strong>{tracking_id}</strong> (Case Report: {report_ref}), but our finance team was unable to verify the transaction.</p>
+    
+    <div style="background:#fef2f2;border:1px solid #fecaca;border-left:4px solid #ef4444;padding:14px 18px;border-radius:8px;margin:18px 0;font-size:14px;color:#991b1b;">
+        <div style="font-weight:700;margin-bottom:4px;">Reason for Rejection:</div>
+        <div style="color:#7f1d1d;line-height:1.5;">{reason_clean}</div>
+    </div>
+
+    <p><strong>What to do next:</strong></p>
+    <ul style="color:#334155;line-height:1.6;font-size:14px;">
+        <li>Check your bank debit receipt to confirm the funds left your account.</li>
+        <li>Ensure the transfer reference matches your tracking ID or registered name.</li>
+        <li>You can re-upload your payment proof or choose instant online payment via card / bank transfer on the report page.</li>
+    </ul>
+    """
+
+    try:
+        html_body, text_body = render_email('generic_notification', {
+            'user_name': username,
+            'heading': "Payment Verification Declined",
+            'body_html': body_html,
+            'cta_url': report_url,
+            'cta_label': "View Case Report & Re-submit →",
+        })
+        return subject, html_body, text_body
+    except Exception:
+        fallback_html = f"<h2>Payment Declined</h2><p>Hi {username}, your payment for {tracking_id} could not be verified. Reason: {reason_clean}</p>"
+        return subject, _html_fallback(subject, fallback_html), f"Hi {username}, your payment for {tracking_id} could not be verified. Reason: {reason_clean}"
+

@@ -1225,19 +1225,27 @@ class AdminDossierPaymentActionView(AdminPermissionRequiredMixin, View):
                 }
             )
 
-            # Notify complainant
+            # Notify complainant via in-app notification & rich email
             target_user = dossier.user or dossier.report.reporter
             if target_user:
                 try:
+                    from notifications import email_templates
+                    recipient_name = target_user.get_full_name() or target_user.username
+                    subject, html_body, text_body = email_templates.build_dossier_payment_approved(
+                        dossier, recipient_name, admin_notes
+                    )
                     dispatch_notification(
                         recipient=target_user,
                         event_type='REPORT_SUBMITTED',
                         title="Payment Approved: Legal Petition Unlocked",
                         body=f"Your bank transfer payment for Evidence Dossier ({dossier.tracking_id}) has been confirmed and verified. Your court-ready petition and Section 84 package are ready to print.",
                         object_reference=dossier.report.reference_number,
+                        subject=subject,
+                        html_body=html_body,
+                        text_body=text_body,
                     )
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.error("Failed to dispatch dossier approval notification: %s", e)
 
             messages.success(request, f"Payment for Dossier {dossier.tracking_id} successfully APPROVED. Complainant can now print and download the official petition package.")
 
@@ -1257,18 +1265,28 @@ class AdminDossierPaymentActionView(AdminPermissionRequiredMixin, View):
                 }
             )
 
+            # Notify complainant via in-app notification & rich email
             target_user = dossier.user or dossier.report.reporter
             if target_user:
                 try:
+                    from notifications import email_templates
+                    recipient_name = target_user.get_full_name() or target_user.username
+                    reason_clean = admin_notes or "Bank payment could not be verified on corporate statement."
+                    subject, html_body, text_body = email_templates.build_dossier_payment_rejected(
+                        dossier, recipient_name, reason_clean
+                    )
                     dispatch_notification(
                         recipient=target_user,
                         event_type='REPORT_SUBMITTED',
                         title="Payment Verification Failed: Evidence Dossier",
-                        body=f"Your bank transfer payment for Evidence Dossier ({dossier.tracking_id}) could not be verified. Note: {admin_notes or 'Please ensure the transfer matches the exact required amount.'}",
+                        body=f"Your bank transfer payment for Evidence Dossier ({dossier.tracking_id}) could not be verified. Note: {reason_clean}",
                         object_reference=dossier.report.reference_number,
+                        subject=subject,
+                        html_body=html_body,
+                        text_body=text_body,
                     )
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.error("Failed to dispatch dossier rejection notification: %s", e)
 
             messages.warning(request, f"Payment for Dossier {dossier.tracking_id} has been marked as REJECTED.")
 
