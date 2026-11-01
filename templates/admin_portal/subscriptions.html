@@ -1,122 +1,588 @@
 {% extends "admin_portal/base_admin.html" %}
-{% block title %}Subscriptions — Admin{% endblock %}
+{% load humanize %}
+
+{% block title %}Subscriptions &amp; Plan Verification — {{ site_config.site_name|default:"VerifyNG" }} Admin{% endblock %}
+
 {% block admin_body %}
-<div class="adm-page-header">
-  <h1 class="adm-page-title">Subscriptions</h1>
+<style>
+  .adm-table td, .adm-table th {
+    padding: 11px 14px !important;
+    vertical-align: middle !important;
+  }
+  .action-btn-group {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+    white-space: nowrap;
+  }
+  .action-btn-group .btn-adm-sm,
+  .action-btn-group .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 10px !important;
+    font-size: 0.76rem !important;
+    font-weight: 600;
+    line-height: 1.4;
+    border-radius: 5px !important;
+  }
+  .btn-receipt-proof {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 9px !important;
+    font-size: 0.74rem !important;
+    font-weight: 500;
+    border-radius: 5px !important;
+  }
+
+  /* Solid, polished modals with backdrop isolation */
+  .modal {
+    z-index: 1060 !important;
+  }
+  .modal-backdrop {
+    z-index: 1055 !important;
+  }
+  .modal-content {
+    background-color: #ffffff !important;
+    background: #ffffff !important;
+    opacity: 1 !important;
+    border-radius: 14px !important;
+    border: 1px solid var(--adm-border, #e2e8f0) !important;
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.3) !important;
+    overflow: hidden;
+  }
+  .modal-header {
+    background-color: #ffffff !important;
+    border-bottom: 1px solid var(--adm-border, #e2e8f0) !important;
+    padding: 16px 20px !important;
+  }
+  .modal-body {
+    background-color: #ffffff !important;
+    padding: 20px !important;
+  }
+  .modal-footer {
+    background-color: #f8fafc !important;
+    border-top: 1px solid var(--adm-border, #e2e8f0) !important;
+    padding: 14px 20px !important;
+  }
+  .sub-info-summary {
+    background-color: #f8fafc !important;
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 12px 16px;
+  }
+  .sub-info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 5px 0;
+    border-bottom: 1px dashed #e2e8f0;
+    font-size: 0.82rem;
+  }
+  .sub-info-row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+  .sub-info-label {
+    color: var(--adm-muted, #64748b);
+    font-weight: 500;
+    min-width: 110px;
+  }
+  .sub-info-value {
+    color: var(--adm-ink, #1e293b);
+    font-weight: 600;
+    text-align: right;
+    word-break: break-word;
+  }
+
+  @media (max-width: 576px) {
+    .modal-dialog {
+      margin: 12px;
+      max-width: calc(100% - 24px);
+    }
+    .modal-body {
+      padding: 16px !important;
+    }
+    .modal-footer {
+      flex-direction: column-reverse !important;
+      gap: 8px !important;
+      padding: 12px 16px !important;
+    }
+    .modal-footer .btn,
+    .modal-footer form,
+    .modal-footer form .btn {
+      width: 100% !important;
+      margin: 0 !important;
+    }
+  }
+</style>
+
+<div class="adm-page-header d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+  <div>
+    <h1 class="adm-page-title mb-1">Subscriptions &amp; Plan Verification</h1>
+    <p class="text-muted small mb-0">Manage employer &amp; candidate subscription plans, inspect direct bank transfer proofs, approve verified credits, and maintain subscriber lifecycles.</p>
+  </div>
+  {% if pending_count > 0 %}
+  <div class="d-flex align-items-center gap-2 px-3 py-2 bg-danger-subtle text-danger rounded-3 border border-danger-subtle font-monospace fw-bold" style="font-size:0.85rem;">
+    <span class="spinner-grow spinner-grow-sm text-danger" role="status"></span>
+    <span>{{ pending_count }} Manual Subscription Payment(s) Awaiting Review</span>
+  </div>
+  {% endif %}
 </div>
+
 {% include "admin_portal/_messages.html" %}
-<form class="adm-filter-bar" method="get">
+
+<!-- KPI Metric Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="adm-card p-3 h-100">
+      <div class="text-muted small mb-1">Total Subscriptions</div>
+      <div class="fs-4 fw-bold text-dark">{{ total_count }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="adm-card p-3 h-100 {% if pending_count > 0 %}border-warning bg-warning-subtle{% endif %}">
+      <div class="text-muted small mb-1">Pending Verification</div>
+      <div class="fs-4 fw-bold {% if pending_count > 0 %}text-warning-emphasis{% else %}text-muted{% endif %}">
+        {{ pending_count }}
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="adm-card p-3 h-100">
+      <div class="text-muted small mb-1">Active Subscriptions</div>
+      <div class="fs-4 fw-bold text-success">{{ active_count }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="adm-card p-3 h-100">
+      <div class="text-muted small mb-1">Cancelled / Expired</div>
+      <div class="fs-4 fw-bold text-secondary">{{ cancelled_count }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- Filters & Search Bar -->
+<form class="adm-filter-bar mb-4" method="get">
   <div class="row g-2 align-items-end w-100">
-    <div class="col-md-5">
+    <div class="col-md-3">
       <label class="form-label small fw-semibold mb-1" style="color:var(--adm-muted);">Status</label>
       <select name="status" class="form-select form-select-sm" style="height:38px;">
-        <option value="">All Statuses</option>
-        {% for key, label in status_choices %}
-        <option value="{{ key }}" {% if key == selected_status %}selected{% endif %}>{{ label }}</option>
-        {% endfor %}
+        <option value="" {% if not selected_status %}selected{% endif %}>All Statuses</option>
+        <option value="pending" {% if selected_status == 'pending' %}selected{% endif %}>Pending Verification</option>
+        <option value="active" {% if selected_status == 'active' %}selected{% endif %}>Active</option>
+        <option value="cancelled" {% if selected_status == 'cancelled' %}selected{% endif %}>Cancelled</option>
+        <option value="expired" {% if selected_status == 'expired' %}selected{% endif %}>Expired</option>
+        <option value="past_due" {% if selected_status == 'past_due' %}selected{% endif %}>Past Due</option>
       </select>
     </div>
-    <div class="col-md-5">
+    <div class="col-md-3">
+      <label class="form-label small fw-semibold mb-1" style="color:var(--adm-muted);">Payment Method</label>
+      <select name="method" class="form-select form-select-sm" style="height:38px;">
+        <option value="" {% if not selected_method %}selected{% endif %}>All Methods</option>
+        <option value="manual_transfer" {% if selected_method == 'manual_transfer' %}selected{% endif %}>Direct Bank Transfer (Manual)</option>
+        <option value="paystack" {% if selected_method == 'paystack' %}selected{% endif %}>Paystack Online</option>
+        <option value="admin_grant" {% if selected_method == 'admin_grant' %}selected{% endif %}>Admin Complimentary</option>
+      </select>
+    </div>
+    <div class="col-md-4">
       <label class="form-label small fw-semibold mb-1" style="color:var(--adm-muted);">Search</label>
-      <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="Username or email…" style="height:38px;">
+      <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="Username, email, plan, or reference…" style="height:38px;">
     </div>
     <div class="col-md-2">
       <label class="form-label small mb-1" style="color:transparent;">x</label>
-      <button type="submit" class="btn-adm-primary w-100" style="justify-content:center;">Filter</button>
+      <button type="submit" class="btn-adm-primary w-100" style="justify-content:center; height:38px;">Filter</button>
     </div>
   </div>
 </form>
 
+<!-- Table of Subscriptions -->
 <div id="adminTableContainer" class="admin-table-container">
 {% if page_obj.object_list %}
 <div class="adm-card">
-  <table class="adm-table">
-    <thead><tr><th>User</th><th>Plan</th><th>Status</th><th>Started</th><th>Actions</th></tr></thead>
-    <tbody>
-      {% for s in page_obj %}
-      <tr>
-        <td>{{ s.user.username }} <small class="text-muted">&lt;{{ s.user.email }}&gt;</small></td>
-        <td>{{ s.plan.name|default:"—" }}</td>
-        <td>
-          {% if s.status == 'active' %}<span class="adm-badge adm-badge-green">Active</span>
-          {% elif s.status == 'past_due' %}<span class="adm-badge adm-badge-yellow">Past Due</span>
-          {% elif s.status == 'cancelled' %}<span class="adm-badge adm-badge-red">Cancelled</span>
-          {% elif s.status == 'expired' %}<span class="adm-badge adm-badge-gray">Expired</span>
-          {% else %}<span class="adm-badge adm-badge-gray">{{ s.get_status_display }}</span>{% endif %}
-        </td>
-        <td>{{ s.created_at|date:"d M Y" }}</td>
-        <td>
-          {% if s.status == 'active' or s.status == 'past_due' %}
-          <button type="button" class="btn btn-adm-sm btn-adm-danger"
-                  data-bs-toggle="modal"
-                  data-bs-target="#subActionModal"
-                  data-action="cancel"
-                  data-pk="{{ s.pk }}"
-                  data-user="{{ s.user.username }}"
-                  data-email="{{ s.user.email }}"
-                  data-plan="{{ s.plan.name|default:'—' }}">
-            Cancel
-          </button>
-          {% elif s.status == 'cancelled' or s.status == 'expired' %}
-          <button type="button" class="btn btn-adm-sm btn-adm-success"
-                  data-bs-toggle="modal"
-                  data-bs-target="#subActionModal"
-                  data-action="reactivate"
-                  data-pk="{{ s.pk }}"
-                  data-user="{{ s.user.username }}"
-                  data-email="{{ s.user.email }}"
-                  data-plan="{{ s.plan.name|default:'—' }}">
-            Reactivate
-          </button>
-          {% else %}—{% endif %}
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="table-responsive">
+    <table class="adm-table mb-0">
+      <thead>
+        <tr>
+          <th style="min-width:180px;">Subscriber / Account</th>
+          <th style="min-width:160px;">Plan &amp; Rate</th>
+          <th style="min-width:180px;">Payment Method &amp; Proof</th>
+          <th style="min-width:140px;">Billing Period</th>
+          <th style="min-width:125px;">Status</th>
+          <th class="text-end" style="min-width:160px;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in page_obj %}
+        <tr>
+          <td>
+            <div class="fw-semibold text-dark" style="font-size:0.85rem;">{{ s.user.get_full_name|default:s.user.username }}</div>
+            <div class="text-muted small">{{ s.user.email }}</div>
+            {% if s.user.is_employer %}
+              <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-1.5 py-0.5 mt-0.5" style="font-size:0.7rem;">Employer</span>
+            {% endif %}
+          </td>
+          <td>
+            <div class="fw-bold text-dark" style="font-size:0.86rem;">{{ s.plan.name|default:"—" }}</div>
+            <div class="text-muted" style="font-size:0.75rem;">
+              {% if s.plan.is_free %}
+                Free Plan
+              {% else %}
+                ₦{{ s.plan.price_naira|floatformat:0|intcomma }} / {{ s.plan.get_interval_display|lower }}
+              {% endif %}
+            </div>
+          </td>
+          <td>
+            {% if s.payment_method == 'manual_transfer' %}
+              <div class="small fw-semibold text-dark mb-1">
+                <span class="badge bg-secondary-subtle text-secondary px-2 py-0.5" style="font-size:0.72rem;">Direct Transfer</span>
+                {% if s.manual_transfer_ref %}
+                  <div class="font-monospace text-primary small mt-0.5">Ref: {{ s.manual_transfer_ref }}</div>
+                {% endif %}
+              </div>
+              {% if s.manual_receipt %}
+                <button type="button" class="btn btn-adm-sm btn-adm-outline btn-receipt-proof shadow-sm" data-bs-toggle="modal" data-bs-target="#subReceiptModal{{ s.id }}">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                  <span>View Receipt Proof</span>
+                </button>
+              {% else %}
+                <span class="text-danger small" style="font-size:0.73rem;">No receipt file attached</span>
+              {% endif %}
+            {% elif s.paystack_subscription_code %}
+              <span class="badge bg-light text-muted border px-2 py-0.5" style="font-size:0.72rem;">Paystack Online</span>
+              <div class="font-monospace text-muted small" style="font-size:0.7rem;">{{ s.paystack_subscription_code }}</div>
+            {% else %}
+              <span class="text-muted small">{{ s.get_payment_method_display|default:"Standard" }}</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if s.current_period_start and s.current_period_end %}
+              <div class="small text-dark">{{ s.current_period_start|date:"d M Y" }} &ndash; {{ s.current_period_end|date:"d M Y" }}</div>
+              <div class="text-muted" style="font-size:0.73rem;">{{ s.days_remaining|default:"0" }} day(s) left</div>
+            {% else %}
+              <div class="small text-muted">Submitted {{ s.created_at|date:"d M Y" }}</div>
+              <div class="text-muted" style="font-size:0.73rem;">{{ s.created_at|date:"H:i" }} UTC</div>
+            {% endif %}
+          </td>
+          <td>
+            {% if s.status == 'active' %}
+              <span class="adm-badge adm-badge-green">Active</span>
+            {% elif s.status == 'pending' %}
+              <span class="adm-badge adm-badge-amber">Pending Verification</span>
+            {% elif s.status == 'past_due' %}
+              <span class="adm-badge adm-badge-yellow">Past Due</span>
+            {% elif s.status == 'cancelled' %}
+              <span class="adm-badge adm-badge-red">Cancelled</span>
+            {% elif s.status == 'expired' %}
+              <span class="adm-badge adm-badge-gray">Expired</span>
+            {% else %}
+              <span class="adm-badge adm-badge-gray">{{ s.get_status_display }}</span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            <div class="action-btn-group">
+              {% if s.status == 'pending' %}
+                <!-- Approve Button for Manual Transfer -->
+                <button type="button" class="btn btn-adm-sm btn-adm-success shadow-sm" data-bs-toggle="modal" data-bs-target="#subApproveModal{{ s.id }}" title="Approve subscription payment">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="me-1"><polyline points="20 6 9 17 4 12"/></svg>
+                  Approve
+                </button>
+
+                <!-- Reject Button for Manual Transfer -->
+                <button type="button" class="btn btn-adm-sm btn-adm-danger shadow-sm" data-bs-toggle="modal" data-bs-target="#subRejectModal{{ s.id }}" title="Reject subscription payment">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="me-1"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  Reject
+                </button>
+
+              {% elif s.status == 'active' or s.status == 'past_due' %}
+                <button type="button" class="btn btn-adm-sm btn-adm-danger shadow-sm"
+                        data-bs-toggle="modal"
+                        data-bs-target="#subActionModal"
+                        data-action="cancel"
+                        data-pk="{{ s.pk }}"
+                        data-user="{{ s.user.username }}"
+                        data-email="{{ s.user.email }}"
+                        data-plan="{{ s.plan.name|default:'—' }}">
+                  Cancel
+                </button>
+              {% elif s.status == 'cancelled' or s.status == 'expired' %}
+                <button type="button" class="btn btn-adm-sm btn-adm-success shadow-sm"
+                        data-bs-toggle="modal"
+                        data-bs-target="#subActionModal"
+                        data-action="reactivate"
+                        data-pk="{{ s.pk }}"
+                        data-user="{{ s.user.username }}"
+                        data-email="{{ s.user.email }}"
+                        data-plan="{{ s.plan.name|default:'—' }}">
+                  Reactivate
+                </button>
+              {% else %}
+                <span class="text-muted small">—</span>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 {% include "admin_portal/_pagination.html" %}
-{% else %}
-<div class="adm-empty">No subscriptions found.</div>
-{% endif %}
 
-<!-- Subscription Action Modal -->
+{% else %}
+<div class="adm-card p-5 text-center text-muted">
+  <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="mb-2 text-secondary"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+  <div class="fw-semibold">No subscription records found matching the selected filter.</div>
 </div>
-<div class="modal fade" id="subActionModal" tabindex="-1" aria-labelledby="subActionModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content" style="border-radius:12px; border:none; box-shadow:0 8px 32px rgba(0,0,0,.15);">
-      <div class="modal-header border-0 pb-0">
-        <h5 class="modal-title fw-semibold" id="subActionModalLabel">Confirm Action</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body pt-2">
-        <!-- Cancel warning -->
-        <div id="modalCancelWarning" class="alert alert-danger d-flex align-items-center gap-2 mb-3 d-none">
-          <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/></svg>
-          <span>This will immediately cancel the subscription. The user will lose access at the end of the current billing period.</span>
+{% endif %}
+</div>
+
+<!-- ======================================================================= -->
+<!-- ALL MODALS (Rendered OUTSIDE table container for clean DOM stacking) -->
+<!-- ======================================================================= -->
+{% for s in page_obj %}
+
+  <!-- 1. Receipt Proof Inspection Modal -->
+  {% if s.manual_receipt %}
+  <div class="modal fade" id="subReceiptModal{{ s.id }}" tabindex="-1" aria-labelledby="subReceiptModalLabel{{ s.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div class="d-flex align-items-center gap-2">
+            <div class="rounded-circle bg-primary-subtle text-primary p-2 d-inline-flex">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            </div>
+            <div>
+              <h5 class="modal-title fw-bold text-dark mb-0" id="subReceiptModalLabel{{ s.id }}">Subscription Payment Proof</h5>
+              <div class="small text-muted font-monospace">{{ s.plan.name }} &bull; {{ s.user.username }}</div>
+            </div>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
-        <!-- Reactivate info -->
-                <!-- Reactivate info -->
-        <div id="modalReactivateInfo" class="alert alert-success d-flex align-items-center gap-2 mb-3 d-none">
-          <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/></svg>
-          <span>This will reactivate the subscription and restore the user's access immediately.</span>
+        <div class="modal-body p-3 p-md-4">
+          <div class="sub-info-summary mb-3">
+            <div class="sub-info-row">
+              <span class="sub-info-label">Plan Selected:</span>
+              <span class="sub-info-value fw-bold text-primary">{{ s.plan.name }}</span>
+            </div>
+            <div class="sub-info-row">
+              <span class="sub-info-label">Plan Price:</span>
+              <span class="sub-info-value text-success font-monospace">₦{{ s.plan.price_naira|floatformat:2|intcomma }}</span>
+            </div>
+            <div class="sub-info-row">
+              <span class="sub-info-label">Subscriber:</span>
+              <span class="sub-info-value">{{ s.user.get_full_name|default:s.user.username }} &lt;{{ s.user.email }}&gt;</span>
+            </div>
+            <div class="sub-info-row">
+              <span class="sub-info-label">Sender Reference:</span>
+              <span class="sub-info-value font-monospace text-dark">{{ s.manual_transfer_ref|default:"Not specified" }}</span>
+            </div>
+            <div class="sub-info-row">
+              <span class="sub-info-label">Uploaded File:</span>
+              <span class="sub-info-value"><a href="{{ s.manual_receipt.url }}" target="_blank" class="fw-semibold text-primary">{{ s.manual_receipt.name }}</a></span>
+            </div>
+          </div>
+
+          {% if s.manual_receipt.url %}
+            {% if ".pdf" in s.manual_receipt.url|lower %}
+              <div class="p-4 border rounded-3 bg-light text-center my-3">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-danger mb-2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                <p class="text-dark fw-semibold mb-1">Uploaded Payment Receipt (PDF)</p>
+                <p class="text-muted small mb-3">This payment proof is a portable document format file.</p>
+                <a href="{{ s.manual_receipt.url }}" target="_blank" class="btn btn-adm-primary fw-semibold px-4 py-2">
+                  Open PDF Receipt in New Tab &rarr;
+                </a>
+              </div>
+            {% else %}
+              <div class="text-center my-2 p-2 bg-light border rounded-3">
+                <img src="{{ s.manual_receipt.url }}" alt="Payment Proof" class="img-fluid rounded" style="max-height: 60vh; object-fit: contain;">
+              </div>
+            {% endif %}
+          {% endif %}
         </div>
-        <div class="bg-light rounded p-3" style="font-size:.9rem;">
-          <div class="row g-1">
-            <div class="col-4 text-muted fw-semibold">User</div>
-            <div class="col-8" id="modalUser">—</div>
-            <div class="col-4 text-muted fw-semibold">Email</div>
-            <div class="col-8" id="modalEmail">—</div>
-            <div class="col-4 text-muted fw-semibold">Plan</div>
-            <div class="col-8" id="modalPlan">—</div>
+        <div class="modal-footer d-flex flex-wrap justify-content-between gap-2">
+          <a href="{{ s.manual_receipt.url }}" target="_blank" class="btn btn-outline-secondary btn-sm">
+            Open Original File &rarr;
+          </a>
+          <div class="d-flex gap-2">
+            {% if s.status == 'pending' %}
+              <form action="{% url 'admin_portal:subscription_action' s.id %}" method="post" class="d-inline">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="approve_payment">
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <button type="submit" class="btn btn-success btn-sm fw-semibold px-3">
+                  Approve &amp; Activate Plan
+                </button>
+              </form>
+            {% endif %}
+            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
           </div>
         </div>
       </div>
-      <div class="modal-footer border-0 pt-2">
-        <button type="button" class="btn btn-adm-sm btn-adm-secondary" data-bs-dismiss="modal">Cancel</button>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- 2. Approve Modal -->
+  {% if s.status == 'pending' %}
+  <div class="modal fade" id="subApproveModal{{ s.id }}" tabindex="-1" aria-labelledby="subApproveModalLabel{{ s.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 520px;">
+      <div class="modal-content">
+        <form action="{% url 'admin_portal:subscription_action' s.id %}" method="post">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="approve_payment">
+          <input type="hidden" name="next" value="{{ request.get_full_path }}">
+          <div class="modal-header">
+            <div class="d-flex align-items-center gap-2">
+              <div class="rounded-circle bg-success-subtle text-success p-2 d-inline-flex">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <h5 class="modal-title fw-bold text-dark mb-0" id="subApproveModalLabel{{ s.id }}">Confirm Subscription Activation</h5>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body p-3 p-md-4">
+            <p class="text-dark mb-3">
+              Confirm that you have verified bank credit on the corporate account for this subscription:
+            </p>
+            <div class="sub-info-summary mb-3">
+              <div class="sub-info-row">
+                <span class="sub-info-label">Plan:</span>
+                <span class="sub-info-value font-monospace fw-bold text-primary">{{ s.plan.name }}</span>
+              </div>
+              <div class="sub-info-row">
+                <span class="sub-info-label">Subscriber:</span>
+                <span class="sub-info-value">{{ s.user.get_full_name|default:s.user.username }} &lt;{{ s.user.email }}&gt;</span>
+              </div>
+              <div class="sub-info-row">
+                <span class="sub-info-label">Amount:</span>
+                <span class="sub-info-value text-success font-monospace">₦{{ s.plan.price_naira|floatformat:2|intcomma }}</span>
+              </div>
+              <div class="sub-info-row">
+                <span class="sub-info-label">Sender / Ref:</span>
+                <span class="sub-info-value font-monospace">{{ s.manual_transfer_ref|default:"Not specified" }}</span>
+              </div>
+              <div class="sub-info-row">
+                <span class="sub-info-label">Billing Cycle:</span>
+                <span class="sub-info-value">{{ s.plan.get_interval_display }}</span>
+              </div>
+            </div>
+
+            <div class="alert alert-success d-flex align-items-start gap-2 mb-0 py-2 px-3 small border-0 bg-success-subtle text-success-emphasis rounded-3">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mt-0.5 flex-shrink-0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              <div>Upon approval, the subscription benefits and check quotas will be activated immediately, and the subscriber will receive an automated confirmation email.</div>
+            </div>
+          </div>
+          <div class="modal-footer d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-success btn-sm fw-bold px-3">
+              Confirm Credit &amp; Activate Plan
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Reject Modal -->
+  <div class="modal fade" id="subRejectModal{{ s.id }}" tabindex="-1" aria-labelledby="subRejectModalLabel{{ s.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 520px;">
+      <div class="modal-content">
+        <form action="{% url 'admin_portal:subscription_action' s.id %}" method="post">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="reject_payment">
+          <input type="hidden" name="next" value="{{ request.get_full_path }}">
+          <div class="modal-header">
+            <div class="d-flex align-items-center gap-2">
+              <div class="rounded-circle bg-danger-subtle text-danger p-2 d-inline-flex">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </div>
+              <h5 class="modal-title fw-bold text-danger mb-0" id="subRejectModalLabel{{ s.id }}">Reject Subscription Payment</h5>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body p-3 p-md-4">
+            <p class="text-dark mb-3">
+              Please specify the reason for rejecting the transfer for <strong>{{ s.plan.name }}</strong> (User: {{ s.user.username }}):
+            </p>
+            <div class="sub-info-summary mb-3">
+              <div class="sub-info-row">
+                <span class="sub-info-label">Subscriber:</span>
+                <span class="sub-info-value">{{ s.user.get_full_name|default:s.user.username }}</span>
+              </div>
+              <div class="sub-info-row">
+                <span class="sub-info-label">Expected Amount:</span>
+                <span class="sub-info-value font-monospace">₦{{ s.plan.price_naira|floatformat:2|intcomma }}</span>
+              </div>
+              <div class="sub-info-row">
+                <span class="sub-info-label">Sender / Ref:</span>
+                <span class="sub-info-value font-monospace">{{ s.manual_transfer_ref|default:"Not specified" }}</span>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-semibold text-dark">Reason for Rejection <span class="text-danger">*</span></label>
+              <textarea name="admin_notes" class="form-control form-control-sm" rows="3" placeholder="e.g. Transaction could not be found on corporate bank statement, or transferred amount was incomplete." required></textarea>
+            </div>
+            <p class="small text-muted mb-0">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              The subscriber will receive an automated email notification explaining this decision and providing instructions on how to retry.
+            </p>
+          </div>
+          <div class="modal-footer d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-danger btn-sm fw-bold px-3">
+              Confirm Rejection
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+{% endfor %}
+
+<!-- General Cancel/Reactivate Modal -->
+<div class="modal fade" id="subActionModal" tabindex="-1" aria-labelledby="subActionModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:14px; border:1px solid #e2e8f0; box-shadow:0 24px 60px rgba(15,23,42,.25);">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold text-dark" id="subActionModalLabel">Confirm Action</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-3 p-md-4">
+        <div id="modalCancelWarning" class="alert alert-danger d-flex align-items-center gap-2 mb-3 d-none">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <span>This will cancel or revoke the subscription. The user will lose access at the end of the billing period.</span>
+        </div>
+        <div id="modalReactivateInfo" class="alert alert-success d-flex align-items-center gap-2 mb-3 d-none">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>This will reactivate the subscription and restore the user's plan access immediately.</span>
+        </div>
+        <div class="sub-info-summary">
+          <div class="sub-info-row">
+            <span class="sub-info-label">User:</span>
+            <span class="sub-info-value" id="modalUser">—</span>
+          </div>
+          <div class="sub-info-row">
+            <span class="sub-info-label">Email:</span>
+            <span class="sub-info-value" id="modalEmail">—</span>
+          </div>
+          <div class="sub-info-row">
+            <span class="sub-info-label">Plan:</span>
+            <span class="sub-info-value text-primary font-monospace" id="modalPlan">—</span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer d-flex justify-content-end gap-2">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
         <form id="subActionForm" method="post" action="">
           {% csrf_token %}
           <input type="hidden" name="action" id="subActionInput" value="">
+          <input type="hidden" name="next" value="{{ request.get_full_path }}">
           <button type="submit" class="btn btn-adm-sm" id="subActionConfirmBtn">Confirm</button>
         </form>
       </div>
@@ -126,49 +592,42 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-  const modal = document.getElementById('subActionModal');
-  modal.addEventListener('show.bs.modal', function (e) {
-    const btn = e.relatedTarget;
-    const action  = btn.dataset.action;
-    const pk      = btn.dataset.pk;
-    const user    = btn.dataset.user;
-    const email   = btn.dataset.email;
-    const plan    = btn.dataset.plan;
+  var subActionModal = document.getElementById('subActionModal');
+  if (subActionModal) {
+    subActionModal.addEventListener('show.bs.modal', function (event) {
+      var button = event.relatedTarget;
+      var action = button.getAttribute('data-action');
+      var pk = button.getAttribute('data-pk');
+      var user = button.getAttribute('data-user');
+      var email = button.getAttribute('data-email');
+      var plan = button.getAttribute('data-plan');
 
-    // Populate detail fields
-    document.getElementById('modalUser').textContent  = user;
-    document.getElementById('modalEmail').textContent = email;
-    document.getElementById('modalPlan').textContent  = plan;
+      document.getElementById('modalUser').textContent = user || '—';
+      document.getElementById('modalEmail').textContent = email || '—';
+      document.getElementById('modalPlan').textContent = plan || '—';
+      document.getElementById('subActionInput').value = action;
+      document.getElementById('subActionForm').action = '/portal-admin/subscriptions/' + pk + '/action/';
 
-    // Toggle alert banners
-    const cancelWarn    = document.getElementById('modalCancelWarning');
-    const reactivateInfo = document.getElementById('modalReactivateInfo');
-    if (action === 'cancel') {
-      cancelWarn.classList.remove('d-none');
-      reactivateInfo.classList.add('d-none');
-    } else {
-      cancelWarn.classList.add('d-none');
-      reactivateInfo.classList.remove('d-none');
-    }
+      var cancelWarning = document.getElementById('modalCancelWarning');
+      var reactivateInfo = document.getElementById('modalReactivateInfo');
+      var confirmBtn = document.getElementById('subActionConfirmBtn');
+      var modalTitle = document.getElementById('subActionModalLabel');
 
-    // Set form action URL and hidden input
-    const baseUrl = "{% url 'admin_portal:subscription_action' '00000000-0000-0000-0000-000000000000' %}";
-    document.getElementById('subActionForm').action = baseUrl.replace('00000000-0000-0000-0000-000000000000', pk);
-    document.getElementById('subActionInput').value = action;
-
-    // Style confirm button
-    const confirmBtn = document.getElementById('subActionConfirmBtn');
-    if (action === 'cancel') {
-      confirmBtn.className = 'btn btn-adm-sm btn-adm-danger';
-      confirmBtn.textContent = 'Yes, Cancel Subscription';
-      document.getElementById('subActionModalLabel').textContent = 'Cancel Subscription';
-    } else {
-      confirmBtn.className = 'btn btn-adm-sm btn-adm-success';
-      confirmBtn.textContent = 'Yes, Reactivate Subscription';
-      document.getElementById('subActionModalLabel').textContent = 'Reactivate Subscription';
-    }
-  });
+      if (action === 'cancel' || action === 'revoke') {
+        cancelWarning.classList.remove('d-none');
+        reactivateInfo.classList.add('d-none');
+        confirmBtn.className = 'btn btn-adm-sm btn-adm-danger';
+        confirmBtn.textContent = 'Revoke Subscription';
+        modalTitle.textContent = 'Revoke Subscription';
+      } else {
+        cancelWarning.classList.add('d-none');
+        reactivateInfo.classList.remove('d-none');
+        confirmBtn.className = 'btn btn-adm-sm btn-adm-success';
+        confirmBtn.textContent = 'Reactivate Subscription';
+        modalTitle.textContent = 'Reactivate Subscription';
+      }
+    });
+  }
 });
 </script>
 {% endblock %}
-

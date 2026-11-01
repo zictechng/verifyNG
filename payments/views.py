@@ -2,6 +2,7 @@
 # payments/views.py
 import json
 import logging
+import uuid
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -246,8 +247,8 @@ def service_checkout_execute(request, service_key):
 @login_required
 def checkout_review(request, plan_slug):
     """
-    Renders an Order Summary & Confirmation screen for the selected plan
-    before the user proceeds to Paystack.
+    Renders an Order Summary & Confirmation screen for the selected plan,
+    supporting both Paystack Instant Checkout and Direct Bank Transfer (Manual).
     """
     plan = get_object_or_404(Plan, slug=plan_slug, is_active=True)
     existing = get_active_subscription(request.user)
@@ -256,9 +257,76 @@ def checkout_review(request, plan_slug):
         return redirect('payments:my_subscription')
 
     site_settings = SiteSettings.get()
+    from core.models import SiteConfiguration
+    site_config = SiteConfiguration.get_solo()
+
+    if request.method == 'POST':
+        payment_method = request.POST.get('payment_method', '').strip()
+
+        # Handle free plans directly
+        if plan.is_free:
+            _activate_free_plan(request.user, plan)
+            messages.success(request, f"You're now on the {plan.name} plan!")
+            return redirect('payments:my_subscription')
+
+        if payment_method == 'manual_transfer':
+            manual_transfer_ref = request.POST.get('manual_transfer_ref', '').strip()
+            manual_receipt = request.FILES.get('manual_receipt')
+
+            if not manual_transfer_ref and not manual_receipt:
+                messages.error(request, "Please enter your sender name/reference or upload a transfer receipt screenshot.")
+                return redirect('payments:checkout_review', plan_slug=plan.slug)
+
+            # Look for existing pending subscription for user, or create new
+            sub = Subscription.objects.filter(user=request.user, status='pending').first()
+            if not sub:
+                sub = Subscription(user=request.user, plan=plan)
+
+            sub.plan = plan
+            sub.status = 'pending'
+            sub.payment_method = 'manual_transfer'
+            sub.manual_transfer_ref = manual_transfer_ref
+            if manual_receipt:
+                sub.manual_receipt = manual_receipt
+            sub.is_active = False
+            sub.save()
+
+            # Record pending ledger transaction
+            ref = f"VNG-SUB-MAN-{uuid.uuid4().hex[:8].upper()}"
+            Transaction.objects.create(
+                user=request.user,
+                plan=plan,
+                subscription=sub,
+                reference=ref,
+                amount_kobo=plan.price_kobo,
+                status='pending',
+                is_active=False,
+                paystack_response={
+                    'data': {
+                        'metadata': {
+                            'service': 'subscription_plan',
+                            'plan_slug': plan.slug,
+                            'plan_name': plan.name,
+                            'method': 'manual_transfer',
+                            'sender_reference': manual_transfer_ref,
+                        }
+                    }
+                }
+            )
+
+            messages.success(
+                request,
+                f"Your payment proof for the {plan.name} plan has been submitted! Our administration is verifying credit and will activate your subscription shortly."
+            )
+            return redirect('payments:my_subscription')
+
+    pending_sub = Subscription.objects.filter(user=request.user, status='pending', plan=plan).first()
+
     return render(request, 'payments/checkout_review.html', {
         'plan': plan,
         'site_settings': site_settings,
+        'site_config': site_config,
+        'pending_sub': pending_sub,
         'page_title': f'Review Order: {plan.name}',
     })
 
@@ -677,6 +745,7 @@ def paystack_webhook(request):
 def my_subscription(request):
     """Dashboard page showing the user's current subscription, available prepaid balance, and recent transactions."""
     active_sub = get_active_subscription(request.user)
+    pending_sub = Subscription.objects.filter(user=request.user, status='pending').select_related('plan').first()
     recent_transactions = (
         Transaction.objects.filter(user=request.user)
         .select_related('plan')
@@ -689,6 +758,7 @@ def my_subscription(request):
 
     context = {
         'active_subscription': active_sub,
+        'pending_sub': pending_sub,
         'recent_transactions': recent_transactions,
         'free_quota': free_quota,
         'site_settings': site_settings,

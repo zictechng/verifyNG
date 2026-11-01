@@ -38,12 +38,19 @@
   }
 
   /* Solid, polished modals with backdrop isolation */
+  .modal {
+    z-index: 1060 !important;
+  }
+  .modal-backdrop {
+    z-index: 1055 !important;
+  }
   .modal-content {
     background-color: #ffffff !important;
     background: #ffffff !important;
+    opacity: 1 !important;
     border-radius: 14px !important;
     border: 1px solid var(--adm-border, #e2e8f0) !important;
-    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.25) !important;
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.3) !important;
     overflow: hidden;
   }
   .modal-header {
@@ -61,7 +68,8 @@
     padding: 14px 20px !important;
   }
   .dossier-info-summary {
-    background: #f8fafc;
+    background-color: #f8fafc !important;
+    background: #f8fafc !important;
     border: 1px solid #e2e8f0;
     border-radius: 10px;
     padding: 12px 16px;

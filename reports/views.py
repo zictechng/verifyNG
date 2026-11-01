@@ -1056,6 +1056,7 @@ class DossierDownloadView(View):
         qr_code_data_uri = None
         qr_verify_url = ""
         try:
+            from django.conf import settings
             from django.urls import reverse
             import qrcode
             import io
@@ -1063,6 +1064,38 @@ class DossierDownloadView(View):
             qr_verify_url = request.build_absolute_uri(
                 reverse('reports:dossier_verify_public', args=[dossier.tracking_id])
             )
+            # If in production and base_url is configured, prioritize site canonical domain
+            if not getattr(settings, 'DEBUG', False) and getattr(site_config, 'base_url', ''):
+                rel_path = reverse('reports:dossier_verify_public', args=[dossier.tracking_id])
+                qr_verify_url = f"{site_config.base_url.rstrip('/')}{rel_path}"
+            # In local development mode, dynamically resolve the currently active Wi-Fi, LAN, or
+            # mobile hotspot IP on each request so QR codes adapt automatically whenever you change networks.
+            elif getattr(settings, 'DEBUG', False) or '127.0.0.1' in qr_verify_url or 'localhost' in qr_verify_url:
+                lan_ip = None
+                try:
+                    import socket
+                    # Primary check: ask OS network stack for currently active outgoing LAN interface
+                    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                    s.settimeout(0.3)
+                    s.connect(('8.8.8.8', 80))
+                    lan_ip = s.getsockname()[0]
+                    s.close()
+                except Exception:
+                    pass
+
+                # Fallback: inspect network interfaces on host (e.g. mobile hotspot or offline router)
+                if not lan_ip or lan_ip.startswith('127.'):
+                    try:
+                        import socket
+                        for ip in socket.gethostbyname_ex(socket.gethostname())[2]:
+                            if not ip.startswith('127.') and not ip.startswith('169.254.'):
+                                lan_ip = ip
+                                break
+                    except Exception:
+                        pass
+
+                if lan_ip and not lan_ip.startswith('127.'):
+                    qr_verify_url = qr_verify_url.replace('127.0.0.1', lan_ip).replace('localhost', lan_ip)
             qr = qrcode.QRCode(
                 version=1,
                 error_correction=qrcode.constants.ERROR_CORRECT_M,

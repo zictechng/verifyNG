@@ -46,6 +46,33 @@
       </div>
       {% endif %}
 
+      {% if pending_sub %}
+      <!-- Pending Manual Transfer Alert -->
+      <div class="alert alert-warning border border-warning-subtle shadow-sm rounded-4 mb-4" style="padding:18px 20px !important;">
+        <div class="d-flex align-items-start gap-3">
+          <div class="rounded-circle bg-warning text-white p-2 d-inline-flex flex-shrink-0">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          </div>
+          <div>
+            <div class="fw-bold text-dark fs-6 mb-1">Subscription Payment Awaiting Verification</div>
+            <p class="text-secondary small mb-2" style="line-height:1.5;">
+              Your direct bank transfer for the <strong>{{ pending_sub.plan.name }}</strong> plan 
+              {% if pending_sub.manual_transfer_ref %}(Reference: <code class="font-monospace text-primary fw-bold">{{ pending_sub.manual_transfer_ref }}</code>){% endif %}
+              was submitted on <strong>{{ pending_sub.created_at|date:"d M Y, H:i" }} WAT</strong>.
+            </p>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2.5 py-1 font-monospace" style="font-size:0.75rem;">
+                Pending Finance Clearance
+              </span>
+              <span class="text-muted small" style="font-size:0.78rem;">
+                Our administration is reconciling credit with the corporate bank statement. You will receive an email upon activation.
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
       {% if active_subscription %}
       <!-- Active subscription card -->
       <div class="vng-card p-4 mb-4 rounded-4"

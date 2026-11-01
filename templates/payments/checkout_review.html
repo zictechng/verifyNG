@@ -17,6 +17,26 @@
         </a>
       </div>
 
+      <!-- Pending Verification Alert (if user already submitted manual transfer) -->
+      {% if pending_sub %}
+      <div class="alert alert-warning border border-warning-subtle shadow-sm rounded-4 p-3 mb-4 d-flex align-items-start gap-3">
+        <div class="rounded-circle bg-warning text-white p-2 d-inline-flex flex-shrink-0">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <div class="small">
+          <div class="fw-bold text-dark fs-6 mb-0.5">Pending Payment Under Verification</div>
+          <div class="text-secondary mb-1">
+            You previously submitted a direct transfer for the <strong>{{ pending_sub.plan.name }}</strong> plan 
+            {% if pending_sub.manual_transfer_ref %}(Ref: <code class="font-monospace fw-bold text-primary">{{ pending_sub.manual_transfer_ref }}</code>){% endif %}
+            on {{ pending_sub.created_at|date:"d M Y, H:i" }} WAT.
+          </div>
+          <div class="text-muted" style="font-size:0.8rem;">
+            Submitting new transfer details below will update your pending verification request.
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
       <!-- Card Container -->
       <div class="vng-card p-3 p-sm-4 p-md-5 rounded-4 shadow-sm" style="border: 1px solid #E2E8F0; background: #fff;">
         
@@ -26,7 +46,7 @@
               Step 1 of 2: Order Review
             </span>
             <h2 class="h4 fw-bold mt-2 mb-1" style="color: var(--vng-ink);">Confirm Subscription Order</h2>
-            <p class="text-muted small mb-0">Review your plan details before proceeding to secure checkout.</p>
+            <p class="text-muted small mb-0">Review your plan details before proceeding to payment.</p>
           </div>
           <div class="text-start text-sm-end flex-shrink-0">
             <span class="text-muted small d-block" style="font-size: 0.75rem;">Billing Cycle</span>
@@ -86,7 +106,7 @@
           {% endif %}
         </div>
 
-        <!-- Billing Account Details -->
+        <!-- Billed Account -->
         <div class="mb-4">
           <h6 class="small fw-bold text-uppercase text-muted letter-spacing-1 mb-2">Billed Account</h6>
           <div class="p-3 rounded-3 d-flex align-items-center justify-content-between flex-wrap gap-2" style="background: #fff; border: 1px solid #E2E8F0;">
@@ -135,35 +155,135 @@
           </table>
         </div>
 
-        <!-- Security & Paystack Guarantee Notice -->
-        <div class="alert alert-light border small text-muted mb-4 d-flex align-items-start gap-2">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2" class="flex-shrink-0 mt-0.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-          <div>
-            <strong>Secured by Paystack:</strong> Your transaction is encrypted with 256-bit bank-grade SSL security. Certified PCI-DSS Level 1 compliant. Supports Nigerian debit cards, USSD, and bank transfers.
+        {% if plan.is_free %}
+          <!-- Free Plan Activation -->
+          <div class="d-grid gap-2">
+            <form action="{% url 'payments:checkout_review' plan.slug %}" method="post">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-vng-primary w-100 py-3 fw-bold fs-6 shadow-sm" style="border-radius: 9999px;">
+                Confirm &amp; Activate Free Plan &rarr;
+              </button>
+            </form>
+            <a href="{% url 'payments:plans' %}" class="btn btn-vng-outline py-2 text-center" style="border-radius: 9999px; font-size: 0.9rem;">
+              Cancel &amp; Return to Plans
+            </a>
           </div>
-        </div>
 
-        <!-- Action CTAs -->
-        <div class="d-grid gap-2">
-          <a href="{% url 'payments:checkout' plan.slug %}"
-             id="proceedBtn"
-             onclick="return handleCheckoutSubmit(this, {% if plan.is_free %}'Activating Starter Plan...'{% else %}'Connecting to Paystack...'{% endif %});"
-             class="btn btn-vng-primary py-3 px-3 fw-bold fs-6 shadow-sm d-flex align-items-center justify-content-center gap-2"
-             style="border-radius: 9999px;">
-            {% if plan.is_free %}
-              <span>Confirm &amp; Activate Starter Free Plan &rarr;</span>
-            {% else %}
-              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" class="flex-shrink-0"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-              <span class="d-inline-flex align-items-center flex-wrap justify-content-center gap-1">
-                <span>Pay ₦{{ plan.price_naira|floatformat:0|intcomma }} via Paystack</span>
-                <span class="text-nowrap">&rarr;</span>
-              </span>
-            {% endif %}
-          </a>
-          <a href="{% url 'payments:plans' %}" id="cancelBtn" class="btn btn-vng-outline py-2 text-center" style="border-radius: 9999px; font-size: 0.9rem;">
-            Cancel &amp; Return to Plans
-          </a>
-        </div>
+        {% else %}
+          <!-- Paid Plan: Dual Payment Tabs (Paystack vs Direct Transfer) -->
+          <h6 class="small fw-bold text-uppercase text-muted letter-spacing-1 mb-2">Select Payment Method</h6>
+
+          <ul class="nav nav-pills nav-fill mb-3 p-1 rounded-3 bg-light border" id="paymentMethodTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active fw-bold small py-2 d-flex align-items-center justify-content-center gap-2" id="paystack-tab" data-bs-toggle="pill" data-bs-target="#paystackTabPane" type="button" role="tab">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                <span>Paystack Online (Instant)</span>
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link fw-bold small py-2 d-flex align-items-center justify-content-center gap-2" id="manual-tab" data-bs-toggle="pill" data-bs-target="#manualTabPane" type="button" role="tab">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 9V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><rect x="9" y="9" width="12" height="10" rx="2"/></svg>
+                <span>Direct Bank Transfer (Manual)</span>
+              </button>
+            </li>
+          </ul>
+
+          <div class="tab-content mb-4" id="paymentMethodTabContent">
+            <!-- TAB 1: Paystack Online -->
+            <div class="tab-pane fade show active" id="paystackTabPane" role="tabpanel">
+              <div class="alert alert-light border small text-muted mb-3 d-flex align-items-start gap-2">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2" class="flex-shrink-0 mt-0.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                <div>
+                  <strong>Instant Automated Activation:</strong> Pay with Nigerian debit cards, USSD, or direct bank transfer via Paystack. Your plan will activate immediately upon payment.
+                </div>
+              </div>
+
+              <div class="d-grid gap-2">
+                <a href="{% url 'payments:checkout' plan.slug %}"
+                   id="proceedBtn"
+                   onclick="return handleCheckoutSubmit(this, 'Connecting to Paystack...');"
+                   class="btn btn-vng-primary py-3 px-3 fw-bold fs-6 shadow-sm d-flex align-items-center justify-content-center gap-2"
+                   style="border-radius: 9999px;">
+                  <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" class="flex-shrink-0"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                  <span>Pay ₦{{ plan.price_naira|floatformat:0|intcomma }} via Paystack &rarr;</span>
+                </a>
+              </div>
+            </div>
+
+            <!-- TAB 2: Direct Bank Transfer (Manual) -->
+            <div class="tab-pane fade" id="manualTabPane" role="tabpanel">
+              <div class="p-3.5 rounded-3 mb-3" style="background:#F8FAFC; border: 1.5px solid #CBD5E1; padding: 18px 20px !important;">
+                <div class="text-uppercase fw-bold text-secondary small mb-2" style="font-size:0.75rem; letter-spacing:0.04em;">Official Corporate Account for Transfer:</div>
+                <div class="row g-2 small">
+                  <div class="col-4 text-muted">Bank Name:</div>
+                  <div class="col-8 fw-bold text-dark">{{ site_config.company_bank_name|default:"Guaranty Trust Bank (GTBank)" }}</div>
+                  
+                  <div class="col-4 text-muted">Account Name:</div>
+                  <div class="col-8 fw-bold text-dark">{{ site_config.company_bank_account_name|default:"VerifyNG Limited" }}</div>
+                  
+                  <div class="col-4 text-muted">Account No:</div>
+                  <div class="col-8">
+                    <span class="font-monospace fw-bold text-primary fs-6" id="acctNumText">{{ site_config.company_bank_account_number|default:"0123456789" }}</span>
+                    <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 ms-2" onclick="copyAcctNum()" style="font-size:0.72rem;">
+                      Copy
+                    </button>
+                  </div>
+
+                  <div class="col-4 text-muted">Exact Amount:</div>
+                  <div class="col-8 fw-bold text-success font-monospace fs-6">₦{{ plan.price_naira|floatformat:2|intcomma }}</div>
+                </div>
+              </div>
+
+              <!-- Manual Transfer Form -->
+              <form action="{% url 'payments:checkout_review' plan.slug %}" method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="payment_method" value="manual_transfer">
+
+                <div class="mb-3">
+                  <label for="id_manual_transfer_ref" class="form-label small fw-bold text-dark mb-1">
+                    Sender Name / Session ID / Reference <span class="text-danger">*</span>
+                  </label>
+                  <input type="text" 
+                         name="manual_transfer_ref" 
+                         id="id_manual_transfer_ref" 
+                         class="form-control form-control-sm" 
+                         placeholder="e.g. Chukwuemeka Obi / NIP-394820491" 
+                         value="{{ pending_sub.manual_transfer_ref|default:'' }}"
+                         required>
+                  <div class="form-text" style="font-size:0.75rem;">Enter the account name you transferred from or the transaction session ID.</div>
+                </div>
+
+                <div class="mb-3">
+                  <label for="id_manual_receipt" class="form-label small fw-bold text-dark mb-1">
+                    Upload Payment Receipt Proof <span class="text-danger">*</span>
+                  </label>
+                  <input type="file" 
+                         name="manual_receipt" 
+                         id="id_manual_receipt" 
+                         class="form-control form-control-sm" 
+                         accept=".jpg,.jpeg,.png,.pdf" 
+                         {% if not pending_sub %}required{% endif %}>
+                  <div class="form-text" style="font-size:0.75rem;">Attach your bank debit receipt screenshot or PDF (max 10MB).</div>
+                </div>
+
+                <button type="submit" class="btn btn-success w-100 py-2.5 fw-bold shadow-sm d-flex align-items-center justify-content-center gap-2" style="border-radius: 9999px;">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  <span>Submit Transfer for Admin Verification &rarr;</span>
+                </button>
+              </form>
+
+              <div class="text-center mt-2">
+                <small class="text-muted" style="font-size:0.75rem;">Reconciled by finance administration. You will receive an email notification once approved.</small>
+              </div>
+            </div>
+          </div>
+
+          <div class="text-center">
+            <a href="{% url 'payments:plans' %}" id="cancelBtn" class="btn btn-vng-outline py-2 px-4" style="border-radius: 9999px; font-size: 0.9rem;">
+              Cancel &amp; Return to Plans
+            </a>
+          </div>
+        {% endif %}
 
       </div>
 
@@ -184,6 +304,15 @@ function handleCheckoutSubmit(btn, loadingText) {
     cancelBtn.style.opacity = '0.5';
   }
   return true;
+}
+
+function copyAcctNum() {
+  var text = document.getElementById('acctNumText').innerText.trim();
+  navigator.clipboard.writeText(text).then(function() {
+    alert("Account number copied: " + text);
+  }).catch(function() {
+    prompt("Copy account number:", text);
+  });
 }
 </script>
 {% endblock %}

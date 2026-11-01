@@ -1976,11 +1976,13 @@ class AdminEmployerActionView(SuperAdminRequiredMixin, View):
 class AdminSubscriptionsView(SuperAdminRequiredMixin, TemplateView):
     section_name = "Subscriptions"
     required_permission = "payments.view_subscription"
-    """All subscriptions management."""
+    """All subscriptions management, manual transfer review, and lifecycle control."""
     template_name = "admin_portal/subscriptions.html"
+
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         status_filter = self.request.GET.get('status', '')
+        method_filter = self.request.GET.get('method', '')
         q = self.request.GET.get('q', '').strip()
 
         try:
@@ -1991,52 +1993,210 @@ class AdminSubscriptionsView(SuperAdminRequiredMixin, TemplateView):
             per_page = 15
 
         if Subscription:
-            qs = Subscription.objects.select_related('user', 'plan').order_by('-created_at')
+            qs = Subscription.objects.select_related('user', 'plan', 'approved_by').order_by('-created_at')
+
+            # Top KPI metrics
+            ctx['total_count'] = Subscription.objects.count()
+            ctx['pending_count'] = Subscription.objects.filter(status='pending').count()
+            ctx['active_count'] = Subscription.objects.filter(status='active').count()
+            ctx['cancelled_count'] = Subscription.objects.filter(status='cancelled').count()
+
             if status_filter:
                 qs = qs.filter(status=status_filter)
+            if method_filter:
+                qs = qs.filter(payment_method=method_filter)
             if q:
-                qs = qs.filter(user__email__icontains=q) | qs.filter(user__username__icontains=q)
+                qs = qs.filter(
+                    Q(user__email__icontains=q) |
+                    Q(user__username__icontains=q) |
+                    Q(plan__name__icontains=q) |
+                    Q(manual_transfer_ref__icontains=q)
+                )
+
             paginator = Paginator(qs, per_page)
             ctx['page_obj'] = paginator.get_page(self.request.GET.get('page', 1))
             ctx['status_choices'] = Subscription.STATUS_CHOICES
         else:
             ctx['page_obj'] = []
             ctx['status_choices'] = []
+            ctx['total_count'] = 0
+            ctx['pending_count'] = 0
+            ctx['active_count'] = 0
+            ctx['cancelled_count'] = 0
+
         ctx['per_page'] = per_page
         ctx['per_page_options'] = [15, 25, 50, 75, 100]
         ctx['selected_status'] = status_filter
+        ctx['selected_method'] = method_filter
         ctx['q'] = q
         return ctx
 
 class AdminSubscriptionActionView(SuperAdminRequiredMixin, View):
     section_name = "Subscriptions"
     required_permission = ("payments.change_subscription", "payments.view_subscription")
-    """POST: cancel, revoke, or reactivate a subscription."""
+    """POST: approve_payment, reject_payment, cancel, revoke, or reactivate a subscription."""
+
     def post(self, request, pk):
-        sub = get_object_or_404(Subscription, pk=pk)
-        action = request.POST.get('action', 'cancel')
-        reason = request.POST.get('reason', '').strip()
+        from payments.models import Subscription, Transaction
+        from notifications.services import dispatch_notification
+        from datetime import timedelta
+
+        sub = get_object_or_404(Subscription.objects.select_related('user', 'plan'), pk=pk)
+        action = request.POST.get('action', '').strip()
+        admin_notes = request.POST.get('admin_notes', '').strip()
+        reason = request.POST.get('reason', '').strip() or admin_notes
         next_url = request.POST.get('next', '').strip()
-        if action in ('cancel', 'revoke'):
+
+        if action == 'approve_payment':
+            # Cancel any previous active subscriptions for this user
+            Subscription.objects.filter(user=sub.user, status='active').exclude(pk=sub.pk).update(
+                status='cancelled',
+                cancelled_at=timezone.now(),
+                is_active=False
+            )
+
+            now = timezone.now()
+            sub.status = 'active'
+            sub.is_active = True
+            sub.current_period_start = now
+            days = 365 if sub.plan and sub.plan.interval == 'yearly' else 30
+            sub.current_period_end = now + timedelta(days=days)
+            sub.checks_used = 0
+            sub.approved_by = request.user
+            sub.approved_at = now
+            if admin_notes:
+                sub.admin_notes = admin_notes
+            sub.save()
+
+            # Record or update ledger Transaction
+            try:
+                ref = f"VNG-SUB-MAN-{str(sub.id)[:8].upper()}"
+                amount_kobo = sub.plan.price_kobo if sub.plan else 0
+                Transaction.objects.update_or_create(
+                    subscription=sub,
+                    defaults={
+                        'user': sub.user,
+                        'plan': sub.plan,
+                        'reference': ref,
+                        'amount_kobo': amount_kobo,
+                        'status': 'success',
+                        'is_active': False,
+                        'paystack_response': {
+                            'data': {
+                                'metadata': {
+                                    'service': 'subscription_plan',
+                                    'plan_name': sub.plan.name if sub.plan else 'Subscription',
+                                    'method': 'manual_transfer',
+                                    'verified_by': request.user.username,
+                                    'sender_reference': sub.manual_transfer_ref,
+                                }
+                            }
+                        }
+                    }
+                )
+            except Exception as e:
+                logger.error("Failed to record manual subscription transaction: %s", e)
+
+            # Audit log
+            AuditLog.objects.create(
+                action="ADMIN_SUBSCRIPTION_PAYMENT_APPROVED",
+                performed_by=request.user,
+                details={
+                    "subscription_id": str(sub.id),
+                    "user": sub.user.username,
+                    "plan": sub.plan.name if sub.plan else "—",
+                    "sender_ref": sub.manual_transfer_ref,
+                    "notes": admin_notes,
+                }
+            )
+
+            # Dispatch Approval Email Notification
+            try:
+                from notifications import email_templates
+                recipient_name = sub.user.get_full_name() or sub.user.username
+                subject, html_body, text_body = email_templates.build_subscription_payment_approved(
+                    sub, recipient_name, admin_notes
+                )
+                dispatch_notification(
+                    recipient=sub.user,
+                    event_type='GENERAL',
+                    title=f"Subscription Activated: {sub.plan.name if sub.plan else 'Plan'}",
+                    body=f"Your payment for the {sub.plan.name if sub.plan else 'Plan'} subscription has been confirmed and activated. Valid until {sub.current_period_end.strftime('%d %B %Y')}.",
+                    object_reference=str(sub.id),
+                    subject=subject,
+                    html_body=html_body,
+                    text_body=text_body,
+                )
+            except Exception as e:
+                logger.error("Failed to dispatch subscription approval notification: %s", e)
+
+            messages.success(request, f"Payment for {sub.user.username}'s {sub.plan.name if sub.plan else 'Plan'} subscription has been APPROVED and activated.")
+
+        elif action == 'reject_payment':
             sub.status = 'cancelled'
-            sub.save(update_fields=['status'])
+            sub.is_active = False
+            sub.admin_notes = reason or "Payment credit could not be verified on corporate bank statement."
+            sub.save(update_fields=['status', 'is_active', 'admin_notes'])
+
+            # Audit log
+            AuditLog.objects.create(
+                action="ADMIN_SUBSCRIPTION_PAYMENT_REJECTED",
+                performed_by=request.user,
+                details={
+                    "subscription_id": str(sub.id),
+                    "user": sub.user.username,
+                    "plan": sub.plan.name if sub.plan else "—",
+                    "reason": sub.admin_notes,
+                }
+            )
+
+            # Dispatch Rejection Email Notification
+            try:
+                from notifications import email_templates
+                recipient_name = sub.user.get_full_name() or sub.user.username
+                subject, html_body, text_body = email_templates.build_subscription_payment_rejected(
+                    sub, recipient_name, sub.admin_notes
+                )
+                dispatch_notification(
+                    recipient=sub.user,
+                    event_type='GENERAL',
+                    title="Subscription Payment Declined",
+                    body=f"Your payment for the {sub.plan.name if sub.plan else 'Plan'} subscription could not be verified. Reason: {sub.admin_notes}",
+                    object_reference=str(sub.id),
+                    subject=subject,
+                    html_body=html_body,
+                    text_body=text_body,
+                )
+            except Exception as e:
+                logger.error("Failed to dispatch subscription rejection notification: %s", e)
+
+            messages.success(request, f"Payment for {sub.user.username}'s subscription has been REJECTED.")
+
+        elif action in ('cancel', 'revoke'):
+            sub.status = 'cancelled'
+            sub.is_active = False
+            sub.save(update_fields=['status', 'is_active'])
             AuditLog.objects.create(
                 action="ADMIN_SUBSCRIPTION_CANCEL",
                 performed_by=request.user,
                 details={"subscription_id": str(sub.id), "user": sub.user.username, "plan": sub.plan.name if sub.plan else "—", "reason": reason or "Admin cancellation/revocation"}
             )
             messages.success(request, f"Subscription '{sub.plan.name if sub.plan else 'Plan'}' for '{sub.user.username}' has been revoked.")
+
         elif action == 'reactivate':
             sub.status = 'active'
-            sub.save(update_fields=['status'])
+            sub.is_active = True
+            sub.save(update_fields=['status', 'is_active'])
             AuditLog.objects.create(
                 action="ADMIN_SUBSCRIPTION_REACTIVATE",
                 performed_by=request.user,
                 details={"subscription_id": str(sub.id), "user": sub.user.username}
             )
             messages.success(request, f"Subscription for '{sub.user.username}' reactivated.")
+
         else:
             messages.error(request, "Invalid action.")
+
         if next_url:
             return redirect(next_url)
         referer = request.META.get('HTTP_REFERER')

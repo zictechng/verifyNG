@@ -227,7 +227,7 @@
     </div>
 
     <!-- Addressed Authority (Spacious Inset Box) -->
-    <div class="dossier-card-alt mb-4">
+    <div class="dossier-card-alt" style="margin-bottom:18px !important;">
         <div class="text-uppercase fw-bold text-secondary mb-2" style="font-size:9pt; letter-spacing:0.05em;">DIRECTED TO LAW ENFORCEMENT &amp; FINANCIAL COMPLIANCE DESKS:</div>
         <div class="fw-bold text-dark" style="font-size:10.5pt; line-height:1.65;">
             1. THE DIVISIONAL POLICE OFFICER (DPO) / INVESTIGATING POLICE OFFICER (IPO) &mdash; NIGERIA POLICE FORCE<br>
@@ -236,18 +236,18 @@
     </div>
 
     <!-- Matter Title Section -->
-    <div class="text-center mb-2">
+    <div class="text-center" style="margin-bottom:20px !important;">
         <h4 class="fw-bold text-dark text-uppercase mb-1" style="letter-spacing:0.02em; font-size:12.5pt;">
             FORMAL CRIMINAL COMPLAINT &amp; ELECTRONIC EVIDENCE AUDIT DOSSIER
         </h4>
-        <div class="py-1 px-2 rounded d-inline-block text-center w-100" style="background:#FEF2F2; border:1px solid #FECACA;">
+        <div class="py-1.5 px-3 rounded d-inline-block text-center w-100" style="background:#FEF2F2; border:1px solid #FECACA;">
             <span class="fw-bold text-danger" style="font-size:9.5pt;">Matter:</span>
             <span class="fw-semibold text-dark ms-1" style="font-size:9.5pt;">Advance-Fee Fraud, Obtaining Under False Pretence &amp; Electronic Fund Diversion (S. 419 Criminal Code / Cybercrimes Act 2015)</span>
         </div>
     </div>
 
     <!-- Parties Identification Grid (Generous Side Padding & Clean Tables) -->
-    <div class="row g-2 mb-2">
+    <div class="row g-2" style="margin-bottom:20px !important;">
         <div class="col-6">
             <div class="dossier-card h-100 mb-0">
                 <div class="fw-bold text-uppercase text-secondary border-bottom pb-1 mb-2" style="font-size:8.5pt; letter-spacing:0.04em;">
@@ -279,7 +279,7 @@
     </div>
 
     <!-- Financial Loss Box (Generous Inset Padding & High Contrast) -->
-    <div class="dossier-card-loss mb-2">
+    <div class="dossier-card-loss" style="margin-bottom:22px !important; padding:15px 20px !important;">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
             <div>
                 <div class="text-uppercase fw-bold text-danger mb-1" style="font-size:9pt; letter-spacing:0.05em;">Total Financial Loss / Stolen Funds:</div>
@@ -296,7 +296,7 @@
     </div>
 
     <!-- Executive Forensic Matter Brief (Strictly Bounded on Page 1) -->
-    <div class="dossier-card-alt mb-2">
+    <div class="dossier-card-alt" style="margin-bottom:20px !important; padding:15px 20px !important;">
         <div class="border-bottom pb-1 mb-1.5 d-flex justify-content-between align-items-center">
             <span class="fw-bold text-dark text-uppercase" style="font-size:10pt; letter-spacing:0.03em;">Executive Forensic Matter Brief &mdash; Summary of Offense</span>
             <span class="badge bg-secondary-subtle text-secondary small" style="font-size:7.5pt;">Statutory Summary</span>
@@ -519,7 +519,7 @@
     </div>
 
     <!-- Solemn Declaration Box (Print-Optimized Dimensions) -->
-    <div class="dossier-card-alt mb-2">
+    <div class="dossier-card-alt" style="margin-bottom:16px !important; padding:14px 20px !important;">
         <p class="mb-1.5 fw-medium" style="font-size:9.5pt; line-height:1.55;">
             I, the undersigned <strong>Electronic Records Custodian &amp; Head of Technical Operations</strong> of {{ site_config.site_name|default:"VerifyNG" }} (operated under neutral technological intermediary compliance protocols), do hereby solemnly declare and certify as follows:
         </p>
@@ -540,9 +540,9 @@
     </div>
 
     <!-- Cryptographic Seal and Live Dynamic QR Code Section -->
-    <div class="row g-2 align-items-center mb-2">
+    <div class="row g-2 align-items-center" style="margin-top:22px !important; margin-bottom:24px !important;">
         <div class="col-8">
-            <div class="dossier-card h-100 mb-0 py-2 px-3">
+            <div class="dossier-card h-100 mb-0 py-2.5 px-3">
                 <div class="fw-bold text-uppercase text-secondary mb-1" style="font-size:8.5pt; letter-spacing:0.04em;">Cryptographic Digital Custody Seal:</div>
                 <div class="font-monospace text-break text-danger fw-bold mb-1.5 py-1.5 px-2 rounded" style="font-size:9.5pt; line-height:1.35; background:#FEF2F2; border:1px solid #FECACA;">
                     SHA256: {{ section84_hash }}
@@ -558,7 +558,7 @@
         </div>
 
         <div class="col-4 text-center">
-            <div class="dossier-seal-box py-2 px-2 h-100 d-flex flex-column justify-content-center align-items-center">
+            <div class="dossier-seal-box py-2.5 px-2 h-100 d-flex flex-column justify-content-center align-items-center">
                 {% if qr_code_data_uri %}
                     <!-- Dynamic Live Verification QR Code -->
                     <img src="{{ qr_code_data_uri }}" width="95" height="95" alt="Live Verification QR Code" class="rounded border shadow-sm mb-1" style="padding:2px; background:#fff;">
@@ -578,8 +578,8 @@
         </div>
     </div>
 
-    <!-- Statutory Safe Harbor Disclaimer (Locked onto Page 4 - Zero Overflow) -->
-    <div class="dossier-card-alt text-secondary mb-2 py-2 px-3" style="font-size:8.5pt; line-height:1.55; border-left:3px solid #2457D6;">
+    <!-- Statutory Safe Harbor Disclaimer (Positioned Gracefully Lower Down Page 4) -->
+    <div class="dossier-card-alt text-secondary py-2.5 px-3" style="font-size:8.5pt; line-height:1.6; border-left:3.5px solid #2457D6; margin-top:20px !important; margin-bottom:18px !important;">
         <strong>STATUTORY DISCLAIMER &amp; SAFE HARBOR:</strong> This document is an electronic evidence audit repository prepared under Section 84 of the Nigerian Evidence Act 2011 to assist authorized law enforcement and financial institutions. {{ site_config.site_name|default:"VerifyNG" }} is a neutral technological intermediary and does not operate as a court of law. Submitting fabricated, fraudulent, or altered electronic receipts constitutes criminal forgery under the Cybercrimes (Prohibition, Prevention, etc.) Act 2015.
     </div>
 

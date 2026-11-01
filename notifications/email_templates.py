@@ -669,3 +669,80 @@ def build_dossier_payment_rejected(dossier, username: str, reason: str = "") -> 
         fallback_html = f"<h2>Payment Declined</h2><p>Hi {username}, your payment for {tracking_id} could not be verified. Reason: {reason_clean}</p>"
         return subject, _html_fallback(subject, fallback_html), f"Hi {username}, your payment for {tracking_id} could not be verified. Reason: {reason_clean}"
 
+
+def build_subscription_payment_approved(subscription, username: str, admin_notes: str = "") -> Tuple[str, str, str]:
+    site_name, site_url = _get_site_meta()
+    plan_name = subscription.plan.name if subscription.plan else "Subscription Plan"
+    amount_str = f"₦{subscription.plan.price_naira:,.2f}" if subscription.plan else "₦0.00"
+    period_end = subscription.current_period_end.strftime('%d %B %Y') if subscription.current_period_end else "30 Days Active"
+    checks_str = "Unlimited" if getattr(subscription.plan, 'has_unlimited_checks', False) else f"{subscription.plan.check_limit} Checks"
+
+    subject = f"Subscription Activated: {plan_name} — {site_name}"
+    dashboard_url = f"{site_url}/employer/" if getattr(subscription.user, 'is_employer', False) else f"{site_url}/dashboard/"
+
+    body_html = f"""
+    <p>Congratulations! Your direct bank transfer payment for the <strong>{plan_name}</strong> subscription has been verified and confirmed by our finance administration.</p>
+    
+    <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-left:4px solid #16a34a;padding:14px 18px;border-radius:8px;margin:18px 0;font-size:14px;color:#166534;">
+        <div style="margin-bottom:6px;"><strong>Plan Activated:</strong> <span style="font-weight:700;">{plan_name}</span></div>
+        <div style="margin-bottom:6px;"><strong>Amount Verified:</strong> {amount_str}</div>
+        <div style="margin-bottom:6px;"><strong>Included Quota:</strong> {checks_str}</div>
+        <div style="margin-bottom:6px;"><strong>Valid Until:</strong> {period_end}</div>
+        <div><strong>Status:</strong> <span style="background:#dcfce7;color:#15803d;padding:2px 8px;border-radius:4px;font-weight:700;">Active &amp; Operational</span></div>
+    </div>
+
+    <p>Your subscription benefits, verification check allowances, and continuous monitoring tools are now fully active across your account.</p>
+    """
+
+    try:
+        html_body, text_body = render_email('generic_notification', {
+            'user_name': username,
+            'heading': f"Your {plan_name} is Now Active!",
+            'body_html': body_html,
+            'cta_url': dashboard_url,
+            'cta_label': "Go to Dashboard & Start Verifying →",
+        })
+        return subject, html_body, text_body
+    except Exception:
+        fallback_html = f"<h2>Subscription Activated</h2><p>Hi {username}, your {plan_name} has been activated. Access your account at: {dashboard_url}</p>"
+        return subject, _html_fallback(subject, fallback_html), f"Hi {username}, your {plan_name} has been activated. Access: {dashboard_url}"
+
+
+def build_subscription_payment_rejected(subscription, username: str, reason: str = "") -> Tuple[str, str, str]:
+    site_name, site_url = _get_site_meta()
+    plan_name = subscription.plan.name if subscription.plan else "Subscription Plan"
+    reason_clean = reason or "Transaction could not be verified on corporate bank statement or transferred amount was incomplete."
+
+    subject = f"Notice: Subscription Payment Verification Failed ({plan_name}) — {site_name}"
+    plans_url = f"{site_url}/payments/"
+
+    body_html = f"""
+    <p>We reviewed your submitted direct bank transfer payment for the <strong>{plan_name}</strong> subscription, but our finance administration was unable to verify the transaction credit.</p>
+    
+    <div style="background:#fef2f2;border:1px solid #fecaca;border-left:4px solid #ef4444;padding:14px 18px;border-radius:8px;margin:18px 0;font-size:14px;color:#991b1b;">
+        <div style="font-weight:700;margin-bottom:4px;">Reason for Rejection:</div>
+        <div style="color:#7f1d1d;line-height:1.5;">{reason_clean}</div>
+    </div>
+
+    <p><strong>What to do next:</strong></p>
+    <ul style="color:#334155;line-height:1.6;font-size:14px;">
+        <li>Confirm with your bank that the funds successfully left your account.</li>
+        <li>Ensure the payment reference or depositor name matches your registered account details.</li>
+        <li>You can re-submit your transfer receipt or activate your plan instantly using online payment via card / USSD.</li>
+    </ul>
+    """
+
+    try:
+        html_body, text_body = render_email('generic_notification', {
+            'user_name': username,
+            'heading': "Subscription Payment Declined",
+            'body_html': body_html,
+            'cta_url': plans_url,
+            'cta_label': "Review Plans & Re-submit Proof →",
+        })
+        return subject, html_body, text_body
+    except Exception:
+        fallback_html = f"<h2>Payment Declined</h2><p>Hi {username}, your payment for {plan_name} could not be verified. Reason: {reason_clean}</p>"
+        return subject, _html_fallback(subject, fallback_html), f"Hi {username}, your payment for {plan_name} could not be verified. Reason: {reason_clean}"
+
+

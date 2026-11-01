@@ -424,6 +424,45 @@ class Subscription(models.Model):
         default=0,
         help_text="Number of checks consumed during the current subscription billing period."
     )
+    PAYMENT_METHOD_CHOICES = (
+        ('paystack', 'Paystack Online'),
+        ('manual_transfer', 'Direct Bank Transfer'),
+        ('admin_grant', 'Admin Complimentary'),
+    )
+    payment_method = models.CharField(
+        max_length=20,
+        choices=PAYMENT_METHOD_CHOICES,
+        default='paystack',
+        db_index=True,
+    )
+    manual_transfer_ref = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="Sender reference, depositor name, or transaction session ID."
+    )
+    manual_receipt = models.FileField(
+        upload_to='subscription_receipts/%Y/%m/',
+        null=True,
+        blank=True,
+        help_text="Uploaded payment receipt or bank transfer screenshot."
+    )
+    admin_notes = models.TextField(
+        blank=True,
+        help_text="Reason for rejection or admin verification notes."
+    )
+    approved_by = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='approved_subscriptions',
+        help_text="Admin officer who reviewed and approved or rejected this payment."
+    )
+    approved_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Timestamp when payment was approved and activated."
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=True)
