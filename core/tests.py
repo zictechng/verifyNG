@@ -874,7 +874,27 @@ class AdversarialSecurityAndXssTestCase(TestCase):
         # Raw executable script tags must NOT exist in printable report HTML
         self.assertNotIn("<script>alert('XSS-TEST')</script>", verif_html)
         self.assertIn("&lt;script&gt;", verif_html)
-        
 
 
-            
+class Friendly404MiddlewareTests(TestCase):
+    """
+    Guarantees that visiting non-existent URLs never exposes raw Django debug code
+    or internal URLconf routing tables, serving the clean branded 404 page across all modes.
+    """
+
+    def test_unknown_url_renders_branded_404_with_debug_true(self):
+        with self.settings(DEBUG=True):
+            response = self.client.get('/definitely-unknown-path-98765/')
+            self.assertEqual(response.status_code, 404)
+            # Ensure technical Django internal debug codes are NOT exposed
+            self.assertNotIn(b"Using the URLconf defined in config.urls", response.content)
+            self.assertNotIn(b"Django tried these URL patterns", response.content)
+            # Ensure our branded page is rendered
+            self.assertIn(b"We couldn't find the page you're looking for", response.content)
+
+    def test_unknown_url_renders_branded_404_with_debug_false(self):
+        with self.settings(DEBUG=False, ALLOWED_HOSTS=['testserver', 'localhost', '127.0.0.1']):
+            response = self.client.get('/another-unknown-path-54321/')
+            self.assertEqual(response.status_code, 404)
+            self.assertNotIn(b"Using the URLconf defined in config.urls", response.content)
+            self.assertIn(b"We couldn't find the page you're looking for", response.content)
