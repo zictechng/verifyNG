@@ -599,7 +599,7 @@ def build_dossier_payment_approved(dossier, username: str, admin_notes: str = ""
 
     subject = f"Payment Confirmed: Legal Petition & Evidence Dossier Unlocked [{tracking_id}] — {site_name}"
     
-    download_url = f"{site_url}/reports/dossier/{report_ref}/download/" if report_ref else f"{site_url}/reports/"
+    download_url = f"{site_url}/reports/{report_ref}/dossier/download/" if report_ref else f"{site_url}/reports/"
 
     body_html = f"""
     <p>Good news! Your direct bank transfer payment for the <strong>Official Police Petition &amp; Section 84 Evidence Dossier</strong> has been verified and confirmed by our administration.</p>
