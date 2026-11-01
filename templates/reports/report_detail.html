@@ -704,7 +704,7 @@
                 {% csrf_token %}
                 <div class="modal-body p-4">
                     <p class="small text-muted mb-3" style="font-size:13px;line-height:1.5;">
-                        To generate an official legal evidence package under <strong>Section 84 of the Evidence Act 2011</strong>, the platform requires both the total financial loss and at least one evidentiary document (such as a bank debit alert, transfer receipt, or chat screenshot).
+                        To generate an official legal evidence package under <strong>Section 84 of the Evidence Act 2011</strong>, the platform requires both the total financial loss and at least one evidentiary document (such as a bank debit alert, transfer receipt, signed contract or agreement document, or chat screenshot).
                     </p>
 
                     {% if not report.amount_lost %}
@@ -717,8 +717,11 @@
                         <div class="form-text" style="font-size:11px;">Enter the exact amount lost in this incident.</div>
                     </div>
                     {% else %}
-                    <div class="p-2.5 mb-3 rounded bg-light border d-flex justify-content-between align-items-center">
-                        <span class="small text-muted">Loss Claim on Record:</span>
+                    <div class="p-3 mb-3 rounded bg-light border d-flex justify-content-between align-items-center gap-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <svg width="16" height="16" fill="none" stroke="#DC2626" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                            <span class="small text-muted">Loss Claim on Record:</span>
+                        </div>
                         <span class="small fw-bold text-danger">{{ report.amount_lost_formatted }}</span>
                     </div>
                     {% endif %}
@@ -727,11 +730,14 @@
                     <div class="mb-3">
                         <label for="id_evidence_file" class="form-label fw-bold small text-dark">Primary Evidence Proof <span class="text-danger">*</span></label>
                         <input type="file" name="evidence_file" id="id_evidence_file" class="form-control" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx" required>
-                        <div class="form-text" style="font-size:11px;">Upload payment receipt, bank debit alert, or WhatsApp agreement (JPG, PNG, PDF, DOCX, max 10MB).</div>
+                        <div class="form-text" style="font-size:11px;">Upload payment receipt, bank debit alert, signed contract or agreement document, or chat logs (JPG, PNG, PDF, DOC, DOCX, max 10MB).</div>
                     </div>
                     {% else %}
-                    <div class="p-2.5 mb-3 rounded bg-light border d-flex justify-content-between align-items-center">
-                        <span class="small text-muted">Evidence Document on File:</span>
+                    <div class="p-3 mb-3 rounded bg-light border d-flex justify-content-between align-items-center gap-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <svg width="16" height="16" fill="none" stroke="#059669" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                            <span class="small text-muted">Evidence Document on File:</span>
+                        </div>
                         <span class="small fw-bold text-success">{{ report.evidence_files.count }} file(s) attached</span>
                     </div>
                     {% endif %}
