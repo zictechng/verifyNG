@@ -1,7 +1,8 @@
 {% extends 'public/base.html' %}
 {% load static %}
 
-{% block title %}Report {{ report.reference_number }} | {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
+{% block title %}Report {{ report.reference_number }} | {{ site_config.site_name|default:"VerifyNG" }}
+{% endblock %}
 
 {% block content %}
 <div class="container py-4 py-md-5">
@@ -700,7 +701,7 @@
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="{% url 'reports:dossier_prepare' report.reference_number %}" method="post" enctype="multipart/form-data">
+            <form action="{% url 'reports:dossier_prepare' report.reference_number %}" method="post" enctype="multipart/form-data" onsubmit="syncDossierAmount(this)">
                 {% csrf_token %}
                 <div class="modal-body p-4">
                     <p class="small text-muted mb-3" style="font-size:13px;line-height:1.5;">
@@ -709,12 +710,20 @@
 
                     {% if not report.amount_lost %}
                     <div class="mb-3">
-                        <label for="id_amount_lost" class="form-label fw-bold small text-dark">Total Financial Loss (₦) <span class="text-danger">*</span></label>
+                        <label for="id_amount_lost_display" class="form-label fw-bold small text-dark">Total Financial Loss (₦) <span class="text-danger">*</span></label>
                         <div class="input-group">
                             <span class="input-group-text fw-bold bg-light">₦</span>
-                            <input type="number" name="amount_lost" id="id_amount_lost" class="form-control" step="0.01" min="1" placeholder="e.g. 50000" required>
+                            <input type="text" 
+                                   id="id_amount_lost_display" 
+                                   class="form-control fw-semibold" 
+                                   inputmode="decimal" 
+                                   placeholder="e.g. 50,000" 
+                                   autocomplete="off"
+                                   required 
+                                   oninput="formatDossierAmount(this)">
+                            <input type="hidden" name="amount_lost" id="id_amount_lost_raw" required>
                         </div>
-                        <div class="form-text" style="font-size:11px;">Enter the exact amount lost in this incident.</div>
+                        <div class="form-text" style="font-size:11px;">Enter the exact amount lost in this incident (e.g. 50,000). Formats automatically with commas.</div>
                     </div>
                     {% else %}
                     <div class="p-3 mb-3 rounded bg-light border d-flex justify-content-between align-items-center gap-2">
@@ -859,5 +868,49 @@
     </div>
 </div>
 
+<script>
+function formatDossierAmount(input) {
+    const cursorPos = input.selectionStart;
+    const oldLength = input.value.length;
+    
+    let raw = input.value.replace(/[^0-9.]/g, '');
+    const parts = raw.split('.');
+    if (parts.length > 2) {
+        raw = parts[0] + '.' + parts.slice(1).join('');
+    }
+    if (parts.length === 2 && parts[1].length > 2) {
+        raw = parts[0] + '.' + parts[1].substring(0, 2);
+    }
+    
+    const rawInput = document.getElementById('id_amount_lost_raw');
+    if (rawInput) {
+        rawInput.value = raw;
+    }
+    
+    if (!raw) {
+        input.value = '';
+        return;
+    }
+    
+    const formattedInt = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    const formattedVal = parts.length > 1 ? (formattedInt + '.' + parts[1]) : formattedInt;
+    input.value = formattedVal;
+    
+    const newLength = formattedVal.length;
+    const adjustedPos = cursorPos + (newLength - oldLength);
+    if (input.setSelectionRange && adjustedPos >= 0 && adjustedPos <= newLength) {
+        input.setSelectionRange(adjustedPos, adjustedPos);
+    }
+}
+
+function syncDossierAmount(form) {
+    const displayInput = document.getElementById('id_amount_lost_display');
+    const rawInput = document.getElementById('id_amount_lost_raw');
+    if (displayInput && rawInput) {
+        const raw = displayInput.value.replace(/[^0-9.]/g, '');
+        rawInput.value = raw;
+    }
+}
+</script>
 {% endblock %}
 
