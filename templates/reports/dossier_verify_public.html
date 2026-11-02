@@ -79,7 +79,7 @@
                             <tr>
                                 <td class="text-muted py-2">Suspect Bank Account:</td>
                                 <td class="text-dark font-monospace fw-semibold py-2">
-                                    {{ report.suspect_context.bank_account }} ({{ report.suspect_context.bank_name|default:"Financial Institution" }})
+                                    {{ report.masked_bank_account|default:report.suspect_context.bank_account }} ({{ report.suspect_context.bank_name|default:"Financial Institution" }})
                                 </td>
                             </tr>
                             {% endif %}

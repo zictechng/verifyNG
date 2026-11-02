@@ -60,6 +60,12 @@ class ReportCreateView(LoginRequiredMixin, FormView):
                 return redirect(reverse('users:profile') + '?tab=verification')
         return super().dispatch(request, *args, **kwargs)
 
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        from payments.models import NigerianBank
+        ctx['nigerian_banks'] = NigerianBank.objects.filter(is_active=True).order_by('name')
+        return ctx
+
     def form_valid(self, form):
         try:
             report = create_fraud_report(

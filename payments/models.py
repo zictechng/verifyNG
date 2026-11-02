@@ -732,6 +732,55 @@ class PaymentAuditLog(models.Model):
         return f"{self.action} — {self.user} at {self.timestamp:%Y-%m-%d %H:%M}"
 
 
+class NigerianBank(models.Model):
+    """
+    Registry of licensed Nigerian banks and fintech institutions.
+    Populated directly from the Central Bank of Nigeria / Paystack bank directory.
+    """
+    name = models.CharField(max_length=150, db_index=True)
+    slug = models.SlugField(max_length=150, blank=True)
+    code = models.CharField(max_length=20, db_index=True, help_text="NUBAN 3-digit to 6-digit sort code")
+    nibss_code = models.CharField(max_length=20, blank=True, default='')
+    is_active = models.BooleanField(default=True, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['name']
+        verbose_name = 'Nigerian Bank'
+        verbose_name_plural = 'Nigerian Banks'
+        constraints = [
+            models.UniqueConstraint(fields=['code', 'name'], name='unique_bank_code_name')
+        ]
+
+    def __str__(self):
+        return f"{self.name} ({self.code})"
+
+
+class VerifiedBankAccount(models.Model):
+    """
+    Permanent database vault for verified NUBAN account inquiries.
+    Eliminates repeat Paystack API charges by caching resolved account holder names forever.
+    """
+    account_number = models.CharField(max_length=10, db_index=True)
+    bank_code = models.CharField(max_length=20, db_index=True)
+    bank_name = models.CharField(max_length=150)
+    account_name = models.CharField(max_length=255, help_text="Official legal account holder name from NIBSS switch")
+    verified_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-verified_at']
+        verbose_name = 'Verified Bank Account'
+        verbose_name_plural = 'Verified Bank Accounts'
+        constraints = [
+            models.UniqueConstraint(fields=['account_number', 'bank_code'], name='unique_verified_account_per_bank')
+        ]
+
+    def __str__(self):
+        return f"{self.account_number} ({self.bank_name}) — {self.account_name}"
+
+
+
 
 
 

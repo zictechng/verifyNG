@@ -289,15 +289,21 @@ def _handle_check_command(query: str, site_url: str) -> str:
 
         # Determine identifier type from query format
         identifier_type = _infer_identifier_type(query)
+        result = None
         if identifier_type:
             try:
                 query_hash = hash_identifier_value(identifier_type, query)
-                result = lookup_public_record(query_hash, identifier_type)
+                result = lookup_public_record(query_hash)
             except ValueError:
                 result = None
         else:
-            # Name-based lookup — pass raw query
-            result = lookup_public_record(query, "name")
+            # Name-based lookup fallback — search SubjectEntity by name
+            from identities.models import SubjectEntity, Identifier
+            sub = SubjectEntity.objects.filter(name__icontains=query.strip()).first()
+            if sub:
+                first_ident = sub.identifiers.first()
+                if first_ident:
+                    result = lookup_public_record(first_ident.value_hash)
 
         if not result:
             return (

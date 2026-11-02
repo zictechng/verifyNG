@@ -147,6 +147,17 @@ def create_fraud_report(reporter, subject_name, subject_type, title, allegation,
                 # 5. Create FraudReport record
                 ref_num = generate_report_reference_number()
 
+                # Strategy A: Real-time Paystack Account Resolution on form submission
+                resolved_account_name = None
+                if suspect_bank_account and suspect_bank_name:
+                    try:
+                        from payments.bank_services import resolve_bank_account
+                        resolve_res = resolve_bank_account(suspect_bank_account, suspect_bank_name)
+                        if resolve_res.get('success'):
+                            resolved_account_name = resolve_res.get('account_name')
+                    except Exception as exc:
+                        logger.warning("Bank account resolution error during report submission: %s", exc)
+
                 report = FraudReport(
                     reference_number=ref_num,
                     reporter=reporter,
@@ -175,6 +186,7 @@ def create_fraud_report(reporter, subject_name, subject_type, title, allegation,
                             "phone": suspect_phone or "",
                             "bank_name": suspect_bank_name or "",
                             "bank_account": suspect_bank_account or "",
+                            "bank_account_name": resolved_account_name or "",
                             "cac_number": suspect_cac_number or "",
                             "amount_lost": str(amount_lost) if amount_lost is not None else "",
                             "location": suspect_location or "",

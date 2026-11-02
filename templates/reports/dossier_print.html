@@ -272,6 +272,9 @@
                     <tr><td class="text-muted">Phone:</td><td class="font-monospace text-dark">{{ suspect_context.phone|default:"Not provided" }}</td></tr>
                     <tr><td class="text-muted">Bank Name:</td><td class="fw-semibold text-dark">{{ suspect_context.bank_name|default:"Not specified" }}</td></tr>
                     <tr><td class="text-muted">Account No:</td><td class="fw-bold font-monospace text-danger">{{ suspect_context.bank_account|default:"Not specified" }}</td></tr>
+                    {% if suspect_context.bank_account_name or report.suspect_bank_account_name %}
+                    <tr><td class="text-muted">Account Holder:</td><td class="fw-bold text-success text-truncate" style="max-width:140px;" title="{{ suspect_context.bank_account_name|default:report.suspect_bank_account_name }}">{{ suspect_context.bank_account_name|default:report.suspect_bank_account_name }}</td></tr>
+                    {% endif %}
                     <tr><td class="text-muted">CAC / RC:</td><td class="font-monospace text-dark">{{ suspect_context.cac_number|default:"Unregistered / Individual" }}</td></tr>
                 </table>
             </div>

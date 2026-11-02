@@ -284,7 +284,9 @@ def report(request):
     else:
         form = FraudReportSubmissionForm()
 
-    return render(request, 'public/report.html', {'form': form})
+    from payments.models import NigerianBank
+    nigerian_banks = NigerianBank.objects.filter(is_active=True).order_by('name')
+    return render(request, 'public/report.html', {'form': form, 'nigerian_banks': nigerian_banks})
 
 
 @login_required

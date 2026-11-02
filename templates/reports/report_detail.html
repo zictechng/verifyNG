@@ -253,10 +253,16 @@
                     <hr class="my-3">
                     <p class="small fw-semibold text-muted text-uppercase mb-2">Suspect Context</p>
                     <div class="row g-2 small">
-                        {% if suspect_context.bank_name %}
+                        {% if suspect_context.bank_name or suspect_context.bank_account %}
                         <div class="col-sm-6">
                             <span class="text-muted">Associated Bank:</span>
-                            <span class="fw-semibold ms-1">{{ suspect_context.bank_name }}</span>
+                            <span class="fw-semibold ms-1">{{ suspect_context.bank_name|default:"Financial Institution" }}</span>
+                            {% if suspect_context.bank_account %}
+                            <div class="font-monospace text-danger fw-semibold mt-1">{{ report.masked_bank_account|default:suspect_context.bank_account }}</div>
+                            {% endif %}
+                            {% if suspect_context.bank_account_name or report.suspect_bank_account_name %}
+                            <div class="small text-success fw-bold mt-0.5"><i class="bi bi-shield-check me-1"></i>Official Name: {{ suspect_context.bank_account_name|default:report.suspect_bank_account_name }}</div>
+                            {% endif %}
                         </div>
                         {% endif %}
                         {% if suspect_context.state or suspect_context.city or suspect_context.location %}

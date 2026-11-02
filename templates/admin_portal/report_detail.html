@@ -76,6 +76,20 @@
             {% endif %}
           </td>
         </tr>
+        {% if report.suspect_bank_account %}
+        <tr>
+          <th>Beneficiary Bank</th>
+          <td>
+            <div class="small">
+              <div><strong>Bank:</strong> <span class="fw-semibold text-dark">{{ report.suspect_bank_name|default:"Not specified" }}</span></div>
+              <div><strong>Account No:</strong> <span class="font-monospace text-danger fw-bold">{{ report.suspect_bank_account }}</span></div>
+              {% if report.suspect_bank_account_name %}
+              <div class="mt-1"><span class="badge text-bg-success">Verified Account Name</span> <strong class="text-success ms-1">{{ report.suspect_bank_account_name }}</strong></div>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endif %}
         <tr>
           <th>Fair Hearing Notice</th>
           <td>

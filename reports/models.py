@@ -213,6 +213,73 @@ class FraudReport(models.Model):
         return None
 
     @property
+    def suspect_bank_account(self):
+        """Returns the bank account number of the accused entity."""
+        ctx = self.suspect_context
+        return ctx.get('bank_account') or None
+
+    @property
+    def suspect_bank_name(self):
+        """Returns the bank name of the accused entity."""
+        ctx = self.suspect_context
+        return ctx.get('bank_name') or None
+
+    @property
+    def suspect_bank_account_name(self):
+        """Returns the verified NIBSS/Paystack resolved account holder name, if available."""
+        ctx = self.suspect_context
+        return ctx.get('bank_account_name') or None
+
+    @property
+    def masked_bank_account(self):
+        """
+        NDPA 2023 & African Data Protection compliant masking for public interfaces.
+        E.g. '0123456789' -> '012****789'
+        """
+        acct = self.suspect_bank_account
+        if not acct:
+            return ""
+        val = str(acct).strip()
+        if len(val) <= 4:
+            return val
+        if len(val) == 10:
+            return f"{val[:3]}****{val[-3:]}"
+        return f"{val[:2]}****{val[-2:]}"
+
+    @property
+    def masked_phone(self):
+        """
+        NDPA 2023 & African Data Protection compliant phone masking for public views.
+        E.g. '08012345678' -> '0801***5678' or '+234801***5678'
+        """
+        ph = self.suspect_phone
+        if not ph:
+            return ""
+        val = str(ph).strip()
+        if len(val) <= 5:
+            return val
+        if len(val) >= 11:
+            return f"{val[:4]}***{val[-4:]}"
+        return f"{val[:3]}***{val[-2:]}"
+
+    @property
+    def masked_nin(self):
+        """
+        Masked National Identification Number (NIN / National ID) for public views.
+        E.g. '12345678901' -> '1234****901'
+        """
+        ctx = self.suspect_context
+        nin = ctx.get('nin') or ctx.get('id_number')
+        if not nin and hasattr(self.reporter, 'id_number'):
+            nin = self.reporter.id_number
+        if not nin:
+            return ""
+        val = str(nin).strip()
+        if len(val) <= 4:
+            return val
+        return f"{val[:4]}****{val[-3:]}"
+
+    @property
     def dispute_deadline(self):
         """The 7-day fair-hearing / right-of-response expiration date."""
         ctx = self.suspect_context

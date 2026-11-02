@@ -128,23 +128,19 @@
                             </label>
                             {{ form.suspect_bank_name }}
                             <datalist id="nigerian_banks_list">
+                                {% for bank in nigerian_banks %}
+                                <option value="{{ bank.name }}">
+                                {% empty %}
                                 <option value="Access Bank">
-                                <option value="Fidelity Bank">
-                                <option value="First Bank">
-                                <option value="GTBank">
+                                <option value="First Bank of Nigeria">
+                                <option value="Guaranty Trust Bank (GTBank)">
                                 <option value="Kuda Bank">
-                                <option value="Moniepoint">
-                                <option value="OPay">
+                                <option value="Moniepoint MFB">
+                                <option value="OPay Digital Services (OPay)">
                                 <option value="PalmPay">
-                                <option value="Polaris Bank">
-                                <option value="Stanbic IBTC">
-                                <option value="Sterling Bank">
-                                <option value="UBA">
-                                <option value="Union Bank">
-                                <option value="Unity Bank">
-                                <option value="VFD Microfinance Bank">
-                                <option value="Wema Bank">
+                                <option value="United Bank for Africa (UBA)">
                                 <option value="Zenith Bank">
+                                {% endfor %}
                             </datalist>
                             <div class="form-text">{{ form.suspect_bank_name.help_text }}</div>
                             {% if form.suspect_bank_name.errors %}

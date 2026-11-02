@@ -261,34 +261,21 @@
                     </div>
                 {% endif %}
 
-                <!-- Datalist for Nigerian Banks -->
+                <!-- Dynamic Datalist for Nigerian Banks (Populated from Live Central Bank / Paystack DB) -->
                 <datalist id="nigerian_banks_list">
+                    {% for bank in nigerian_banks %}
+                    <option value="{{ bank.name }}">
+                    {% empty %}
                     <option value="Access Bank">
-                    <option value="Citibank Nigeria">
-                    <option value="Ecobank Nigeria">
-                    <option value="Fidelity Bank">
                     <option value="First Bank of Nigeria">
-                    <option value="First City Monument Bank (FCMB)">
                     <option value="Guaranty Trust Bank (GTBank)">
-                    <option value="Heritage Bank">
-                    <option value="Jaiz Bank">
-                    <option value="Keystone Bank">
                     <option value="Kuda Bank">
                     <option value="Moniepoint MFB">
-                    <option value="OPay">
+                    <option value="OPay Digital Services (OPay)">
                     <option value="PalmPay">
-                    <option value="Polaris Bank">
-                    <option value="Providus Bank">
-                    <option value="Stanbic IBTC Bank">
-                    <option value="Standard Chartered Bank">
-                    <option value="Sterling Bank">
-                    <option value="Taj Bank">
-                    <option value="Titan Trust Bank">
-                    <option value="Union Bank of Nigeria">
                     <option value="United Bank for Africa (UBA)">
-                    <option value="Unity Bank">
-                    <option value="Wema Bank">
                     <option value="Zenith Bank">
+                    {% endfor %}
                 </datalist>
 
                 <form method="post" enctype="multipart/form-data" novalidate @submit="submitting = true">
@@ -660,11 +647,11 @@
                             </dl>
                         </div>
 
-                        <!-- Good Faith Declaration Checkbox -->
-                        <div class="form-check mb-4">
-                            <input class="form-check-input" type="checkbox" id="declarationCheck" x-model="declared" required>
-                            <label class="form-check-label small" for="declarationCheck">
-                                <strong>Good-faith declaration:</strong> I declare under penalty of platform suspension and legal liability that the information provided in this report represents a factual account of my experience and is not filed maliciously.
+                        <!-- Good Faith & Statutory Perjury Declaration Checkbox -->
+                        <div class="form-check mb-4 p-3 rounded-3 border border-secondary-subtle" style="background:#f8fafc;">
+                            <input class="form-check-input ms-0 me-2" type="checkbox" id="declarationCheck" x-model="declared" required>
+                            <label class="form-check-label small text-dark" for="declarationCheck" style="line-height:1.5;">
+                                <strong>Statutory Declaration &amp; Complainant Covenant:</strong> I solemnly declare under penalty of perjury, civil defamation liability, and criminal prosecution (under the <em>Criminal Code Act</em> and the <em>Cybercrimes (Prohibition, Prevention, etc.) Act 2015</em>) that this report is true, factual, and backed by genuine transaction evidence. I acknowledge that filing false or malicious allegations is a criminal offense punishable by law.
                             </label>
                         </div>
 
