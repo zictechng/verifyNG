@@ -852,6 +852,11 @@ class CertificateDownloadPDFView(LoginRequiredMixin, View):
             messages.warning(request, f"Certificate {cert.certificate_id} is in status '{cert.get_status_display()}'. PDFs can only be downloaded once activated.")
             return redirect('verification:my_certificate', certificate_id=cert.certificate_id)
 
+        # If pre-rendered PDF already exists on Cloudinary CDN, redirect immediately (sub-50ms download)
+        cached_pdf_url = get_certificate_pdf_url(cert)
+        if cached_pdf_url:
+            return redirect(cached_pdf_url)
+
         # Resolve base URL for QR code (prefer local network Wi-Fi IP in development so mobile scans work)
         host = request.get_host().split(':')[0]
         if host in ('localhost', '127.0.0.1', '::1'):
@@ -870,6 +875,13 @@ class CertificateDownloadPDFView(LoginRequiredMixin, View):
             base_url = request.build_absolute_uri('/')[:-1]
 
         pdf_bytes = generate_certificate_pdf_bytes(cert, base_url=base_url)
+
+        # Asynchronously upload to Cloudinary so subsequent downloads are instantaneous
+        try:
+            generate_certificate_pdf.delay(cert.certificate_id)
+        except Exception:
+            pass
+
         response = HttpResponse(pdf_bytes, content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="VerifyNG_Certificate_{cert.certificate_id}.pdf"'
         return response

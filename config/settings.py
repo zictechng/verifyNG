@@ -279,6 +279,11 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
 SECURE_BROWSER_XSS_FILTER = True
 
+# Explicitly silence W019: We intentionally use X_FRAME_OPTIONS = 'SAMEORIGIN'
+# to allow legitimate internal preview modals (CAC certificates & ID cards)
+# while strictly forbidding external third-party framing (anti-clickjacking).
+SILENCED_SYSTEM_CHECKS = ['security.W019']
+
 
 
 

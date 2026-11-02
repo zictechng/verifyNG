@@ -53,8 +53,10 @@ class UniversalCloudinaryStorage(Storage):
         return name.lstrip('/\\').replace('\\', '/')
 
     def _save(self, name, content):
+        import sys
         clean_name = self._clean_name(name)
-        if not self.is_configured:
+        # If running unit tests or Cloudinary is not configured, write to local test storage
+        if 'test' in sys.argv or getattr(settings, 'TESTING', False) or not self.is_configured:
             return self._local_storage._save(clean_name, content)
 
         resource_type = self._determine_resource_type(clean_name)
