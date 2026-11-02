@@ -113,6 +113,11 @@ class UniversalCloudinaryStorage(Storage):
         if not self.is_configured:
             return self._local_storage.url(clean_name)
 
+        # If the file physically exists on the local filesystem (legacy upload or local fallback),
+        # serve it from local media URL so existing local files are never broken
+        if self._local_storage.exists(clean_name):
+            return self._local_storage.url(clean_name)
+
         resource_type = self._determine_resource_type(clean_name)
         c_url, _ = cloudinary.utils.cloudinary_url(
             clean_name,
@@ -124,8 +129,9 @@ class UniversalCloudinaryStorage(Storage):
 
     def exists(self, name):
         clean_name = self._clean_name(name)
-        if not self.is_configured:
-            return self._local_storage.exists(clean_name)
+        # Always report True if the file physically exists in local storage
+        if self._local_storage.exists(clean_name):
+            return True
         return False
 
     def delete(self, name):
