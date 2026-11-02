@@ -151,6 +151,17 @@ IDENTIFIER_HASH_PEPPER = env('IDENTIFIER_HASH_PEPPER', default='')
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
+# Django 5.x Universal Storage Configuration
+# Uses Cloudinary when credentials are configured in .env; automatically falls back to local disk
+STORAGES = {
+    "default": {
+        "BACKEND": "core.storage.UniversalCloudinaryStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
+
 
 # ==============================================================================
 # Redis Caching & Rate Limiting Configuration (Phase 6, Batch 6.1)
