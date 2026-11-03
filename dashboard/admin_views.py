@@ -1345,11 +1345,11 @@ class AdminDisputeActionView(SuperAdminRequiredMixin, View):
         action = request.POST.get('action', '')
         resolution_notes = request.POST.get('resolution_notes', '').strip()
 
-        if action not in ('accept', 'reject'):
+        if action not in ('accept', 'reject', 'resolve'):
             messages.error(request, "Invalid dispute action.")
             return redirect('admin_portal:disputes')
 
-        outcome = 'accepted' if action == 'accept' else 'rejected'
+        outcome = 'resolved' if action == 'resolve' else ('accepted' if action == 'accept' else 'rejected')
         from reports.services import resolve_dispute
         from core.rate_limiting import get_client_ip
 
@@ -1361,7 +1361,12 @@ class AdminDisputeActionView(SuperAdminRequiredMixin, View):
             ip_address=get_client_ip(request)
         )
 
-        outcome_text = "accepted & upheld (report quarantined/restricted)" if outcome == 'accepted' else "rejected (report published)"
+        if outcome == 'resolved':
+            outcome_text = "resolved & settled (case closed, merchant seal active)"
+        elif outcome == 'accepted':
+            outcome_text = "accepted & upheld (report quarantined/restricted)"
+        else:
+            outcome_text = "rejected (report published)"
         messages.success(request, f"Dispute on {dispute.report.reference_number} has been {outcome_text}.")
         return redirect('admin_portal:disputes')
 
@@ -1391,11 +1396,11 @@ class AdminDisputeDetailView(SuperAdminRequiredMixin, TemplateView):
         action = request.POST.get('action', '')
         resolution_notes = request.POST.get('resolution_notes', '').strip()
 
-        if action not in ('accept', 'reject'):
+        if action not in ('accept', 'reject', 'resolve'):
             messages.error(request, "Invalid action.")
             return redirect('admin_portal:dispute_detail', public_id=dispute.public_id)
 
-        outcome = 'accepted' if action == 'accept' else 'rejected'
+        outcome = 'resolved' if action == 'resolve' else ('accepted' if action == 'accept' else 'rejected')
         from reports.services import resolve_dispute
         from core.rate_limiting import get_client_ip
 
@@ -1407,7 +1412,12 @@ class AdminDisputeDetailView(SuperAdminRequiredMixin, TemplateView):
             ip_address=get_client_ip(request)
         )
 
-        outcome_text = "upheld & accepted (report restricted from public view)" if outcome == 'accepted' else "rejected (allegation retained & published)"
+        if outcome == 'resolved':
+            outcome_text = "resolved & settled (order fulfilled/refunded, seal restored)"
+        elif outcome == 'accepted':
+            outcome_text = "upheld & accepted (report restricted from public view)"
+        else:
+            outcome_text = "rejected (allegation retained & published)"
         messages.success(request, f"Dispute resolution recorded: {outcome_text}.")
         return redirect('admin_portal:dispute_detail', public_id=dispute.public_id)
 

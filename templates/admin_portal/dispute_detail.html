@@ -359,10 +359,13 @@ document.addEventListener('DOMContentLoaded', function () {
     const label  = btn.dataset.label;
     const banner = btn.dataset.banner;
 
+    document.getElementById('disputeResBannerResolve').classList.add('d-none');
     document.getElementById('disputeResBannerAccept').classList.add('d-none');
     document.getElementById('disputeResBannerReject').classList.add('d-none');
 
-    if (banner === 'accept') {
+    if (banner === 'resolve') {
+      document.getElementById('disputeResBannerResolve').classList.remove('d-none');
+    } else if (banner === 'accept') {
       document.getElementById('disputeResBannerAccept').classList.remove('d-none');
     } else {
       document.getElementById('disputeResBannerReject').classList.remove('d-none');
@@ -370,7 +373,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     document.getElementById('disputeResModalTitle').textContent = label;
     const confirmBtn = document.getElementById('disputeResConfirmBtn');
-    confirmBtn.className = 'btn btn-adm-sm ' + (action === 'accept' ? 'btn-adm-success' : 'btn-adm-danger');
+    confirmBtn.className = 'btn btn-adm-sm ' + (action === 'resolve' ? 'btn-primary' : (action === 'accept' ? 'btn-adm-success' : 'btn-adm-danger'));
     confirmBtn.textContent = label;
 
     confirmBtn.onclick = function () {

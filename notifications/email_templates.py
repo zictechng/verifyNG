@@ -340,7 +340,12 @@ def build_dispute_resolved(
     notes=None
 ) -> Tuple[str, str, str]:
     site_name, site_url = _get_site_meta()
-    outcome_label = "Accepted / Upheld" if outcome == "accepted" else "Rejected / Overruled"
+    if outcome == "resolved":
+        outcome_label = "Resolved & Settled"
+    elif outcome == "accepted":
+        outcome_label = "Accepted / Upheld"
+    else:
+        outcome_label = "Rejected / Overruled"
     resolved_at = timezone.now().strftime('%d %B %Y, %I:%M %p')
     subject = f"Dispute Adjudication Verdict [{reference_number}] — {site_name}"
 

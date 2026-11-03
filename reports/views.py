@@ -435,16 +435,19 @@ class EvidenceDownloadView(View):
 class DisputeCounterEvidenceView(LoginRequiredMixin, View):
     """
     Safely serves counter-evidence uploaded by the accused party in a dispute.
-    Accessible to administrators, moderators, the disputant, and the original reporter.
+    Accessible to administrators, moderators, the disputant, accused store owner, and original reporter.
     """
     def get(self, request, dispute_id):
         dispute = get_object_or_404(
-            Dispute.objects.select_related('report', 'disputant', 'report__reporter'),
+            Dispute.objects.select_related('report', 'disputant', 'report__reporter', 'report__target_subject'),
             id=dispute_id
         )
 
-        is_staff_or_mod = is_moderator(request.user)
-        is_party = (request.user == dispute.disputant or request.user == dispute.report.reporter)
+        is_staff_or_mod = is_moderator(request.user) or request.user.is_staff or request.user.is_superuser
+        from payments.merchant_views import find_merchant_for_report
+        disputed_merchant = find_merchant_for_report(dispute.report)
+        is_merchant_owner = bool(disputed_merchant and disputed_merchant.user_id == request.user.id)
+        is_party = (request.user == dispute.disputant or request.user == dispute.report.reporter or is_merchant_owner)
         if not (is_staff_or_mod or is_party):
             raise PermissionDenied("You do not have permission to view this counter-evidence.")
 
@@ -452,9 +455,18 @@ class DisputeCounterEvidenceView(LoginRequiredMixin, View):
             raise Http404("No counter-evidence file was attached to this dispute.")
 
         as_attachment = request.GET.get('download') == '1'
+        url = getattr(dispute.counter_evidence, 'url', '')
+
+        # If hosted on Cloudinary / CDN, redirect directly for fast browser preview unless forced download
+        if url and (url.startswith('http://') or url.startswith('https://')) and not as_attachment:
+            return redirect(url)
+
         try:
-            if hasattr(dispute.counter_evidence, 'storage') and not dispute.counter_evidence.storage.exists(dispute.counter_evidence.name):
-                raise Http404("Counter-evidence file not found on storage.")
+            from django.core.files.storage import FileSystemStorage
+            if isinstance(getattr(dispute.counter_evidence, 'storage', None), FileSystemStorage):
+                if not dispute.counter_evidence.storage.exists(dispute.counter_evidence.name):
+                    raise Http404("Counter-evidence file not found on local storage.")
+
             response = FileResponse(dispute.counter_evidence.open('rb'), as_attachment=as_attachment)
             response['X-Frame-Options'] = 'SAMEORIGIN'
             return response
@@ -462,6 +474,8 @@ class DisputeCounterEvidenceView(LoginRequiredMixin, View):
             raise
         except Exception as e:
             logger.error("Failed to serve counter-evidence for dispute id=%s: %s", dispute_id, e)
+            if url and (url.startswith('http://') or url.startswith('https://')):
+                return redirect(url)
             raise Http404("Could not read counter-evidence file.")
 
 

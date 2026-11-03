@@ -314,13 +314,19 @@
                 {% if d.resolved_at %} &bull; Resolved: {{ d.resolved_at|date:"d M Y, H:i" }}{% endif %}
               </div>
             </div>
-            <div>
+            <div class="d-flex align-items-center gap-2">
               {% if d.status == 'opened' %}
                 <span class="adm-badge adm-badge-yellow" style="font-size:0.8rem;">Status: Opened (Pending Adjudication)</span>
+                <a href="{% url 'admin_portal:dispute_detail' d.public_id %}" class="btn btn-adm-sm btn-adm-primary py-0.5 px-2" style="font-size:0.75rem;">Adjudicate &rarr;</a>
               {% elif d.status == 'under_review' %}
                 <span class="adm-badge adm-badge-blue" style="font-size:0.8rem;">Status: Under Review</span>
+                <a href="{% url 'admin_portal:dispute_detail' d.public_id %}" class="btn btn-adm-sm btn-adm-primary py-0.5 px-2" style="font-size:0.75rem;">Adjudicate &rarr;</a>
               {% elif d.status == 'accepted' %}
+                {% if d.report.state == 'resolved' %}
+                <span class="adm-badge adm-badge-green" style="font-size:0.8rem;">Status: Resolved &amp; Settled</span>
+                {% else %}
                 <span class="adm-badge adm-badge-green" style="font-size:0.8rem;">Status: Accepted (Report Restricted)</span>
+                {% endif %}
               {% elif d.status == 'rejected' %}
                 <span class="adm-badge adm-badge-red" style="font-size:0.8rem;">Status: Rejected (Report Maintained)</span>
               {% endif %}

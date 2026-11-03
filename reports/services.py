@@ -592,20 +592,26 @@ def fulfill_moderator_info_request(report, user, request_id, response_statement,
 def resolve_dispute(dispute, outcome, actor, resolution_notes, ip_address=None):
     """
     Adjudicates a dispute.
-    If 'accepted': report is transitioned to 'restricted' (quarantined).
+    If 'resolved': report is transitioned to 'resolved' (case settled; merchant seal restored/active).
+    If 'accepted': report is transitioned to 'restricted' (quarantined/removed).
     If 'rejected': report is restored to 'published'.
     Dispatches transactional notification to disputant and reporter.
     """
-    if outcome not in ['accepted', 'rejected']:
-        raise ValueError(f"Invalid dispute resolution outcome '{outcome}'. Must be 'accepted' or 'rejected'.")
+    if outcome not in ['accepted', 'rejected', 'resolved']:
+        raise ValueError(f"Invalid dispute resolution outcome '{outcome}'. Must be 'accepted', 'rejected', or 'resolved'.")
 
-    dispute.status = outcome
+    dispute.status = 'accepted' if outcome == 'resolved' else outcome
     dispute.resolution_notes = resolution_notes
     dispute.resolved_at = timezone.now()
     dispute.save(update_fields=['status', 'resolution_notes', 'resolved_at'])
 
     report = dispute.report
-    target_state = 'restricted' if outcome == 'accepted' else 'published'
+    if outcome == 'resolved':
+        target_state = 'resolved'
+    elif outcome == 'accepted':
+        target_state = 'restricted'
+    else:
+        target_state = 'published'
 
     transition_report_state(
         report=report,
