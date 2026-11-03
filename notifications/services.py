@@ -30,6 +30,7 @@ def dispatch_notification(
     subject: Optional[str] = None,
     html_body: Optional[str] = None,
     text_body: Optional[str] = None,
+    force_email: bool = False,
 ) -> Optional[Notification]:
     """
     Create a Notification record and optionally enqueue an email delivery task.
@@ -67,7 +68,7 @@ def dispatch_notification(
     # 3. user's NotificationPreference allows this event type
     if recipient.email and subject and html_body:
         prefs = NotificationPreference.for_user(recipient)
-        if prefs.email_enabled_for(event_type):
+        if force_email or prefs.email_enabled_for(event_type):
             from notifications.tasks import send_notification_email_task
             send_notification_email_task.delay(
                 notification_id=str(notification.id),

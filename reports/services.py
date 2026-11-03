@@ -297,6 +297,39 @@ def transition_report_state(report, new_state, actor=None, ip_address=None, mode
                 lambda: send_email_notification_task.delay(reporter_email, subject, text_body, html_body)
             )
 
+    # If dispute or report is resolved or closed, notify merchant store owner and restore seal
+    if new_state in ('resolved', 'rejected', 'archived'):
+        try:
+            from payments.merchant_views import find_merchant_for_report, get_merchant_fraud_reports
+            merchant = find_merchant_for_report(report)
+            if merchant:
+                active_reports = get_merchant_fraud_reports(merchant).exclude(pk=report.pk)
+                if not active_reports.exists():
+                    if merchant.status in ('disputed', 'under_dispute', 'suspended'):
+                        merchant.status = 'active'
+                        merchant.save(update_fields=['status', 'updated_at'])
+
+                from notifications.services import dispatch_notification
+                from notifications.email_templates import build_merchant_dispute_resolved
+                subj, html_b, txt_b = build_merchant_dispute_resolved(
+                    store_name=merchant.store_name,
+                    username=merchant.user.get_full_name() or merchant.user.username,
+                    reference_number=report.reference_number,
+                )
+                dispatch_notification(
+                    recipient=merchant.user,
+                    event_type='DISPUTE_RESOLVED',
+                    force_email=True,
+                    title="Dispute Resolved & Seal Restored 🟢",
+                    body=f"Dispute {report.reference_number} regarding '{merchant.store_name}' was resolved. Your Verified Merchant Seal is active.",
+                    object_reference=f"report:{report.reference_number}",
+                    subject=subj,
+                    html_body=html_b,
+                    text_body=txt_b,
+                )
+        except Exception as merch_notif_err:
+            logger.warning(f"Failed to dispatch merchant dispute resolved notification: {merch_notif_err}")
+
     return report
 
 

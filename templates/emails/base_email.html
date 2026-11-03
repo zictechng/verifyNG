@@ -77,9 +77,10 @@
     }
     .btn {
       display: inline-block;
-      padding: 14px 28px;
-      background-color: {{ primary_color|default:"#2457D6" }};
-      color: #ffffff !important;
+      padding: 13px 26px;
+      background-color: {{ btn_bg|default:"#EAF6FC" }} !important;
+      border: 1px solid {{ btn_border|default:"#BCDFF4" }} !important;
+      color: {{ btn_text|default:"#011B33" }} !important;
       text-decoration: none !important;
       border-radius: 8px;
       font-size: 15px;
@@ -88,10 +89,12 @@
       line-height: 1.25;
       text-align: center;
       mso-padding-alt: 0;
-      box-shadow: 0 2px 5px rgba(36, 87, 214, 0.2);
+      box-shadow: 0 2px 5px rgba(1, 27, 51, 0.06);
     }
     .btn:hover {
-      background-color: {{ primary_hover|default:"#1a44ab" }} !important;
+      background-color: {{ btn_hover_bg|default:"#D6EDFA" }} !important;
+      border-color: {{ btn_hover_border|default:"#98CFEE" }} !important;
+      color: {{ btn_text|default:"#011B33" }} !important;
     }
 
     /* ── Divider ── */

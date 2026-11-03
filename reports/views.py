@@ -134,6 +134,7 @@ class ReportCreateView(LoginRequiredMixin, FormView):
                     dispatch_notification(
                         recipient=merchant.user,
                         event_type='DISPUTE_OPENED',
+                        force_email=True,
                         title=f"Customer Dispute Filed Against Store ({merchant.store_name})",
                         body=f"A customer transaction dispute ({report.reference_number}) was filed regarding your store '{merchant.store_name}'. Please review and resolve promptly.",
                         object_reference=f"report:{report.reference_number}",
@@ -741,19 +742,9 @@ class ReportReporterResolveView(LoginRequiredMixin, View):
         )
 
         # Check if an associated MerchantProfile should be restored
-        from payments.models import MerchantProfile
-        from payments.merchant_views import get_merchant_fraud_reports
+        from payments.merchant_views import find_merchant_for_report, get_merchant_fraud_reports
 
-        merchant = None
-        if report.suspect_bank_account:
-            merchant = MerchantProfile.objects.filter(bank_account=report.suspect_bank_account).first()
-
-        if not merchant and hasattr(report, 'target_subject'):
-            for ident in report.target_subject.identifiers.all():
-                if ident.type == 'account':
-                    merchant = MerchantProfile.objects.filter(bank_account=ident.value).first()
-                    if merchant:
-                        break
+        merchant = find_merchant_for_report(report)
 
         if merchant and merchant.status in ('disputed', 'under_dispute'):
             active_reports = get_merchant_fraud_reports(merchant).exclude(pk=report.pk)
@@ -771,6 +762,7 @@ class ReportReporterResolveView(LoginRequiredMixin, View):
                     dispatch_notification(
                         recipient=merchant.user,
                         event_type='DISPUTE_RESOLVED',
+                        force_email=True,
                         title="Dispute Resolved & Seal Restored 🟢",
                         body=f"Dispute {report.reference_number} was marked as resolved by the customer. Your Verified Merchant Seal has been restored to Active.",
                         object_reference=f"merchant:{merchant.pk}",

@@ -69,6 +69,41 @@ def get_merchant_fraud_reports(merchant: MerchantProfile):
         state__in=['submitted', 'under_review', 'published', 'disputed']
     )
 
+def find_merchant_for_report(report):
+    """
+    Given a FraudReport, identify if it targets a registered MerchantProfile.
+    Matches via:
+    1. Direct store name / slug match with target_subject.name
+    2. Identifier value_hash match (bank account or phone number)
+    """
+    if not report or not getattr(report, 'target_subject', None):
+        return None
+
+    # 1. Match via target_subject name against store_name or store_slug
+    if report.target_subject.name:
+        subj_name = report.target_subject.name.strip()
+        merchant = MerchantProfile.objects.filter(
+            Q(store_name__iexact=subj_name) | Q(store_slug__iexact=subj_name)
+        ).first()
+        if merchant:
+            return merchant
+
+    # 2. Match via subject's hashed identifiers (bank account, phone)
+    subject_hashes = list(report.target_subject.identifiers.values_list('value_hash', flat=True))
+    if subject_hashes:
+        for m in MerchantProfile.objects.exclude(status='rejected'):
+            m_hashes = []
+            if m.bank_account:
+                m_hashes.append(hash_identifier_value('account', m.bank_account))
+            if m.whatsapp_number:
+                clean_phone = m.whatsapp_number.replace('+', '').replace(' ', '').strip()
+                m_hashes.append(hash_identifier_value('phone', clean_phone))
+            if any(h in subject_hashes for h in m_hashes):
+                return m
+
+    return None
+
+
 
 class MerchantLandingView(View):
     """
@@ -517,7 +552,28 @@ class AdminMerchantDetailView(SuperAdminRequiredMixin, View):
         elif action == 'reactivate':
             merchant.status = 'active'
             merchant.save()
-            messages.success(request, f"Merchant '{merchant.store_name}' reactivated to 🟢 Active.")
+            try:
+                from notifications.services import dispatch_notification
+                from notifications.email_templates import build_merchant_dispute_resolved
+                subj, html_b, txt_b = build_merchant_dispute_resolved(
+                    store_name=merchant.store_name,
+                    username=merchant.user.get_full_name() or merchant.user.username,
+                    reference_number=f"MERCH-{merchant.pk}",
+                )
+                dispatch_notification(
+                    recipient=merchant.user,
+                    event_type='DISPUTE_RESOLVED',
+                    force_email=True,
+                    title="Verified Merchant Seal Restored 🟢",
+                    body=f"Your Verified Merchant Seal for '{merchant.store_name}' has been reactivated to Active by administration.",
+                    object_reference=f"merchant:{merchant.pk}",
+                    subject=subj,
+                    html_body=html_b,
+                    text_body=txt_b,
+                )
+            except Exception as notif_err:
+                logger.warning(f"Could not dispatch merchant reactivation email: {notif_err}")
+            messages.success(request, f"Merchant '{merchant.store_name}' reactivated to 🟢 Active. Notification email dispatched.")
 
         elif action == 'approve_bank_change':
             if not merchant.has_pending_bank_change:
