@@ -19,6 +19,7 @@ from reports.views import (
     DossierCheckoutView,
     DossierDownloadView,
     DossierVerifyPublicView,
+    ReportReporterResolveView,
 )
 
 app_name = 'reports'
@@ -45,6 +46,8 @@ urlpatterns = [
     path('<str:reference_number>/rebuttal/', RebuttalCreateView.as_view(), name='create_rebuttal'),
     path('<str:reference_number>/info-request/', ModeratorInfoRequestView.as_view(), name='issue_info_request'),
     path('<str:reference_number>/info-request/<int:request_id>/fulfill/', InfoRequestFulfillView.as_view(), name='fulfill_info_request'),
+
+    path('<str:reference_number>/resolve-confirm/', ReportReporterResolveView.as_view(), name='reporter_resolve_confirm'),
 
     # Catch-all detail view registered last
     path('<str:reference_number>/', ReportDetailView.as_view(), name='detail'),

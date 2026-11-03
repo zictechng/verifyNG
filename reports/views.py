@@ -60,10 +60,30 @@ class ReportCreateView(LoginRequiredMixin, FormView):
                 return redirect(reverse('users:profile') + '?tab=verification')
         return super().dispatch(request, *args, **kwargs)
 
+    def get_initial(self):
+        initial = super().get_initial() if hasattr(super(), 'get_initial') else {}
+        merchant_slug = self.request.GET.get('merchant_slug', '').strip()
+        if merchant_slug:
+            from payments.models import MerchantProfile
+            merchant = MerchantProfile.objects.filter(store_slug__iexact=merchant_slug).first()
+            if merchant:
+                initial['subject_name'] = merchant.store_name
+                initial['subject_type'] = 'business' if merchant.merchant_type in ('business', 'cac_business') else 'individual'
+                initial['suspect_bank_name'] = merchant.bank_name
+                initial['suspect_bank_account'] = merchant.bank_account
+                initial['suspect_phone'] = merchant.whatsapp_number
+                initial['suspect_state'] = merchant.operating_state
+                initial['suspect_city'] = merchant.city_town
+                initial['title'] = f"Merchant Order Dispute: {merchant.store_name}"
+        return initial
+
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        from payments.models import NigerianBank
+        from payments.models import NigerianBank, MerchantProfile
         ctx['nigerian_banks'] = NigerianBank.objects.filter(is_active=True).order_by('name')
+        merchant_slug = self.request.GET.get('merchant_slug', '').strip()
+        if merchant_slug:
+            ctx['verified_merchant'] = MerchantProfile.objects.filter(store_slug__iexact=merchant_slug).first()
         return ctx
 
     def form_valid(self, form):
@@ -87,6 +107,31 @@ class ReportCreateView(LoginRequiredMixin, FormView):
                 suspect_state=form.cleaned_data.get('suspect_state'),
                 suspect_city=form.cleaned_data.get('suspect_city'),
             )
+
+            # Check if dispute is against an authenticated verified merchant
+            merchant_slug = self.request.POST.get('merchant_slug', '').strip() or self.request.GET.get('merchant_slug', '').strip()
+            from payments.models import MerchantProfile
+            merchant = None
+            if merchant_slug:
+                merchant = MerchantProfile.objects.filter(store_slug__iexact=merchant_slug).first()
+            elif form.cleaned_data.get('suspect_bank_account'):
+                merchant = MerchantProfile.objects.filter(bank_account=form.cleaned_data['suspect_bank_account']).first()
+
+            if merchant and merchant.status == 'active':
+                merchant.status = 'disputed'
+                merchant.save(update_fields=['status', 'updated_at'])
+                try:
+                    from notifications.services import dispatch_notification
+                    dispatch_notification(
+                        recipient=merchant.user,
+                        event_type='merchant_dispute_opened',
+                        title="Customer Dispute Filed Against Store 🟡",
+                        body=f"A customer transaction dispute ({report.reference_number}) was filed regarding your store '{merchant.store_name}'. Please review and resolve promptly.",
+                        object_reference=f"report:{report.reference_number}"
+                    )
+                except Exception as notif_err:
+                    logger.warning(f"Could not dispatch merchant dispute notification: {notif_err}")
+
             return redirect('reports:detail', reference_number=report.reference_number)
         except StorageError as e:
             logger.error("ReportCreateView: StorageError during submission: %s", str(e))
@@ -299,6 +344,11 @@ class ReportDetailView(DetailView):
                 self.request.user.is_staff or
                 is_moderator(self.request.user)
             )
+        )
+        ctx['can_reporter_resolve'] = (
+            self.request.user.is_authenticated and (
+                self.request.user == self.object.reporter or self.request.user.is_staff
+            ) and self.object.state in ('submitted', 'under_review', 'published', 'disputed')
         )
 
         return ctx
@@ -644,6 +694,74 @@ class DisputeResolveView(LoginRequiredMixin, UserPassesTestMixin, View):
                     messages.error(request, error)
 
         return redirect('reports:moderation_queue')
+
+
+class ReportReporterResolveView(LoginRequiredMixin, View):
+    """
+    Enables the original complainant (or staff) to formally certify that the accused merchant
+    or respondent has amicably resolved the matter (e.g. delivered missing orders, refunded payment).
+    Transitions the report to 'resolved' and restores the merchant trust seal if no other disputes are open.
+    """
+    def post(self, request, reference_number, *args, **kwargs):
+        report = get_object_or_404(FraudReport, reference_number=reference_number)
+
+        # Enforce that only the original complainant or staff can confirm satisfaction & resolution
+        if report.reporter != request.user and not request.user.is_staff:
+            raise PermissionDenied("Only the original reporter can confirm dispute resolution.")
+
+        if report.state not in ('submitted', 'under_review', 'published', 'disputed'):
+            messages.warning(request, f"This case is currently '{report.get_state_display()}' and cannot be resolved.")
+            return redirect('reports:detail', reference_number=report.reference_number)
+
+        resolution_notes = request.POST.get('resolution_notes', '').strip()
+        if not resolution_notes:
+            resolution_notes = "Customer confirmed that the transaction dispute was settled satisfactorily."
+
+        ip_addr = get_client_ip(request)
+
+        # Formally transition report to 'resolved'
+        transition_report_state(
+            report=report,
+            new_state='resolved',
+            actor=request.user,
+            ip_address=ip_addr,
+            moderation_notes=f"Dispute settled by complainant: {resolution_notes}"
+        )
+
+        # Check if an associated MerchantProfile should be restored
+        from payments.models import MerchantProfile
+        from payments.merchant_views import get_merchant_fraud_reports
+
+        merchant = None
+        if report.suspect_bank_account:
+            merchant = MerchantProfile.objects.filter(bank_account=report.suspect_bank_account).first()
+
+        if not merchant and hasattr(report, 'target_subject'):
+            for ident in report.target_subject.identifiers.all():
+                if ident.type == 'account':
+                    merchant = MerchantProfile.objects.filter(bank_account=ident.value).first()
+                    if merchant:
+                        break
+
+        if merchant and merchant.status in ('disputed', 'under_dispute'):
+            active_reports = get_merchant_fraud_reports(merchant).exclude(pk=report.pk)
+            if not active_reports.exists():
+                merchant.status = 'active'
+                merchant.save(update_fields=['status', 'updated_at'])
+                try:
+                    from notifications.services import dispatch_notification
+                    dispatch_notification(
+                        recipient=merchant.user,
+                        event_type='merchant_dispute_resolved',
+                        title="Dispute Resolved & Seal Restored 🟢",
+                        body=f"Dispute {report.reference_number} was marked as resolved by the customer. Your Verified Merchant Seal has been restored to Active.",
+                        object_reference=f"merchant:{merchant.pk}"
+                    )
+                except Exception as notif_err:
+                    logger.warning(f"Could not dispatch merchant restoration notification: {notif_err}")
+
+        messages.success(request, f"Thank you! Dispute {report.reference_number} has been officially confirmed as Resolved and closed.")
+        return redirect('reports:detail', reference_number=report.reference_number)
 
 
 class RebuttalCreateView(LoginRequiredMixin, FormView):

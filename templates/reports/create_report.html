@@ -85,6 +85,33 @@
             </div>
 
             <!-- Stepper Container -->
+            {% if verified_merchant %}
+            <!-- Verified Merchant Dispute Context Banner -->
+            <div class="card border rounded-4 shadow-sm mb-4 overflow-hidden" style="background:#ffffff;border:1.5px solid #f59e0b!important;">
+                <div class="p-3.5 p-md-4" style="background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);">
+                    <div class="d-flex align-items-center gap-3">
+                        {% if verified_merchant.logo_image %}
+                            <img src="{{ verified_merchant.logo_image.url }}" alt="{{ verified_merchant.store_name }}" class="rounded-circle border border-2 border-warning object-fit-cover flex-shrink-0" style="width:52px;height:52px;">
+                        {% else %}
+                            <div class="rounded-circle bg-warning text-dark d-inline-flex align-items-center justify-content-center flex-shrink-0 fw-bold shadow-sm" style="width:52px;height:52px;font-size:1.5rem;">
+                                ⚖️
+                            </div>
+                        {% endif %}
+                        <div class="flex-grow-1 min-w-0">
+                            <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                                <span class="badge bg-warning text-dark fw-bold px-2.5 py-1 rounded-pill" style="font-size:0.75rem;letter-spacing:0.5px;">VERIFIED MERCHANT DISPUTE</span>
+                                <span class="font-monospace small fw-semibold text-secondary">@{{ verified_merchant.store_slug }}</span>
+                            </div>
+                            <h5 class="fw-bold text-dark mb-1 text-truncate">{{ verified_merchant.store_name }}</h5>
+                            <div class="text-secondary small" style="line-height:1.45;">
+                                This merchant has authenticated KYC and settlement bank account (<span class="font-monospace fw-bold text-dark">{{ verified_merchant.masked_bank_account }}</span> - {{ verified_merchant.bank_name }}) on file. Filing this dispute notifies the merchant and places their seal on 48-hour probation.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
             <div class="vng-card p-4 p-md-5" x-data="{
                 step: {% if form.errors and form.title.errors or form.allegation.errors %}2{% elif form.errors and form.evidence_file.errors %}3{% else %}1{% endif %},
                 maxStep: 4,
@@ -280,6 +307,9 @@
 
                 <form method="post" enctype="multipart/form-data" novalidate @submit="submitting = true">
                     {% csrf_token %}
+                    {% if verified_merchant %}
+                    <input type="hidden" name="merchant_slug" value="{{ verified_merchant.store_slug }}">
+                    {% endif %}
 
                     <!-- ========================================== -->
                     <!-- STEP 1: Suspect & Known Identifiers       -->
