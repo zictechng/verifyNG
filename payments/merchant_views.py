@@ -1,3 +1,4 @@
+import urllib.parse
 import json
 import logging
 from datetime import timedelta
@@ -286,12 +287,27 @@ class PublicMerchantTrustView(View):
         full_bio_url = request.build_absolute_uri(f"/trust-seal/v/{merchant.store_slug}/")
         embed_script_tag = f'<script src="{request.build_absolute_uri("/static/js/verifyng-badge.js")}" data-merchant="{merchant.store_slug}"></script>'
 
+        # Professional Share Links & WhatsApp message
+        wa_text = f"Buy with confidence! Check our official Verified Merchant Badge & verified payout bank on VerifyNG:\n{full_bio_url}"
+        whatsapp_share_url = f"https://api.whatsapp.com/send?text={urllib.parse.quote(wa_text)}"
+        
+        tw_text = f"Check out our verified store trust seal on @VerifyNG: {full_bio_url}"
+        twitter_share_url = f"https://twitter.com/intent/tweet?text={urllib.parse.quote(tw_text)}"
+        
+        fb_share_url = f"https://www.facebook.com/sharer/sharer.php?u={urllib.parse.quote(full_bio_url)}"
+        linkedin_share_url = f"https://www.linkedin.com/sharing/share-offsite/?url={urllib.parse.quote(full_bio_url)}"
+
         context = {
             'merchant': merchant,
             'fraud_reports_count': fraud_reports_count,
             'full_bio_url': full_bio_url,
             'embed_script_tag': embed_script_tag,
             'site_settings': site_settings,
+            'whatsapp_share_url': whatsapp_share_url,
+            'twitter_share_url': twitter_share_url,
+            'fb_share_url': fb_share_url,
+            'linkedin_share_url': linkedin_share_url,
+            'share_text': wa_text,
         }
         return render(request, self.template_name, context)
 

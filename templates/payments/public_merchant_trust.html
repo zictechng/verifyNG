@@ -4,9 +4,16 @@
 {% block title %}Verified Merchant: {{ merchant.store_name }} | {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
 
 {% block meta_tags %}
-<meta property="og:title" content="✓ Verified Merchant: {{ merchant.store_name }} — VerifyNG">
-<meta property="og:description" content="View official verification status, authenticated bank details, and fraud-free record for {{ merchant.store_name }}.">
+<meta property="og:title" content="🛡️ Verified Merchant Seal: {{ merchant.store_name }} | VerifyNG">
+<meta property="og:description" content="Official Verified Merchant profile for {{ merchant.store_name }}. Verified payout bank on file, CAC/Identity authenticated, 0 fraud records. Transact safely.">
 <meta property="og:type" content="business.business">
+<meta property="og:url" content="{{ full_bio_url }}">
+{% if merchant.logo_image %}
+<meta property="og:image" content="{{ merchant.logo_image.url }}">
+{% endif %}
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="🛡️ Verified Merchant: {{ merchant.store_name }} | VerifyNG">
+<meta name="twitter:description" content="Official verification status, authenticated bank details, and fraud-free record for {{ merchant.store_name }}.">
 {% endblock %}
 
 {% block extra_head %}
@@ -122,11 +129,31 @@
           </div>
         {% endif %}
 
-        <!-- Quick Share Pill -->
-        <div class="d-inline-flex align-items-center gap-1.5 px-3 py-1 rounded-pill small shadow-sm" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#67e8f9" stroke-width="2.5"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-          <span class="text-white-50">Bio Link:</span>
-          <span class="text-white fw-bold font-monospace" style="font-size:0.86rem;">{{ request.get_host }}/trust-seal/v/{{ merchant.store_slug }}</span>
+        <!-- Quick Share & Social Action Hub -->
+        <div class="d-flex flex-wrap justify-content-center align-items-center gap-2 mt-3 pt-2">
+          <!-- WhatsApp 1-Click Share Button (Industrial Standard) -->
+          <a href="{{ whatsapp_share_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-success rounded-pill px-3.5 py-2 fw-bold shadow-sm d-inline-flex align-items-center gap-2" style="background-color:#25D366;border-color:#25D366;color:#ffffff;font-size:0.92rem;">
+            <i class="bi bi-whatsapp fs-5"></i>
+            <span>Share on WhatsApp</span>
+          </a>
+
+          <!-- Native Mobile Share / Copy Link Button -->
+          <button type="button" class="btn btn-light rounded-pill px-3.5 py-2 fw-semibold shadow-sm d-inline-flex align-items-center gap-2 text-dark" onclick="shareTrustBadge('{{ full_bio_url }}', '{{ merchant.store_name|escapejs }}')" style="font-size:0.92rem;">
+            <i class="bi bi-share-fill text-primary"></i>
+            <span id="shareBtnText">Share Badge</span>
+          </button>
+
+          <!-- Copy Link Pill -->
+          <button type="button" class="btn btn-outline-light rounded-pill px-3 py-2 fw-semibold shadow-sm d-inline-flex align-items-center gap-1.5" onclick="copySealLink('{{ full_bio_url }}')" style="font-size:0.88rem;background:rgba(255,255,255,0.12);border-color:rgba(255,255,255,0.35);">
+            <i class="bi bi-link-45deg fs-5"></i>
+            <span id="copyLinkBtnText">Copy Link</span>
+          </button>
+        </div>
+
+        <div id="shareFeedbackToast" class="mt-2.5" style="display:none;">
+          <span class="badge bg-success text-white px-3 py-1.5 rounded-pill shadow-sm" style="font-size:0.82rem;">
+            <i class="bi bi-check-circle-fill me-1"></i> Trust link copied! Share anywhere to reassure buyers.
+          </span>
         </div>
       </div>
 
@@ -260,6 +287,66 @@
       </div>
       {% endif %}
 
+      <!-- Merchant Social Sharing & Buyer Reassurance Tools -->
+      <div class="card border rounded-4 shadow-sm bg-white mb-4 overflow-hidden">
+        <div class="card-header bg-light py-3 px-4 border-bottom d-flex align-items-center justify-content-between flex-wrap gap-2">
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-primary text-white rounded-circle p-1" style="width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;">
+              <i class="bi bi-megaphone-fill" style="font-size:12px;"></i>
+            </span>
+            <h6 class="fw-bold text-dark mb-0" style="font-size:1rem;">Share Verified Status With Customers</h6>
+          </div>
+          <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 fw-semibold small">
+            <i class="bi bi-shield-check"></i> High Trust
+          </span>
+        </div>
+        <div class="card-body p-4">
+          <p class="text-secondary small mb-3">
+            Send your official verification dossier to buyers on WhatsApp, Instagram DM, or Twitter before they make payment to reassure them against scammers:
+          </p>
+
+          <div class="row g-2 mb-3">
+            <div class="col-6 col-sm-3">
+              <a href="{{ whatsapp_share_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-success w-100 py-2 rounded-3 fw-semibold d-flex flex-column align-items-center justify-content-center gap-1 shadow-sm" style="font-size:0.85rem;">
+                <i class="bi bi-whatsapp fs-4 text-success"></i>
+                <span>WhatsApp</span>
+              </a>
+            </div>
+            <div class="col-6 col-sm-3">
+              <a href="{{ twitter_share_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-dark w-100 py-2 rounded-3 fw-semibold d-flex flex-column align-items-center justify-content-center gap-1 shadow-sm" style="font-size:0.85rem;">
+                <i class="bi bi-twitter-x fs-4 text-dark"></i>
+                <span>X / Twitter</span>
+              </a>
+            </div>
+            <div class="col-6 col-sm-3">
+              <a href="{{ fb_share_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary w-100 py-2 rounded-3 fw-semibold d-flex flex-column align-items-center justify-content-center gap-1 shadow-sm" style="font-size:0.85rem;">
+                <i class="bi bi-facebook fs-4 text-primary"></i>
+                <span>Facebook</span>
+              </a>
+            </div>
+            <div class="col-6 col-sm-3">
+              <a href="{{ linkedin_share_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary w-100 py-2 rounded-3 fw-semibold d-flex flex-column align-items-center justify-content-center gap-1 shadow-sm" style="font-size:0.85rem;">
+                <i class="bi bi-linkedin fs-4 text-primary"></i>
+                <span>LinkedIn</span>
+              </a>
+            </div>
+          </div>
+
+          <!-- Quick Copy Template for WhatsApp Vendors -->
+          <div class="p-3 bg-light rounded-3 border">
+            <div class="d-flex align-items-center justify-content-between mb-1">
+              <span class="small fw-bold text-dark text-uppercase" style="font-size:0.75rem;letter-spacing:0.5px;">
+                <i class="bi bi-chat-quote me-1 text-primary"></i> Ready-to-Send Buyer Message
+              </span>
+              <button type="button" class="btn btn-sm btn-link text-decoration-none p-0 fw-semibold text-primary" onclick="copyPresetMessage()">
+                <i class="bi bi-copy me-1"></i> Copy Message
+              </button>
+            </div>
+            <textarea id="buyerSharePreset" class="form-control form-control-sm bg-white text-dark font-monospace" rows="2" readonly style="font-size:0.84rem;">Buy safely! Check our official Verified Merchant Badge &amp; verified bank account on VerifyNG: {{ full_bio_url }}</textarea>
+          </div>
+        </div>
+      </div>
+
       <!-- Embed Widget Code for Vendors (Professional Copy Toast) -->
       <div class="card border rounded-4 shadow-sm bg-light">
         <div class="card-body p-4">
@@ -351,6 +438,71 @@ function fallbackMobileCopy(inputEl, text, onSuccess) {
   } catch (e) {
     prompt("Copy embed code:", text);
   }
+}
+function copySealLink(url) {
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(url).then(showShareToast).catch(() => promptCopy(url));
+  } else {
+    promptCopy(url);
+  }
+}
+
+function shareTrustBadge(url, storeName) {
+  // Use native mobile share sheet if supported (iOS Safari, Android Chrome)
+  if (navigator.share) {
+    navigator.share({
+      title: 'Verified Merchant: ' + storeName + ' on VerifyNG',
+      text: 'Buy safely! View our official Verified Merchant trust seal and verified bank details on VerifyNG:',
+      url: url,
+    }).catch((err) => {
+      if (err.name !== 'AbortError') {
+        copySealLink(url);
+      }
+    });
+  } else {
+    copySealLink(url);
+  }
+}
+
+function copyPresetMessage() {
+  const el = document.getElementById('buyerSharePreset');
+  if (!el) return;
+  el.select();
+  el.setSelectionRange(0, 99999);
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(el.value).then(showShareToast).catch(() => promptCopy(el.value));
+  } else {
+    try {
+      document.execCommand('copy');
+      showShareToast();
+    } catch(e) {
+      prompt("Copy text:", el.value);
+    }
+  }
+}
+
+function showShareToast() {
+  const toast = document.getElementById('shareFeedbackToast');
+  if (toast) {
+    toast.style.display = 'block';
+    setTimeout(() => {
+      toast.style.display = 'none';
+    }, 3200);
+  }
+}
+
+function promptCopy(text) {
+  const t = document.createElement('textarea');
+  t.value = text;
+  document.body.appendChild(t);
+  t.select();
+  try {
+    document.execCommand('copy');
+    showShareToast();
+  } catch(e) {
+    prompt("Copy link:", text);
+  }
+  document.body.removeChild(t);
 }
 </script>
 {% endblock %}
