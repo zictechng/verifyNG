@@ -20,18 +20,18 @@
 
 {% if resolution_notes %}
 <p><strong>Adjudication Notes:</strong></p>
-<div style="background:#F8FAFC;border:1px solid #E2E8F0;border-left:3px solid #2563EB;border-radius:6px;padding:14px 18px;margin-bottom:24px;font-size:15px;line-height:1.6;color:#1E293B;">
+<div style="background:#F8FAFC;border:1px solid #E2E8F0;border-left:3px solid {{ primary_color|default:'#2457D6' }};border-radius:6px;padding:14px 18px;margin-bottom:24px;font-size:15px;line-height:1.6;color:#1E293B;">
     {{ resolution_notes|linebreaks }}
 </div>
 {% endif %}
 
 <div class="btn-wrap">
-    <a href="{{ report_url|default:detail_url }}" class="btn">View Case Record &rarr;</a>
+    <a href="{{ report_url|default:detail_url }}" class="btn" style="display:inline-block;padding:14px 28px;background-color:{{ primary_color|default:'#2457D6' }};color:#ffffff!important;text-decoration:none!important;border-radius:8px;font-size:15px;font-weight:600;letter-spacing:-0.1px;line-height:1.25;text-align:center;">View Case Record &rarr;</a>
 </div>
 
 <hr class="divider">
 
 <p style="font-size:13px;color:#6e6e73;line-height:1.5;">
-    If you have questions regarding this decision, you can contact our compliance desk at <a href="mailto:{{ support_email }}" style="color:#0071e3;">{{ support_email }}</a>.
+    If you have questions regarding this decision, you can contact our compliance desk at <a href="mailto:{{ support_email }}" style="color:{{ primary_color|default:'#2457D6' }};">{{ support_email }}</a>.
 </p>
 {% endblock %}

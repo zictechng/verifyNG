@@ -12,10 +12,6 @@ from core.models import SiteConfiguration
 from core.email_utils import render_email, get_dynamic_base_url
 
 _BASE_SITE_NAME = "VerifyNG"
-_DISCLAIMER = (
-    "This is an automated notification from the VerifyNG platform. "
-    "Do not reply directly to this email."
-)
 
 
 def _get_site_meta() -> Tuple[str, str]:
@@ -27,6 +23,16 @@ def _get_site_meta() -> Tuple[str, str]:
     except Exception:
         from django.conf import settings
         return _BASE_SITE_NAME, getattr(settings, 'SITE_BASE_URL', 'http://localhost:8000').rstrip('/')
+
+
+def _get_disclaimer() -> str:
+    name, _ = _get_site_meta()
+    return f"This is an automated notification from the {name} platform. Do not reply directly to this email."
+
+_DISCLAIMER = (
+    "This is an automated notification from the platform. "
+    "Do not reply directly to this email."
+)
 
 
 def _html_fallback(title: str, body_html: str) -> str:

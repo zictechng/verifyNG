@@ -23,13 +23,13 @@
 
 {% if appeal_url %}
 <div class="btn-wrap">
-    <a href="{{ appeal_url }}" class="btn">Submit Compliance Appeal &rarr;</a>
+    <a href="{{ appeal_url }}" class="btn" style="display:inline-block;padding:14px 28px;background-color:{{ primary_color|default:'#2457D6' }};color:#ffffff!important;text-decoration:none!important;border-radius:8px;font-size:15px;font-weight:600;letter-spacing:-0.1px;line-height:1.25;text-align:center;">Submit Compliance Appeal &rarr;</a>
 </div>
 {% endif %}
 
 <hr class="divider">
 
 <p style="font-size:13px;color:#6e6e73;line-height:1.5;">
-    If you believe this suspension was made in error or wish to provide verification documents to restore your account, contact our compliance trust team at <a href="mailto:{{ support_email }}" style="color:#0071e3;">{{ support_email }}</a>.
+    If you believe this suspension was made in error or wish to provide verification documents to restore your account, contact our compliance trust team at <a href="mailto:{{ support_email }}" style="color:{{ primary_color|default:'#2457D6' }};">{{ support_email }}</a>.
 </p>
 {% endblock %}

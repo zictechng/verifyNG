@@ -7,10 +7,10 @@
 <p>Your {{ site_name }} account is ready. You can now check phone numbers and identities, report fraud, and build a verified trust profile for employment.</p>
 
 <div class="btn-wrap">
-  <a href="{{ site_url }}/dashboard/" class="btn">Go to your dashboard</a>
+  <a href="{{ site_url }}/dashboard/" class="btn" style="display:inline-block;padding:14px 28px;background-color:{{ primary_color|default:'#2457D6' }};color:#ffffff!important;text-decoration:none!important;border-radius:8px;font-size:15px;font-weight:600;letter-spacing:-0.1px;line-height:1.25;text-align:center;">Go to your dashboard</a>
 </div>
 
 <hr class="divider">
 
-<p style="font-size:14px;color:#6e6e73;">Need help getting started? Reply to this email or write to <a href="mailto:{{ support_email }}" style="color:#0071e3;">{{ support_email }}</a> — we typically respond within one business day.</p>
+<p style="font-size:14px;color:#6e6e73;">Need help getting started? Reply to this email or write to <a href="mailto:{{ support_email }}" style="color:{{ primary_color|default:'#2457D6' }};">{{ support_email }}</a> — we typically respond within one business day.</p>
 {% endblock %}

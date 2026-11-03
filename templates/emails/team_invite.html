@@ -1,7 +1,7 @@
 
 {% extends 'emails/base_email.html' %}
 
-{% block subject %}You've been invited to join {{ company_name }} on {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
+{% block subject %}You've been invited to join {{ company_name }} on {{ site_name }}{% endblock %}
 
 {% block body %}
 
@@ -9,17 +9,17 @@
 
 <p>
     <strong>{{ invited_by }}</strong> has invited you to join
-    <strong>{{ company_name }}</strong> on <strong>{{ site_config.site_name|default:"VerifyNG" }}</strong>
+    <strong>{{ company_name }}</strong> on <strong>{{ site_name }}</strong>
     as a <strong>{{ role_display }}</strong>.
 </p>
 
 <p>
     As a team member, you'll be able to run background and trust checks on
-    behalf of {{ company_name }} through the {{ site_config.site_name|default:"VerifyNG" }} employer portal.
+    behalf of {{ company_name }} through the {{ site_name }} employer portal.
 </p>
 
 <div class="btn-wrap">
-    <a href="{{ accept_url }}" class="btn">Accept Invitation</a>
+    <a href="{{ accept_url }}" class="btn" style="display:inline-block;padding:14px 28px;background-color:{{ primary_color|default:'#2457D6' }};color:#ffffff!important;text-decoration:none!important;border-radius:8px;font-size:15px;font-weight:600;letter-spacing:-0.1px;line-height:1.25;text-align:center;">Accept Invitation</a>
 </div>
 
 <div class="notice notice-warning">
@@ -33,13 +33,13 @@
 <p>
     If the button above doesn't work, copy and paste this link into your browser:
     <br>
-    <a href="{{ accept_url }}" style="color:#0071e3;word-break:break-all;">{{ accept_url }}</a>
+    <a href="{{ accept_url }}" style="color:{{ primary_color|default:'#2457D6' }};word-break:break-all;">{{ accept_url }}</a>
 </p>
 
 <hr class="divider">
 
 <p style="font-size:14px;color:#6e6e73;">
-    You are receiving this because {{ invited_by }} used {{ site_config.site_name|default:"VerifyNG" }} to send you a team invitation.
+    You are receiving this because {{ invited_by }} used {{ site_name }} to send you a team invitation.
     This invitation is intended for <strong>{{ invite_email }}</strong>.
     If this was sent to you by mistake, please disregard it.
 </p>

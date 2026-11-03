@@ -15,8 +15,8 @@
   </tr>
   <tr style="border-bottom: 1px solid #f0f0f2;">
     <td style="padding: 10px 0; color: #6e6e73; font-weight: 500;">Email Address</td>
-    <td style="padding: 10px 0; font-weight: 600; color: #0071e3;">
-      <a href="mailto:{{ sender_email }}" style="color: #0071e3; text-decoration: none;">{{ sender_email }}</a>
+    <td style="padding: 10px 0; font-weight: 600; color: {{ primary_color|default:'#2457D6' }};">
+      <a href="mailto:{{ sender_email }}" style="color: {{ primary_color|default:'#2457D6' }}; text-decoration: none;">{{ sender_email }}</a>
     </td>
   </tr>
   <tr style="border-bottom: 1px solid #f0f0f2;">
@@ -45,7 +45,7 @@
 </div>
 
 <div class="btn-wrap">
-  <a href="mailto:{{ sender_email }}?subject=Re:%20[{{ site_name }}]%20{{ category }}:%20{{ subject_line|default:'Support Inquiry' }}" class="btn">
+  <a href="mailto:{{ sender_email }}?subject=Re:%20[{{ site_name }}]%20{{ category }}:%20{{ subject_line|default:'Support Inquiry' }}" class="btn" style="display:inline-block;padding:14px 28px;background-color:{{ primary_color|default:'#2457D6' }};color:#ffffff!important;text-decoration:none!important;border-radius:8px;font-size:15px;font-weight:600;letter-spacing:-0.1px;line-height:1.25;text-align:center;">
     Reply to {{ sender_name }}
   </a>
 </div>

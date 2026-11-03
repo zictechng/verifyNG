@@ -49,10 +49,7 @@
         <!-- Official Seal Status Indicator Pill (Always Visible & Crystal Clear) -->
         <div class="mb-3">
           {% if merchant.status == 'active' %}
-            <span class="badge bg-success text-white border border-white-50 px-3.5 py-1.5 rounded-pill fw-bold shadow-sm d-inline-flex align-items-center gap-1.5" style="font-size:0.85rem;letter-spacing:0.5px;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.8"><polyline points="20 6 9 17 4 12"/></svg>
-              OFFICIALLY VERIFIED &amp; ACTIVE
-            </span>
+            <p></p>
           {% elif merchant.status == 'disputed' or merchant.status == 'under_dispute' %}
                 <p></p>
           {% elif merchant.status == 'suspended' %}

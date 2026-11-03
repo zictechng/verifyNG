@@ -23,7 +23,7 @@
 
 {% if moderation_notes %}
 <p><strong>Moderator Remarks:</strong></p>
-<div style="background:#F8FAFC;border:1px solid #E2E8F0;border-left:3px solid {% if status_key == 'published' %}#16A34A{% elif status_key == 'rejected' %}#DC2626{% else %}#2563EB{% endif %};border-radius:6px;padding:14px 18px;margin-bottom:24px;font-size:15px;line-height:1.6;color:#1E293B;">
+<div style="background:#F8FAFC;border:1px solid #E2E8F0;border-left:3px solid {% if status_key == 'published' %}#16A34A{% elif status_key == 'rejected' %}#DC2626{% else %}{{ primary_color|default:'#2457D6' }}{% endif %};border-radius:6px;padding:14px 18px;margin-bottom:24px;font-size:15px;line-height:1.6;color:#1E293B;">
     {{ moderation_notes|linebreaks }}
 </div>
 {% endif %}
@@ -47,12 +47,12 @@
 {% endif %}
 
 <div class="btn-wrap">
-    <a href="{{ report_url|default:detail_url }}" class="btn">View Report in Portal &rarr;</a>
+    <a href="{{ report_url|default:detail_url }}" class="btn" style="display:inline-block;padding:14px 28px;background-color:{{ primary_color|default:'#2457D6' }};color:#ffffff!important;text-decoration:none!important;border-radius:8px;font-size:15px;font-weight:600;letter-spacing:-0.1px;line-height:1.25;text-align:center;">View Report in Portal &rarr;</a>
 </div>
 
 <hr class="divider">
 
 <p style="font-size:13px;color:#6e6e73;line-height:1.5;">
-    If you have questions about this review or need to speak with our compliance team, please reply to this notice or email <a href="mailto:{{ support_email }}" style="color:#0071e3;">{{ support_email }}</a>.
+    If you have questions about this review or need to speak with our compliance team, please reply to this notice or email <a href="mailto:{{ support_email }}" style="color:{{ primary_color|default:'#2457D6' }};">{{ support_email }}</a>.
 </p>
 {% endblock %}

@@ -110,8 +110,12 @@ def render_email(email_type: str, context: dict, request=None) -> tuple[str, str
             logo_url = f"{site_url}/media/{logo_name}"
 
     site_context: dict = {
-        'site_name':       getattr(config, 'site_name', '') or 'VerifyNG',
+        'site_config':     config,
+        'site_name':       getattr(config, 'site_name', '') or getattr(settings, 'SITE_NAME', 'VerifyNG'),
         'site_tagline':    getattr(config, 'site_tagline', '') or 'Public Trust & Verification Platform',
+        'primary_color':   getattr(config, 'primary_color', None) or '#2457D6',
+        'primary_hover':   '#1a44ab',
+        'primary_light':   '#EAF1FF',
         'site_url':        site_url,
         'logo_url':        logo_url,
         'support_email':   getattr(config, 'support_email', '') or getattr(settings, 'SUPPORT_EMAIL', getattr(settings, 'DEFAULT_FROM_EMAIL', 'support@localhost')),

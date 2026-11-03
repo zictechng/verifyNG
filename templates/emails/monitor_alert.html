@@ -10,7 +10,7 @@
 <p>Hello {{ company_name }} team,</p>
 
 <p>
-  {{ site_config.site_name|default:"VerifyNG" }} has detected a change in the fraud flag count for a monitored staff member.
+  {{ site_name }} has detected a change in the fraud flag count for a monitored staff member.
 </p>
 
 <!-- Alert summary box -->
@@ -31,19 +31,19 @@
 {% if flag_increased %}
 <p>
   An increase in fraud flags means new verified fraud reports have been matched
-  to this individual in the {{ site_config.site_name|default:"VerifyNG" }} database. We recommend reviewing this staff
+  to this individual in the {{ site_name }} database. We recommend reviewing this staff
   member's check record immediately.
 </p>
 {% else %}
 <p>
   A reduction in fraud flags means previously matched fraud reports have been
-  resolved, disputed, or removed from the {{ site_config.site_name|default:"VerifyNG" }} database.
+  resolved, disputed, or removed from the {{ site_name }} database.
 </p>
 {% endif %}
 
 <!-- CTA -->
 <div class="btn-wrap">
-  <a href="{{ check_detail_url }}" class="btn">View Staff Check Record</a>
+  <a href="{{ check_detail_url }}" class="btn" style="display:inline-block;padding:14px 28px;background-color:{{ primary_color|default:'#2457D6' }};color:#ffffff!important;text-decoration:none!important;border-radius:8px;font-size:15px;font-weight:600;letter-spacing:-0.1px;line-height:1.25;text-align:center;">View Staff Check Record</a>
 </div>
 
 <p>
@@ -56,7 +56,7 @@
 <div class="notice">
   <p>
     This alert was sent because you have active monitoring enabled for this staff member.
-    Fraud flag data is sourced from verified {{ site_config.site_name|default:"VerifyNG" }} reports and does not constitute
+    Fraud flag data is sourced from verified {{ site_name }} reports and does not constitute
     a legal finding. All hiring and employment decisions remain your responsibility.
   </p>
 </div>
