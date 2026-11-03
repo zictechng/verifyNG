@@ -266,39 +266,46 @@
 
         {% if dispute.status in 'opened,under_review' %}
         <div class="small text-muted mb-4">
-          <p class="mb-2">Carefully assess both the Complainant's allegation, the Accused Party's defense, and any rebuttal evidence on record:</p>
+          <p class="mb-2">Carefully assess both the Complainant's allegation, the Accused Party's defense, and any attached counter-evidence:</p>
+          <div class="p-2 mb-2 rounded border" style="background:#EFF6FF;border-color:#BFDBFE !important;">
+            <strong class="text-primary"><i class="bi bi-shield-check me-1"></i> Accept Proof &amp; Mark as Resolved:</strong><br>
+            The merchant/respondent submitted satisfactory fulfillment proof (waybill, delivery confirmation, refund receipt). The case will transition to <strong>Resolved</strong>, the dispute closed, and any linked Verified Merchant Seal is active in good standing.
+          </div>
           <div class="p-2 mb-2 rounded border" style="background:#F0FDF4;border-color:#BBF7D0 !important;">
-            <strong class="text-success"><i class="bi bi-check-circle me-1"></i> Uphold / Accept Dispute:</strong><br>
-            The accused party's defense is valid (e.g. proof of payment, contract resolution, or false claim). The report is moved to <strong>Restricted (Quarantined)</strong>, immediately hidden from public verification checks, and the dispute is closed in favour of the respondent.
+            <strong class="text-success"><i class="bi bi-check-circle me-1"></i> Uphold / Accept Dispute (Restrict):</strong><br>
+            The allegation was fabricated or invalid. The report is moved to <strong>Restricted (Quarantined)</strong>, immediately hidden from public verification checks.
           </div>
           <div class="p-2 rounded border" style="background:#FEF2F2;border-color:#FECACA !important;">
-            <strong class="text-danger"><i class="bi bi-x-circle me-1"></i> Reject Dispute:</strong><br>
-            The defense lacks merit or failed to refute the evidence. The report remains <strong>Published</strong> in the public register, and the dispute is marked as rejected.
+            <strong class="text-danger"><i class="bi bi-x-circle me-1"></i> Reject Dispute (Retain Allegation):</strong><br>
+            The defense lacks merit or failed to refute the evidence. The report remains <strong>Published</strong> in the public register.
           </div>
         </div>
 
-        <form method="post">
-          {% csrf_token %}
-          <div class="mb-3">
-            <label class="form-label fw-semibold small">Adjudication Notes <span class="text-muted">(recorded permanently in audit trail)</span></label>
-            <textarea name="resolution_notes" class="form-control" rows="4" required
-                      placeholder="Explain the legal or policy basis for upholding or rejecting this dispute…">{{ dispute.resolution_notes }}</textarea>
-          </div>
-          <div class="d-grid gap-2">
-            <button type="button"
-                    class="btn btn-success py-2 fw-semibold"
-                    data-bs-toggle="modal" data-bs-target="#disputeResModal"
-                    data-action="accept" data-label="Uphold Dispute" data-banner="accept">
-              <i class="bi bi-check-circle me-1"></i> Uphold Dispute (Accept Defense)
-            </button>
-            <button type="button"
-                    class="btn btn-danger py-2 fw-semibold"
-                    data-bs-toggle="modal" data-bs-target="#disputeResModal"
-                    data-action="reject" data-label="Reject Dispute" data-banner="reject">
-              <i class="bi bi-x-circle me-1"></i> Reject Dispute (Retain Allegation)
-            </button>
-          </div>
-        </form>
+        <div class="mb-3">
+          <label class="form-label fw-semibold small">Adjudication Notes <span class="text-muted">(optional / recorded in audit trail)</span></label>
+          <textarea id="pageResolutionNotes" class="form-control" rows="3"
+                    placeholder="Provide mediation notes or explanation for this decision…">{{ dispute.resolution_notes }}</textarea>
+        </div>
+        <div class="d-grid gap-2">
+          <button type="button"
+                  class="btn btn-primary py-2 fw-semibold shadow-sm"
+                  data-bs-toggle="modal" data-bs-target="#disputeResModal"
+                  data-action="resolve" data-label="Accept Proof &amp; Mark Resolved" data-banner="resolve">
+            <i class="bi bi-shield-check me-1"></i> Accept Proof &amp; Mark Case as Resolved
+          </button>
+          <button type="button"
+                  class="btn btn-outline-success py-1.5 fw-semibold"
+                  data-bs-toggle="modal" data-bs-target="#disputeResModal"
+                  data-action="accept" data-label="Uphold Dispute (Restrict)" data-banner="accept">
+            <i class="bi bi-check-circle me-1"></i> Uphold Dispute (Restrict Report)
+          </button>
+          <button type="button"
+                  class="btn btn-outline-danger py-1.5 fw-semibold"
+                  data-bs-toggle="modal" data-bs-target="#disputeResModal"
+                  data-action="reject" data-label="Reject Dispute" data-banner="reject">
+            <i class="bi bi-x-circle me-1"></i> Reject Dispute (Retain Allegation)
+          </button>
+        </div>
 
         {% else %}
         <div class="text-center py-4">
@@ -327,25 +334,39 @@
 <div class="modal fade" id="disputeResModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content" style="border-radius:12px;border:none;box-shadow:0 8px 32px rgba(0,0,0,.15);">
-      <div class="modal-header border-0 pb-0">
-        <h5 class="modal-title fw-semibold" id="disputeResModalTitle">Confirm Resolution</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body pt-2">
-        <div id="disputeResBannerAccept" class="alert alert-success d-flex align-items-center gap-2 mb-3 d-none">
-          <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/></svg>
-          <span>Upholding this dispute will transition the report to <strong>Restricted</strong> (removed from public search) and notify both parties.</span>
+      <form method="post" id="disputeModalForm">
+        {% csrf_token %}
+        <input type="hidden" name="action" id="modalDisputeAction" value="resolve">
+        <div class="modal-header border-0 pb-0">
+          <h5 class="modal-title fw-semibold" id="disputeResModalTitle">Confirm Resolution</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
-        <div id="disputeResBannerReject" class="alert alert-danger d-flex align-items-center gap-2 mb-3 d-none">
-          <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/></svg>
-          <span>Rejecting this dispute means the defense was insufficient. The original allegation report will <strong>remain published</strong>.</span>
+        <div class="modal-body pt-2">
+          <div id="disputeResBannerResolve" class="alert alert-primary d-flex align-items-center gap-2 mb-3 d-none">
+            <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/></svg>
+            <span>Accepting proof marks this case as <strong>Resolved</strong>. The commercial order dispute will be closed and the Verified Merchant Trust Seal restored to good standing.</span>
+          </div>
+          <div id="disputeResBannerAccept" class="alert alert-success d-flex align-items-center gap-2 mb-3 d-none">
+            <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/></svg>
+            <span>Upholding this dispute will transition the report to <strong>Restricted</strong> (removed from public search) and notify both parties.</span>
+          </div>
+          <div id="disputeResBannerReject" class="alert alert-danger d-flex align-items-center gap-2 mb-3 d-none">
+            <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/></svg>
+            <span>Rejecting this dispute means the defense was insufficient. The original allegation report will <strong>remain published</strong>.</span>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold small">Adjudication Notes <span class="text-muted">(recorded permanently in audit trail)</span></label>
+            <textarea name="resolution_notes" id="modalResolutionNotes" class="form-control" rows="3" required
+                      placeholder="Explain the legal or compliance basis for this decision…">{{ dispute.resolution_notes }}</textarea>
+          </div>
+          <p class="text-muted small mb-0" style="font-size:11.5px;">Your decision and notes will be recorded permanently in the tamper-evident audit log.</p>
         </div>
-        <p class="text-muted small mb-0">Your resolution notes will be recorded permanently in the tamper-evident audit log.</p>
-      </div>
-      <div class="modal-footer border-0 pt-2">
-        <button type="button" class="btn btn-adm-sm btn-adm-secondary" data-bs-dismiss="modal">Go Back</button>
-        <button type="button" id="disputeResConfirmBtn" class="btn btn-adm-sm">Confirm Decision</button>
-      </div>
+        <div class="modal-footer border-0 pt-2">
+          <button type="button" class="btn btn-adm-sm btn-adm-secondary" data-bs-dismiss="modal">Go Back</button>
+          <button type="submit" id="disputeResConfirmBtn" class="btn btn-adm-sm btn-primary fw-semibold px-3">Confirm Decision</button>
+        </div>
+      </form>
     </div>
   </div>
 </div>
@@ -353,38 +374,61 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   const modal = document.getElementById('disputeResModal');
+  if (!modal) return;
+
   modal.addEventListener('show.bs.modal', function (e) {
     const btn    = e.relatedTarget;
-    const action = btn.dataset.action;
-    const label  = btn.dataset.label;
-    const banner = btn.dataset.banner;
+    if (!btn) return;
 
-    document.getElementById('disputeResBannerResolve').classList.add('d-none');
-    document.getElementById('disputeResBannerAccept').classList.add('d-none');
-    document.getElementById('disputeResBannerReject').classList.add('d-none');
+    const action = btn.dataset.action || 'resolve';
+    const label  = btn.dataset.label || 'Confirm Decision';
+    const banner = btn.dataset.banner || 'resolve';
 
-    if (banner === 'resolve') {
-      document.getElementById('disputeResBannerResolve').classList.remove('d-none');
-    } else if (banner === 'accept') {
-      document.getElementById('disputeResBannerAccept').classList.remove('d-none');
-    } else {
-      document.getElementById('disputeResBannerReject').classList.remove('d-none');
+    // Set hidden action input
+    const actionInput = document.getElementById('modalDisputeAction');
+    if (actionInput) actionInput.value = action;
+
+    // Sync notes from page if modal notes are empty
+    const pageNotes = document.getElementById('pageResolutionNotes');
+    const modalNotes = document.getElementById('modalResolutionNotes');
+    if (pageNotes && modalNotes && pageNotes.value && !modalNotes.value) {
+      modalNotes.value = pageNotes.value;
     }
 
-    document.getElementById('disputeResModalTitle').textContent = label;
-    const confirmBtn = document.getElementById('disputeResConfirmBtn');
-    confirmBtn.className = 'btn btn-adm-sm ' + (action === 'resolve' ? 'btn-primary' : (action === 'accept' ? 'btn-adm-success' : 'btn-adm-danger'));
-    confirmBtn.textContent = label;
+    // Toggle banners safely
+    const bResolve = document.getElementById('disputeResBannerResolve');
+    const bAccept  = document.getElementById('disputeResBannerAccept');
+    const bReject  = document.getElementById('disputeResBannerReject');
 
-    confirmBtn.onclick = function () {
-      const notesForm = document.querySelector('textarea[name="resolution_notes"]').closest('form');
-      const hiddenAction = document.createElement('input');
-      hiddenAction.type  = 'hidden';
-      hiddenAction.name  = 'action';
-      hiddenAction.value = action;
-      notesForm.appendChild(hiddenAction);
-      notesForm.submit();
-    };
+    if (bResolve) bResolve.classList.add('d-none');
+    if (bAccept)  bAccept.classList.add('d-none');
+    if (bReject)  bReject.classList.add('d-none');
+
+    if (banner === 'resolve' && bResolve) {
+      bResolve.classList.remove('d-none');
+    } else if (banner === 'accept' && bAccept) {
+      bAccept.classList.remove('d-none');
+    } else if (bReject) {
+      bReject.classList.remove('d-none');
+    }
+
+    // Set modal title & confirm button text & class
+    const titleEl = document.getElementById('disputeResModalTitle');
+    if (titleEl) titleEl.textContent = label;
+
+    const confirmBtn = document.getElementById('disputeResConfirmBtn');
+    if (confirmBtn) {
+      if (action === 'resolve') {
+        confirmBtn.className = 'btn btn-adm-sm btn-primary fw-semibold px-3';
+        confirmBtn.textContent = 'Yes, Mark Case as Resolved';
+      } else if (action === 'accept') {
+        confirmBtn.className = 'btn btn-adm-sm btn-adm-success fw-semibold px-3';
+        confirmBtn.textContent = 'Yes, Uphold & Restrict Report';
+      } else {
+        confirmBtn.className = 'btn btn-adm-sm btn-adm-danger fw-semibold px-3';
+        confirmBtn.textContent = 'Yes, Reject Dispute (Publish)';
+      }
+    }
   });
 });
 </script>

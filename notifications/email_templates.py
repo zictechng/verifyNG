@@ -342,12 +342,15 @@ def build_dispute_resolved(
     site_name, site_url = _get_site_meta()
     if outcome == "resolved":
         outcome_label = "Resolved & Settled"
+        subject_prefix = "Dispute Settled & Closed"
     elif outcome == "accepted":
         outcome_label = "Accepted / Upheld"
+        subject_prefix = "Dispute Upheld"
     else:
         outcome_label = "Rejected / Overruled"
+        subject_prefix = "Dispute Rejected"
     resolved_at = timezone.now().strftime('%d %B %Y, %I:%M %p')
-    subject = f"Dispute Adjudication Verdict [{reference_number}] — {site_name}"
+    subject = f"{subject_prefix} [{reference_number}] — {site_name}"
 
     try:
         html_body, text_body = render_email('dispute_resolved', {

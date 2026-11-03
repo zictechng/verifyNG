@@ -1,26 +1,40 @@
 {% extends 'emails/base_email.html' %}
 
-{% block subject %}Dispute Resolved [{{ reference_number }}] — {{ site_name }}{% endblock %}
+{% block subject %}{% if outcome == 'resolved' %}Dispute Settled &amp; Closed{% else %}Dispute Adjudication Verdict{% endif %} [{{ reference_number }}] — {{ site_name }}{% endblock %}
 
 {% block body %}
-<h1 style="font-size:24px;font-weight:700;color:#1d1d1f;margin:0 0 16px;letter-spacing:-0.5px;">Dispute Resolved</h1>
+<h1 style="font-size:24px;font-weight:700;color:#1d1d1f;margin:0 0 16px;letter-spacing:-0.5px;">
+  {% if outcome == 'resolved' %}
+    Commercial Dispute Settled &amp; Closed
+  {% elif outcome == 'accepted' %}
+    Dispute Upheld &amp; Report Restricted
+  {% else %}
+    Dispute Rejected &amp; Report Published
+  {% endif %}
+</h1>
 
 <p>Hi {{ user_name }},</p>
 
 <p>
-    The dispute concerning report <strong>{{ reference_number }}</strong> has been officially reviewed and adjudicated by our compliance team.
-    The dispute outcome has been recorded as <strong>{{ outcome_display }}</strong>.
+    The dispute concerning case <strong>{{ reference_number }}</strong> has been officially reviewed and adjudicated by our compliance team.
+    {% if outcome == 'resolved' %}
+      The dispute has been marked as <strong>Resolved &amp; Settled</strong>. The fulfillment proof or refund submitted has been accepted, the case is closed, and any linked Verified Merchant Trust Seals are in active good standing.
+    {% elif outcome == 'accepted' %}
+      The defense has been <strong>Accepted &amp; Upheld</strong>. The underlying report has been moved to restricted status and removed from public search.
+    {% else %}
+      The dispute has been <strong>Rejected</strong>. The submitted defense was deemed insufficient to refute the record, and the allegation remains published.
+    {% endif %}
 </p>
 
-<div class="notice {% if outcome == 'accepted' %}notice-success{% else %}notice-warning{% endif %}">
+<div class="notice {% if outcome in 'accepted,resolved' %}notice-success{% else %}notice-warning{% endif %}">
     <p style="margin:0 0 8px;"><strong>Reference Number:</strong> <code style="font-family:monospace;font-size:14px;">{{ reference_number }}</code></p>
     <p style="margin:0 0 8px;"><strong>Adjudication Verdict:</strong> <strong>{{ outcome_display }}</strong></p>
-    <p style="margin:0 0 8px;"><strong>Date Resolved:</strong> {{ resolved_at|default:"Today" }}</p>
+    <p style="margin:0 0 8px;"><strong>Date Recorded:</strong> {{ resolved_at|default:"Today" }}</p>
 </div>
 
 {% if resolution_notes %}
-<p><strong>Adjudication Notes:</strong></p>
-<div style="background:#F8FAFC;border:1px solid #E2E8F0;border-left:3px solid {{ primary_color|default:'#2457D6' }};border-radius:6px;padding:14px 18px;margin-bottom:24px;font-size:15px;line-height:1.6;color:#1E293B;">
+<p><strong>Compliance Adjudication Notes:</strong></p>
+<div style="background:#F8FAFC;border:1px solid #E2E8F0;border-left:3px solid {% if outcome in 'accepted,resolved' %}#16A34A{% else %}#DC2626{% endif %};border-radius:6px;padding:14px 18px;margin-bottom:24px;font-size:15px;line-height:1.6;color:#1E293B;">
     {{ resolution_notes|linebreaks }}
 </div>
 {% endif %}
@@ -32,6 +46,6 @@
 <hr class="divider">
 
 <p style="font-size:13px;color:#6e6e73;line-height:1.5;">
-    If you have questions regarding this decision, you can contact our compliance desk at <a href="mailto:{{ support_email }}" style="color:{{ primary_color|default:'#2457D6' }};">{{ support_email }}</a>.
+    If you have questions regarding this adjudication decision, you can contact our compliance desk at <a href="mailto:{{ support_email }}" style="color:{{ primary_color|default:'#2457D6' }};">{{ support_email }}</a>.
 </p>
 {% endblock %}
