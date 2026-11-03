@@ -228,12 +228,14 @@ class CloudinaryEvidenceStorage:
         if not isinstance(expires_in_seconds, int) or not (1 <= expires_in_seconds <= 3600):
             raise ValueError("expires_in_seconds must be an integer between 1 and 3600.")
         expires_at = int(time.time()) + expires_in_seconds
+        # Avoid duplicate file extensions (.pdf.pdf -> 404) on raw assets or public_ids already containing the format
+        use_format = None if (resource_type == 'raw' or public_id.lower().endswith(f".{format.lower()}")) else format
         try:
             if not attachment:
                 # Delivers signed CDN URL that renders inline in browser
                 signed_url, _ = cloudinary.utils.cloudinary_url(
                     public_id,
-                    format=format,
+                    format=use_format,
                     resource_type=resource_type,
                     type="private",
                     sign_url=True,
@@ -244,7 +246,7 @@ class CloudinaryEvidenceStorage:
                 # Hits Cloudinary download API with attachment header
                 signed_url = cloudinary.utils.private_download_url(
                     public_id=public_id,
-                    format=format,
+                    format=use_format,
                     resource_type=resource_type,
                     type="private",
                     attachment=True,
