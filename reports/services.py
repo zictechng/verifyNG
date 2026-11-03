@@ -758,6 +758,33 @@ def get_reports_against_user_queryset(user):
     except Exception:
         pass
 
+    # 5. Reports associated with user's verified merchant stores (by store name, slug, bank account, phone)
+    try:
+        from payments.models import MerchantProfile
+        from identities.utils import hash_identifier_value
+        from identities.models import Identifier
+        merchants = MerchantProfile.objects.filter(user=user)
+        for merch in merchants:
+            merch_hashes = []
+            if merch.bank_account:
+                merch_hashes.append(hash_identifier_value('account', merch.bank_account))
+            if merch.whatsapp_number:
+                clean_phone = merch.whatsapp_number.replace('+', '').replace(' ', '').strip()
+                merch_hashes.append(hash_identifier_value('phone', clean_phone))
+            if merch_hashes:
+                matched_subj_ids = Identifier.objects.filter(value_hash__in=merch_hashes).values_list('subject_id', flat=True)
+                if matched_subj_ids:
+                    merch_rep_ids = FraudReport.objects.filter(target_subject_id__in=matched_subj_ids).values_list('id', flat=True)
+                    report_ids.update(merch_rep_ids)
+            # Also match by store name in subject or title
+            name_reports = FraudReport.objects.filter(
+                Q(target_subject__canonical_name__iexact=merch.store_name) |
+                Q(title__icontains=merch.store_name)
+            ).values_list('id', flat=True)
+            report_ids.update(name_reports)
+    except Exception:
+        pass
+
     # Exclude reports where user was the reporter
     qs = FraudReport.objects.filter(
         id__in=report_ids

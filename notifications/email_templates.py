@@ -754,6 +754,75 @@ def build_subscription_payment_rejected(subscription, username: str, reason: str
 
 
 
+def build_subscription_expiring(
+    subscription,
+    username: str,
+    days_left: int,
+) -> Tuple[str, str, str]:
+    site_name, site_url = _get_site_meta()
+    plan_name = subscription.plan.name if subscription.plan else "Subscription Plan"
+    price_naira = subscription.plan.price_naira if subscription.plan else 0
+    days_text = "Tomorrow" if days_left <= 1 else f"in {days_left} Days"
+    subject = f"Your {plan_name} Subscription Renews {days_text} — {site_name}"
+    pricing_url = f"{site_url}/payments/pricing/"
+    end_date_str = subscription.current_period_end.strftime('%d %B %Y') if subscription.current_period_end else days_text
+
+    body_html = f"""
+    <p>This is a courtesy reminder that your active <strong>{plan_name}</strong> subscription on {site_name} is set to expire <strong>{days_text}</strong> ({end_date_str}).</p>
+    <div style="background:#f8fafc;border:1px solid #cbd5e1;padding:16px 20px;border-radius:8px;margin:18px 0;">
+        <div style="font-size:13px;color:#64748b;text-transform:uppercase;font-weight:bold;margin-bottom:4px;">Current Plan</div>
+        <div style="font-size:16px;font-weight:bold;color:#0f172a;margin-bottom:8px;">{plan_name}</div>
+        <div style="font-size:14px;color:#334155;">Renewal Rate: <strong>₦{price_naira:,.2f}</strong></div>
+    </div>
+    <p>Renew or manage your subscription now to maintain uninterrupted access to identity verifications, workforce checks, and continuous monitoring tools.</p>
+    """
+    try:
+        html_body, text_body = render_email('generic_notification', {
+            'user_name': username,
+            'heading': f"Subscription Expiring {days_text}",
+            'body_html': body_html,
+            'cta_url': pricing_url,
+            'cta_label': "Renew Plan Now →",
+        })
+        return subject, html_body, text_body
+    except Exception:
+        fallback_html = f"<h2>Subscription Expiring</h2><p>Hi {username}, your {plan_name} subscription expires {days_text}. Renew at: {pricing_url}</p>"
+        return subject, _html_fallback(subject, fallback_html), f"Hi {username}, your {plan_name} expires {days_text}. Renew at: {pricing_url}"
+
+
+def build_subscription_expired(
+    subscription,
+    username: str,
+) -> Tuple[str, str, str]:
+    site_name, site_url = _get_site_meta()
+    plan_name = subscription.plan.name if subscription.plan else "Subscription Plan"
+    subject = f"Notice: Your {plan_name} Subscription Has Expired — {site_name}"
+    pricing_url = f"{site_url}/payments/pricing/"
+
+    body_html = f"""
+    <p>This notice confirms that your <strong>{plan_name}</strong> subscription on {site_name} has ended its billing cycle and expired.</p>
+    <div style="background:#fff7ed;border-left:4px solid #f97316;padding:14px 18px;border-radius:6px;margin:18px 0;">
+        <h4 style="margin:0 0 6px;color:#9a3412;font-size:15px;">Plan Status: Expired</h4>
+        <p style="margin:0;font-size:13px;color:#7c2d12;line-height:1.5;">
+            Your account has reverted to standard starter tier quotas. Paid verification check credits and continuous employee monitoring alerts are currently on hold.
+        </p>
+    </div>
+    <p>You can reactivate your benefits at any time by selecting a plan on our checkout portal.</p>
+    """
+    try:
+        html_body, text_body = render_email('generic_notification', {
+            'user_name': username,
+            'heading': "Subscription Expired",
+            'body_html': body_html,
+            'cta_url': pricing_url,
+            'cta_label': "Reactivate Subscription →",
+        })
+        return subject, html_body, text_body
+    except Exception:
+        fallback_html = f"<h2>Subscription Expired</h2><p>Hi {username}, your {plan_name} subscription has expired. Reactivate at: {pricing_url}</p>"
+        return subject, _html_fallback(subject, fallback_html), f"Hi {username}, your {plan_name} subscription has expired: {pricing_url}"
+
+
 def build_merchant_badge_approved(store_name: str, username: str, store_slug: str) -> Tuple[str, str, str]:
     site_name, site_url = _get_site_meta()
     subject = f"Verified Merchant Seal Approved: {store_name} — {site_name}"

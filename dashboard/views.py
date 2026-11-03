@@ -177,20 +177,39 @@ class DashboardIndexView(LoginRequiredMixin, TemplateView):
         # Staff/officer context
         ctx.update(_get_staff_context(user))
 
-        # Merchant Trust Seal trial & subscription notification card
+        # Merchant Trust Seal Self-Service Hub Context
         try:
             from payments.models import MerchantProfile, SiteSettings
+            from payments.merchant_views import get_merchant_fraud_reports
+            from core.email_utils import get_dynamic_base_url
             site_settings = SiteSettings.get()
             merchant = MerchantProfile.objects.filter(user=user).first()
-            if merchant and merchant.status == 'active':
+            if merchant:
                 ctx['dashboard_merchant'] = merchant
                 ctx['merchant_is_free'] = site_settings.is_service_free('merchant_badge')
                 ctx['merchant_price'] = site_settings.get_service_price('merchant_badge')
+
+                # Active Customer Disputes against this merchant's store
+                merchant_disputes_qs = get_merchant_fraud_reports(merchant)
+                ctx['merchant_active_disputes_count'] = merchant_disputes_qs.count()
+                ctx['merchant_has_disputes'] = merchant_disputes_qs.exists()
+
+                # Public bio link & embed snippet tag
+                try:
+                    site_base = self.request.build_absolute_uri('/')[:-1]
+                except Exception:
+                    site_base = get_dynamic_base_url()
+
+                ctx['merchant_public_url'] = f"{site_base}/trust-seal/v/{merchant.store_slug}/"
+                ctx['merchant_embed_script'] = f'<script src="{site_base}/static/js/verifyng-badge.js" data-merchant="{merchant.store_slug}"></script>'
+
                 if merchant.trial_ends_at:
                     now = timezone.now()
-                    days_remaining = (merchant.trial_ends_at - now).days
-                    ctx['merchant_trial_days_remaining'] = max(0, days_remaining)
+                    delta = merchant.trial_ends_at - now
+                    days_remaining = max(0, delta.days)
+                    ctx['merchant_trial_days_remaining'] = days_remaining
                     ctx['merchant_trial_is_expiring'] = (days_remaining <= 7)
+                    ctx['merchant_trial_expired'] = (delta.total_seconds() <= 0)
         except Exception:
             pass
 

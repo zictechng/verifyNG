@@ -371,6 +371,10 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'employer.tasks.run_monitor_checks_task',
         'schedule': crontab(hour=2, minute=0),   # 02:00 UTC every day
     },
+    'check-subscription-and-merchant-expirations-daily': {
+        'task': 'payments.tasks.check_subscription_and_merchant_expirations',
+        'schedule': crontab(hour=2, minute=30),  # 02:30 UTC every day
+    },
 }
 
 
