@@ -22,6 +22,7 @@ class User(AbstractUser):
     )
     ID_TYPE_CHOICES = (
         ('nin', 'National Identity Number (NIN)'),
+        ('bvn', 'Bank Verification Number (BVN)'),
         ('voters_card', 'Permanent Voter Card (PVC)'),
         ('passport', 'International Passport'),
         ('drivers_license', "Driver's License"),

@@ -505,13 +505,19 @@ class UserIdentityVerificationSubmitView(LoginRequiredMixin, View):
             messages.error(request, "Please enter your official identification number.")
             return redirect('users:profile')
 
-        # NIN specific validation: 11 digits
+        # NIN & BVN specific validation: exactly 11 digits
         if id_type == 'nin':
             cleaned_nin = re.sub(r'\D', '', id_number)
             if len(cleaned_nin) != 11:
                 messages.error(request, "A National Identity Number (NIN) must contain exactly 11 digits.")
                 return redirect('users:profile')
             id_number = cleaned_nin
+        elif id_type == 'bvn':
+            cleaned_bvn = re.sub(r'\D', '', id_number)
+            if len(cleaned_bvn) != 11:
+                messages.error(request, "A Bank Verification Number (BVN) must contain exactly 11 digits.")
+                return redirect('users:profile')
+            id_number = cleaned_bvn
 
         file_uploaded = False
         if id_doc:
@@ -561,9 +567,16 @@ class UserIdentityDocumentView(LoginRequiredMixin, View):
         if not user.has_id_document:
             raise Http404("No identity document uploaded.")
 
+        url = getattr(user.id_document, 'url', '')
+        as_download = request.GET.get('download') == '1'
+        if not as_download and url and url.startswith(('http://', 'https://')):
+            return HttpResponseRedirect(url)
+
         try:
             doc_file = user.id_document.open('rb')
         except Exception:
+            if url and url.startswith(('http://', 'https://')):
+                return HttpResponseRedirect(url)
             raise Http404("Document could not be opened.")
 
         ext = user.id_document.name.split('.')[-1].lower() if '.' in user.id_document.name else 'pdf'

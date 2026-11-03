@@ -25,7 +25,7 @@ from dateutil.relativedelta import relativedelta
 from reports.storage_services import get_storage_service
 import mimetypes
 import urllib.request
-from django.http import Http404, HttpResponse                   
+from django.http import Http404, HttpResponse, HttpResponseRedirect
 from django.db.models import Q
 from django.utils.dateparse import parse_date
 from django.utils import timezone as tz
@@ -564,9 +564,22 @@ class AdminUserIdentityDocumentView(SuperAdminRequiredMixin, View):
         if not target_user.has_id_document:
             raise Http404("No identity document uploaded for this user.")
 
+        url = getattr(target_user.id_document, 'url', '')
+        as_download = request.GET.get('download') == '1'
+
+        if not as_download and url and url.startswith(('http://', 'https://')):
+            AuditLog.objects.create(
+                action="ADMIN_VIEW_USER_IDENTITY_DOCUMENT",
+                performed_by=request.user,
+                details={"target_user_id": target_user.id, "target_username": target_user.username}
+            )
+            return HttpResponseRedirect(url)
+
         try:
             doc_file = target_user.id_document.open('rb')
         except Exception:
+            if url and url.startswith(('http://', 'https://')):
+                return HttpResponseRedirect(url)
             raise Http404("Could not access the identity document.")
 
         ext = target_user.id_document.name.split('.')[-1].lower() if '.' in target_user.id_document.name else 'pdf'

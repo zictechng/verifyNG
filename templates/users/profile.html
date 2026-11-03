@@ -127,6 +127,7 @@
                                 <label class="form-label small fw-semibold">Government Document Type <span class="text-danger">*</span></label>
                                 <select name="id_type" id="id_type_select" class="form-select" required style="font-size:16px;">
                                     <option value="nin" {% if user_profile.id_type == 'nin' or not user_profile.id_type %}selected{% endif %}>National Identity Number (NIN)</option>
+                                    <option value="bvn" {% if user_profile.id_type == 'bvn' %}selected{% endif %}>Bank Verification Number (BVN)</option>
                                     <option value="voters_card" {% if user_profile.id_type == 'voters_card' %}selected{% endif %}>Permanent Voter's Card (PVC)</option>
                                     <option value="passport" {% if user_profile.id_type == 'passport' %}selected{% endif %}>International Passport</option>
                                     <option value="drivers_license" {% if user_profile.id_type == 'drivers_license' %}selected{% endif %}>Driver's License (FRSC)</option>
@@ -537,6 +538,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (typeSelect && numInput && numHelp) {
         const guidance = {
             'nin': { placeholder: 'Enter 11-digit NIN', help: 'Enter your 11-digit National Identity Number.', label: 'NIN Number' },
+            'bvn': { placeholder: 'Enter 11-digit BVN', help: 'Enter your 11-digit Bank Verification Number issued by your bank.', label: 'Bank Verification Number (BVN)' },
             'voters_card': { placeholder: 'e.g. 90F5B12345678901234', help: 'Enter your 19-digit alphanumeric Voter Identification Number (VIN).', label: 'Voter ID (VIN)' },
             'passport': { placeholder: 'e.g. A12345678', help: 'Enter your standard Nigerian Passport Number.', label: 'Passport Number' },
             'drivers_license': { placeholder: 'e.g. ABC123456789', help: 'Enter your 12-character Driver’s License Number.', label: 'License Number' }
@@ -689,6 +691,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 const cleaned = numInput.value.replace(/\D/g, '');
                 if (cleaned.length !== 11) {
                     showError('A National Identity Number (NIN) must be exactly 11 digits.');
+                    numInput.focus();
+                    return;
+                }
+            } else if (typeSelect.value === 'bvn') {
+                const cleaned = numInput.value.replace(/\D/g, '');
+                if (cleaned.length !== 11) {
+                    showError('A Bank Verification Number (BVN) must be exactly 11 digits.');
                     numInput.focus();
                     return;
                 }
