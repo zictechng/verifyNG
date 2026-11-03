@@ -273,6 +273,19 @@ class ReportDetailView(DetailView):
         else:
             ctx['suspect_context'] = {}
 
+        # Merchant Profile & Commercial Dispute Context
+        from payments.merchant_views import find_merchant_for_report
+        disputed_merchant = find_merchant_for_report(self.object)
+        is_merchant_dispute = (disputed_merchant is not None) or ('merchant order dispute' in (self.object.title or '').lower())
+        is_accused_merchant = (
+            self.request.user.is_authenticated
+            and disputed_merchant is not None
+            and disputed_merchant.user_id == self.request.user.id
+        )
+        ctx['disputed_merchant'] = disputed_merchant
+        ctx['is_merchant_dispute'] = is_merchant_dispute
+        ctx['is_accused_merchant'] = is_accused_merchant
+
         # Determine context-aware back navigation
         src = self.request.GET.get('src', '').strip()
         referer = self.request.META.get('HTTP_REFERER', '')
@@ -281,6 +294,9 @@ class ReportDetailView(DetailView):
         if src == 'misconduct' or '/employer/misconduct' in referer:
             back_url = reverse('employer:staff_misconduct_list')
             back_label = "Misconduct Reports"
+        elif src == 'disputes' or '/reports/my-disputes' in referer or is_accused_merchant:
+            back_url = reverse('reports:my_disputes')
+            back_label = "Disputes & Allegations"
         elif src == 'my_reports' or '/reports/my-reports' in referer:
             back_url = reverse('reports:my_reports')
             back_label = "My Submitted Reports"

@@ -37,6 +37,10 @@
                 <span class="font-monospace small fw-semibold text-muted">{{ report.reference_number }}</span>
                 <span class="text-muted">·</span>
                 <span class="small text-muted">{{ report.created_at|date:"M j, Y" }}</span>
+                {% if is_merchant_dispute %}
+                <span class="text-muted">·</span>
+                <span class="badge" style="background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;font-size:11.5px;font-weight:600;">Merchant Order Dispute</span>
+                {% endif %}
             </div>
             <h1 class="h3 fw-bold mt-1 mb-0">{{ report.title }}</h1>
         </div>
@@ -84,8 +88,8 @@
                     <span style="width:7px;height:7px;border-radius:50%;background:#B45309;display:inline-block;"></span>Restricted
                 </span>
             {% elif report.state == 'resolved' %}
-                <span class="d-inline-flex align-items-center gap-1 px-3 py-1 rounded-pill small fw-semibold" style="background:#F1F5F9;color:#64748B;border:1px solid #CBD5E1;">
-                    <span style="width:7px;height:7px;border-radius:50%;background:#64748B;display:inline-block;"></span>Resolved
+                <span class="d-inline-flex align-items-center gap-1 px-3 py-1 rounded-pill small fw-semibold" style="background:#DCFCE7;color:#16A34A;border:1px solid #BBF7D0;">
+                    <span style="width:7px;height:7px;border-radius:50%;background:#16A34A;display:inline-block;"></span>Resolved
                 </span>
             {% else %}
                 <span class="d-inline-flex align-items-center gap-1 px-3 py-1 rounded-pill small fw-semibold" style="background:#F1F5F9;color:#64748B;border:1px solid #CBD5E1;">
@@ -614,133 +618,243 @@
                 </div>
                 {% endif %}
             </div>
-            {# ── Police & Bank Evidence Dossier Card ── #}
-            <div class="vng-card p-4 mb-3" style="border-left: 4px solid #DC2626; background: linear-gradient(180deg, #FFFDFD 0%, #FFFFFF 100%);">
-                <div class="d-flex align-items-center gap-2 mb-2">
-                    <div class="d-flex align-items-center justify-content-center rounded-circle flex-shrink-0" style="width:36px;height:36px;background:rgba(220,38,38,0.1);color:#DC2626;">
-                        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                    </div>
-                    <div>
-                        <h6 class="mb-0 fw-bold" style="color:#0F172A;font-size:15px;letter-spacing:-0.01em;">Police Petition &amp; Bank Freezing Letter</h6>
-                        <span class="badge" style="background:rgba(220,38,38,0.12);color:#B91C1C;font-size:11px;font-weight:700;letter-spacing:.03em;">INSTANT LEGAL PETITION</span>
-                    </div>
-                </div>
-
-                <p class="small text-muted mb-3" style="font-size:13px;line-height:1.6;">
-                    <strong class="d-block text-dark mb-1" style="font-size:13.5px;">Skip paying ₦25,000–₦50,000 to a lawyer.</strong>
-                    <span>Generate an official, court-ready Petition Letter and Section 84 Evidence Package in 60 seconds to submit directly to the Police station (DPO / CID), EFCC, or your Bank to freeze the suspect's bank account and initiate fund recovery.</span>
-                </p>
-
-                <ul class="list-unstyled small text-muted mb-3" style="font-size:12.5px;line-height:1.65;">
-                    <li class="d-flex align-items-start gap-2 mb-2">
-                        <svg width="15" height="15" class="text-success mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-                        <span><strong>Standard Police, EFCC &amp; Bank Petition:</strong> Formally addressed to the DPO, EFCC Zonal Office, or Bank Fraud Desk with legal demands for immediate Post-No-Debit (PND) account restriction, suspect investigation, and fund recall.</span>
-                    </li>
-                    <li class="d-flex align-items-start gap-2 mb-2">
-                        <svg width="15" height="15" class="text-success mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-                        <span><strong>Court-Admissible Section 84 Certificate:</strong> Certified under Section 84 of the Nigerian Evidence Act 2011 so Police investigators, prosecutors, and Courts accept your computer-printed proof without dispute.</span>
-                    </li>
-                    <li class="d-flex align-items-start gap-2 mb-2">
-                        <svg width="15" height="15" class="text-success mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-                        <span><strong>Live Smartphone QR Verification:</strong> Police officers and bank branch managers can instantly scan the dynamic QR code on their phones to verify the document's digital seal and authenticity on the spot.</span>
-                    </li>
-                    <li class="d-flex align-items-start gap-2">
-                        <svg width="15" height="15" class="text-success mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-                        <span><strong>Forensic Timeline &amp; Attached Proofs:</strong> Chronological schedule of transaction dates, recipient bank accounts, suspect phone numbers, payment receipts, signed contracts, and chat logs.</span>
-                    </li>
-                </ul>
-
-                {% if has_unlocked_dossier or request.user.is_staff %}
-                    <div class="alert alert-success d-flex align-items-center gap-2 py-2 px-3 mb-3" style="font-size:12px;border-radius:8px;">
-                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+            {# ── Context-Aware Action Card: Merchant Due Process OR Resolved Notice OR Police Petition ── #}
+            {% if is_accused_merchant %}
+                {# ── STORE OWNER (ACCUSED MERCHANT) RESOLUTION DESK ── #}
+                <div class="vng-card p-4 mb-3" style="border-left: 4px solid {% if report.state == 'resolved' %}#16A34A{% else %}#F59E0B{% endif %}; background: linear-gradient(180deg, {% if report.state == 'resolved' %}#F0FDF4 0%, #FFFFFF 100%{% else %}#FFFBEB 0%, #FFFFFF 100%{% endif %});">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <div class="d-flex align-items-center justify-content-center rounded-circle flex-shrink-0" style="width:36px;height:36px;background:{% if report.state == 'resolved' %}rgba(22,163,74,0.12);color:#16A34A{% else %}rgba(245,158,11,0.15);color:#D97706{% endif %};">
+                            {% if report.state == 'resolved' %}
+                                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                            {% else %}
+                                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                            {% endif %}
+                        </div>
                         <div>
-                            <strong>Petition Package Ready to Print / Download</strong>
-                            {% if active_dossier %}
-                            <div class="text-muted" style="font-size:11px;">Tracking ID: <code>{{ active_dossier.tracking_id }}</code></div>
+                            <h6 class="mb-0 fw-bold" style="color:#0F172A;font-size:15px;letter-spacing:-0.01em;">Merchant Due Process Desk</h6>
+                            {% if report.state == 'resolved' %}
+                                <span class="badge" style="background:rgba(22,163,74,0.15);color:#15803D;font-size:11px;font-weight:700;letter-spacing:.03em;">DISPUTE RESOLVED &bull; SEAL ACTIVE</span>
+                            {% elif user_has_disputed %}
+                                <span class="badge" style="background:rgba(124,58,237,0.15);color:#6D28D9;font-size:11px;font-weight:700;letter-spacing:.03em;">DEFENSE UNDER REVIEW</span>
+                            {% else %}
+                                <span class="badge" style="background:rgba(217,119,6,0.15);color:#B45309;font-size:11px;font-weight:700;letter-spacing:.03em;">ACTION REQUIRED &bull; FAIR HEARING OPEN</span>
                             {% endif %}
                         </div>
                     </div>
-                    <a href="{% url 'reports:dossier_download' report.reference_number %}" target="_blank" class="btn btn-primary w-100 fw-bold d-flex align-items-center justify-content-center gap-2 py-2 shadow-sm">
-                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-                        Print / Download Legal Petition (PDF) &rarr;
-                    </a>
-                {% elif active_dossier and active_dossier.payment_status == 'pending' %}
-                    <div class="alert alert-warning py-2.5 px-3 mb-0" style="font-size:12px;border-radius:8px;">
-                        <div class="fw-bold mb-1 d-flex align-items-center gap-1.5 text-dark">
-                            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                            Transfer Proof Under Verification
-                        </div>
-                        <div class="text-muted" style="font-size:14px;line-height:1.45;">
-                            Tracking ID: <code>{{ active_dossier.tracking_id }}</code>.<br>
-                            Compliance team is verifying your manual bank transfer. Your certified petition will unlock automatically once confirmed.
-                        </div>
-                    </div>
-                {% else %}
-                    {# Ready to generate #}
-                    {% if has_evidence_and_amount %}
-                        {% if is_dossier_free %}
-                            <form action="{% url 'reports:dossier_request' report.reference_number %}" method="post">
-                                {% csrf_token %}
-                                <input type="hidden" name="payment_method" value="free">
-                                <button type="submit" class="btn btn-success w-100 fw-bold py-2.5 shadow-sm d-flex align-items-center justify-content-center gap-2">
-                                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                                    Generate Police Petition &amp; Bank Letter (Free) &rarr;
-                                </button>
-                            </form>
-                        {% elif has_sub_entitlement %}
-                            <div class="p-3 mb-2 rounded bg-success-subtle border border-success-subtle text-start">
-                                <div class="d-flex align-items-center gap-2 text-success fw-bold small mb-1">
-                                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-                                    <span>Included with your {{ sub_info.plan_name }} Package</span>
-                                </div>
-                                <div class="text-secondary small mb-2.5" style="font-size:12px;">
-                                    Your active commercial subscription covers official court-ready petition packages.
-                                </div>
-                                <form action="{% url 'reports:dossier_request' report.reference_number %}" method="post">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="payment_method" value="subscription">
-                                    <button type="submit" class="btn btn-success w-100 fw-bold py-2 shadow-sm d-flex align-items-center justify-content-center gap-2">
-                                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                                        Unlock via {{ sub_info.plan_name }} &rarr;
-                                    </button>
-                                </form>
-                            </div>
-                        {% else %}
-                            <button type="button" class="btn btn-danger w-100 fw-bold py-2.5 d-flex align-items-center justify-content-center gap-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#dossierPaymentModal">
-                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                                Generate Police Petition &amp; Bank Letter
-                            </button>
+
+                    {% if report.state == 'resolved' %}
+                        <p class="small text-muted mb-3" style="font-size:13px;line-height:1.6;">
+                            <strong class="d-block text-success mb-1" style="font-size:13.5px;">Dispute Settled Satisfactorily</strong>
+                            <span>The customer or mediation compliance team has confirmed that this transaction dispute has been settled satisfactorily.</span>
+                        </p>
+                        {% if disputed_merchant %}
+                        <a href="{% url 'public_merchant_trust' disputed_merchant.store_slug %}" target="_blank" class="btn btn-outline-success w-100 fw-bold py-2 mb-2 d-flex align-items-center justify-content-center gap-1.5 shadow-sm">
+                            <span>View Live Store Trust Seal &rarr;</span>
+                        </a>
                         {% endif %}
+                        <a href="{% url 'dashboard:index' %}" class="btn btn-light w-100 border text-muted small fw-semibold py-1.5">
+                            Return to Dashboard
+                        </a>
                     {% else %}
-                        {# Missing either evidence or loss amount #}
-                        {% if report.evidence_files.exists and not report.amount_lost %}
-                            <button type="button" class="btn btn-outline-danger w-100 fw-bold py-2.5 d-flex align-items-center justify-content-center gap-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#dossierEvidenceGateModal">
-                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                                State Loss Amount to Generate Petition
-                            </button>
-                            <small class="text-muted d-block text-center mt-2" style="font-size:11px;">
-                                Evidence is on file. State your financial loss to generate your formal petition.
-                            </small>
-                        {% elif report.amount_lost and not report.evidence_files.exists %}
-                            <button type="button" class="btn btn-outline-danger w-100 fw-bold py-2.5 d-flex align-items-center justify-content-center gap-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#dossierEvidenceGateModal">
-                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                                Upload Evidence to Generate Petition
-                            </button>
-                            <small class="text-muted d-block text-center mt-2" style="font-size:11px;">
-                                Loss of {{ report.amount_lost_formatted }} is on file. Upload proof to certify your petition.
-                            </small>
-                        {% else %}
-                            <button type="button" class="btn btn-outline-danger w-100 fw-bold py-2.5 d-flex align-items-center justify-content-center gap-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#dossierEvidenceGateModal">
-                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                                Add Loss &amp; Evidence to Generate Petition
-                            </button>
-                            <small class="text-muted d-block text-center mt-2" style="font-size:11px;">
-                                Requires financial loss claim &amp; proof document
-                            </small>
+                        <p class="small text-muted mb-3" style="font-size:13px;line-height:1.6;">
+                            <strong class="d-block text-dark mb-1" style="font-size:13.5px;">Customer Order Dispute Filed</strong>
+                            <span>A customer has lodged a dispute regarding an order fulfillment or payment. VerifyNG provides you with fair hearing due process to respond, upload waybills, proof of delivery, or refund receipts.</span>
+                        </p>
+
+                        <ul class="list-unstyled small text-muted mb-3" style="font-size:12.5px;line-height:1.65;">
+                            <li class="d-flex align-items-start gap-2 mb-2">
+                                <svg width="15" height="15" class="text-warning mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                                <span><strong>Fair Hearing Window:</strong> You have 7 days to register your defense before any administrative or public trust determinations are made.</span>
+                            </li>
+                            <li class="d-flex align-items-start gap-2 mb-2">
+                                <svg width="15" height="15" class="text-warning mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                                <span><strong>Proof of Resolution:</strong> If this was a delivery delay or miscommunication, you can submit delivery confirmation or bank transfer receipt to settle the claim.</span>
+                            </li>
+                            <li class="d-flex align-items-start gap-2">
+                                <svg width="15" height="15" class="text-warning mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                                <span><strong>Seal Standing:</strong> Once resolved, your store's Verified Seal immediately restores to full active standing.</span>
+                            </li>
+                        </ul>
+
+                        {% if can_dispute %}
+                            <a href="{% url 'reports:create_dispute' report.reference_number %}" class="btn btn-warning text-dark w-100 fw-bold py-2 shadow-sm d-flex align-items-center justify-content-center gap-2">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                Respond &amp; Submit Statement of Defense &rarr;
+                            </a>
+                        {% elif user_has_disputed %}
+                            <div class="alert alert-secondary py-2 px-3 mb-0 small text-center rounded">
+                                <strong>Defense on record.</strong> Compliance moderators and the buyer can review your submitted evidence in the timeline.
+                            </div>
                         {% endif %}
                     {% endif %}
-                {% endif %}
-            </div>
+                </div>
+
+            {% elif report.state == 'resolved' %}
+                {# ── RESOLVED CASE (REPORTER / PUBLIC VIEW) ── #}
+                <div class="vng-card p-4 mb-3" style="border-left: 4px solid #16A34A; background: linear-gradient(180deg, #F0FDF4 0%, #FFFFFF 100%);">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <div class="d-flex align-items-center justify-content-center rounded-circle flex-shrink-0" style="width:36px;height:36px;background:rgba(22,163,74,0.12);color:#16A34A;">
+                            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                        </div>
+                        <div>
+                            <h6 class="mb-0 fw-bold" style="color:#0F172A;font-size:15px;letter-spacing:-0.01em;">
+                                {% if is_merchant_dispute %}Commercial Dispute Settled{% else %}Case Resolved &amp; Closed{% endif %}
+                            </h6>
+                            <span class="badge" style="background:rgba(22,163,74,0.15);color:#15803D;font-size:11px;font-weight:700;letter-spacing:.03em;">SETTLEMENT CONFIRMED</span>
+                        </div>
+                    </div>
+
+                    <p class="small text-muted mb-3" style="font-size:13px;line-height:1.6;">
+                        <strong class="d-block text-success mb-1" style="font-size:13.5px;">This matter has been resolved.</strong>
+                        <span>The dispute between the parties has been settled satisfactorily. Formal police petitions and bank account freezing enforcement requests are closed for resolved cases.</span>
+                    </p>
+
+                    {% if has_unlocked_dossier or request.user.is_staff %}
+                        <div class="alert alert-success d-flex align-items-center gap-2 py-2 px-3 mb-3" style="font-size:12px;border-radius:8px;">
+                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                            <div>
+                                <strong>Archived Case Documentation on File</strong>
+                                {% if active_dossier %}
+                                <div class="text-muted" style="font-size:11px;">Tracking ID: <code>{{ active_dossier.tracking_id }}</code></div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <a href="{% url 'reports:dossier_download' report.reference_number %}" target="_blank" class="btn btn-outline-secondary w-100 fw-bold d-flex align-items-center justify-content-center gap-2 py-2 shadow-sm">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                            Download Archived Record (PDF) &rarr;
+                        </a>
+                    {% endif %}
+                </div>
+
+            {% else %}
+                {# ── UNRESOLVED ALLEGATION: Police Petition & Bank Freezing Letter Card ── #}
+                <div class="vng-card p-4 mb-3" style="border-left: 4px solid #DC2626; background: linear-gradient(180deg, #FFFDFD 0%, #FFFFFF 100%);">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <div class="d-flex align-items-center justify-content-center rounded-circle flex-shrink-0" style="width:36px;height:36px;background:rgba(220,38,38,0.1);color:#DC2626;">
+                            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                        </div>
+                        <div>
+                            <h6 class="mb-0 fw-bold" style="color:#0F172A;font-size:15px;letter-spacing:-0.01em;">Police Petition &amp; Bank Freezing Letter</h6>
+                            <span class="badge" style="background:rgba(220,38,38,0.12);color:#B91C1C;font-size:11px;font-weight:700;letter-spacing:.03em;">INSTANT LEGAL PETITION</span>
+                        </div>
+                    </div>
+
+                    <p class="small text-muted mb-3" style="font-size:13px;line-height:1.6;">
+                        <strong class="d-block text-dark mb-1" style="font-size:13.5px;">Skip paying ₦25,000–₦50,000 to a lawyer.</strong>
+                        <span>Generate an official, court-ready Petition Letter and Section 84 Evidence Package in 60 seconds to submit directly to the Police station (DPO / CID), EFCC, or your Bank to freeze the suspect's bank account and initiate fund recovery.</span>
+                    </p>
+
+                    <ul class="list-unstyled small text-muted mb-3" style="font-size:12.5px;line-height:1.65;">
+                        <li class="d-flex align-items-start gap-2 mb-2">
+                            <svg width="15" height="15" class="text-success mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                            <span><strong>Standard Police, EFCC &amp; Bank Petition:</strong> Formally addressed to the DPO, EFCC Zonal Office, or Bank Fraud Desk with legal demands for immediate Post-No-Debit (PND) account restriction, suspect investigation, and fund recall.</span>
+                        </li>
+                        <li class="d-flex align-items-start gap-2 mb-2">
+                            <svg width="15" height="15" class="text-success mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                            <span><strong>Court-Admissible Section 84 Certificate:</strong> Certified under Section 84 of the Nigerian Evidence Act 2011 so Police investigators, prosecutors, and Courts accept your computer-printed proof without dispute.</span>
+                        </li>
+                        <li class="d-flex align-items-start gap-2 mb-2">
+                            <svg width="15" height="15" class="text-success mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                            <span><strong>Live Smartphone QR Verification:</strong> Police officers and bank branch managers can instantly scan the dynamic QR code on their phones to verify the document's digital seal and authenticity on the spot.</span>
+                        </li>
+                        <li class="d-flex align-items-start gap-2">
+                            <svg width="15" height="15" class="text-success mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                            <span><strong>Forensic Timeline &amp; Attached Proofs:</strong> Chronological schedule of transaction dates, recipient bank accounts, suspect phone numbers, payment receipts, signed contracts, and chat logs.</span>
+                        </li>
+                    </ul>
+
+                    {% if has_unlocked_dossier or request.user.is_staff %}
+                        <div class="alert alert-success d-flex align-items-center gap-2 py-2 px-3 mb-3" style="font-size:12px;border-radius:8px;">
+                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                            <div>
+                                <strong>Petition Package Ready to Print / Download</strong>
+                                {% if active_dossier %}
+                                <div class="text-muted" style="font-size:11px;">Tracking ID: <code>{{ active_dossier.tracking_id }}</code></div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <a href="{% url 'reports:dossier_download' report.reference_number %}" target="_blank" class="btn btn-primary w-100 fw-bold d-flex align-items-center justify-content-center gap-2 py-2 shadow-sm">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                            Print / Download Legal Petition (PDF) &rarr;
+                        </a>
+                    {% elif active_dossier and active_dossier.payment_status == 'pending' %}
+                        <div class="alert alert-warning py-2.5 px-3 mb-0" style="font-size:12px;border-radius:8px;">
+                            <div class="fw-bold mb-1 d-flex align-items-center gap-1.5 text-dark">
+                                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                                Transfer Proof Under Verification
+                            </div>
+                            <div class="text-muted" style="font-size:14px;line-height:1.45;">
+                                Tracking ID: <code>{{ active_dossier.tracking_id }}</code>.<br>
+                                Compliance team is verifying your manual bank transfer. Your certified petition will unlock automatically once confirmed.
+                            </div>
+                        </div>
+                    {% else %}
+                        {# Ready to generate #}
+                        {% if has_evidence_and_amount %}
+                            {% if is_dossier_free %}
+                                <form action="{% url 'reports:dossier_request' report.reference_number %}" method="post">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="payment_method" value="free">
+                                    <button type="submit" class="btn btn-success w-100 fw-bold py-2.5 shadow-sm d-flex align-items-center justify-content-center gap-2">
+                                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                                        Generate Police Petition &amp; Bank Letter (Free) &rarr;
+                                    </button>
+                                </form>
+                            {% elif has_sub_entitlement %}
+                                <div class="p-3 mb-2 rounded bg-success-subtle border border-success-subtle text-start">
+                                    <div class="d-flex align-items-center gap-2 text-success fw-bold small mb-1">
+                                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                                        <span>Included with your {{ sub_info.plan_name }} Package</span>
+                                    </div>
+                                    <div class="text-secondary small mb-2.5" style="font-size:12px;">
+                                        Your active commercial subscription covers official court-ready petition packages.
+                                    </div>
+                                    <form action="{% url 'reports:dossier_request' report.reference_number %}" method="post">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="payment_method" value="subscription">
+                                        <button type="submit" class="btn btn-success w-100 fw-bold py-2 shadow-sm d-flex align-items-center justify-content-center gap-2">
+                                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                                            Unlock via {{ sub_info.plan_name }} &rarr;
+                                        </button>
+                                    </form>
+                                </div>
+                            {% else %}
+                                <button type="button" class="btn btn-danger w-100 fw-bold py-2.5 d-flex align-items-center justify-content-center gap-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#dossierPaymentModal">
+                                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                                    Generate Police Petition &amp; Bank Letter
+                                </button>
+                            {% endif %}
+                        {% else %}
+                            {# Missing either evidence or loss amount #}
+                            {% if report.evidence_files.exists and not report.amount_lost %}
+                                <button type="button" class="btn btn-outline-danger w-100 fw-bold py-2.5 d-flex align-items-center justify-content-center gap-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#dossierEvidenceGateModal">
+                                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                                    State Loss Amount to Generate Petition
+                                </button>
+                                <small class="text-muted d-block text-center mt-2" style="font-size:11px;">
+                                    Evidence is on file. State your financial loss to generate your formal petition.
+                                </small>
+                            {% elif report.amount_lost and not report.evidence_files.exists %}
+                                <button type="button" class="btn btn-outline-danger w-100 fw-bold py-2.5 d-flex align-items-center justify-content-center gap-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#dossierEvidenceGateModal">
+                                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                    Upload Evidence to Generate Petition
+                                </button>
+                                <small class="text-muted d-block text-center mt-2" style="font-size:11px;">
+                                    Loss of {{ report.amount_lost_formatted }} is on file. Upload proof to certify your petition.
+                                </small>
+                            {% else %}
+                                <button type="button" class="btn btn-outline-danger w-100 fw-bold py-2.5 d-flex align-items-center justify-content-center gap-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#dossierEvidenceGateModal">
+                                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                    Add Loss &amp; Evidence to Generate Petition
+                                </button>
+                                <small class="text-muted d-block text-center mt-2" style="font-size:11px;">
+                                    Requires financial loss claim &amp; proof document
+                                </small>
+                            {% endif %}
+                        {% endif %}
+                    {% endif %}
+                </div>
+            {% endif %}
 
             <div class="vng-card p-4">
                 <p class="small fw-semibold text-muted text-uppercase mb-2">Platform Notice</p>
@@ -753,6 +867,7 @@
     </div>
 </div>
 
+{% if not is_accused_merchant and report.state != 'resolved' %}
 {# ── Evidence & Loss Gate Modal ── #}
 <div class="modal fade" id="dossierEvidenceGateModal" tabindex="-1" aria-labelledby="dossierEvidenceGateModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -951,6 +1066,7 @@
         </div>
     </div>
 </div>
+{% endif %}
 
 {% if can_reporter_resolve %}
 <!-- Modal for Reporter Resolve Confirmation -->
