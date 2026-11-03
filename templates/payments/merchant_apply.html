@@ -8,16 +8,16 @@
   .vng-webcam-box {
     position: relative;
     width: 100%;
-    max-width: 440px;
-    height: 320px;
+    max-width: 100%;
+    height: 230px;
     background: #091326;
-    border-radius: 16px;
+    border-radius: 14px;
     overflow: hidden;
     margin: 0 auto;
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 2px dashed #475569;
+    border: 1.5px dashed #475569;
     box-shadow: inset 0 2px 10px rgba(0,0,0,0.4);
   }
   .vng-webcam-box video, .vng-webcam-box canvas, .vng-webcam-box img {
@@ -26,14 +26,30 @@
     object-fit: cover;
   }
   .vng-dropzone {
-    border: 2.5px dashed #94a3b8;
-    border-radius: 16px;
-    padding: 36px 24px;
+    border: 2px dashed #94a3b8;
+    border-radius: 14px;
+    padding: 24px 16px;
     text-align: center;
     background: #f8fafc;
     cursor: pointer;
     transition: all 0.25s ease;
     box-shadow: 0 2px 8px rgba(15,23,42,0.03);
+  }
+  .vng-selfie-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 1.25rem;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+  }
+  @media (min-width: 576px) {
+    .vng-selfie-card {
+      padding: 1.5rem;
+    }
   }
   .vng-dropzone:hover, .vng-dropzone.dragover {
     border-color: #16a34a;
@@ -367,15 +383,10 @@
             <hr class="my-4">
 
             <!-- Settlement Bank Account -->
-            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+            <div class="mb-2">
               <h5 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2" style="font-size:1.2rem;">
                 <i class="bi bi-bank text-primary"></i> Settlement Bank Account
               </h5>
-              {% if profile and profile.status == 'active' %}
-                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3.5 py-1.5 fw-semibold shadow-sm" data-bs-toggle="modal" data-bs-target="#requestBankChangeModal">
-                  <i class="bi bi-pencil-square me-1"></i> Request Bank Change
-                </button>
-              {% endif %}
             </div>
             <p class="vng-instruction-text mb-3">
               The bank account where your customers send money. Must match your verified identity records.
@@ -489,60 +500,90 @@
                 Required for individual sellers to prevent stolen identity impersonation. Take a live webcam photo or upload a crisp selfie holding your ID.
               </p>
 
-              <div class="row g-4 align-items-stretch">
-                <!-- Option A: Webcam Capture -->
-                <div class="col-lg-6">
-                  <div class="p-3.5 p-sm-4 bg-light rounded-4 border h-100 d-flex flex-column justify-content-between shadow-sm" style="border-color:#e2e8f0!important;">
-                    <div>
-                      <div class="fw-semibold text-dark mb-3 d-flex align-items-center gap-2" style="font-size:1rem;">
-                        <span class="badge bg-primary text-white rounded-circle p-1" style="width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:0.75rem;">1</span>
-                        <span>Take live webcam photo:</span>
+              {% if profile and profile.status == 'active' and profile.selfie_image %}
+                <!-- Active Verified Merchant Selfie State -->
+                <div class="p-3.5 p-sm-4 bg-light rounded-4 border mb-3 shadow-sm" style="border-color:#e2e8f0!important;">
+                  <div class="d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-3">
+                    <div class="d-flex align-items-center gap-3">
+                      <div class="position-relative flex-shrink-0">
+                        <img src="{{ profile.selfie_image.url }}" alt="Verified Identity" class="rounded-3 border object-fit-cover shadow-sm" style="width:72px;height:72px;">
+                        <span class="position-absolute bottom-0 end-0 bg-success text-white rounded-circle p-1 d-flex align-items-center justify-content-center shadow" style="width:20px;height:20px;font-size:10px;transform:translate(25%, 25%);">
+                          <i class="bi bi-check-lg"></i>
+                        </span>
                       </div>
-                      <div class="vng-webcam-box shadow-sm mb-3" id="webcamContainer">
-                        <video id="webcamVideo" autoplay playsinline style="display:none;"></video>
-                        <canvas id="webcamCanvas" style="display:none;"></canvas>
-                        <img id="webcamPreview" style="display:none;" alt="Captured Selfie">
-                        <div id="webcamPlaceholder" class="text-center text-white-50 p-3">
-                          <i class="bi bi-camera-video fs-1 d-block mb-2 text-white-50"></i>
-                          <span class="d-block fw-semibold text-white mb-1" style="font-size:1rem;">Camera inactive</span>
-                          <small class="text-white-50">Tap "Open Webcam" below to begin</small>
-                        </div>
+                      <div>
+                        <span class="badge bg-success-subtle text-success border border-success-subtle mb-1 px-2.5 py-1 fw-semibold d-inline-flex align-items-center gap-1.5" style="font-size:0.8rem;">
+                          <i class="bi bi-shield-check"></i> Identity Photo Verified &amp; On File
+                        </span>
+                        <div class="fw-bold text-dark" style="font-size:1rem;">Government ID Match Confirmed</div>
+                        <div class="small text-muted">Your biometric photo is encrypted and safely archived in compliance with NDPA 2023.</div>
                       </div>
                     </div>
-
-                    <div class="d-flex justify-content-center gap-2 mt-2 pt-2">
-                      <button type="button" class="btn btn-primary rounded-pill px-4 py-2 fw-semibold shadow-sm w-100 w-sm-auto" id="btnStartCamera" onclick="startCamera()">
-                        <i class="bi bi-camera-video me-1.5"></i> Open Webcam
-                      </button>
-                      <button type="button" class="btn btn-success rounded-pill px-4 py-2 fw-semibold shadow-sm w-100 w-sm-auto" id="btnCapturePhoto" onclick="capturePhoto()" style="display:none;">
-                        <i class="bi bi-camera me-1.5"></i> Capture Photo
-                      </button>
-                      <button type="button" class="btn btn-outline-secondary rounded-pill px-3 py-2 fw-semibold w-100 w-sm-auto" id="btnRetakePhoto" onclick="retakePhoto()" style="display:none;">
-                        <i class="bi bi-arrow-repeat me-1.5"></i> Retake
+                    <div class="w-100 w-sm-auto mt-2 mt-sm-0 text-sm-end">
+                      <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1.5 fw-semibold w-100 w-sm-auto" onclick="document.getElementById('selfieUpdateBox').style.display='block';this.style.display='none';">
+                        <i class="bi bi-arrow-repeat me-1"></i> Update Photo
                       </button>
                     </div>
                   </div>
                 </div>
+              {% endif %}
 
-                <!-- Option B: Upload Selfie Photo Dropzone -->
-                <div class="col-lg-6">
-                  <div class="p-3.5 p-sm-4 bg-light rounded-4 border h-100 d-flex flex-column justify-content-between shadow-sm" style="border-color:#e2e8f0!important;">
-                    <div>
-                      <div class="fw-semibold text-dark mb-3 d-flex align-items-center gap-2" style="font-size:1rem;">
-                        <span class="badge bg-secondary text-white rounded-circle p-1" style="width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:0.75rem;">2</span>
-                        <span>Or upload a clear selfie photo holding your ID:</span>
+              <div id="selfieUpdateBox" {% if profile and profile.status == 'active' and profile.selfie_image %}style="display:none;"{% endif %}>
+                <div class="row g-4 align-items-stretch">
+                  <!-- Option A: Webcam Capture -->
+                  <div class="col-md-6">
+                    <div class="vng-selfie-card">
+                      <div>
+                        <div class="fw-semibold text-dark mb-3 d-flex align-items-center gap-2" style="font-size:0.98rem;">
+                          <span class="badge bg-primary text-white rounded-circle" style="width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:0.75rem;">1</span>
+                          <span>Take live webcam photo:</span>
+                        </div>
+                        <div class="vng-webcam-box shadow-sm mb-3" id="webcamContainer">
+                          <video id="webcamVideo" autoplay playsinline style="display:none;"></video>
+                          <canvas id="webcamCanvas" style="display:none;"></canvas>
+                          <img id="webcamPreview" style="display:none;" alt="Captured Selfie">
+                          <div id="webcamPlaceholder" class="text-center text-white-50 p-3">
+                            <i class="bi bi-camera-video fs-1 d-block mb-2 text-white-50"></i>
+                            <span class="d-block fw-semibold text-white mb-1" style="font-size:0.98rem;">Camera inactive</span>
+                            <small class="text-white-50" style="font-size:0.83rem;">Tap "Open Webcam" below</small>
+                          </div>
+                        </div>
                       </div>
-                      <div class="vng-dropzone" id="selfieDropzone" onclick="document.getElementById('id_selfie_image').click();" role="button" tabindex="0" style="min-height:220px;display:flex;flex-direction:column;align-items:center;justify-content:center;">
-                        <i class="bi bi-person-bounding-box fs-1 text-primary d-block mb-2"></i>
-                        <div class="fw-bold text-dark fs-5">Upload selfie photo</div>
-                        <div class="text-muted mt-1" style="font-size:0.92rem;">Max 5MB (JPG, PNG)</div>
-                        <div id="selfieFileName" class="alert alert-success d-inline-block fw-bold mt-3 mb-0 py-1.5 px-3" style="display:none;"></div>
+
+                      <div class="d-flex flex-column flex-sm-row justify-content-center gap-2 mt-2 pt-1">
+                        <button type="button" class="btn btn-primary rounded-pill px-4 py-2 fw-semibold shadow-sm w-100" id="btnStartCamera" onclick="startCamera()">
+                          <i class="bi bi-camera-video me-1.5"></i> Open Webcam
+                        </button>
+                        <button type="button" class="btn btn-success rounded-pill px-4 py-2 fw-semibold shadow-sm w-100" id="btnCapturePhoto" onclick="capturePhoto()" style="display:none;">
+                          <i class="bi bi-camera me-1.5"></i> Capture Photo
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary rounded-pill px-3 py-2 fw-semibold w-100" id="btnRetakePhoto" onclick="retakePhoto()" style="display:none;">
+                          <i class="bi bi-arrow-repeat me-1.5"></i> Retake
+                        </button>
                       </div>
-                      <input type="file" name="selfie_image" id="id_selfie_image" accept="image/*" style="display:none;" onchange="handleFileSelected(this, 'selfieFileName')">
-                      {% if form.selfie_image.errors %}<div class="text-danger small mt-2">{{ form.selfie_image.errors }}</div>{% endif %}
                     </div>
-                    <div class="text-muted small text-center mt-3" style="font-size:0.85rem;">
-                      Ensure your face and ID details are crisp and legible.
+                  </div>
+
+                  <!-- Option B: Upload Selfie Photo Dropzone -->
+                  <div class="col-md-6">
+                    <div class="vng-selfie-card">
+                      <div>
+                        <div class="fw-semibold text-dark mb-3 d-flex align-items-center gap-2" style="font-size:0.98rem;">
+                          <span class="badge bg-secondary text-white rounded-circle" style="width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:0.75rem;">2</span>
+                          <span>Or upload a clear selfie photo holding your ID:</span>
+                        </div>
+                        <div class="vng-dropzone" id="selfieDropzone" onclick="document.getElementById('id_selfie_image').click();" role="button" tabindex="0" style="height:230px;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                          <i class="bi bi-person-bounding-box fs-1 text-primary d-block mb-2"></i>
+                          <div class="fw-bold text-dark" style="font-size:1.05rem;">Upload selfie photo</div>
+                          <div class="text-muted mt-1" style="font-size:0.88rem;">Max 5MB (JPG, PNG)</div>
+                          <div id="selfieFileName" class="alert alert-success d-inline-block fw-bold mt-2.5 mb-0 py-1.5 px-3" style="display:none;font-size:0.85rem;"></div>
+                        </div>
+                        <input type="file" name="selfie_image" id="id_selfie_image" accept="image/*" style="display:none;" onchange="handleFileSelected(this, 'selfieFileName')">
+                        {% if form.selfie_image.errors %}<div class="text-danger small mt-2">{{ form.selfie_image.errors }}</div>{% endif %}
+                      </div>
+                      <div class="text-muted small text-center mt-3 pt-1" style="font-size:0.84rem;">
+                        Ensure your face and ID details are crisp and legible.
+                      </div>
                     </div>
                   </div>
                 </div>
