@@ -1,0 +1,330 @@
+{% extends "public/base.html" %}
+{% load static humanize %}
+
+{% block title %}Verified Merchant Trust Seal | {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
+
+{% block content %}
+<section class="py-5 bg-light border-bottom">
+  <div class="container py-lg-4">
+    <div class="row align-items-center g-5">
+      <div class="col-lg-7">
+        <h1 class="h2 fw-bold text-dark mb-3" style="font-size:2.25rem;line-height:1.25;letter-spacing:-0.02em;">
+          Turn Skeptical Online Buyers Into Confident Paying Customers.
+        </h1>
+        <p class="text-muted mb-4" style="font-size:1.15rem;line-height:1.65;">
+          In Nigeria's social commerce space, over 70% of buyers abandon orders out of fear of fake accounts and online scammers. With your authenticated <strong>VerifyNG Verified Merchant Seal</strong>, buyers verify your genuine store, settlement bank name, and clean track record in one tap before paying.
+        </p>
+
+        <!-- Dynamic Pricing / Trust Assurance Card -->
+        <div class="p-4 rounded-4 bg-white border shadow-sm mb-4">
+          {% if not is_free %}
+            {# If paid mode is ON in Admin, show the subscription price & trial notice #}
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+              <div>
+                <span class="text-uppercase tracking-wider fw-bold text-muted d-block mb-1" style="font-size:0.85rem;">Active Program Membership</span>
+                <div class="d-flex align-items-baseline gap-2">
+                  <span class="h2 fw-bold text-dark mb-0">₦{{ price|intcomma }}</span>
+                  <span class="text-muted" style="font-size:0.95rem;">/ month</span>
+                  {% if trial_days %}
+                    <span class="badge bg-primary-subtle text-primary fw-semibold px-2.5 py-1 ms-2" style="font-size:0.85rem;">
+                      <i class="bi bi-gift-fill me-1"></i>First {{ trial_days }} Days Free
+                    </span>
+                  {% endif %}
+                </div>
+              </div>
+
+              <div>
+                {% if user.is_authenticated %}
+                  {% if existing_profile %}
+                    <a href="{% url 'merchant_apply' %}" class="btn btn-primary px-4 py-2.5 rounded-pill fw-semibold" style="font-size:0.95rem;">
+                      <i class="bi bi-speedometer2 me-1"></i> View Merchant Desk
+                    </a>
+                  {% elif tier1_verified or employer_verified %}
+                    <a href="{% url 'merchant_apply' %}" class="btn btn-success px-4 py-2.5 rounded-pill fw-semibold shadow-sm" style="font-size:0.95rem;">
+                      <i class="bi bi-shield-check me-1"></i> Apply for Verified Seal
+                    </a>
+                  {% else %}
+                    <a href="{% url 'users:profile' %}" class="btn btn-warning px-4 py-2.5 rounded-pill fw-semibold text-dark shadow-sm" style="font-size:0.95rem;">
+                      <i class="bi bi-exclamation-triangle-fill me-1"></i> Complete KYC Verification First
+                    </a>
+                  {% endif %}
+                {% else %}
+                  <a href="{% url 'users:login' %}?next={% url 'merchant_landing' %}" class="btn btn-primary px-4 py-2.5 rounded-pill fw-semibold shadow-sm" style="font-size:0.95rem;">
+                    Sign In to Apply
+                  </a>
+                {% endif %}
+              </div>
+            </div>
+
+            {% if trial_days %}
+            <div class="mt-3 pt-3 border-top text-muted d-flex align-items-center gap-2" style="font-size:0.95rem;">
+              <i class="bi bi-info-circle text-primary fs-5"></i>
+              <span>Enjoy all seal benefits with <strong>₦0 debit during your {{ trial_days }}-day trial</strong>. Keep active anytime or cancel whenever you choose.</span>
+            </div>
+            {% endif %}
+
+          {% else %}
+            {# When 100% Free: Replace pricing card completely with Buyer Trust Assurance card #}
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+              <div class="d-flex align-items-center gap-3">
+                <div class="rounded-circle p-3 d-inline-flex align-items-center justify-content-center" style="background:#f0fdf4;border:1px solid #bbf7d0;">
+                  <i class="bi bi-shield-check text-success fs-3"></i>
+                </div>
+                <div>
+                  <h5 class="fw-bold text-dark mb-1" style="font-size:1.15rem;">Stop Customer Payment Hesitation</h5>
+                  <p class="text-muted mb-0" style="font-size:0.95rem;">
+                    Give your buyers 100% peace of mind to pay before delivery and stand out from competitors.
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                {% if user.is_authenticated %}
+                  {% if existing_profile %}
+                    <a href="{% url 'merchant_apply' %}" class="btn btn-primary px-4 py-2.5 rounded-pill fw-semibold" style="font-size:0.95rem;">
+                      <i class="bi bi-speedometer2 me-1"></i> View Merchant Desk
+                    </a>
+                  {% elif tier1_verified or employer_verified %}
+                    <a href="{% url 'merchant_apply' %}" class="btn btn-success px-4 py-2.5 rounded-pill fw-semibold shadow-sm" style="font-size:0.95rem;">
+                      <i class="bi bi-shield-check me-1"></i> Apply for Verified Seal
+                    </a>
+                  {% else %}
+                    <a href="{% url 'users:profile' %}" class="btn btn-warning px-4 py-2.5 rounded-pill fw-semibold text-dark shadow-sm" style="font-size:0.95rem;">
+                      <i class="bi bi-exclamation-triangle-fill me-1"></i> Complete KYC Verification First
+                    </a>
+                  {% endif %}
+                {% else %}
+                  <a href="{% url 'users:login' %}?next={% url 'merchant_landing' %}" class="btn btn-primary px-4 py-2.5 rounded-pill fw-semibold shadow-sm" style="font-size:0.95rem;">
+                    Sign In to Apply
+                  </a>
+                {% endif %}
+              </div>
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Identity Verification Eligibility Prompt -->
+        {% if user.is_authenticated %}
+        <div class="alert {% if tier1_verified or employer_verified %}alert-success{% else %}alert-warning{% endif %} d-flex align-items-center gap-3 rounded-3 py-3" role="alert">
+          <i class="bi {% if tier1_verified or employer_verified %}bi-check-circle-fill text-success fs-4{% else %}bi-shield-exclamation text-warning fs-4{% endif %}"></i>
+          <div>
+            <span class="fw-bold" style="font-size:1rem;">Identity Verification Status: </span>
+            {% if tier1_verified or employer_verified %}
+              <span class="text-success fw-bold">Verified &amp; Eligible!</span> You can proceed directly to setup your Merchant Trust Seal.
+            {% else %}
+              <span class="text-danger fw-bold">Unverified</span> — VerifyNG requires basic government ID verification before issuing a public merchant badge to protect online buyers from fraud.
+              <div class="mt-1"><a href="{% url 'users:profile' %}" class="fw-semibold text-decoration-underline text-dark" style="font-size:0.95rem;">Submit your ID verification on your profile here &rarr;</a></div>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Advanced Professional Seal Visual Preview Card -->
+      <div class="col-lg-5">
+        <div class="card border-0 shadow-lg rounded-4 overflow-hidden" style="background:#ffffff;box-shadow:0 20px 40px rgba(15,23,42,0.12)!important;">
+          <!-- Professional Cover Banner Header -->
+          <div class="position-relative text-center" style="background: linear-gradient(135deg, #0b1528 0%, #172a4d 60%, #1e3a68 100%); padding: 2rem 1.5rem 1.75rem;">
+            <!-- Subtle Top Glow & Pattern Accent -->
+            <div class="position-absolute top-0 start-0 w-100 h-100" style="background: radial-gradient(circle at 50% 15%, rgba(36,87,214,0.35) 0%, transparent 65%); pointer-events: none;"></div>
+            
+            <!-- Avatar with Prominent High-Contrast Verified Badge -->
+            <div class="position-relative d-inline-block mt-3">
+              <div class="rounded-circle bg-white text-dark d-inline-flex align-items-center justify-content-center shadow-lg border border-3 border-white" style="width:78px;height:78px;font-size:2.2rem;">
+                🛍️
+              </div>
+              <span class="position-absolute bottom-0 end-0 d-inline-flex align-items-center justify-content-center" style="transform: translate(25%, 25%);" title="Officially Verified Merchant">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.35));">
+                  <path d="M10.29 2.308a2.23 2.23 0 0 1 3.42 0c.66.757 1.688 1.096 2.66.878a2.23 2.23 0 0 1 2.68 2.128c.046 1.002.637 1.892 1.528 2.302a2.23 2.23 0 0 1 1.282 3.167c-.49 1.008-.432 2.188.15 3.125a2.23 2.23 0 0 1-1.282 3.167c-.89.41-1.482 1.3-1.528 2.302a2.23 2.23 0 0 1-2.68 2.128c-.972-.218-2 .12-2.66.878a2.23 2.23 0 0 1-3.42 0c-.66-.757-1.688-1.096-2.66-.878a2.23 2.23 0 0 1-2.68-2.128c-.046-1.002-.637-1.892-1.528-2.302a2.23 2.23 0 0 1-1.282-3.167c.49-1.008.432-2.188-.15-3.125a2.23 2.23 0 0 1 1.282-3.167c.89-.41 1.482-1.3 1.528-2.302a2.23 2.23 0 0 1 2.68-2.128c.972.218 2-.12 2.66-.878Z" fill="#16a34a" stroke="#ffffff" stroke-width="1.2"/>
+                  <polyline points="8 12.5 10.75 15.25 16 10" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </span>
+            </div>
+
+            <h4 class="fw-bold mt-3 mb-1.5 text-white" style="font-size:1.35rem;letter-spacing:-0.2px;">Glam Store Nigeria</h4>
+            
+            <!-- Crisp High-Contrast Category & Handle Pill -->
+            <div class="mb-2">
+              <span class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill shadow-sm" style="background:#ffffff;border:1.5px solid #e2e8f0;">
+                <span class="fw-bold font-monospace" style="color:#0f172a;font-size:0.86rem;">@glamstore</span>
+                <span style="color:#94a3b8;">&bull;</span>
+                <span class="fw-bold" style="color:#1d4ed8;font-size:0.84rem;">Fashion &amp; Retail &bull; Lagos</span>
+              </span>
+            </div>
+
+            <!-- Crisp High-Contrast Public Link Pill -->
+            <div class="d-inline-flex align-items-center gap-1.5 px-3 py-1 rounded-pill mb-1 shadow-sm" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);backdrop-filter:blur(6px);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#67e8f9" stroke-width="2.5"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+              <span class="fw-semibold font-monospace" style="color:#ffffff;font-size:0.92rem;text-shadow:0 1px 2px rgba(0,0,0,0.4);">
+                verifyng.com/trust-seal/v/glamstore
+              </span>
+            </div>
+          </div>
+
+          <!-- Trust Evidence Rows -->
+          <div class="p-4 bg-white">
+            <div class="d-flex align-items-center justify-content-between py-2.5 border-bottom">
+              <span class="text-muted d-flex align-items-center gap-2" style="font-size:0.95rem;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+                Fraud Registry History
+              </span>
+              <span class="badge bg-success-subtle text-success fw-bold px-2.5 py-1" style="font-size:0.88rem;">
+                0 (Safe)
+              </span>
+            </div>
+
+            <div class="d-flex align-items-center justify-content-between py-2.5 border-bottom">
+              <span class="text-muted d-flex align-items-center gap-2" style="font-size:0.95rem;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.2"><rect x="3" y="21" width="18" height="2"/><path d="M3 10h18"/><path d="M5 6l7-3 7 3"/><line x1="4" y1="10" x2="4" y2="21"/><line x1="20" y1="10" x2="20" y2="21"/><line x1="8" y1="14" x2="8" y2="17"/><line x1="12" y1="14" x2="12" y2="17"/><line x1="16" y1="14" x2="16" y2="17"/></svg>
+                Settlement Bank
+              </span>
+              <span class="fw-semibold text-dark text-end" style="font-size:0.95rem;">
+                NIBSS Match Verified
+              </span>
+            </div>
+
+            <div class="d-flex align-items-center justify-content-between py-2.5 border-bottom">
+              <span class="text-muted d-flex align-items-center gap-2" style="font-size:0.95rem;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#e11d48" stroke-width="2.2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+                Anti-Clone Socials
+              </span>
+              <span class="fw-semibold text-dark" style="font-size:0.95rem;">
+                Authentic Channels Linked
+              </span>
+            </div>
+
+            <div class="d-flex align-items-center justify-content-between py-2.5">
+              <span class="text-muted d-flex align-items-center gap-2" style="font-size:0.95rem;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2.2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+                Live Biometric Photo
+              </span>
+              <span class="badge bg-primary-subtle text-primary fw-bold px-2.5 py-1" style="font-size:0.88rem;">
+                Passed Liveness Check
+              </span>
+            </div>
+          </div>
+
+          <div class="card-footer bg-light p-3 text-center text-muted d-flex align-items-center justify-content-center gap-1.5" style="font-size:0.85rem;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Section 84 Evidence &amp; NDPR Compliant Security
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Why Verified Merchants Win Section (Benefit Focused) -->
+<section class="py-5">
+  <div class="container py-lg-4">
+    <div class="text-center max-w-700 mx-auto mb-5">
+      <h2 class="fw-extrabold text-dark" style="font-size:2.1rem;">Why Verified Merchants Win Online</h2>
+      <p class="text-muted" style="font-size:1.1rem;line-height:1.6;">
+        Every single day in Nigeria, buyers abandon payments because of fear. Here is how your Verified Seal stops lost sales and puts money directly into your account:
+      </p>
+    </div>
+
+    <div class="row g-4">
+      <div class="col-md-4">
+        <div class="card h-100 border rounded-4 p-4 text-center shadow-sm">
+          <div class="rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center" style="width:64px;height:64px;background:#f0fdf4;border:1px solid #bbf7d0;">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="1" x2="12" y2="23"/>
+              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            </svg>
+          </div>
+          <h4 class="fw-bold mb-2" style="font-size:1.25rem;">Customers Pay Before Delivery</h4>
+          <p class="text-muted mb-0" style="font-size:1rem;line-height:1.6;">
+            Payment-On-Delivery loses sellers thousands of Naira in dispatch fees when orders are rejected. Verified seals give buyers the confidence to pay in full before shipping.
+          </p>
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <div class="card h-100 border rounded-4 p-4 text-center shadow-sm">
+          <div class="rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center" style="width:64px;height:64px;background:#eff6ff;border:1px solid #bfdbfe;">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              <path d="M12 8v4"/>
+              <path d="M12 16h.01"/>
+            </svg>
+          </div>
+          <h4 class="fw-bold mb-2" style="font-size:1.25rem;">Imposters Cannot Clone You</h4>
+          <p class="text-muted mb-0" style="font-size:1rem;line-height:1.6;">
+            Fraudsters regularly copy product pictures and create fake IG handles to steal customers. Your public verification link displays your exact verified handles and NIBSS bank name.
+          </p>
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <div class="card h-100 border rounded-4 p-4 text-center shadow-sm">
+          <div class="rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center" style="width:64px;height:64px;background:#faf5ff;border:1px solid #e9d5ff;">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#9333ea" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+            </svg>
+          </div>
+          <h4 class="fw-bold mb-2" style="font-size:1.25rem;">Faster DM Conversions</h4>
+          <p class="text-muted mb-0" style="font-size:1rem;line-height:1.6;">
+            Instead of spending hours convincing skeptical customers in WhatsApp or Instagram DMs, drop your bio link: <em>"We are verified on VerifyNG — see our credentials here"</em>.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQs Section -->
+<section class="py-5 bg-light border-top">
+  <div class="container py-lg-4">
+    <div class="text-center max-w-700 mx-auto mb-5">
+      <h2 class="fw-extrabold text-dark" style="font-size:2rem;">Frequently Asked Questions</h2>
+    </div>
+
+    <div class="row justify-content-center">
+      <div class="col-lg-8">
+        <div class="accordion accordion-flush" id="merchantFaq">
+          <div class="accordion-item rounded-3 mb-3 border bg-white overflow-hidden shadow-sm">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#faq1" style="font-size:1.05rem;">
+                Do I need a CAC registration to get a Verified Merchant Badge?
+              </button>
+            </h2>
+            <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#merchantFaq">
+              <div class="accordion-body text-muted" style="font-size:0.95rem;line-height:1.6;">
+                <strong>No.</strong> We built this system specifically recognizing that millions of legitimate Nigerian solopreneurs and social vendors trade as individuals without formal CAC incorporation. Individual vendors simply require basic ID verification + a live webcam photo + verified NIBSS settlement bank account. If you do have a CAC registration, you can choose "Corporate Registered Entity" to display your CAC seal as well!
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item rounded-3 mb-3 border bg-white overflow-hidden shadow-sm">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#faq2" style="font-size:1.05rem;">
+                What happens if a buyer reports an issue with an order?
+              </button>
+            </h2>
+            <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#merchantFaq">
+              <div class="accordion-body text-muted" style="font-size:0.95rem;line-height:1.6;">
+                VerifyNG enforces an orderly <strong>3-stage lifecycle: 🟢 Active &rarr; 🟡 Under Dispute &rarr; 🔴 Suspended</strong>.<br>
+                When a formal petition is submitted with transaction proof, your badge automatically enters <strong>Under Dispute</strong> for 48 hours to allow you to provide shipping proof or resolve the customer refund. Unresolved or proven fraud triggers <strong>Suspension</strong>, protecting buyers and keeping the trust badge community spotless.
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item rounded-3 mb-3 border bg-white overflow-hidden shadow-sm">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#faq3" style="font-size:1.05rem;">
+                Why is a live webcam photo required for individual sellers?
+              </button>
+            </h2>
+            <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#merchantFaq">
+              <div class="accordion-body text-muted" style="font-size:0.95rem;line-height:1.6;">
+                Live webcam capture prevents fraudsters from using stolen IDs or downloaded pictures of unsuspecting citizens. By verifying that the actual person submitting the store matches the government ID on file, we protect you from impersonators while giving your buyers 100% confidence to pay before delivery.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

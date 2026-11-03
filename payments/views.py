@@ -180,6 +180,14 @@ def service_checkout_review(request, service_key):
             'price': site_settings.price_bulk_check_per_row,
             'tier': 'standard',
         },
+        'merchant_badge': {
+            'name': 'Verified Merchant Trust Seal Monthly Subscription',
+            'badge': 'Verified Seller Seal',
+            'description': 'Monthly renewal for your official verified merchant bio badge, website widget, and public reassurance dossier.',
+            'coverage': 'Live Verified Seal + Anti-Clone Bio Link + 24/7 Monitoring',
+            'price': getattr(site_settings, 'price_merchant_badge_monthly', 2500),
+            'tier': 'standard',
+        },
     }
 
     item = service_catalog.get(service_key)
@@ -572,6 +580,20 @@ def _route_payg_success(request, transaction):
                 "Your bulk screening credit has been loaded. An employer account is required to use the bulk CSV upload feature."
             )
             return redirect('dashboard:index')
+
+    elif service == 'merchant_badge':
+        from payments.models import MerchantProfile
+        from datetime import timedelta
+        merchant = MerchantProfile.objects.filter(user=request.user).first()
+        if merchant:
+            merchant.status = 'active'
+            merchant.trial_ends_at = tz.now() + timedelta(days=30)
+            merchant.save()
+            messages.success(
+                request,
+                f"Subscription payment of ₦{transaction.amount_naira:,.0f} confirmed! Your Verified Merchant Seal is active for the next 30 days."
+            )
+            return redirect('merchant_apply')
 
     elif service in ('police_dossier', 'dossier', 'evidence_dossier'):
         from django.urls import reverse

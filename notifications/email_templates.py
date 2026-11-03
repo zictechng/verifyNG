@@ -746,3 +746,174 @@ def build_subscription_payment_rejected(subscription, username: str, reason: str
         return subject, _html_fallback(subject, fallback_html), f"Hi {username}, your payment for {plan_name} could not be verified. Reason: {reason_clean}"
 
 
+
+
+def build_merchant_badge_approved(store_name: str, username: str, store_slug: str) -> Tuple[str, str, str]:
+    site_name, site_url = _get_site_meta()
+    subject = f"Verified Merchant Seal Approved: {store_name} — {site_name}"
+    store_url = f"{site_url}/trust-seal/v/{store_slug}/"
+    body_html = f"""
+    <p>Congratulations <strong>{username}</strong>! Your application for the <strong>Verified Merchant Trust Seal</strong> for <strong>{store_name}</strong> has been officially approved by platform compliance.</p>
+    <div style="background:#f0fdf4;border-left:4px solid #16a34a;padding:14px 18px;border-radius:6px;margin:18px 0;">
+        <h4 style="margin:0 0 6px;color:#15803d;font-size:15px;">Official Verification Link Active</h4>
+        <p style="margin:0 0 8px;font-size:13px;color:#166534;">Your customers can now verify your genuine business, safe track record, and settlement bank account.</p>
+        <a href="{store_url}" style="font-weight:bold;color:#15803d;word-break:break-all;">{store_url}</a>
+    </div>
+    <h4 style="color:#0f172a;margin:18px 0 8px;font-size:14px;">Next Steps to Maximize Your Buyer Trust:</h4>
+    <ul style="color:#334155;line-height:1.6;font-size:13px;padding-left:20px;">
+        <li><strong>Add to your Instagram, TikTok, and WhatsApp bio:</strong> Place your verified link in your bio so potential buyers know you are authenticated.</li>
+        <li><strong>Embed the Trust Seal on your store / website:</strong> Log in to your dashboard to copy the one-line embed badge code.</li>
+        <li><strong>Share on invoices and payment receipts:</strong> Protect your customers from clone accounts and impersonators.</li>
+    </ul>
+    """
+    try:
+        html_body, text_body = render_email('generic_notification', {
+            'user_name': username,
+            'heading': "Merchant Trust Badge Approved",
+            'body_html': body_html,
+            'cta_url': store_url,
+            'cta_label': "View Your Public Trust Page →",
+        })
+        return subject, html_body, text_body
+    except Exception:
+        fallback_html = f"<h2>Merchant Badge Approved</h2><p>Hi {username}, your seal for {store_name} is approved. Public URL: {store_url}</p>"
+        return subject, _html_fallback(subject, fallback_html), f"Hi {username}, your seal for {store_name} is approved: {store_url}"
+
+
+def build_merchant_badge_rejected(store_name: str, username: str, reason: str = "") -> Tuple[str, str, str]:
+    site_name, site_url = _get_site_meta()
+    subject = f"Update on Your Verified Merchant Application: {store_name} — {site_name}"
+    reason_clean = reason or "Verification information or settlement bank details could not be authenticated against our compliance records."
+    body_html = f"""
+    <p>Thank you for applying for the <strong>Verified Merchant Trust Seal</strong> for <strong>{store_name}</strong>.</p>
+    <p>After reviewing your submission, our compliance team was unable to approve your application at this time.</p>
+    <div style="background:#fef2f2;border-left:4px solid #ef4444;padding:12px 16px;border-radius:6px;margin:16px 0;">
+        <strong style="color:#991b1b;">Reason for Decision:</strong>
+        <p style="color:#7f1d1d;margin:4px 0 0;font-size:13px;">{reason_clean}</p>
+    </div>
+    <p>You can correct any missing or unclear details and re-apply directly from your merchant verification dashboard.</p>
+    """
+    try:
+        html_body, text_body = render_email('generic_notification', {
+            'user_name': username,
+            'heading': "Merchant Application Update",
+            'body_html': body_html,
+            'cta_url': f"{site_url}/trust-badge/apply/",
+            'cta_label': "Update Application →",
+        })
+        return subject, html_body, text_body
+    except Exception:
+        fallback_html = f"<h2>Merchant Application Update</h2><p>Hi {username}, your seal application for {store_name} was not approved. Reason: {reason_clean}</p>"
+        return subject, _html_fallback(subject, fallback_html), f"Hi {username}, your seal application for {store_name} was not approved: {reason_clean}"
+
+
+def build_merchant_badge_revoked(store_name: str, username: str, reason: str = "") -> Tuple[str, str, str]:
+    site_name, site_url = _get_site_meta()
+    subject = f"Notice: Verified Merchant Seal Suspended for {store_name} — {site_name}"
+    reason_clean = reason or "Your verified merchant status has been suspended pending compliance review or dispute resolution."
+    body_html = f"""
+    <p>Hi <strong>{username}</strong>,</p>
+    <p>This is an official notice regarding your Verified Merchant Trust Seal for <strong>{store_name}</strong> on {site_name}.</p>
+    <p>Following a recent compliance inspection, your public Verified Merchant Seal has been <strong>temporarily suspended</strong>.</p>
+    <div style="background:#fef2f2;border-left:4px solid #ef4444;padding:14px 18px;border-radius:6px;margin:18px 0;">
+        <h4 style="margin:0 0 6px;color:#991b1b;font-size:15px;">Suspension Notice &amp; Grounds</h4>
+        <p style="margin:0;font-size:13px;color:#7f1d1d;line-height:1.5;">{reason_clean}</p>
+    </div>
+    <p>While suspended, the green verification badge will not be displayed on your store link. If you believe this action was made in error or have resolved any open complaints, please contact our Compliance and Trust Desk.</p>
+    """
+    try:
+        html_body, text_body = render_email('generic_notification', {
+            'user_name': username,
+            'heading': "Verified Merchant Seal Suspended",
+            'body_html': body_html,
+            'cta_url': f"{site_url}/contact/",
+            'cta_label': "Contact Compliance Desk →",
+        })
+        return subject, html_body, text_body
+    except Exception:
+        fallback_html = f"<h2>Seal Suspended</h2><p>Hi {username}, your seal for {store_name} has been suspended: {reason_clean}</p>"
+        return subject, _html_fallback(subject, fallback_html), f"Hi {username}, your seal for {store_name} has been suspended: {reason_clean}"
+
+
+def build_merchant_bank_approved(store_name: str, username: str, new_bank: str, new_account: str, account_name: str) -> Tuple[str, str, str]:
+    site_name, site_url = _get_site_meta()
+    subject = f"Settlement Bank Update Approved: {store_name} — {site_name}"
+    body_html = f"""
+    <p>Hi <strong>{username}</strong>,</p>
+    <p>Your request to update the verified settlement bank account for <strong>{store_name}</strong> has been <strong>approved</strong> by our compliance officers.</p>
+    <div style="background:#f0fdf4;border-left:4px solid #16a34a;padding:14px 18px;border-radius:6px;margin:18px 0;">
+        <h4 style="margin:0 0 6px;color:#15803d;font-size:15px;">New Verified Payout Bank</h4>
+        <p style="margin:0 0 4px;font-size:13px;color:#166534;">Bank: <strong>{new_bank}</strong></p>
+        <p style="margin:0 0 4px;font-size:13px;color:#166534;">Account Number: <strong>{new_account}</strong></p>
+        <p style="margin:0;font-size:13px;color:#166534;">Account Name: <strong>{account_name}</strong></p>
+    </div>
+    <p>Your live public trust badge has been automatically updated with your new verified banking credentials.</p>
+    """
+    try:
+        html_body, text_body = render_email('generic_notification', {
+            'user_name': username,
+            'heading': "Settlement Bank Approved",
+            'body_html': body_html,
+            'cta_url': f"{site_url}/trust-seal/apply/",
+            'cta_label': "View Merchant Desk →",
+        })
+        return subject, html_body, text_body
+    except Exception:
+        fallback_html = f"<h2>Bank Update Approved</h2><p>Hi {username}, payout bank for {store_name} updated to {new_bank} ({new_account}).</p>"
+        return subject, _html_fallback(subject, fallback_html), f"Hi {username}, payout bank for {store_name} updated to {new_bank} ({new_account})."
+
+
+def build_merchant_bank_rejected(store_name: str, username: str, requested_bank: str, reason: str = "") -> Tuple[str, str, str]:
+    site_name, site_url = _get_site_meta()
+    subject = f"Settlement Bank Update Request Declined: {store_name} — {site_name}"
+    reason_clean = reason or "Bank account name does not match verified legal identity or CAC registry records."
+    body_html = f"""
+    <p>Hi <strong>{username}</strong>,</p>
+    <p>We reviewed your request to update the payout bank account for <strong>{store_name}</strong> to <strong>{requested_bank}</strong>.</p>
+    <div style="background:#fef2f2;border-left:4px solid #ef4444;padding:14px 18px;border-radius:6px;margin:18px 0;">
+        <h4 style="margin:0 0 6px;color:#991b1b;font-size:15px;">Compliance Review Finding</h4>
+        <p style="margin:0;font-size:13px;color:#7f1d1d;line-height:1.5;">{reason_clean}</p>
+    </div>
+    <p>To protect your store and prevent unauthorized banking changes, your previous verified settlement bank account remains active on your public trust badge.</p>
+    """
+    try:
+        html_body, text_body = render_email('generic_notification', {
+            'user_name': username,
+            'heading': "Bank Update Request Declined",
+            'body_html': body_html,
+            'cta_url': f"{site_url}/trust-seal/apply/",
+            'cta_label': "Review Merchant Desk →",
+        })
+        return subject, html_body, text_body
+    except Exception:
+        fallback_html = f"<h2>Bank Update Declined</h2><p>Hi {username}, payout bank update for {store_name} was declined: {reason_clean}</p>"
+        return subject, _html_fallback(subject, fallback_html), f"Hi {username}, payout bank update for {store_name} was declined: {reason_clean}"
+
+
+def build_merchant_trial_expiring(store_name: str, username: str, days_left: int, amount_naira: float) -> Tuple[str, str, str]:
+    site_name, site_url = _get_site_meta()
+    days_text = "Tomorrow" if days_left <= 1 else f"in {days_left} Days"
+    subject = f"Your Verified Merchant Free Trial Ends {days_text} — {site_name}"
+    checkout_url = f"{site_url}/payments/review/service/merchant_badge/"
+    body_html = f"""
+    <p>Hi <strong>{username}</strong>,</p>
+    <p>This is a quick courtesy notification that your complimentary free trial for your <strong>Verified Merchant Trust Seal ({store_name})</strong> is expiring <strong>{days_text}</strong>.</p>
+    <div style="background:#f8fafc;border:1px solid #cbd5e1;padding:16px 20px;border-radius:8px;margin:18px 0;">
+        <div style="font-size:13px;color:#64748b;text-transform:uppercase;font-weight:bold;margin-bottom:4px;">Active Seal</div>
+        <div style="font-size:16px;font-weight:bold;color:#0f172a;margin-bottom:8px;">{store_name}</div>
+        <div style="font-size:14px;color:#334155;">Monthly Renewal: <strong>₦{amount_naira:,.0f}</strong></div>
+    </div>
+    <p>Keep your public verification badge active without disruption to ensure your buyers continue checking out with complete peace of mind.</p>
+    """
+    try:
+        html_body, text_body = render_email('generic_notification', {
+            'user_name': username,
+            'heading': "Keep Your Trust Seal Active",
+            'body_html': body_html,
+            'cta_url': checkout_url,
+            'cta_label': f"Renew Seal — ₦{amount_naira:,.0f}/mo →",
+        })
+        return subject, html_body, text_body
+    except Exception:
+        fallback_html = f"<h2>Trial Ending Soon</h2><p>Hi {username}, trial for {store_name} ends {days_text}. Renew: {checkout_url}</p>"
+        return subject, _html_fallback(subject, fallback_html), f"Hi {username}, trial for {store_name} ends {days_text}. Renew: {checkout_url}"

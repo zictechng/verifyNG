@@ -137,12 +137,12 @@
                                     </div>
                                 </div>
                                 <div class="d-flex gap-2 w-100 w-sm-auto justify-content-end">
+                                    {% if not profile.is_verified %}
                                     <button type="button" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1"
                                             data-bs-toggle="modal" data-bs-target="#employerCacModal">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                                         View Proof
                                     </button>
-                                    {% if not profile.is_verified %}
                                     <button type="button" class="btn btn-sm btn-outline-secondary" id="toggleReplaceDocBtn">
                                         Replace Document
                                     </button>
@@ -227,10 +227,16 @@
                     </div>
 
                     <div class="d-flex gap-2">
-                        <button type="button" id="openConfirmModalBtn" class="btn btn-vng-primary">
-                            Save &amp; Submit Profile
-                        </button>
-                        <a href="{% url 'employer:dashboard' %}" class="btn btn-vng-outline">Cancel</a>
+                        {% if profile.is_verified %}
+                            <div class="p-2.5 rounded-3 bg-light border d-inline-flex align-items-center gap-2">
+                                <span class="small text-muted">🔒 Corporate profile officially verified and locked. Need updates? <a href="{% url 'contact' %}" class="fw-semibold text-decoration-underline text-dark">Contact Support</a></span>
+                            </div>
+                        {% else %}
+                            <button type="button" id="openConfirmModalBtn" class="btn btn-vng-primary">
+                                Save &amp; Submit Profile
+                            </button>
+                            <a href="{% url 'employer:dashboard' %}" class="btn btn-vng-outline">Cancel</a>
+                        {% endif %}
                     </div>
                 </form>
             </div>

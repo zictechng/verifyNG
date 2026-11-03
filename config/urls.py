@@ -49,6 +49,15 @@ urlpatterns = [
     path('api/v1/', get_api_urls()),
     path('users/', include('users.urls', namespace='users')),
     path('reports/', include('reports.urls', namespace='reports')),
+    # Real-time Bank Resolution Endpoint (used across merchant & report forms)
+    path('api/resolve-bank/', __import__('payments.merchant_views', fromlist=['ResolveBankAjaxView']).ResolveBankAjaxView.as_view(), name='api_resolve_bank'),
+    # Verified Merchant Trust Seal Clean URLs
+    path('trust-seal/', __import__('payments.merchant_views', fromlist=['MerchantLandingView']).MerchantLandingView.as_view(), name='merchant_landing'),
+    path('trust-seal/apply/', __import__('payments.merchant_views', fromlist=['MerchantApplyView']).MerchantApplyView.as_view(), name='merchant_apply'),
+    path('trust-seal/request-bank-change/', __import__('payments.merchant_views', fromlist=['MerchantBankChangeRequestView']).MerchantBankChangeRequestView.as_view(), name='merchant_request_bank_change'),
+    path('trust-seal/v/<slug:slug>/', __import__('payments.merchant_views', fromlist=['PublicMerchantTrustView']).PublicMerchantTrustView.as_view(), name='public_merchant_trust'),
+    # Backward-compatible short bio redirect
+    path('v/<slug:slug>/', __import__('payments.merchant_views', fromlist=['PublicMerchantTrustView']).PublicMerchantTrustView.as_view(), name='public_merchant_trust_short'),
     path('verify/dossier/', DossierVerifyPublicView.as_view(), name='dossier_verify_short_index'),
     path('verify/dossier/<str:tracking_id>/', DossierVerifyPublicView.as_view(), name='dossier_verify_short'),
     path('dashboard/', include('dashboard.urls', namespace='dashboard')),

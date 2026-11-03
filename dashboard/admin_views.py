@@ -3012,6 +3012,17 @@ class AdminSiteSettingsView(SuperAdminRequiredMixin, TemplateView):
         if site.service_police_dossier not in valid_modes:
             site.service_police_dossier = 'paid'
 
+        site.merchant_badge_enabled = request.POST.get('merchant_badge_enabled') == 'on'
+        site.service_merchant_badge = request.POST.get('service_merchant_badge', getattr(site, 'service_merchant_badge', 'free'))
+        if site.service_merchant_badge not in valid_modes:
+            site.service_merchant_badge = 'free'
+
+        try:
+            site.price_merchant_badge_monthly = max(0, int(request.POST.get('price_merchant_badge_monthly', getattr(site, 'price_merchant_badge_monthly', 2500))))
+            site.merchant_badge_trial_days = max(0, int(request.POST.get('merchant_badge_trial_days', getattr(site, 'merchant_badge_trial_days', 30))))
+        except (ValueError, TypeError):
+            pass
+
         try:
             site.price_public_check = max(0, int(request.POST.get('price_public_check', site.price_public_check)))
             site.price_person_check = max(0, int(request.POST.get('price_person_check', site.price_person_check)))

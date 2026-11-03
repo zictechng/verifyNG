@@ -90,6 +90,25 @@ class SiteSettings(models.Model):
         default='paid',
         help_text="Official Police & Bank Evidence Dossier Generation"
     )
+    # Tier 2 Verified Merchant / Trust Badge
+    merchant_badge_enabled = models.BooleanField(
+        default=True,
+        help_text="Master switch: turn on/off Tier 2 Verified Merchant applications across the platform"
+    )
+    service_merchant_badge = models.CharField(
+        max_length=10,
+        choices=SERVICE_ACCESS_CHOICES,
+        default='free',
+        help_text="Merchant Trust Badge pricing model (free or paid subscription)"
+    )
+    price_merchant_badge_monthly = models.PositiveIntegerField(
+        default=2500,
+        help_text="Monthly fee in Naira for maintaining an active Verified Merchant Trust Badge (if paid)"
+    )
+    merchant_badge_trial_days = models.PositiveIntegerField(
+        default=30,
+        help_text="Free trial duration in days upon initial approval before subscription billing applies"
+    )
 
     # Pay-As-You-Go Per-Service Pricing (in Naira ₦)
     price_public_check = models.PositiveIntegerField(
@@ -177,6 +196,8 @@ class SiteSettings(models.Model):
             'police_dossier': getattr(self, 'service_police_dossier', 'paid'),
             'dossier': getattr(self, 'service_police_dossier', 'paid'),
             'evidence_dossier': getattr(self, 'service_police_dossier', 'paid'),
+            'merchant_badge': getattr(self, 'service_merchant_badge', 'free'),
+            'seller_badge': getattr(self, 'service_merchant_badge', 'free'),
         }
         mode = mapping.get(service, 'paid')
         return mode == 'free'
@@ -206,6 +227,8 @@ class SiteSettings(models.Model):
             if self.is_service_free('police_dossier'):
                 return 0
             return self.price_police_dossier
+        elif service in ('merchant_badge', 'seller_badge'):
+            return getattr(self, 'price_merchant_badge_monthly', 2500)
         return 0
 
 
@@ -778,6 +801,203 @@ class VerifiedBankAccount(models.Model):
 
     def __str__(self):
         return f"{self.account_number} ({self.bank_name}) — {self.account_name}"
+
+
+class MerchantProfile(models.Model):
+    """
+    Tier 2 Verified Merchant / Trust Badge model.
+    Enables solopreneurs, hustlers, and corporate businesses to obtain a public
+    digital trust badge (verifyng.com/v/<store_slug>) with webcam live verification.
+    """
+    MERCHANT_TYPES = (
+        ('individual', 'Individual Merchant / Solopreneur'),
+        ('business', 'Corporate Business (CAC Registered)'),
+    )
+    STATUS_CHOICES = (
+        ('pending', 'Pending Review'),
+        ('active', 'Verified & Active'),
+        ('disputed', 'Under Customer Dispute'),
+        ('rejected', 'Application Rejected'),
+        ('suspended', 'Suspended / Revoked'),
+    )
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='merchant_profile'
+    )
+    merchant_type = models.CharField(max_length=20, choices=MERCHANT_TYPES, default='individual')
+    store_name = models.CharField(max_length=150, help_text="Public store, shop, or brand name")
+    store_slug = models.SlugField(max_length=150, unique=True, db_index=True, help_text="Public short URL identifier (e.g. amaka_thrift)")
+    category = models.CharField(max_length=100, default='General Retail')
+    description = models.TextField(blank=True, help_text="Short business bio / product description")
+    logo_image = models.ImageField(upload_to='merchant_logos/%Y/%m/', blank=True, null=True, help_text="Store logo or brand avatar")
+
+    # Multi-channel contact & social handles
+    whatsapp_number = models.CharField(max_length=30, blank=True, help_text="Direct WhatsApp business contact (e.g. 08012345678 or +234...)")
+    website_or_linktree = models.URLField(blank=True, help_text="Store website, Instagram Linktree, or catalog URL")
+    social_links = models.JSONField(default=dict, blank=True, help_text="Dictionary of handles (instagram, tiktok, facebook, twitter)")
+
+    # Business Operating Location & Physical Store Address (Optional & Switchable)
+    display_location = models.BooleanField(
+        default=False,
+        help_text="Show verified business location or store address on public trust seal"
+    )
+    operating_state = models.CharField(max_length=50, blank=True, default='', help_text="Operating State in Nigeria (e.g. Lagos, Edo, FCT - Abuja)")
+    city_town = models.CharField(max_length=100, blank=True, default='', help_text="City or Town (e.g. Ikeja, Lekki, Benin City, Wuse 2)")
+    physical_address = models.CharField(max_length=255, blank=True, default='', help_text="Walk-in store/studio/office street address (optional)")
+
+    # Settlement Banking (NIBSS Verified)
+    bank_name = models.CharField(max_length=150)
+    bank_code = models.CharField(max_length=20)
+    bank_account = models.CharField(max_length=10)
+    bank_account_name = models.CharField(max_length=255, help_text="Official NIBSS-verified account name")
+    display_bank_on_seal = models.BooleanField(
+        default=True,
+        help_text="Show verified settlement bank name & masked NUBAN on public trust seal (Merchant Preference)"
+    )
+
+    # Pending Settlement Bank Change Request (Requires Admin Approval)
+    has_pending_bank_change = models.BooleanField(default=False)
+    pending_bank_name = models.CharField(max_length=150, blank=True, default='')
+    pending_bank_code = models.CharField(max_length=20, blank=True, default='')
+    pending_bank_account = models.CharField(max_length=10, blank=True, default='')
+    pending_bank_account_name = models.CharField(max_length=255, blank=True, default='')
+    pending_bank_requested_at = models.DateTimeField(null=True, blank=True)
+    pending_bank_rejection_reason = models.TextField(blank=True, default='')
+
+    # Live Physical Presence Proof (Webcam or Selfie holding ID/Store Card)
+    selfie_image = models.ImageField(
+        upload_to='merchant_selfies/%Y/%m/',
+        help_text="Live webcam photo or selfie verifying store owner identity"
+    )
+
+    # Life-cycle & Subscription Status
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', db_index=True)
+    rejection_reason = models.TextField(blank=True, default='')
+    trial_ends_at = models.DateTimeField(null=True, blank=True, help_text="Free trial expiration date")
+    approved_at = models.DateTimeField(null=True, blank=True)
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='approved_merchants'
+    )
+
+    # Telemetry and Submission Metadata
+    submission_ip = models.GenericIPAddressField(null=True, blank=True)
+    submission_device = models.CharField(max_length=100, blank=True, default='')
+    submission_browser = models.CharField(max_length=100, blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Merchant Trust Profile'
+        verbose_name_plural = 'Merchant Trust Profiles'
+
+    def __str__(self):
+        return f"{self.store_name} ({self.get_status_display()}) — {self.user.username}"
+
+    @property
+    def is_currently_active(self):
+        """Returns True if approved and not suspended or under active dispute."""
+        return self.status == 'active'
+
+    @property
+    def category_display_name(self):
+        """Returns the human-friendly business category title."""
+        cat_map = {
+            'tech_software': 'Software, Web, Mobile & Tech',
+            'fashion': 'Fashion, Clothing & Apparel',
+            'beauty': 'Beauty, Cosmetics & Hair Care',
+            'electronics': 'Phones, Computers & Gadgets',
+            'groceries': 'Food, Catering & Groceries',
+            'home_living': 'Furniture & Home Decor',
+            'creative_media': 'Media, Photography & Design',
+            'services': 'Digital & Professional Services',
+            'consulting_legal': 'Legal & Business Advisory',
+            'automotive': 'Automobile & Logistics',
+            'real_estate': 'Real Estate & Construction',
+            'education': 'Education, Training & Books',
+            'health': 'Health, Pharmacy & Wellness',
+            'travel_hospitality': 'Travel & Hospitality',
+            'agriculture': 'Agriculture & Livestock',
+            'crafts_art': 'Art, Crafts & Gifts',
+            'other': 'General Retail / Commercial',
+        }
+        return cat_map.get(self.category, self.category.replace('_', ' ').title() if self.category else 'General Retail')
+
+    @property
+    def masked_bank_account(self):
+        val = str(self.bank_account).strip()
+        if len(val) == 10:
+            return f"{val[:3]}****{val[-3:]}"
+        return val
+
+    @property
+    def social_links_with_urls(self):
+        """Returns social links mapped to validated clickable external web URLs and clean display handles."""
+        if not self.social_links or not isinstance(self.social_links, dict):
+            return []
+        links = []
+        for network, handle in self.social_links.items():
+            handle_str = str(handle or '').strip()
+            if not handle_str:
+                continue
+            
+            clean_handle = handle_str
+            if handle_str.startswith('http://') or handle_str.startswith('https://'):
+                url = handle_str
+                # Strip domain to extract username for display if a full URL was pasted
+                try:
+                    from urllib.parse import urlparse
+                    parsed = urlparse(handle_str)
+                    path_parts = [p for p in parsed.path.strip('/').split('/') if p]
+                    if path_parts:
+                        clean_handle = path_parts[-1]
+                    else:
+                        clean_handle = parsed.netloc
+                except Exception:
+                    clean_handle = handle_str
+            else:
+                clean_handle = handle_str.lstrip('@')
+                if network == 'instagram':
+                    url = f"https://instagram.com/{clean_handle}"
+                elif network == 'tiktok':
+                    url = f"https://tiktok.com/@{clean_handle}"
+                elif network == 'facebook':
+                    url = f"https://facebook.com/{clean_handle}"
+                elif network == 'twitter':
+                    url = f"https://x.com/{clean_handle}"
+                elif network == 'threads':
+                    url = f"https://threads.net/@{clean_handle}"
+                elif network == 'youtube':
+                    url = f"https://youtube.com/@{clean_handle}"
+                elif network == 'linkedin':
+                    url = f"https://linkedin.com/company/{clean_handle}"
+                else:
+                    url = f"https://{clean_handle}"
+
+            # Format user handle display cleanly with @ prefix if not already present
+            display_handle = clean_handle
+            if not display_handle.startswith('@') and network in ('instagram', 'tiktok', 'twitter', 'threads', 'youtube'):
+                display_handle = f"@{display_handle}"
+
+            links.append({
+                'network': network,
+                'handle': display_handle,
+                'url': url,
+            })
+        return links
+
+    @property
+    def masked_pending_bank_account(self):
+        """Masks pending account: 617****995"""
+        if not self.pending_bank_account or len(self.pending_bank_account) < 7:
+            return self.pending_bank_account
+        return f"{self.pending_bank_account[:3]}****{self.pending_bank_account[-3:]}"
 
 
 

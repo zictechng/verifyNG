@@ -25,6 +25,42 @@
         </div>
     </div>
 
+    {# ── Merchant Trust Seal Trial & Subscription Alert ─────────────────── #}
+    {% if dashboard_merchant and not merchant_is_free and merchant_trial_is_expiring %}
+    <div class="card border-0 mb-4 shadow-sm" style="border-left: 4px solid #16a34a !important; background: #f0fdf4; border-radius: 12px;">
+        <div class="card-body py-3 px-4">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-circle p-2 d-inline-flex align-items-center justify-content-center flex-shrink-0" style="background:#dcfce7;color:#16a34a;">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="#16a34a"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                    </div>
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <span class="badge bg-success text-white fw-bold px-2.5 py-1 rounded-pill" style="font-size:11px;">Verified Seal Active</span>
+                            <span class="text-muted small">Store: <strong>{{ dashboard_merchant.store_name }}</strong></span>
+                        </div>
+                        <h6 class="mb-0 fw-bold text-dark" style="font-size:15px;">
+                            {% if merchant_trial_days_remaining == 0 %}
+                                Your free trial expires today! Keep your trust seal active.
+                            {% else %}
+                                {{ merchant_trial_days_remaining }} day{{ merchant_trial_days_remaining|pluralize }} left on your complimentary free trial.
+                            {% endif %}
+                        </h6>
+                        <div class="small text-muted mt-0.5">
+                            Renew for <strong>₦{{ merchant_price|floatformat:0|default:"2,500" }}/month</strong> to maintain uninterrupted buyer verification in your bio.
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <a href="{% url 'payments:service_checkout_review' service_key='merchant_badge' %}" class="btn btn-success btn-sm px-4 py-2 rounded-pill fw-bold shadow-sm text-nowrap">
+                        Renew Seal Subscription &rarr;
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     {# ── Active Pre-Paid Orders Callout (Dismissible) ─────────────────────── #}
     {% if unconsumed_orders %}
     <div id="prepaidBannerCard" class="card border-0 mb-4 shadow-sm position-relative" style="border-left: 4px solid #2563EB !important; background: #F8FAFC; border-radius: 10px;">

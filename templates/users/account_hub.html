@@ -28,7 +28,7 @@
                 <div class="vng-profile-name">
                     {{ request.user.get_full_name|default:request.user.username }}
                 </div>
-                {% if request.user.identity_verified or employer_profile.is_verified %}
+                {% if request.user.identity_verified or request.user.id_verification_status == 'verified' or employer_profile.is_verified %}
                     <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill px-2 py-1 small">
                         ✓ Verified
                     </span>
@@ -66,9 +66,9 @@
             <div class="mt-2 pt-2 border-top border-primary border-opacity-10">
                 <div class="d-flex align-items-center justify-content-between mb-2">
                     <span class="small fw-semibold" style="color:#0F3A78;">Identity Status</span>
-                    {% if request.user.identity_verified or employer_profile.is_verified %}
+                    {% if request.user.identity_verified or request.user.id_verification_status == 'verified' or employer_profile.is_verified %}
                         <span class="badge bg-success">Verified</span>
-                    {% elif request.user.id_verification_status == 'pending' or employer_profile.verification_status == 'pending' or request.user.has_id_document and request.user.id_verification_status != 'rejected' %}
+                    {% elif request.user.id_verification_status == 'pending' or employer_profile.verification_status == 'pending' or request.user.has_id_document and request.user.id_verification_status != 'rejected' and request.user.id_verification_status != 'verified' %}
                         <span class="badge bg-primary">Under Review</span>
                     {% elif request.user.id_verification_status == 'rejected' or employer_profile.verification_status == 'rejected' %}
                         <span class="badge bg-danger">Declined</span>
@@ -76,7 +76,7 @@
                         <span class="badge bg-warning text-dark">Unverified</span>
                     {% endif %}
                 </div>
-                {% if request.user.identity_verified or employer_profile.is_verified %}
+                {% if request.user.identity_verified or request.user.id_verification_status == 'verified' or employer_profile.is_verified %}
                     <div class="d-flex align-items-center gap-2 p-2 rounded-2" style="background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.25);">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--vng-success)" stroke-width="2" class="flex-shrink-0">
                             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
@@ -87,7 +87,7 @@
                             <div class="small text-muted" style="font-size:11.5px;">{{ request.user.get_id_type_display|default:"Government ID" }} &bull; Verified</div>
                         </div>
                     </div>
-                {% elif request.user.id_verification_status == 'pending' or employer_profile.verification_status == 'pending' or request.user.has_id_document and request.user.id_verification_status != 'rejected' %}
+                {% elif request.user.id_verification_status == 'pending' or employer_profile.verification_status == 'pending' or request.user.has_id_document and request.user.id_verification_status != 'rejected' and request.user.id_verification_status != 'verified' %}
                     <div class="p-2 rounded-2" style="background:rgba(37,99,235,0.08);border:1px solid rgba(37,99,235,0.25);">
                         <div class="d-flex align-items-center gap-2 mb-2">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2" class="flex-shrink-0">
@@ -520,6 +520,23 @@
                     <div>
                         <div class="vng-item-title">TrustPass Application</div>
                         <div class="vng-item-desc">Issue a verifiable background credential</div>
+                    </div>
+                </div>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="vng-chevron"><polyline points="9 18 15 12 9 6"/></svg>
+            </a>
+
+            <!-- 5. Merchant Trust Seal & Bio Link -->
+            <a href="{% url 'merchant_landing' %}" class="vng-menu-item">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="vng-menu-icon" style="color: #16A34A;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/><polyline points="9 11 12 14 22 4"/></svg>
+                    </div>
+                    <div>
+                        <div class="vng-item-title d-flex align-items-center gap-2">
+                            Merchant Trust Seal
+                            <span class="badge rounded-pill bg-success-subtle text-success fw-bold" style="font-size:11px;">Verified Badge</span>
+                        </div>
+                        <div class="vng-item-desc">Verified seal &amp; public bio link for Instagram, WhatsApp &amp; website</div>
                     </div>
                 </div>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="vng-chevron"><polyline points="9 18 15 12 9 6"/></svg>

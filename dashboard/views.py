@@ -177,6 +177,23 @@ class DashboardIndexView(LoginRequiredMixin, TemplateView):
         # Staff/officer context
         ctx.update(_get_staff_context(user))
 
+        # Merchant Trust Seal trial & subscription notification card
+        try:
+            from payments.models import MerchantProfile, SiteSettings
+            site_settings = SiteSettings.get()
+            merchant = MerchantProfile.objects.filter(user=user).first()
+            if merchant and merchant.status == 'active':
+                ctx['dashboard_merchant'] = merchant
+                ctx['merchant_is_free'] = site_settings.is_service_free('merchant_badge')
+                ctx['merchant_price'] = site_settings.get_service_price('merchant_badge')
+                if merchant.trial_ends_at:
+                    now = timezone.now()
+                    days_remaining = (merchant.trial_ends_at - now).days
+                    ctx['merchant_trial_days_remaining'] = max(0, days_remaining)
+                    ctx['merchant_trial_is_expiring'] = (days_remaining <= 7)
+        except Exception:
+            pass
+
         return ctx
 
 

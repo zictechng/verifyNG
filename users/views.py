@@ -356,9 +356,31 @@ class UserProfileUpdateView(LoginRequiredMixin, View):
                 }
 
         form = ProfileForm(instance=request.user)
-        return render(request, self.template_name, {'form': form, 'user_profile': request.user})
+        merchant_seal = None
+        try:
+            from payments.models import MerchantProfile
+            merchant_seal = MerchantProfile.objects.filter(user=request.user).first()
+        except Exception:
+            pass
+
+        return render(request, self.template_name, {
+            'form': form,
+            'user_profile': request.user,
+            'merchant_seal': merchant_seal,
+        })
 
     def post(self, request):
+        user = request.user
+        is_verified = bool(user.identity_verified or user.id_verification_status == 'verified')
+
+        # If identity is verified, profile details (first name, last name) are strictly locked to prevent fraud
+        if is_verified:
+            messages.error(
+                request,
+                'Your identity has been officially verified. Profile details cannot be modified directly. '
+                'If you need to update your legal records, please submit a legal name change request or contact support.'
+            )
+            return HttpResponseRedirect(reverse_lazy('users:profile'))
 
         class ProfileForm(dj_forms.ModelForm):
             class Meta:
@@ -370,17 +392,23 @@ class UserProfileUpdateView(LoginRequiredMixin, View):
                     'email': dj_forms.EmailInput(attrs={'class': 'form-control'}),
                 }
 
-        form = ProfileForm(request.POST, instance=request.user)
-        if form.is_valid():
-            # If identity is verified, strictly preserve legal first and last name from tampering
-            if request.user.identity_verified:
-                form.instance.first_name = request.user.first_name
-                form.instance.last_name = request.user.last_name
+        form = ProfileForm(request.POST, instance=user)
+        merchant_seal = None
+        try:
+            from payments.models import MerchantProfile
+            merchant_seal = MerchantProfile.objects.filter(user=user).first()
+        except Exception:
+            pass
 
+        if form.is_valid():
             form.save()
             messages.success(request, 'Profile updated successfully.')
             return HttpResponseRedirect(reverse_lazy('users:profile'))
-        return render(request, self.template_name, {'form': form, 'user_profile': request.user})
+        return render(request, self.template_name, {
+            'form': form,
+            'user_profile': user,
+            'merchant_seal': merchant_seal,
+        })
 
 
 

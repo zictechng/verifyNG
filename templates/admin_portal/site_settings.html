@@ -85,7 +85,7 @@
           <hr class="my-4">
 
           <!-- Payment System Flag -->
-          <div class="p-3 rounded-3 border bg-light">
+          <div class="p-3 rounded-3 border bg-light mb-3">
             <div class="d-flex align-items-center justify-content-between">
               <div>
                 <div class="fw-bold small text-danger">Payment Checkout Maintenance</div>
@@ -94,6 +94,22 @@
               <div class="form-check form-switch mb-0">
                 <input class="form-check-input" type="checkbox" role="switch" name="maintenance_mode" id="payMaintenance"
                        {% if settings_obj.maintenance_mode %}checked{% endif %} style="cursor:pointer;width:2.4em;height:1.2em;">
+              </div>
+            </div>
+          </div>
+
+          <!-- Merchant Trust Badge Feature Switch -->
+          <div class="p-3 rounded-3 border bg-light">
+            <div class="d-flex align-items-center justify-content-between">
+              <div>
+                <div class="fw-bold small text-success d-flex align-items-center gap-1.5">
+                  <i class="bi bi-patch-check-fill text-success"></i> Verified Merchant Seal Program
+                </div>
+                <div class="text-muted" style="font-size:0.75rem;">Enable or disable Tier 2 vendor seal applications platform-wide</div>
+              </div>
+              <div class="form-check form-switch mb-0">
+                <input class="form-check-input" type="checkbox" role="switch" name="merchant_badge_enabled" id="merchantBadgeEnabled"
+                       {% if settings_obj.merchant_badge_enabled %}checked{% endif %} style="cursor:pointer;width:2.4em;height:1.2em;">
               </div>
             </div>
           </div>
@@ -316,6 +332,29 @@
                   </td>
                 </tr>
 
+                <!-- 6.7 Verified Merchant Trust Badge & Seal -->
+                <tr>
+                  <td>
+                    <div class="fw-semibold text-dark d-flex align-items-center gap-1.5">
+                      <i class="bi bi-patch-check-fill text-success"></i> Verified Merchant / Trust Badge (Tier 2)
+                    </div>
+                    <div class="text-muted" style="font-size:0.74rem;">Public trust seal, website widget &amp; bio link for social media vendors &amp; businesses</div>
+                  </td>
+                  <td>
+                    {% if settings_obj.service_merchant_badge == 'free' %}
+                      <span class="adm-badge adm-badge-green">100% Free / Free Trial</span>
+                    {% else %}
+                      <span class="adm-badge adm-badge-blue">Paid Monthly Subscription</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <select name="service_merchant_badge" class="form-select form-select-sm">
+                      <option value="free" {% if settings_obj.service_merchant_badge == 'free' %}selected{% endif %}>Free / Complimentary (No Charge)</option>
+                      <option value="paid" {% if settings_obj.service_merchant_badge == 'paid' %}selected{% endif %}>Paid Monthly (With Free Trial)</option>
+                    </select>
+                  </td>
+                </tr>
+
                 <!-- 7. Certificate ID QR Verification (LOCKED ALWAYS FREE) -->
                 <tr class="table-light">
                   <td>
@@ -469,6 +508,7 @@
               </div>
               <div class="form-text" style="font-size:0.75rem;">Automated Section 84 certified evidence package download fee in Naira.</div>
             </div>
+
           </div>
         </div>
 
@@ -524,6 +564,34 @@
                        value="{{ settings_obj.price_monitoring_annual }}" min="0" step="100" required>
               </div>
               <div class="form-text" style="font-size:0.72rem;">24/7 background staff alerts per enrolled candidate.</div>
+            </div>
+
+            
+            <div class="mt-3 pt-3 border-top">
+              <div class="row g-2">
+                <div class="col-7">
+                  <label class="form-label small fw-semibold text-dark d-flex align-items-center gap-1.5" for="priceMerchantBadgeMonthly">
+                    <i class="bi bi-patch-check-fill text-success"></i> Merchant Badge Monthly Fee
+                  </label>
+                  <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-white fw-bold">₦</span>
+                    <input type="number" name="price_merchant_badge_monthly" id="priceMerchantBadgeMonthly" class="form-control"
+                           value="{{ settings_obj.price_merchant_badge_monthly|default:2500 }}" min="0" step="100" required>
+                  </div>
+                  <div class="form-text" style="font-size:0.75rem;">Active badge monthly subscription fee (when paid mode is enabled).</div>
+                </div>
+                <div class="col-5">
+                  <label class="form-label small fw-semibold text-dark d-flex align-items-center gap-1.5" for="merchantBadgeTrialDays">
+                    <i class="bi bi-clock-history text-primary"></i> Free Trial
+                  </label>
+                  <div class="input-group input-group-sm">
+                    <input type="number" name="merchant_badge_trial_days" id="merchantBadgeTrialDays" class="form-control"
+                           value="{{ settings_obj.merchant_badge_trial_days|default:30 }}" min="0" step="1" required>
+                    <span class="input-group-text bg-white small">Days</span>
+                  </div>
+                  <div class="form-text" style="font-size:0.75rem;">Free grace period before billing.</div>
+                </div>
+              </div>
             </div>
             
           </div>

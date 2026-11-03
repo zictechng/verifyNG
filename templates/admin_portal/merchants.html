@@ -1,0 +1,147 @@
+{% extends "admin_portal/base_admin.html" %}
+{% load humanize %}
+
+{% block title %}Merchant Trust Badges — {{ site_config.site_name|default:"VerifyNG" }} Admin{% endblock %}
+
+{% block admin_body %}
+<div class="adm-page-header mb-4">
+  <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+    <div>
+      <h1 class="adm-page-title d-flex align-items-center gap-2">
+        <i class="bi bi-patch-check-fill text-success"></i> Merchant Trust Badges (Tier 2)
+      </h1>
+      <p class="adm-page-sub mb-0">Review and moderate vendor seal applications, live webcam photos, and NIBSS bank settlement accounts.</p>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{% url 'admin_portal:site_settings' %}" class="btn btn-adm-sm btn-adm-outline">
+        <i class="bi bi-gear me-1"></i> Seal Pricing &amp; Settings
+      </a>
+    </div>
+  </div>
+</div>
+
+{% include "admin_portal/_messages.html" %}
+
+<!-- Metrics Bar -->
+<div class="row g-3 mb-4">
+  <div class="col-md-3">
+    <div class="adm-stat-card p-3 border rounded-3 bg-white shadow-sm">
+      <div class="text-muted small fw-semibold text-uppercase">Pending Review</div>
+      <div class="h3 fw-bold text-primary mb-0">{{ pending_count }}</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="adm-stat-card p-3 border rounded-3 bg-white shadow-sm">
+      <div class="text-muted small fw-semibold text-uppercase">Active Badges</div>
+      <div class="h3 fw-bold text-success mb-0">{{ active_count }}</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="adm-stat-card p-3 border rounded-3 bg-white shadow-sm">
+      <div class="text-muted small fw-semibold text-uppercase">Under Dispute</div>
+      <div class="h3 fw-bold text-warning mb-0">{{ dispute_count }}</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="adm-stat-card p-3 border rounded-3 bg-white shadow-sm">
+      <div class="text-muted small fw-semibold text-uppercase">Suspended</div>
+      <div class="h3 fw-bold text-danger mb-0">{{ suspended_count }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- Filters & Search -->
+<form method="get" class="adm-filter-bar mb-4 p-3 bg-white border rounded-3 d-flex align-items-center justify-content-between flex-wrap gap-3">
+  <div class="d-flex align-items-center gap-2 flex-wrap">
+    <a href="?status=pending" class="btn btn-sm {% if status_filter == 'pending' %}btn-primary{% else %}btn-outline-secondary{% endif %}">Pending</a>
+    <a href="?status=bank_change" class="btn btn-sm {% if status_filter == 'bank_change' %}btn-warning text-dark fw-bold{% else %}btn-outline-warning text-dark{% endif %}">
+      Bank Change Requests {% if bank_change_count %}<span class="badge bg-danger text-white ms-1">{{ bank_change_count }}</span>{% endif %}
+    </a>
+    <a href="?status=active" class="btn btn-sm {% if status_filter == 'active' %}btn-success{% else %}btn-outline-secondary{% endif %}">Active</a>
+    <a href="?status=under_dispute" class="btn btn-sm {% if status_filter == 'under_dispute' %}btn-warning{% else %}btn-outline-secondary{% endif %}">Under Dispute</a>
+    <a href="?status=suspended" class="btn btn-sm {% if status_filter == 'suspended' %}btn-danger{% else %}btn-outline-secondary{% endif %}">Suspended</a>
+    <a href="?status=all" class="btn btn-sm {% if status_filter == 'all' %}btn-dark{% else %}btn-outline-secondary{% endif %}">All</a>
+  </div>
+
+  <div class="d-flex align-items-center gap-2">
+    <input type="text" name="q" class="form-control form-control-sm" placeholder="Search store, slug, bank..." value="{{ search_query }}">
+    <button type="submit" class="btn btn-sm btn-dark">Search</button>
+  </div>
+</form>
+
+<!-- Zero-Reload Admin Table Container -->
+<div id="adminTableContainer" class="admin-table-container">
+<!-- Table of Merchant Applications -->
+<div class="adm-card shadow-sm border rounded-3 overflow-hidden">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light small text-uppercase">
+        <tr>
+          <th>Store / Brand</th>
+          <th>Vendor User</th>
+          <th>Type</th>
+          <th>Bank Details</th>
+          <th>Status</th>
+          <th>Date Submitted</th>
+          <th class="text-end">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in merchants %}
+        <tr>
+          <td>
+            <div class="fw-bold text-dark">{{ m.store_name }}</div>
+            <div class="small text-muted">@{{ m.store_slug }}</div>
+          </td>
+          <td>
+            <div class="fw-semibold text-dark">{{ m.user.get_full_name|default:m.user.username }}</div>
+            <div class="small text-muted">{{ m.user.email }}</div>
+          </td>
+          <td>
+            {% if m.merchant_type == 'cac_business' %}
+              <span class="badge bg-primary-subtle text-primary">CAC Business</span>
+            {% else %}
+              <span class="badge bg-secondary-subtle text-dark">Individual</span>
+            {% endif %}
+          </td>
+          <td>
+            <div class="small fw-semibold text-dark">{{ m.bank_name }}</div>
+            <div class="small font-monospace text-muted">{{ m.masked_bank_account }} ({{ m.bank_account_name|default:"Unresolved" }})</div>
+          </td>
+          <td>
+            {% if m.status == 'active' %}
+              <span class="badge bg-success-subtle text-success">🟢 Active</span>
+            {% elif m.status == 'pending' %}
+              <span class="badge bg-warning-subtle text-dark">⏳ Pending</span>
+            {% elif m.status == 'under_dispute' %}
+              <span class="badge bg-warning-subtle text-warning">🟡 Under Dispute</span>
+            {% elif m.status == 'suspended' %}
+              <span class="badge bg-danger-subtle text-danger">🔴 Suspended</span>
+            {% elif m.status == 'rejected' %}
+              <span class="badge bg-secondary-subtle text-danger">Declined</span>
+            {% endif %}
+          </td>
+          <td class="small text-muted">
+            {{ m.created_at|date:"M d, Y H:i" }}
+          </td>
+          <td class="text-end">
+            <a href="{% url 'admin_portal:merchant_detail' pk=m.pk %}" class="btn btn-sm btn-outline-primary">
+              Review &rarr;
+            </a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7" class="text-center py-4 text-muted">
+            No merchant badge applications found matching your criteria.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% include "admin_portal/_pagination.html" %}
+</div>
+{% endblock %}

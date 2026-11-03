@@ -1,4 +1,5 @@
 from django.urls import path
+from payments.merchant_views import AdminMerchantListView, AdminMerchantDetailView
 from dashboard.admin_views import (
     # Existing
     AdminMenuAccessView,
@@ -149,6 +150,10 @@ urlpatterns = [
 
     # ── Audit Logs (legacy — keep working) ─────────────────────────────────
     path('audit-logs/', AdminAuditLogsView.as_view(), name='audit_logs'),
+
+    # ── Merchant Trust Badges ────────────────────────────────────────────────
+    path('merchants/', AdminMerchantListView.as_view(), name='merchants'),
+    path('merchants/<int:pk>/', AdminMerchantDetailView.as_view(), name='merchant_detail'),
 
     # ── Platform Settings ────────────────────────────────────────────────────
     path('settings/platform/', AdminPlatformSettingsView.as_view(), name='platform_settings'),

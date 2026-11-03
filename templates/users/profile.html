@@ -49,13 +49,7 @@
                                 {% if user_profile.id_verified_at %}&bull; Verified on {{ user_profile.id_verified_at|date:"d M Y" }}{% endif %}
                             </div>
                             <div class="d-flex align-items-center gap-2 mt-2 pt-2 border-top border-success-subtle flex-wrap">
-                                {% if user_profile.has_id_document %}
-                                <button type="button" class="btn btn-sm btn-outline-success d-inline-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#viewUserIdModal">
-                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                                    View Verified Document
-                                </button>
-                                {% endif %}
-                                <span class="small text-muted">🔒 Legal name is locked to verified identity.</span>
+                                <span class="small text-muted">🔒 Legal name is permanently locked to verified government identity.</span>
                             </div>
                         </div>
                     </div>
@@ -213,6 +207,67 @@
                 {% endif %}
             </div>
 
+            {# ── Verified Merchant Trust Seal & Bio Link Card ── #}
+            <div class="vng-card p-4 mb-4" style="border-radius:14px;background:#ffffff;border:1px solid #e2e8f0;box-shadow:0 4px 14px rgba(15,23,42,0.04);">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="rounded-circle p-3 d-inline-flex align-items-center justify-content-center flex-shrink-0" style="background:#f0fdf4;border:1px solid #bbf7d0;width:48px;height:48px;">
+                            <svg width="26" height="26" viewBox="0 0 24 24" fill="#16a34a"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                        </div>
+                        <div>
+                            <div class="fw-bold text-dark d-flex align-items-center gap-2 flex-wrap" style="font-size:16.5px;">
+                                Verified Seller &amp; Merchant Trust Seal
+                                {% if merchant_seal and merchant_seal.status == 'active' %}
+                                    <span class="badge bg-success text-white px-2.5 py-1 rounded-pill" style="font-size:12px;font-weight:600;">
+                                        <i class="bi bi-patch-check-fill me-1"></i>Active &amp; Verified
+                                    </span>
+                                {% elif merchant_seal and merchant_seal.status == 'pending' %}
+                                    <span class="badge bg-primary-subtle text-primary px-2.5 py-1 rounded-pill" style="font-size:12px;font-weight:600;">
+                                        <i class="bi bi-hourglass-split me-1"></i>Under Compliance Review
+                                    </span>
+                                {% elif merchant_seal and merchant_seal.status == 'under_dispute' %}
+                                    <span class="badge bg-warning-subtle text-warning-emphasis px-2.5 py-1 rounded-pill" style="font-size:12px;font-weight:600;">
+                                        <i class="bi bi-exclamation-triangle-fill me-1"></i>Under Dispute
+                                    </span>
+                                {% elif merchant_seal and merchant_seal.status == 'suspended' %}
+                                    <span class="badge bg-danger-subtle text-danger px-2.5 py-1 rounded-pill" style="font-size:12px;font-weight:600;">
+                                        <i class="bi bi-slash-circle-fill me-1"></i>Suspended
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-success-subtle text-success px-2.5 py-1 rounded-pill" style="font-size:12px;font-weight:600;">Build Buyer Trust</span>
+                                {% endif %}
+                            </div>
+                            <p class="text-muted mb-0 mt-1" style="font-size:14.5px;line-height:1.5;">
+                                {% if merchant_seal and merchant_seal.status == 'active' %}
+                                    Your store <strong>{{ merchant_seal.store_name }}</strong> (<code>@{{ merchant_seal.store_slug }}</code>) is officially verified and public. Buyers can verify your genuine accounts and bank details with 100% confidence.
+                                {% else %}
+                                    Sell on Instagram, WhatsApp, or your website? Protect your brand from scammers and show customers a verified badge link so they trust you and your business with 100% confidence.
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-2">
+                        {% if merchant_seal and merchant_seal.status == 'active' %}
+                            <a href="{% url 'public_merchant_trust' slug=merchant_seal.store_slug %}" target="_blank" class="btn btn-outline-success px-3.5 py-2 rounded-pill fw-semibold shadow-sm text-nowrap" style="font-size:14px;">
+                                <i class="bi bi-box-arrow-up-right me-1"></i> View Live Seal
+                            </a>
+                            <a href="{% url 'merchant_apply' %}" class="btn btn-success px-3.5 py-2 rounded-pill fw-semibold shadow-sm text-nowrap" style="font-size:14px;">
+                                Manage Seal &rarr;
+                            </a>
+                        {% elif merchant_seal %}
+                            <a href="{% url 'merchant_apply' %}" class="btn btn-primary px-3.5 py-2 rounded-pill fw-semibold shadow-sm text-nowrap" style="font-size:14px;">
+                                View Application Desk &rarr;
+                            </a>
+                        {% else %}
+                            <a href="{% url 'merchant_landing' %}" class="btn btn-success px-3.5 py-2 rounded-pill fw-semibold shadow-sm text-nowrap" style="font-size:14px;">
+                                Get Started / Learn More &rarr;
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
             {# ── Basic Account Profile Form ── #}
             <div class="vng-card p-4" style="border-radius:12px;">
                 <h2 class="h6 fw-bold mb-3" style="color:var(--vng-ink);">Account Information</h2>
@@ -221,7 +276,7 @@
                     <div class="row g-3 mb-3">
                         <div class="col-sm-6">
                             <label class="form-label small fw-semibold">Legal First Name</label>
-                            {% if user_profile.identity_verified %}
+                            {% if user_profile.identity_verified or user_profile.id_verification_status == 'verified' %}
                                 <div class="position-relative">
                                     <input type="text" value="{{ form.first_name.value|default:'' }}" class="form-control bg-light" readonly disabled style="font-size:16px;">
                                     <span class="position-absolute end-0 top-50 translate-middle-y me-2 small text-success" title="Verified Legal Name">🔒</span>
@@ -235,7 +290,7 @@
                         </div>
                         <div class="col-sm-6">
                             <label class="form-label small fw-semibold">Legal Last Name</label>
-                            {% if user_profile.identity_verified %}
+                            {% if user_profile.identity_verified or user_profile.id_verification_status == 'verified' %}
                                 <div class="position-relative">
                                     <input type="text" value="{{ form.last_name.value|default:'' }}" class="form-control bg-light" readonly disabled style="font-size:16px;">
                                     <span class="position-absolute end-0 top-50 translate-middle-y me-2 small text-success" title="Verified Legal Name">🔒</span>
@@ -248,10 +303,10 @@
                             {% endif %}
                         </div>
 
-                        {% if user_profile.identity_verified %}
+                        {% if user_profile.identity_verified or user_profile.id_verification_status == 'verified' %}
                         <div class="col-12 mt-1">
                             <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-1 p-2 rounded-2 bg-light border">
-                                <span class="small text-muted" style="font-size:12px;">🔒 Legal name is locked to verified identity to prevent fraud.</span>
+                                <span class="small text-muted" style="font-size:12px;">🔒 Legal identity locked. Need updates? <a href="{% url 'contact' %}" class="fw-semibold text-decoration-underline text-dark">Contact Support</a></span>
                                 <button type="button" class="btn btn-link p-0 small fw-semibold text-decoration-none" data-bs-toggle="modal" data-bs-target="#legalNameChangeModal">
                                     👉 Request Legal Name Change
                                 </button>
@@ -278,13 +333,19 @@
                         <div class="small text-muted">
                             Joined {{ user_profile.date_joined|date:"F j, Y" }} &nbsp;·&nbsp;
                             <span class="badge bg-primary text-uppercase">{{ user_profile.get_role_display }}</span>
-                            {% if user_profile.identity_verified %}
+                            {% if user_profile.identity_verified or user_profile.id_verification_status == 'verified' %}
                                 <span class="badge bg-success ms-1">Verified</span>
                             {% else %}
                                 <span class="badge bg-warning text-dark ms-1">Unverified</span>
                             {% endif %}
                         </div>
-                        <button type="submit" class="btn btn-vng-primary btn-vng-sm px-4">Save Changes</button>
+                        {% if user_profile.identity_verified or user_profile.id_verification_status == 'verified' %}
+                            <div class="small text-muted">
+                                🔒 Profile verified and locked. Need updates? <a href="{% url 'contact' %}" class="fw-semibold text-decoration-underline text-dark">Contact Support</a>
+                            </div>
+                        {% else %}
+                            <button type="submit" class="btn btn-vng-primary btn-vng-sm px-4">Save Changes</button>
+                        {% endif %}
                     </div>
                 </form>
             </div>
