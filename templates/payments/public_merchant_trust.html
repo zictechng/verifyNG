@@ -129,21 +129,21 @@
           </div>
         {% endif %}
 
-        <!-- Quick Share & Social Action Hub -->
+        <!-- Quick Share & Social Action Hub (Available to all visitors) -->
         <div class="d-flex flex-wrap justify-content-center align-items-center gap-2 mt-3 pt-2">
-          <!-- WhatsApp 1-Click Share Button (Industrial Standard) -->
+          <!-- Share via WhatsApp -->
           <a href="{{ whatsapp_share_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-success rounded-pill px-3.5 py-2 fw-bold shadow-sm d-inline-flex align-items-center gap-2" style="background-color:#25D366;border-color:#25D366;color:#ffffff;font-size:0.92rem;">
             <i class="bi bi-whatsapp fs-5"></i>
             <span>Share on WhatsApp</span>
           </a>
 
-          <!-- Native Mobile Share / Copy Link Button -->
+          <!-- Native Mobile Share Sheet -->
           <button type="button" class="btn btn-light rounded-pill px-3.5 py-2 fw-semibold shadow-sm d-inline-flex align-items-center gap-2 text-dark" onclick="shareTrustBadge('{{ full_bio_url }}', '{{ merchant.store_name|escapejs }}')" style="font-size:0.92rem;">
             <i class="bi bi-share-fill text-primary"></i>
-            <span id="shareBtnText">Share Badge</span>
+            <span id="shareBtnText">Share Profile</span>
           </button>
 
-          <!-- Copy Link Pill -->
+          <!-- Copy Profile Link -->
           <button type="button" class="btn btn-outline-light rounded-pill px-3 py-2 fw-semibold shadow-sm d-inline-flex align-items-center gap-1.5" onclick="copySealLink('{{ full_bio_url }}')" style="font-size:0.88rem;background:rgba(255,255,255,0.12);border-color:rgba(255,255,255,0.35);">
             <i class="bi bi-link-45deg fs-5"></i>
             <span id="copyLinkBtnText">Copy Link</span>
@@ -287,45 +287,48 @@
       </div>
       {% endif %}
 
-      <!-- Merchant Social Sharing & Buyer Reassurance Tools -->
-      <div class="card border rounded-4 shadow-sm bg-white mb-4 overflow-hidden">
-        <div class="card-header bg-light py-3 px-4 border-bottom d-flex align-items-center justify-content-between flex-wrap gap-2">
+      {% if request.user == merchant.user or request.user.is_staff %}
+      <!-- Vendor Owner Portal: Social Sharing & Website Embed Tools (Hidden from General Public) -->
+      <div class="border rounded-4 mb-4 overflow-hidden shadow-sm" style="background:#f8fafc;border:2px dashed #93c5fd!important;">
+        <div class="py-2.5 px-4 bg-primary-subtle text-primary border-bottom d-flex align-items-center justify-content-between flex-wrap gap-2">
           <div class="d-flex align-items-center gap-2">
-            <span class="badge bg-primary text-white rounded-circle p-1" style="width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;">
-              <i class="bi bi-megaphone-fill" style="font-size:12px;"></i>
-            </span>
-            <h6 class="fw-bold text-dark mb-0" style="font-size:1rem;">Share Verified Status With Customers</h6>
+            <i class="bi bi-person-badge-fill fs-5"></i>
+            <span class="fw-bold" style="font-size:0.92rem;">Store Owner Marketing Toolkit (Only visible to you)</span>
           </div>
-          <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 fw-semibold small">
-            <i class="bi bi-shield-check"></i> High Trust
-          </span>
+          <a href="{% url 'merchant_apply' %}" class="btn btn-xs btn-outline-primary rounded-pill px-3 py-1 fw-semibold" style="font-size:0.8rem;">
+            <i class="bi bi-gear-fill me-1"></i> Manage Seal
+          </a>
         </div>
-        <div class="card-body p-4">
-          <p class="text-secondary small mb-3">
-            Send your official verification dossier to buyers on WhatsApp, Instagram DM, or Twitter before they make payment to reassure them against scammers:
+
+        <div class="p-4">
+          <h6 class="fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+            <i class="bi bi-megaphone-fill text-primary"></i> Share With Customers on WhatsApp &amp; Social Media
+          </h6>
+          <p class="text-muted small mb-3">
+            Send your official verification dossier to buyers on WhatsApp or Instagram DM before they pay to reassure them against scammers:
           </p>
 
           <div class="row g-2 mb-3">
             <div class="col-6 col-sm-3">
-              <a href="{{ whatsapp_share_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-success w-100 py-2 rounded-3 fw-semibold d-flex flex-column align-items-center justify-content-center gap-1 shadow-sm" style="font-size:0.85rem;">
+              <a href="{{ whatsapp_share_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-success w-100 py-2 rounded-3 fw-semibold d-flex flex-column align-items-center justify-content-center gap-1 shadow-sm bg-white" style="font-size:0.85rem;">
                 <i class="bi bi-whatsapp fs-4 text-success"></i>
                 <span>WhatsApp</span>
               </a>
             </div>
             <div class="col-6 col-sm-3">
-              <a href="{{ twitter_share_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-dark w-100 py-2 rounded-3 fw-semibold d-flex flex-column align-items-center justify-content-center gap-1 shadow-sm" style="font-size:0.85rem;">
+              <a href="{{ twitter_share_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-dark w-100 py-2 rounded-3 fw-semibold d-flex flex-column align-items-center justify-content-center gap-1 shadow-sm bg-white" style="font-size:0.85rem;">
                 <i class="bi bi-twitter-x fs-4 text-dark"></i>
                 <span>X / Twitter</span>
               </a>
             </div>
             <div class="col-6 col-sm-3">
-              <a href="{{ fb_share_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary w-100 py-2 rounded-3 fw-semibold d-flex flex-column align-items-center justify-content-center gap-1 shadow-sm" style="font-size:0.85rem;">
+              <a href="{{ fb_share_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary w-100 py-2 rounded-3 fw-semibold d-flex flex-column align-items-center justify-content-center gap-1 shadow-sm bg-white" style="font-size:0.85rem;">
                 <i class="bi bi-facebook fs-4 text-primary"></i>
                 <span>Facebook</span>
               </a>
             </div>
             <div class="col-6 col-sm-3">
-              <a href="{{ linkedin_share_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary w-100 py-2 rounded-3 fw-semibold d-flex flex-column align-items-center justify-content-center gap-1 shadow-sm" style="font-size:0.85rem;">
+              <a href="{{ linkedin_share_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary w-100 py-2 rounded-3 fw-semibold d-flex flex-column align-items-center justify-content-center gap-1 shadow-sm bg-white" style="font-size:0.85rem;">
                 <i class="bi bi-linkedin fs-4 text-primary"></i>
                 <span>LinkedIn</span>
               </a>
@@ -333,42 +336,37 @@
           </div>
 
           <!-- Quick Copy Template for WhatsApp Vendors -->
-          <div class="p-3 bg-light rounded-3 border">
+          <div class="p-3 bg-white rounded-3 border mb-4">
             <div class="d-flex align-items-center justify-content-between mb-1">
               <span class="small fw-bold text-dark text-uppercase" style="font-size:0.75rem;letter-spacing:0.5px;">
-                <i class="bi bi-chat-quote me-1 text-primary"></i> Ready-to-Send Buyer Message
+                <i class="bi bi-chat-quote me-1 text-primary"></i> Ready-to-Send WhatsApp Buyer Message
               </span>
               <button type="button" class="btn btn-sm btn-link text-decoration-none p-0 fw-semibold text-primary" onclick="copyPresetMessage()">
                 <i class="bi bi-copy me-1"></i> Copy Message
               </button>
             </div>
-            <textarea id="buyerSharePreset" class="form-control form-control-sm bg-white text-dark font-monospace" rows="2" readonly style="font-size:0.84rem;">Buy safely! Check our official Verified Merchant Badge &amp; verified bank account on VerifyNG: {{ full_bio_url }}</textarea>
+            <textarea id="buyerSharePreset" class="form-control form-control-sm bg-light text-dark font-monospace" rows="2" readonly style="font-size:0.84rem;">Buy safely! Check our official Verified Merchant Badge &amp; verified bank account on VerifyNG: {{ full_bio_url }}</textarea>
           </div>
-        </div>
-      </div>
 
-      <!-- Embed Widget Code for Vendors (Professional Copy Toast) -->
-      <div class="card border rounded-4 shadow-sm bg-light">
-        <div class="card-body p-4">
+          <!-- Embed Seal on Website / Bio -->
           <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
             <h6 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-              Embed Seal on Your Website / Bio
+              <i class="bi bi-code-slash text-primary"></i> Embed Seal on Your Website / Bio
             </h6>
             <div id="copyAlert" class="badge bg-success text-white py-1.5 px-3 rounded-pill fw-semibold shadow-sm" style="display:none;font-size:0.8rem;">
               ✓ Snippet Copied to Clipboard!
             </div>
           </div>
-          <p class="text-muted small mb-3">Are you {{ merchant.store_name }}? Add this seal to your website, Shopify, WooCommerce, or Linktree bio:</p>
-          
-          <div class="input-group input-group-sm mb-2">
-            <input type="text" class="form-control font-monospace" value="{{ embed_script_tag }}" id="embedSnippet" readonly>
+          <p class="text-muted small mb-2">Add your live interactive verified seal badge to your website, Shopify, WooCommerce, or Linktree:</p>
+          <div class="input-group input-group-sm">
+            <input type="text" class="form-control font-monospace bg-white" value="{{ embed_script_tag }}" id="embedSnippet" readonly>
             <button class="btn btn-primary px-3 fw-semibold" type="button" onclick="copyEmbedSnippet()">
               <i class="bi bi-clipboard me-1"></i> Copy Embed
             </button>
           </div>
         </div>
       </div>
+      {% endif %}
 
     </div>
   </div>
