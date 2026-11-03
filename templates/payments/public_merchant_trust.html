@@ -43,8 +43,8 @@
   <div class="row justify-content-center">
     <div class="col-lg-8 col-xl-7">
 
-      <!-- Official Seal Header Card (Refined, Compact, High-Contrast) -->
-      <div class="seal-hero-card p-4 text-center mb-4 position-relative overflow-hidden">
+      <!-- Official Seal Header Card (Clean, Prestigious, Executive) -->
+      <div class="seal-hero-card p-4 p-md-4 text-center mb-3 position-relative overflow-hidden">
         
         <!-- Status Indicator Pill (Only displayed when under dispute, suspended, or pending review) -->
         {% if merchant.status != 'active' %}
@@ -68,18 +68,18 @@
           </div>
         {% endif %}
 
-        <!-- Store Logo / Avatar with Verified Checkmark Badge -->
-        <div class="mb-2.5 position-relative d-inline-block">
+        <!-- Store Logo / Avatar with Official Rosette Checkmark Badge -->
+        <div class="mb-3 position-relative d-inline-block">
           {% if merchant.logo_image %}
-            <img src="{{ merchant.logo_image.url }}" alt="{{ merchant.store_name }}" class="rounded-circle shadow-lg border border-3 border-white object-fit-cover" style="width:80px;height:80px;">
+            <img src="{{ merchant.logo_image.url }}" alt="{{ merchant.store_name }}" class="rounded-circle shadow-lg border border-3 border-white object-fit-cover" style="width:84px;height:84px;">
           {% else %}
-            <div class="rounded-circle bg-white text-dark shadow-lg border border-3 border-white d-inline-flex align-items-center justify-content-center mx-auto" style="width:80px;height:80px;font-size:2.2rem;">
+            <div class="rounded-circle bg-white text-dark shadow-lg border border-3 border-white d-inline-flex align-items-center justify-content-center mx-auto" style="width:84px;height:84px;font-size:2.2rem;">
               🛍️
             </div>
           {% endif %}
           {% if merchant.status == 'active' %}
             <span class="position-absolute bottom-0 end-0 d-inline-flex align-items-center justify-content-center" style="transform: translate(25%, 25%);" title="Officially Verified Merchant">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.35));">
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.35));">
                 <path d="M10.29 2.308a2.23 2.23 0 0 1 3.42 0c.66.757 1.688 1.096 2.66.878a2.23 2.23 0 0 1 2.68 2.128c.046 1.002.637 1.892 1.528 2.302a2.23 2.23 0 0 1 1.282 3.167c-.49 1.008-.432 2.188.15 3.125a2.23 2.23 0 0 1-1.282 3.167c-.89.41-1.482 1.3-1.528 2.302a2.23 2.23 0 0 1-2.68 2.128c-.972-.218-2 .12-2.66.878a2.23 2.23 0 0 1-3.42 0c-.66-.757-1.688-1.096-2.66-.878a2.23 2.23 0 0 1-2.68-2.128c-.046-1.002-.637-1.892-1.528-2.302a2.23 2.23 0 0 1-1.282-3.167c.49-1.008.432-2.188-.15-3.125a2.23 2.23 0 0 1 1.282-3.167c.89-.41 1.482-1.3 1.528-2.302a2.23 2.23 0 0 1 2.68-2.128c.972.218 2-.12 2.66-.878Z" fill="#16a34a" stroke="#ffffff" stroke-width="1.2"/>
                 <polyline points="8 12.5 10.75 15.25 16 10" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
@@ -87,21 +87,21 @@
           {% endif %}
         </div>
 
-        <!-- Store Name & Handle -->
-        <h3 class="fw-extrabold text-white mb-2" style="font-size:1.6rem;letter-spacing:-0.2px;">{{ merchant.store_name }}</h3>
+        <!-- Store Name & Verified Subtitle -->
+        <h3 class="fw-extrabold text-white mb-2" style="font-size:1.65rem;letter-spacing:-0.3px;">{{ merchant.store_name }}</h3>
         
-        <!-- Highly Visible Store Category & Handle Pill -->
-        <div class="mb-3 d-flex align-items-center justify-content-center flex-wrap gap-2">
-          <span class="d-inline-flex align-items-center gap-2 px-3 py-1.5 rounded-pill shadow-sm" style="background:#ffffff;border:1.5px solid #e2e8f0;">
-            <span class="fw-bold font-monospace" style="color:#0f172a;font-size:0.95rem;">@{{ merchant.store_slug }}</span>
-            <span style="color:#94a3b8;">&bull;</span>
-            <span class="fw-bold" style="color:#1d4ed8;font-size:0.92rem;">{{ merchant.category_display_name }}</span>
+        <!-- Clean Store Handle, Category & Location Row -->
+        <div class="d-flex align-items-center justify-content-center flex-wrap gap-2">
+          <span class="d-inline-flex align-items-center gap-1.5 px-3 py-1 rounded-pill shadow-sm" style="background:#ffffff;border:1px solid #e2e8f0;">
+            <span class="fw-bold font-monospace" style="color:#0f172a;font-size:0.92rem;">@{{ merchant.store_slug }}</span>
+            <span style="color:#cbd5e1;">&bull;</span>
+            <span class="fw-bold text-primary" style="font-size:0.9rem;">{{ merchant.category_display_name }}</span>
           </span>
 
           {% if merchant.display_location and merchant.operating_state %}
-            <span class="d-inline-flex align-items-center gap-1.5 px-3 py-1.5 rounded-pill shadow-sm" style="background:#ffffff;border:1.5px solid #e2e8f0;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-              <span class="fw-bold text-dark" style="font-size:0.9rem;">
+            <span class="d-inline-flex align-items-center gap-1.5 px-3 py-1 rounded-pill shadow-sm" style="background:#ffffff;border:1px solid #e2e8f0;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              <span class="fw-bold text-dark" style="font-size:0.88rem;">
                 {% if merchant.city_town %}{{ merchant.city_town }}, {% endif %}{{ merchant.operating_state }}
               </span>
             </span>
@@ -109,53 +109,63 @@
         </div>
 
         {% if merchant.display_location and merchant.physical_address %}
-          <div class="d-flex justify-content-center mb-3 px-2">
-            <div class="d-inline-flex align-items-center px-3.5 py-1.5 rounded-pill shadow-sm text-start" style="background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.3);color:#ffffff;font-size:0.875rem;max-width:100%;word-break:break-word;">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.5" class="flex-shrink-0 me-2.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-              <span><strong class="me-1">Store/Office:</strong>{{ merchant.physical_address }}</span>
+          <div class="d-flex justify-content-center mt-2.5 px-2">
+            <div class="d-inline-flex align-items-center px-3 py-1 rounded-pill text-start" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);color:#f1f5f9;font-size:0.84rem;max-width:100%;word-break:break-word;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.5" class="flex-shrink-0 me-2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+              <span>{{ merchant.physical_address }}</span>
             </div>
           </div>
         {% endif %}
+      </div>
 
-        {% if merchant.description %}
-          <div class="mx-auto mb-3 p-3 rounded-3 shadow-sm text-start" style="background:#f0f9ff;border:1.5px solid #bae6fd;max-width:560px;">
-            <div class="d-flex align-items-center gap-2 mb-1">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
-              <span class="text-uppercase fw-bold" style="font-size:0.75rem;letter-spacing:0.5px;color:#0369a1;">About This Verified Merchant</span>
-            </div>
-            <div class="merchant-desc-text fw-medium" style="color:#0f172a !important;font-size:0.95rem;line-height:1.6;">
-              {{ merchant.description }}
+      <!-- Clean Public Share & Bio Link Bar (Below Hero, Zero Clutter) -->
+      <div class="card border rounded-4 shadow-sm bg-white mb-4 overflow-hidden">
+        <div class="card-body p-3 p-sm-3.5 d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center justify-content-between gap-2.5">
+          <div class="d-flex align-items-center gap-2 min-w-0">
+            <span class="badge bg-success text-white rounded-circle p-1 d-inline-flex align-items-center justify-content-center flex-shrink-0" style="width:24px;height:24px;">
+              <i class="bi bi-shield-check" style="font-size:12px;"></i>
+            </span>
+            <div class="text-truncate">
+              <span class="text-muted small d-block" style="font-size:0.75rem;">Official Verification Bio Link:</span>
+              <strong class="font-monospace text-dark text-truncate d-block" style="font-size:0.88rem;">verifyng.com/trust-seal/v/{{ merchant.store_slug }}</strong>
             </div>
           </div>
-        {% endif %}
 
-        <!-- Quick Share & Social Action Hub (Available to all visitors) -->
-        <div class="d-flex flex-wrap justify-content-center align-items-center gap-2 mt-3 pt-2">
-          <!-- Share via WhatsApp -->
-          <a href="{{ whatsapp_share_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-success rounded-pill px-3.5 py-2 fw-bold shadow-sm d-inline-flex align-items-center gap-2" style="background-color:#25D366;border-color:#25D366;color:#ffffff;font-size:0.92rem;">
-            <i class="bi bi-whatsapp fs-5"></i>
-            <span>Share on WhatsApp</span>
-          </a>
+          <div class="d-flex align-items-center gap-2 flex-shrink-0">
+            <!-- 1-Click WhatsApp Share -->
+            <a href="{{ whatsapp_share_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-success rounded-pill px-3 py-1.5 fw-semibold d-inline-flex align-items-center gap-1.5 shadow-sm" style="background-color:#25D366;border-color:#25D366;font-size:0.85rem;">
+              <i class="bi bi-whatsapp"></i> WhatsApp
+            </a>
 
-          <!-- Native Mobile Share Sheet -->
-          <button type="button" class="btn btn-light rounded-pill px-3.5 py-2 fw-semibold shadow-sm d-inline-flex align-items-center gap-2 text-dark" onclick="shareTrustBadge('{{ full_bio_url }}', '{{ merchant.store_name|escapejs }}')" style="font-size:0.92rem;">
-            <i class="bi bi-share-fill text-primary"></i>
-            <span id="shareBtnText">Share Profile</span>
-          </button>
-
-          <!-- Copy Profile Link -->
-          <button type="button" class="btn btn-outline-light rounded-pill px-3 py-2 fw-semibold shadow-sm d-inline-flex align-items-center gap-1.5" onclick="copySealLink('{{ full_bio_url }}')" style="font-size:0.88rem;background:rgba(255,255,255,0.12);border-color:rgba(255,255,255,0.35);">
-            <i class="bi bi-link-45deg fs-5"></i>
-            <span id="copyLinkBtnText">Copy Link</span>
-          </button>
+            <!-- Native Share / Copy Link -->
+            <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1.5 fw-semibold shadow-sm d-inline-flex align-items-center gap-1.5" onclick="shareTrustBadge('{{ full_bio_url }}', '{{ merchant.store_name|escapejs }}')" style="font-size:0.85rem;">
+              <i class="bi bi-share"></i> Share
+            </button>
+            <button type="button" class="btn btn-sm btn-light border rounded-pill px-2.5 py-1.5 fw-semibold shadow-sm d-inline-flex align-items-center text-secondary" onclick="copySealLink('{{ full_bio_url }}')" title="Copy Link">
+              <i class="bi bi-link-45deg fs-6"></i>
+            </button>
+          </div>
         </div>
-
-        <div id="shareFeedbackToast" class="mt-2.5 px-2" style="display:none;">
-          <span class="badge bg-success text-white px-3 py-2 rounded-pill shadow-sm text-wrap text-break d-inline-block" style="font-size:0.8rem;max-width:100%;line-height:1.45;">
+        <div id="shareFeedbackToast" class="pb-2.5 px-3 text-center" style="display:none;">
+          <span class="badge bg-success text-white px-3 py-1.5 rounded-pill shadow-sm" style="font-size:0.8rem;">
             <i class="bi bi-check-circle-fill me-1"></i> Trust link copied to clipboard!
           </span>
         </div>
       </div>
+
+      <!-- About Store Description (Dedicated High-Readability Card) -->
+      {% if merchant.description %}
+      <div class="card border rounded-4 shadow-sm bg-white mb-4 overflow-hidden">
+        <div class="card-body p-4">
+          <div class="d-flex align-items-center gap-2 mb-2 text-primary fw-bold" style="font-size:0.82rem;letter-spacing:0.5px;text-transform:uppercase;">
+            <i class="bi bi-info-circle-fill"></i> About {{ merchant.store_name }}
+          </div>
+          <div class="text-dark fw-normal" style="font-size:0.96rem;line-height:1.65;color:#1e293b!important;">
+            {{ merchant.description }}
+          </div>
+        </div>
+      </div>
+      {% endif %}
 
       <!-- Fraud & Safety Scorecard (Clean, Proportional Icons) -->
       <div class="row g-3 mb-4">
