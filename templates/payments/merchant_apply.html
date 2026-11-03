@@ -492,17 +492,19 @@
             </div>
 
             <!-- Individual Liveness / Selfie Capture -->
-            <div id="selfieSection" class="mt-5 pt-4 border-top">
-              <h5 class="fw-bold text-dark mb-1 d-flex align-items-center gap-2" style="font-size:1.25rem;">
-                <i class="bi bi-camera-fill text-primary"></i> Identity Verification (Live Webcam or Selfie Holding ID)
-              </h5>
-              <p class="vng-instruction-text mb-4">
-                Required for individual sellers to prevent stolen identity impersonation. Take a live webcam photo or upload a crisp selfie holding your ID.
-              </p>
+            <div id="selfieSection" class="mt-5 pt-5 border-top">
+              <div class="mb-4">
+                <h5 class="fw-bold text-dark mb-2.5 d-flex align-items-center gap-2" style="font-size:1.25rem;">
+                  <i class="bi bi-camera-fill text-primary"></i> Identity Verification (Live Webcam or Selfie Holding ID)
+                </h5>
+                <p class="vng-instruction-text mb-0" style="line-height:1.7;">
+                  Required for individual sellers to prevent stolen identity impersonation. Take a live webcam photo or upload a crisp selfie holding your ID.
+                </p>
+              </div>
 
               {% if profile and profile.status == 'active' and profile.selfie_image %}
                 <!-- Active Verified Merchant Selfie State -->
-                <div class="p-3.5 p-sm-4 bg-light rounded-4 border mb-3 shadow-sm" style="border-color:#e2e8f0!important;">
+                <div class="p-3.5 p-sm-4 bg-light rounded-4 border mb-4 shadow-sm" style="border-color:#e2e8f0!important;">
                   <div class="d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-3">
                     <div class="d-flex align-items-center gap-3">
                       <div class="position-relative flex-shrink-0">
@@ -591,11 +593,11 @@
             </div>
 
             <!-- Submit Button with Spinner -->
-            <div class="mt-5 pt-3 border-top d-flex align-items-center justify-content-between flex-wrap gap-3">
-              <a href="{% url 'merchant_landing' %}" class="btn btn-outline-secondary rounded-pill px-4 py-2 fw-semibold">
+            <div class="mt-5 pt-4 border-top d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center justify-content-between gap-3 pb-2">
+              <a href="{% url 'merchant_landing' %}" class="btn btn-outline-secondary rounded-pill px-4 py-2.5 fw-semibold text-center order-2 order-sm-1">
                 &larr; Back
               </a>
-              <button type="submit" class="btn btn-primary rounded-pill px-5 py-2.5 fw-bold shadow-sm" id="btnSubmitApplication" style="font-size:1.05rem;">
+              <button type="submit" class="btn btn-primary rounded-pill px-5 py-2.5 fw-bold shadow-sm text-center order-1 order-sm-2" id="btnSubmitApplication" style="font-size:1.05rem;">
                 <span id="submitSpinner" class="spinner-border spinner-border-sm me-2" style="display:none;"></span>
                 Submit Merchant Application
               </button>
