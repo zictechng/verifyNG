@@ -25,11 +25,14 @@
         </div>
     </div>
 
-    {# ── Top Bar Dispute Notification Banner ────────────────────────────── #}
+    {# ── Top Bar Dispute Notification Banner (Dismissible) ──────────────── #}
     {% if pending_allegations_count > 0 %}
-    <div class="alert d-flex align-items-center justify-content-between gap-3 mb-4 flex-wrap"
+    <div x-data="{ dismissed: localStorage.getItem('vng_dismiss_dispute_notice') === 'true' }"
+         x-show="!dismissed"
+         x-cloak
+         class="alert d-flex align-items-center justify-content-between gap-3 mb-4 flex-wrap position-relative"
          style="background: #FEF2F2; border: 1px solid #FECACA; border-left: 4px solid #DC2626; border-radius: 8px;">
-        <div class="d-flex align-items-center gap-2.5">
+        <div class="d-flex align-items-center gap-2.5 pe-4">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2" class="flex-shrink-0">
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                 <line x1="12" y1="8" x2="12" y2="12"/>
@@ -42,9 +45,17 @@
                 </span>
             </div>
         </div>
-        <a href="{% url 'reports:my_disputes' %}" class="btn btn-danger btn-sm py-1 px-3 rounded-pill fw-semibold text-nowrap" style="font-size: 12.5px;">
-            View in Disputes Table &rarr;
-        </a>
+        <div class="d-flex align-items-center gap-2">
+            <a href="{% url 'reports:my_disputes' %}" class="btn btn-danger btn-sm py-1 px-3 rounded-pill fw-semibold text-nowrap" style="font-size: 12.5px;">
+                View in Disputes Table &rarr;
+            </a>
+            <button type="button"
+                    class="btn-close"
+                    aria-label="Dismiss dispute notice"
+                    @click="dismissed = true; localStorage.setItem('vng_dismiss_dispute_notice', 'true')"
+                    title="Dismiss this notice">
+            </button>
+        </div>
     </div>
     {% endif %}
 
@@ -214,71 +225,65 @@
                     {% endif %}
                 </div>
                 {% if request.user.identity_verified or request.user.id_verification_status == 'verified' %}
-                    <div class="d-flex align-items-center gap-3 mb-3">
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--vng-success)" stroke-width="1.5">
+                    <div class="d-flex align-items-center gap-3 mb-2">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--vng-success)" stroke-width="1.8" class="flex-shrink-0">
                             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                             <polyline points="9 12 11 14 15 10" stroke-width="2.5"/>
                         </svg>
                         <div>
                             <div class="fw-semibold" style="font-size:14px;">Identity Confirmed</div>
-                            <div class="small text-muted">{{ request.user.get_id_type_display|default:"Government ID" }} &bull; Verified</div>
+                            <div class="small text-muted">Account type: <span class="fw-semibold text-dark">{{ request.user.get_role_display|default:"Individual" }}</span></div>
                         </div>
                     </div>
                 {% elif request.user.id_verification_status == 'pending' or request.user.has_id_document and request.user.id_verification_status != 'rejected' %}
-                    <div class="d-flex align-items-center gap-3 mb-3">
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="1.8">
+                    <div class="d-flex align-items-center gap-3 mb-2">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="1.8" class="flex-shrink-0">
                             <circle cx="12" cy="12" r="10"/>
                             <polyline points="12 6 12 12 16 14"/>
                         </svg>
                         <div>
                             <div class="fw-semibold text-primary" style="font-size:14px;">Under Review</div>
-                            <div class="small text-muted">Compliance officer review in progress</div>
+                            <div class="small text-muted">Account type: <span class="fw-semibold text-dark">{{ request.user.get_role_display|default:"Individual" }}</span></div>
                         </div>
                     </div>
-                    <a href="{% url 'users:profile' %}" class="btn btn-vng-outline btn-sm w-100">
+                    <a href="{% url 'users:profile' %}" class="btn btn-vng-outline btn-sm w-100 mb-2">
                         View Submission Status &rarr;
                     </a>
                 {% elif request.user.id_verification_status == 'rejected' %}
-                    <div class="d-flex align-items-center gap-3 mb-3">
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="1.8">
+                    <div class="d-flex align-items-center gap-3 mb-2">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="1.8" class="flex-shrink-0">
                             <circle cx="12" cy="12" r="10"/>
                             <line x1="12" y1="8" x2="12" y2="12"/>
                             <line x1="12" y1="16" x2="12.01" y2="16"/>
                         </svg>
                         <div>
                             <div class="fw-semibold text-danger" style="font-size:14px;">Verification Declined</div>
-                            <div class="small text-muted">Document resubmission required</div>
+                            <div class="small text-muted">Account type: <span class="fw-semibold text-dark">{{ request.user.get_role_display|default:"Individual" }}</span></div>
                         </div>
                     </div>
-                    <a href="{% url 'users:profile' %}" class="btn btn-vng-outline btn-sm w-100">
+                    <a href="{% url 'users:profile' %}" class="btn btn-vng-outline btn-sm w-100 mb-2">
                         Resubmit ID Document &rarr;
                     </a>
                 {% else %}
-                    <div class="d-flex align-items-center gap-3 mb-3">
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="1.5">
+                    <div class="d-flex align-items-center gap-3 mb-2">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="1.5" class="flex-shrink-0">
                             <circle cx="12" cy="12" r="10"/>
                             <line x1="12" y1="8" x2="12" y2="12"/>
                             <line x1="12" y1="16" x2="12.01" y2="16"/>
                         </svg>
                         <div>
                             <div class="fw-semibold" style="font-size:14px;">Verify Your Identity</div>
-                            <div class="small text-muted">Required to submit reports</div>
+                            <div class="small text-muted">Account type: <span class="fw-semibold text-dark">{{ request.user.get_role_display|default:"Individual" }}</span></div>
                         </div>
                     </div>
-                    <a href="{% url 'users:profile' %}" class="btn btn-vng-outline btn-sm w-100">
+                    <a href="{% url 'users:profile' %}" class="btn btn-vng-outline btn-sm w-100 mb-2">
                         Start Verification &rarr;
                     </a>
-                {% endif %}
-                {% if request.user.get_role_display %}
-                <div class="mt-3 pt-3 border-top d-flex align-items-center justify-content-between">
-                    <span class="small text-muted">Account type</span>
-                    <span class="badge bg-primary text-uppercase">{{ request.user.get_role_display }}</span>
-                </div>
                 {% endif %}
 
                 {% if dashboard_merchant %}
                 <div class="mt-2 pt-2 border-top d-flex align-items-center justify-content-between">
-                    <span class="small text-muted">Merchant Trust Badge</span>
+                    <span class="small text-muted">Merchant Badge</span>
                     {% if dashboard_merchant.status == 'active' %}
                         <span class="badge bg-success">Active 🟢</span>
                     {% elif dashboard_merchant.status == 'disputed' or dashboard_merchant.status == 'under_dispute' %}
@@ -293,8 +298,8 @@
                         <span class="badge bg-secondary">{{ dashboard_merchant.get_status_display }}</span>
                     {% endif %}
                 </div>
-                <div class="mt-3">
-                    <a href="{% url 'public_merchant_trust' dashboard_merchant.store_slug %}" target="_blank" rel="noopener" class="btn btn-vng-outline btn-sm w-100">
+                <div class="mt-2.5">
+                    <a href="{% url 'public_merchant_trust' dashboard_merchant.store_slug %}" target="_blank" rel="noopener" class="btn btn-vng-outline btn-sm w-100 py-1" style="font-size: 12.5px;">
                         View Trust Badge Page &rarr;
                     </a>
                 </div>
