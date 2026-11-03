@@ -817,6 +817,7 @@ class MerchantProfile(models.Model):
         ('pending', 'Pending Review'),
         ('active', 'Verified & Active'),
         ('disputed', 'Under Customer Dispute'),
+        ('under_dispute', 'Under Customer Dispute'),
         ('rejected', 'Application Rejected'),
         ('suspended', 'Suspended / Revoked'),
     )
@@ -904,6 +905,11 @@ class MerchantProfile(models.Model):
     def is_currently_active(self):
         """Returns True if approved and not suspended or under active dispute."""
         return self.status == 'active'
+
+    @property
+    def is_under_dispute(self):
+        """Returns True if under open customer complaint or formal dispute."""
+        return self.status in ('disputed', 'under_dispute')
 
     @property
     def category_display_name(self):

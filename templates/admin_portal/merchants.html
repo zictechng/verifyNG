@@ -58,7 +58,7 @@
       Bank Change Requests {% if bank_change_count %}<span class="badge bg-danger text-white ms-1">{{ bank_change_count }}</span>{% endif %}
     </a>
     <a href="?status=active" class="btn btn-sm {% if status_filter == 'active' %}btn-success{% else %}btn-outline-secondary{% endif %}">Active</a>
-    <a href="?status=under_dispute" class="btn btn-sm {% if status_filter == 'under_dispute' %}btn-warning{% else %}btn-outline-secondary{% endif %}">Under Dispute</a>
+    <a href="?status=under_dispute" class="btn btn-sm {% if status_filter == 'under_dispute' or status_filter == 'disputed' %}btn-warning text-dark fw-bold{% else %}btn-outline-warning text-dark{% endif %}">Under Dispute {% if dispute_count %}<span class="badge bg-danger text-white ms-1">{{ dispute_count }}</span>{% endif %}</a>
     <a href="?status=suspended" class="btn btn-sm {% if status_filter == 'suspended' %}btn-danger{% else %}btn-outline-secondary{% endif %}">Suspended</a>
     <a href="?status=all" class="btn btn-sm {% if status_filter == 'all' %}btn-dark{% else %}btn-outline-secondary{% endif %}">All</a>
   </div>
@@ -110,15 +110,17 @@
           </td>
           <td>
             {% if m.status == 'active' %}
-              <span class="badge bg-success-subtle text-success">🟢 Active</span>
+              <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 rounded-pill fw-semibold">🟢 Active</span>
             {% elif m.status == 'pending' %}
-              <span class="badge bg-warning-subtle text-dark">⏳ Pending</span>
-            {% elif m.status == 'under_dispute' %}
-              <span class="badge bg-warning-subtle text-warning">🟡 Under Dispute</span>
+              <span class="badge bg-warning-subtle text-dark border border-warning-subtle px-2.5 py-1 rounded-pill fw-semibold">⏳ Pending</span>
+            {% elif m.status == 'under_dispute' or m.status == 'disputed' %}
+              <span class="badge bg-warning text-dark border border-warning px-2.5 py-1 rounded-pill fw-bold">🟡 Under Dispute</span>
             {% elif m.status == 'suspended' %}
-              <span class="badge bg-danger-subtle text-danger">🔴 Suspended</span>
+              <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2.5 py-1 rounded-pill fw-semibold">🔴 Suspended</span>
             {% elif m.status == 'rejected' %}
-              <span class="badge bg-secondary-subtle text-danger">Declined</span>
+              <span class="badge bg-secondary-subtle text-danger border border-secondary-subtle px-2.5 py-1 rounded-pill fw-semibold">Declined</span>
+            {% else %}
+              <span class="badge bg-light text-dark border px-2.5 py-1 rounded-pill">{{ m.get_status_display|default:m.status }}</span>
             {% endif %}
           </td>
           <td class="small text-muted">

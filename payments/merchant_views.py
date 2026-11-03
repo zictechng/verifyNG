@@ -66,7 +66,7 @@ def get_merchant_fraud_reports(merchant: MerchantProfile):
 
     return FraudReport.objects.filter(
         target_subject_id__in=matched_subject_ids,
-        state__in=['published', 'disputed', 'under_review']
+        state__in=['submitted', 'under_review', 'published', 'disputed']
     )
 
 
@@ -332,6 +332,8 @@ class AdminMerchantListView(SuperAdminRequiredMixin, TemplateView):
 
         if status_filter == 'bank_change':
             qs = qs.filter(has_pending_bank_change=True)
+        elif status_filter in ('disputed', 'under_dispute'):
+            qs = qs.filter(status__in=['disputed', 'under_dispute'])
         elif status_filter and status_filter != 'all':
             qs = qs.filter(status=status_filter)
 
@@ -363,7 +365,7 @@ class AdminMerchantListView(SuperAdminRequiredMixin, TemplateView):
         ctx['search_query'] = search_query
         ctx['pending_count'] = MerchantProfile.objects.filter(status='pending').count()
         ctx['active_count'] = MerchantProfile.objects.filter(status='active').count()
-        ctx['dispute_count'] = MerchantProfile.objects.filter(status='under_dispute').count()
+        ctx['dispute_count'] = MerchantProfile.objects.filter(status__in=['disputed', 'under_dispute']).count()
         ctx['suspended_count'] = MerchantProfile.objects.filter(status='suspended').count()
         ctx['bank_change_count'] = MerchantProfile.objects.filter(has_pending_bank_change=True).count()
         return ctx
@@ -469,7 +471,7 @@ class AdminMerchantDetailView(SuperAdminRequiredMixin, View):
             messages.warning(request, f"Merchant '{merchant.store_name}' application marked as rejected.")
 
         elif action == 'dispute':
-            merchant.status = 'under_dispute'
+            merchant.status = 'disputed'
             merchant.save()
             messages.info(request, f"Merchant '{merchant.store_name}' status updated to 🟡 Under Dispute.")
 
