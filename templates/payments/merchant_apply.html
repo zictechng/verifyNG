@@ -503,25 +503,32 @@
 
               {% if profile and profile.status == 'active' and profile.selfie_image %}
                 <!-- Active Verified Merchant Selfie State -->
-                <div class="p-3.5 p-sm-4 bg-light rounded-4 border mb-4 shadow-sm" style="border-color:#e2e8f0!important;">
-                  <div class="d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-3">
-                    <div class="d-flex align-items-center gap-3">
+                <div class="p-3 p-sm-4 bg-light rounded-4 border mb-4 shadow-sm" style="border-color:#e2e8f0!important;max-width:100%;box-sizing:border-box;">
+                  <div class="d-flex flex-column gap-3 w-100">
+                    <div class="d-flex flex-column flex-sm-row align-items-start align-items-sm-center gap-3 w-100">
+                      <!-- 2: Image Profile with proper margin/spacing -->
                       <div class="position-relative flex-shrink-0">
-                        <img src="{{ profile.selfie_image.url }}" alt="Verified Identity" class="rounded-3 border object-fit-cover shadow-sm" style="width:72px;height:72px;">
-                        <span class="position-absolute bottom-0 end-0 bg-success text-white rounded-circle p-1 d-flex align-items-center justify-content-center shadow" style="width:20px;height:20px;font-size:10px;transform:translate(25%, 25%);">
+                        <img src="{{ profile.selfie_image.url }}" alt="Verified Identity" class="rounded-3 border object-fit-cover shadow-sm d-block" style="width:62px;height:62px;">
+                        <span class="position-absolute bottom-0 end-0 bg-success text-white rounded-circle p-0 d-flex align-items-center justify-content-center shadow" style="width:18px;height:18px;font-size:10px;transform:translate(20%, 20%);">
                           <i class="bi bi-check-lg"></i>
                         </span>
                       </div>
-                      <div>
-                        <span class="badge bg-success-subtle text-success border border-success-subtle mb-1 px-2.5 py-1 fw-semibold d-inline-flex align-items-center gap-1.5" style="font-size:0.8rem;">
-                          <i class="bi bi-shield-check"></i> Identity Photo Verified &amp; On File
-                        </span>
-                        <div class="fw-bold text-dark" style="font-size:1rem;">Government ID Match Confirmed</div>
-                        <div class="small text-muted">Your biometric photo is encrypted and safely archived in compliance with NDPA 2023.</div>
+                      
+                      <!-- 1 & Content: Badge, heading and NDPA notice with strict word-break -->
+                      <div class="flex-grow-1 w-100" style="min-width:0;overflow-wrap:break-word;word-break:break-word;">
+                        <div class="mb-1.5">
+                          <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 fw-semibold d-inline-flex align-items-center gap-1.5 text-wrap" style="font-size:0.75rem;line-height:1.35;max-width:100%;">
+                            <i class="bi bi-shield-check flex-shrink-0"></i> <span>Identity Photo Verified &amp; On File</span>
+                          </span>
+                        </div>
+                        <div class="fw-bold text-dark" style="font-size:0.98rem;line-height:1.35;">Government ID Match Confirmed</div>
+                        <div class="text-muted mt-1" style="font-size:0.82rem;line-height:1.45;">Your biometric photo is encrypted and safely archived in compliance with NDPA 2023.</div>
                       </div>
                     </div>
-                    <div class="w-100 w-sm-auto mt-2 mt-sm-0 text-sm-end">
-                      <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1.5 fw-semibold w-100 w-sm-auto" onclick="document.getElementById('selfieUpdateBox').style.display='block';this.style.display='none';">
+
+                    <!-- 3: Button inside card bounds without overflow -->
+                    <div class="pt-2 border-top border-light-subtle w-100 d-flex justify-content-sm-end">
+                      <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1.5 fw-semibold w-100 w-sm-auto shadow-sm" onclick="document.getElementById('selfieUpdateBox').style.display='block';this.style.display='none';" style="font-size:0.85rem;max-width:100%;">
                         <i class="bi bi-arrow-repeat me-1"></i> Update Photo
                       </button>
                     </div>
