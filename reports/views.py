@@ -122,12 +122,24 @@ class ReportCreateView(LoginRequiredMixin, FormView):
                 merchant.save(update_fields=['status', 'updated_at'])
                 try:
                     from notifications.services import dispatch_notification
+                    from notifications.email_templates import build_merchant_dispute_opened
+                    subj, html_b, txt_b = build_merchant_dispute_opened(
+                        store_name=merchant.store_name,
+                        username=merchant.user.get_full_name() or merchant.user.username,
+                        reference_number=report.reference_number,
+                        report_title=report.title or "",
+                        amount_lost=f"NGN {report.amount_lost:,.2f}" if report.amount_lost else "",
+                        reporter_allegation=report.allegation[:300] if getattr(report, 'allegation', None) else "",
+                    )
                     dispatch_notification(
                         recipient=merchant.user,
-                        event_type='merchant_dispute_opened',
-                        title="Customer Dispute Filed Against Store 🟡",
+                        event_type='DISPUTE_OPENED',
+                        title=f"Customer Dispute Filed Against Store ({merchant.store_name})",
                         body=f"A customer transaction dispute ({report.reference_number}) was filed regarding your store '{merchant.store_name}'. Please review and resolve promptly.",
-                        object_reference=f"report:{report.reference_number}"
+                        object_reference=f"report:{report.reference_number}",
+                        subject=subj,
+                        html_body=html_b,
+                        text_body=txt_b,
                     )
                 except Exception as notif_err:
                     logger.warning(f"Could not dispatch merchant dispute notification: {notif_err}")
@@ -750,12 +762,21 @@ class ReportReporterResolveView(LoginRequiredMixin, View):
                 merchant.save(update_fields=['status', 'updated_at'])
                 try:
                     from notifications.services import dispatch_notification
+                    from notifications.email_templates import build_merchant_dispute_resolved
+                    subj, html_b, txt_b = build_merchant_dispute_resolved(
+                        store_name=merchant.store_name,
+                        username=merchant.user.get_full_name() or merchant.user.username,
+                        reference_number=report.reference_number,
+                    )
                     dispatch_notification(
                         recipient=merchant.user,
-                        event_type='merchant_dispute_resolved',
+                        event_type='DISPUTE_RESOLVED',
                         title="Dispute Resolved & Seal Restored 🟢",
                         body=f"Dispute {report.reference_number} was marked as resolved by the customer. Your Verified Merchant Seal has been restored to Active.",
-                        object_reference=f"merchant:{merchant.pk}"
+                        object_reference=f"merchant:{merchant.pk}",
+                        subject=subj,
+                        html_body=html_b,
+                        text_body=txt_b,
                     )
                 except Exception as notif_err:
                     logger.warning(f"Could not dispatch merchant restoration notification: {notif_err}")

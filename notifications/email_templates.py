@@ -917,3 +917,100 @@ def build_merchant_trial_expiring(store_name: str, username: str, days_left: int
     except Exception:
         fallback_html = f"<h2>Trial Ending Soon</h2><p>Hi {username}, trial for {store_name} ends {days_text}. Renew: {checkout_url}</p>"
         return subject, _html_fallback(subject, fallback_html), f"Hi {username}, trial for {store_name} ends {days_text}. Renew: {checkout_url}"
+
+
+def build_merchant_dispute_opened(
+    store_name: str,
+    username: str,
+    reference_number: str,
+    report_title: str = "",
+    amount_lost: str = "",
+    reporter_allegation: str = "",
+) -> Tuple[str, str, str]:
+    site_name, site_url = _get_site_meta()
+    subject = f"Action Required: Customer Dispute Lodged Against {store_name} [{reference_number}] — {site_name}"
+    dispute_url = f"{site_url}/reports/{reference_number}/"
+    filed_at = timezone.now().strftime('%d %B %Y, %I:%M %p')
+
+    allegation_snippet = (
+        f'<div style="background:#fef2f2;border-left:4px solid #ef4444;padding:12px 16px;border-radius:6px;margin:16px 0;">'
+        f'<strong style="color:#991b1b;font-size:13px;">Customer Complaint Summary:</strong>'
+        f'<p style="color:#7f1d1d;margin:6px 0 0;font-size:13px;line-height:1.5;">{reporter_allegation or report_title or "Unfulfilled transaction or customer payment dispute."}</p>'
+        f'</div>'
+    )
+
+    amount_html = f"<p style='margin:0 0 4px;font-size:13px;color:#78350f;'><strong>Disputed Amount:</strong> {amount_lost}</p>" if amount_lost else ""
+
+    body_html = f"""
+    <p>Hi <strong>{username}</strong>,</p>
+    <p>This is an official compliance notice from <strong>{site_name}</strong>.</p>
+    <p>A customer has filed a formal commercial transaction dispute regarding your verified store <strong>{store_name}</strong>.</p>
+    
+    <div style="background:#fffbeb;border:1px solid #fde68a;border-left:4px solid #f59e0b;padding:14px 18px;border-radius:6px;margin:16px 0;">
+        <h4 style="margin:0 0 8px;color:#92400e;font-size:15px;">Dispute Details &amp; Reference</h4>
+        <p style="margin:0 0 4px;font-size:13px;color:#78350f;"><strong>Case Reference:</strong> #{reference_number}</p>
+        <p style="margin:0 0 4px;font-size:13px;color:#78350f;"><strong>Dispute Date:</strong> {filed_at}</p>
+        <p style="margin:0 0 4px;font-size:13px;color:#78350f;"><strong>Claim Subject:</strong> {report_title or "Order Fulfillment Issue"}</p>
+        {amount_html}
+    </div>
+
+    {allegation_snippet}
+
+    <h4 style="color:#0f172a;margin:18px 0 8px;font-size:14px;">Impact on Your Verified Merchant Seal:</h4>
+    <p style="color:#334155;font-size:13px;line-height:1.6;">
+        In accordance with our platform rules, your public Verified Merchant Seal has been placed on <strong>Dispute Investigation (🟡 Under Dispute)</strong>.
+    </p>
+    <h4 style="color:#0f172a;margin:16px 0 8px;font-size:14px;">Next Steps (48-Hour Resolution Window):</h4>
+    <ul style="color:#334155;line-height:1.6;font-size:13px;padding-left:20px;">
+        <li><strong>Fulfill or Refund:</strong> Contact the customer or issue a refund if the transaction was unfulfilled.</li>
+        <li><strong>Submit Proof:</strong> Log in to submit evidence of delivery or refund transfer receipt.</li>
+        <li><strong>Seal Restoration:</strong> Once the customer confirms settlement or compliance reviews your proof, your seal will be instantly restored to <strong>Active (🟢)</strong>.</li>
+    </ul>
+    """
+    try:
+        html_body, text_body = render_email('generic_notification', {
+            'user_name': username,
+            'heading': "Customer Dispute Filed",
+            'body_html': body_html,
+            'cta_url': dispute_url,
+            'cta_label': "View Dispute & Submit Response →",
+        })
+        return subject, html_body, text_body
+    except Exception:
+        fallback_html = f"<h2>Customer Dispute Filed</h2><p>Hi {username}, a customer filed dispute #{reference_number} on {store_name}. Please resolve: {dispute_url}</p>"
+        return subject, _html_fallback(subject, fallback_html), f"Hi {username}, a customer filed dispute #{reference_number} on {store_name}: {dispute_url}"
+
+
+def build_merchant_dispute_resolved(
+    store_name: str,
+    username: str,
+    reference_number: str,
+) -> Tuple[str, str, str]:
+    site_name, site_url = _get_site_meta()
+    subject = f"Resolved: Dispute #{reference_number} Closed — Verified Seal Restored | {site_name}"
+    resolved_at = timezone.now().strftime('%d %B %Y, %I:%M %p')
+
+    body_html = f"""
+    <p>Hi <strong>{username}</strong>,</p>
+    <p>Good news! Customer transaction dispute <strong>#{reference_number}</strong> regarding <strong>{store_name}</strong> has been officially confirmed as <strong>Resolved</strong>.</p>
+    
+    <div style="background:#f0fdf4;border-left:4px solid #16a34a;padding:14px 18px;border-radius:6px;margin:18px 0;">
+        <h4 style="margin:0 0 6px;color:#15803d;font-size:15px;">Seal Restored to Active 🟢</h4>
+        <p style="margin:0;font-size:13px;color:#166534;line-height:1.5;">
+            Your public Verified Merchant Seal has been cleared of the dispute warning and restored to good standing on {resolved_at}.
+        </p>
+    </div>
+    <p>Thank you for resolving this matter professionally and maintaining consumer trust in Nigerian digital commerce.</p>
+    """
+    try:
+        html_body, text_body = render_email('generic_notification', {
+            'user_name': username,
+            'heading': "Dispute Resolved & Seal Restored",
+            'body_html': body_html,
+            'cta_url': f"{site_url}/dashboard/",
+            'cta_label': "Go to Merchant Dashboard →",
+        })
+        return subject, html_body, text_body
+    except Exception:
+        fallback_html = f"<h2>Dispute Resolved</h2><p>Hi {username}, dispute #{reference_number} is resolved and your seal is active.</p>"
+        return subject, _html_fallback(subject, fallback_html), f"Hi {username}, dispute #{reference_number} is resolved: {store_name}"
