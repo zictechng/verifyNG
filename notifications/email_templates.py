@@ -818,7 +818,6 @@ def build_merchant_badge_revoked(store_name: str, username: str, reason: str = "
     subject = f"Notice: Verified Merchant Seal Suspended for {store_name} — {site_name}"
     reason_clean = reason or "Your verified merchant status has been suspended pending compliance review or dispute resolution."
     body_html = f"""
-    <p>Hi <strong>{username}</strong>,</p>
     <p>This is an official notice regarding your Verified Merchant Trust Seal for <strong>{store_name}</strong> on {site_name}.</p>
     <p>Following a recent compliance inspection, your public Verified Merchant Seal has been <strong>temporarily suspended</strong>.</p>
     <div style="background:#fef2f2;border-left:4px solid #ef4444;padding:14px 18px;border-radius:6px;margin:18px 0;">
@@ -845,7 +844,6 @@ def build_merchant_bank_approved(store_name: str, username: str, new_bank: str, 
     site_name, site_url = _get_site_meta()
     subject = f"Settlement Bank Update Approved: {store_name} — {site_name}"
     body_html = f"""
-    <p>Hi <strong>{username}</strong>,</p>
     <p>Your request to update the verified settlement bank account for <strong>{store_name}</strong> has been <strong>approved</strong> by our compliance officers.</p>
     <div style="background:#f0fdf4;border-left:4px solid #16a34a;padding:14px 18px;border-radius:6px;margin:18px 0;">
         <h4 style="margin:0 0 6px;color:#15803d;font-size:15px;">New Verified Payout Bank</h4>
@@ -874,7 +872,6 @@ def build_merchant_bank_rejected(store_name: str, username: str, requested_bank:
     subject = f"Settlement Bank Update Request Declined: {store_name} — {site_name}"
     reason_clean = reason or "Bank account name does not match verified legal identity or CAC registry records."
     body_html = f"""
-    <p>Hi <strong>{username}</strong>,</p>
     <p>We reviewed your request to update the payout bank account for <strong>{store_name}</strong> to <strong>{requested_bank}</strong>.</p>
     <div style="background:#fef2f2;border-left:4px solid #ef4444;padding:14px 18px;border-radius:6px;margin:18px 0;">
         <h4 style="margin:0 0 6px;color:#991b1b;font-size:15px;">Compliance Review Finding</h4>
@@ -902,7 +899,6 @@ def build_merchant_trial_expiring(store_name: str, username: str, days_left: int
     subject = f"Your Verified Merchant Free Trial Ends {days_text} — {site_name}"
     checkout_url = f"{site_url}/payments/review/service/merchant_badge/"
     body_html = f"""
-    <p>Hi <strong>{username}</strong>,</p>
     <p>This is a quick courtesy notification that your complimentary free trial for your <strong>Verified Merchant Trust Seal ({store_name})</strong> is expiring <strong>{days_text}</strong>.</p>
     <div style="background:#f8fafc;border:1px solid #cbd5e1;padding:16px 20px;border-radius:8px;margin:18px 0;">
         <div style="font-size:13px;color:#64748b;text-transform:uppercase;font-weight:bold;margin-bottom:4px;">Active Seal</div>
@@ -948,7 +944,6 @@ def build_merchant_dispute_opened(
     amount_html = f"<p style='margin:0 0 4px;font-size:13px;color:#78350f;'><strong>Disputed Amount:</strong> {amount_lost}</p>" if amount_lost else ""
 
     body_html = f"""
-    <p>Hi <strong>{username}</strong>,</p>
     <p>This is an official compliance notice from <strong>{site_name}</strong>.</p>
     <p>A customer has filed a formal commercial transaction dispute regarding your verified store <strong>{store_name}</strong>.</p>
     
@@ -997,7 +992,6 @@ def build_merchant_dispute_resolved(
     resolved_at = timezone.now().strftime('%d %B %Y, %I:%M %p')
 
     body_html = f"""
-    <p>Hi <strong>{username}</strong>,</p>
     <p>Good news! Customer transaction dispute <strong>#{reference_number}</strong> regarding <strong>{store_name}</strong> has been officially confirmed as <strong>Resolved</strong>.</p>
     
     <div style="background:#f0fdf4;border-left:4px solid #16a34a;padding:14px 18px;border-radius:6px;margin:18px 0;">
