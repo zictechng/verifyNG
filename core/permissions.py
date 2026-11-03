@@ -125,6 +125,23 @@ def can_view_report(user, report):
             if cert and getattr(cert, 'user_id', None) == user.id:
                 return report.state != 'archived'
 
+        # Allow verified merchant owner to view dispute/fraud reports filed against their store
+        try:
+            from payments.models import MerchantProfile
+            from payments.merchant_views import find_merchant_for_report
+            merchant = find_merchant_for_report(report)
+            if merchant and merchant.user_id == user.id:
+                return report.state != 'archived'
+            user_merchants = MerchantProfile.objects.filter(user=user)
+            for m in user_merchants:
+                if (report.target_subject and (
+                    report.target_subject.name.lower() == m.store_name.lower() or
+                    report.target_subject.name.lower() == m.store_slug.lower()
+                )) or (m.store_name.lower() in report.title.lower()):
+                    return report.state != 'archived'
+        except Exception:
+            pass
+
     return report.state == 'published'
 
 
@@ -158,6 +175,14 @@ def can_view_evidence(user, evidence):
                 cert = getattr(evidence.report.misconduct_profile, 'certificate', None)
                 if cert and getattr(cert, 'user_id', None) == user.id:
                     return True
+            # Allow merchant owner to inspect evidence filed against their store
+            try:
+                from payments.merchant_views import find_merchant_for_report
+                merchant = find_merchant_for_report(evidence.report)
+                if merchant and merchant.user_id == user.id:
+                    return True
+            except Exception:
+                pass
         return False
 
     return True

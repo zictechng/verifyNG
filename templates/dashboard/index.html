@@ -239,7 +239,7 @@
                         </svg>
                         <div>
                             <div class="fw-semibold" style="font-size:14px;">Identity Confirmed</div>
-                            <div class="small text-muted d-flex align-items-center gap-1.5 mt-1">Account type: <span class="badge bg-success">{{ request.user.get_role_display|default:"Individual" }}</span></div>
+                            <div class="small text-muted d-flex align-items-center gap-2 mt-1"><span>Account type:</span> <span class="badge bg-secondary">{{ request.user.get_role_display|default:"Individual" }}</span></div>
                         </div>
                     </div>
                 {% elif request.user.id_verification_status == 'pending' or request.user.has_id_document and request.user.id_verification_status != 'rejected' %}
@@ -250,7 +250,7 @@
                         </svg>
                         <div>
                             <div class="fw-semibold text-primary" style="font-size:14px;">Under Review</div>
-                            <div class="small text-muted d-flex align-items-center gap-1.5 mt-1">Account type: <span class="badge bg-success">{{ request.user.get_role_display|default:"Individual" }}</span></div>
+                            <div class="small text-muted d-flex align-items-center gap-2 mt-1"><span>Account type:</span> <span class="badge bg-secondary">{{ request.user.get_role_display|default:"Individual" }}</span></div>
                         </div>
                     </div>
                     <a href="{% url 'users:profile' %}" class="btn btn-vng-outline btn-sm w-100 mb-2">
@@ -265,7 +265,7 @@
                         </svg>
                         <div>
                             <div class="fw-semibold text-danger" style="font-size:14px;">Verification Declined</div>
-                            <div class="small text-muted d-flex align-items-center gap-1.5 mt-1">Account type: <span class="badge bg-success">{{ request.user.get_role_display|default:"Individual" }}</span></div>
+                            <div class="small text-muted d-flex align-items-center gap-2 mt-1"><span>Account type:</span> <span class="badge bg-secondary">{{ request.user.get_role_display|default:"Individual" }}</span></div>
                         </div>
                     </div>
                     <a href="{% url 'users:profile' %}" class="btn btn-vng-outline btn-sm w-100 mb-2">
@@ -280,7 +280,7 @@
                         </svg>
                         <div>
                             <div class="fw-semibold" style="font-size:14px;">Verify Your Identity</div>
-                            <div class="small text-muted d-flex align-items-center gap-1.5 mt-1">Account type: <span class="badge bg-success">{{ request.user.get_role_display|default:"Individual" }}</span></div>
+                            <div class="small text-muted d-flex align-items-center gap-2 mt-1"><span>Account type:</span> <span class="badge bg-secondary">{{ request.user.get_role_display|default:"Individual" }}</span></div>
                         </div>
                     </div>
                     <a href="{% url 'users:profile' %}" class="btn btn-vng-outline btn-sm w-100 mb-2">
