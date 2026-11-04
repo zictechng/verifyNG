@@ -70,13 +70,16 @@
                 {% if report.suspect_phone %}
                   <div class="d-flex align-items-center gap-2 flex-wrap {% if report.suspect_email %}mt-1{% endif %}">
                     <div><strong>Phone:</strong> <span>{{ report.suspect_phone }}</span></div>
-                    <a href="{{ report.whatsapp_due_process_url }}" target="_blank" rel="noopener noreferrer" 
-                       class="btn btn-adm-sm text-decoration-none d-inline-flex align-items-center gap-1"
-                       style="background:#25D366; color:#ffffff; font-weight:600; padding:2px 8px; border-radius:6px; font-size:0.75rem;"
-                       title="Open WhatsApp Web to send 7-day fair-hearing notice directly to suspect">
-                      <svg width="13" height="13" fill="currentColor" viewBox="0 0 16 16"><path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592z"/></svg>
-                      💬 Send WhatsApp Notice
-                    </a>
+                    <form method="post" action="{% url 'admin_portal:report_dispatch_notice' report.public_id %}" class="d-inline" onsubmit="window.open('{{ report.whatsapp_due_process_url }}', '_blank');">
+                      {% csrf_token %}
+                      <button type="submit" 
+                         class="btn btn-adm-sm text-decoration-none d-inline-flex align-items-center gap-1"
+                         style="background:#25D366; color:#ffffff; font-weight:600; padding:2px 8px; border-radius:6px; font-size:0.75rem; border:none;"
+                         title="Open WhatsApp Web to send 7-day fair-hearing notice directly to suspect and start 7-day clock">
+                        <svg width="13" height="13" fill="currentColor" viewBox="0 0 16 16"><path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592z"/></svg>
+                        💬 Send WhatsApp Notice
+                      </button>
+                    </form>
                   </div>
                 {% endif %}
               </div>
@@ -103,17 +106,14 @@
           <th>Fair Hearing Notice</th>
           <td>
             <div class="d-flex align-items-center gap-2 flex-wrap">
-              {% if report.suspect_email %}
-                <span class="adm-badge adm-badge-green">Email Notice Dispatched</span>
-              {% endif %}
-              {% if report.suspect_phone %}
-                <span class="adm-badge" style="background:#E8F8EE; color:#1F8A4C; border:1px solid #A6E7BE;">WhatsApp Dispatch Ready</span>
-              {% endif %}
-              {% if not report.suspect_email and not report.suspect_phone %}
-                <span class="adm-badge adm-badge-gray">No contact available to notify suspect</span>
+              {% if report.is_notice_dispatched %}
+                <span class="adm-badge adm-badge-green">Notice Dispatched &amp; Active</span>
+                <div class="small text-muted mt-1 w-100">7-Day Right of Response Window Closes: <strong class="text-dark">{{ report.dispute_deadline }}</strong></div>
+              {% else %}
+                <span class="adm-badge adm-badge-yellow">⚠️ Awaiting Notice Dispatch (Clock Paused)</span>
+                <div class="small text-muted mt-1 w-100">7-day statutory clock will begin once notice is sent to the accused party.</div>
               {% endif %}
             </div>
-            <div class="small text-muted mt-1">7-Day Right of Response Window Closes: <strong>{{ report.dispute_deadline }}</strong></div>
           </td>
         </tr>
         <tr>
@@ -387,7 +387,11 @@
         <div class="p-4 text-center">
           {% if report.suspect_email or report.suspect_phone %}
             <div class="mb-2">
-              <span class="adm-badge adm-badge-yellow py-1 px-3" style="font-size:0.85rem;">Statutory 7-Day Due-Process Notice Active</span>
+              {% if report.is_notice_dispatched %}
+                <span class="adm-badge adm-badge-green py-1 px-3" style="font-size:0.85rem;">Statutory 7-Day Due-Process Notice Active</span>
+              {% else %}
+                <span class="adm-badge adm-badge-yellow py-1 px-3" style="font-size:0.85rem;">⚠️ Statutory Notice Pending Dispatch (Clock Paused)</span>
+              {% endif %}
             </div>
             {% if report.suspect_email %}
             <p class="text-muted small mb-1">
@@ -405,18 +409,25 @@
                     Pre-fills statutory 7-day fair-hearing notice with ref <strong>#{{ report.reference_number }}</strong> for <strong>{{ report.suspect_phone }}</strong>
                   </div>
                 </div>
-                <a href="{{ report.whatsapp_due_process_url }}" target="_blank" rel="noopener noreferrer" 
-                   class="btn btn-sm d-inline-flex align-items-center gap-1.5 shadow-sm text-decoration-none"
-                   style="background:#25D366; color:#ffffff; font-weight:600; border:none; padding:6px 14px; border-radius:6px; font-size:0.83rem;"
-                   title="Open WhatsApp Web to send 7-day notice directly to suspect">
-                  <svg width="15" height="15" fill="currentColor" viewBox="0 0 16 16"><path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592z"/></svg>
-                  💬 Send WhatsApp Notice
-                </a>
+                <form method="post" action="{% url 'admin_portal:report_dispatch_notice' report.public_id %}" class="d-inline" onsubmit="window.open('{{ report.whatsapp_due_process_url }}', '_blank');">
+                  {% csrf_token %}
+                  <button type="submit" 
+                     class="btn btn-sm d-inline-flex align-items-center gap-1.5 shadow-sm text-decoration-none"
+                     style="background:#25D366; color:#ffffff; font-weight:600; border:none; padding:6px 14px; border-radius:6px; font-size:0.83rem;"
+                     title="Open WhatsApp Web to send 7-day notice directly to suspect and start 7-day clock">
+                    <svg width="15" height="15" fill="currentColor" viewBox="0 0 16 16"><path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592z"/></svg>
+                    💬 Send WhatsApp Notice
+                  </button>
+                </form>
               </div>
             </div>
             {% endif %}
             <p class="small text-muted mb-0">
-              Response window remains open until <strong>{{ report.dispute_deadline }}</strong>. The accused party has not yet submitted a formal statement of defense.
+              {% if report.is_notice_dispatched %}
+                Response window remains open until <strong>{{ report.dispute_deadline }}</strong>. The accused party has not yet submitted a formal statement of defense.
+              {% else %}
+                The 7-day right of response window will start the moment notice is dispatched.
+              {% endif %}
             </p>
           {% else %}
             <p class="text-muted small mb-0">

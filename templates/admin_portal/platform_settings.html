@@ -73,6 +73,16 @@
               <label class="form-label fw-semibold">Contact Address</label>
               <textarea name="contact_address" class="form-control" rows="3">{{ config.contact_address }}</textarea>
             </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Admin Incident Alert Email</label>
+              <input type="email" name="admin_alert_email" class="form-control" value="{{ site_config.admin_alert_email }}" placeholder="e.g. alerts@verifyng.com">
+              <div class="form-text text-muted" style="font-size:0.8rem;">Receives instant notifications when new fraud reports or disputes are filed. Falls back to superusers if blank.</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Telegram Admin Chat / Group ID</label>
+              <input type="text" name="telegram_admin_chat_id" class="form-control" value="{{ site_config.telegram_admin_chat_id }}" placeholder="e.g. -100123456789 or 987654321">
+              <div class="form-text text-muted" style="font-size:0.8rem;">Optional Telegram chat/group ID for instant bot alerts. Leave blank until ready to activate.</div>
+            </div>
           </div>
         </div>
       </div>

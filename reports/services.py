@@ -1,5 +1,6 @@
 import uuid
 import os
+import logging
 from datetime import timedelta
 from django.utils import timezone
 from django.db import transaction, IntegrityError
@@ -9,6 +10,8 @@ from identities.utils import hash_identifier_value
 from reports.storage_services import get_storage_service, StorageError
 from core.tasks import send_email_notification_task
 from notifications import email_templates
+
+logger = logging.getLogger(__name__)
 
 
 def generate_report_reference_number():
@@ -219,9 +222,16 @@ def create_fraud_report(reporter, subject_name, subject_type, title, allegation,
                 )
                 if target_notice_email:
                     deadline_str = (timezone.now() + timedelta(days=7)).strftime('%d %B %Y')
+                    report.notice_dispatched_at = timezone.now()
+                    report.save(update_fields=['notice_dispatched_at'])
                     transaction.on_commit(
                         lambda: dispatch_suspect_allegation_notice(report, target_notice_email, deadline_str)
                     )
+
+                # Instantly alert Administrator desk dynamically
+                transaction.on_commit(
+                    lambda: dispatch_admin_new_report_alert(report)
+                )
 
                 return report
 
@@ -986,3 +996,167 @@ def record_dossier_access(dossier, access_type: str, request, user=None):
         }
     )
     return access_log
+
+
+def get_admin_alert_recipients():
+    """
+    Dynamically resolves admin notification recipients from system setup.
+    Order of precedence:
+      1. SiteConfiguration.admin_alert_email (configured in Admin Portal / Django admin)
+      2. SiteConfiguration.support_email (if not default placeholder)
+      3. Active Superusers / Staff users with an email address
+      4. settings.ADMINS
+    """
+    recipients = []
+    try:
+        from core.models import SiteConfiguration
+        cfg = SiteConfiguration.get_solo()
+        if cfg.admin_alert_email and cfg.admin_alert_email.strip():
+            recipients.append(cfg.admin_alert_email.strip())
+        elif cfg.support_email and cfg.support_email.strip() and cfg.support_email != 'support@verifyng.com':
+            recipients.append(cfg.support_email.strip())
+    except Exception as exc:
+        logger.warning("Failed to query SiteConfiguration for admin alert recipients: %s", exc)
+
+    if not recipients:
+        try:
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            admin_emails = list(
+                User.objects.filter(is_superuser=True, is_active=True)
+                .exclude(email='')
+                .values_list('email', flat=True)
+            )
+            if admin_emails:
+                recipients.extend(admin_emails[:3])
+        except Exception as exc:
+            logger.warning("Failed to query superuser emails for admin alerts: %s", exc)
+
+    if not recipients:
+        from django.conf import settings
+        admins = getattr(settings, 'ADMINS', [])
+        if admins:
+            recipients.extend([a[1] for a in admins if len(a) > 1 and a[1]])
+
+    seen = set()
+    cleaned = []
+    for email in recipients:
+        e = str(email).strip().lower()
+        if e and '@' in e and e not in seen:
+            seen.add(e)
+            cleaned.append(e)
+    return cleaned
+
+
+def dispatch_admin_new_report_alert(report):
+    """
+    Sends an instant administrative incident alert whenever a new fraud report is filed.
+    Dispatches:
+      1. Dynamic Email Alert to configured admin/support/superuser email.
+      2. Telegram Alert to configured admin chat ID (if configured; skips gracefully if not).
+    """
+    try:
+        from core.site_utils import get_dynamic_base_url
+        from core.models import SiteConfiguration
+        from django.conf import settings
+        cfg = SiteConfiguration.get_solo()
+        site_name = cfg.site_name or "VerifyNG"
+        base_url = get_dynamic_base_url().rstrip('/')
+        admin_report_url = f"{base_url}/admin-portal/reports/{report.public_id}/"
+
+        target_name = report.target_subject.name if report.target_subject else "Unspecified"
+        amount_lost_str = report.amount_lost_formatted or "Unspecified"
+        suspect_phone = report.suspect_phone or "Not provided"
+        suspect_email = report.suspect_email or "Not provided"
+        bank_details = f"{report.suspect_bank_name or 'N/A'} - {report.suspect_bank_account or 'N/A'}"
+        if report.suspect_bank_account_name:
+            bank_details += f" ({report.suspect_bank_account_name})"
+
+        notice_status = (
+            "✅ Notice Automatically Dispatched via Email"
+            if report.is_notice_dispatched
+            else "🟡 Awaiting Moderator Notice Dispatch (WhatsApp Action Required)"
+        )
+
+        recipients = get_admin_alert_recipients()
+        if recipients:
+            subject = f"[{site_name} Admin Alert] 🚨 New Incident Report Filed: #{report.reference_number}"
+            html_body = f"""
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #E2E8F0; border-radius: 8px;">
+                <h2 style="color: #0F172A; margin-top: 0;">🚨 New Incident Complaint Submitted</h2>
+                <p style="color: #475569; font-size: 15px;">A new fraud/scam report has been submitted on the public registry and requires administrative review.</p>
+                
+                <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px;">
+                    <tr style="border-bottom: 1px solid #F1F5F9;"><td style="padding: 8px 0; color: #64748B; width: 140px;">Reference:</td><td style="padding: 8px 0; font-weight: bold; color: #0F172A;">#{report.reference_number}</td></tr>
+                    <tr style="border-bottom: 1px solid #F1F5F9;"><td style="padding: 8px 0; color: #64748B;">Accused Entity:</td><td style="padding: 8px 0; font-weight: bold; color: #0F172A;">{target_name}</td></tr>
+                    <tr style="border-bottom: 1px solid #F1F5F9;"><td style="padding: 8px 0; color: #64748B;">Allegation Title:</td><td style="padding: 8px 0; color: #0F172A;">{report.title}</td></tr>
+                    <tr style="border-bottom: 1px solid #F1F5F9;"><td style="padding: 8px 0; color: #64748B;">Claimed Loss:</td><td style="padding: 8px 0; font-weight: bold; color: #DC2626;">{amount_lost_str}</td></tr>
+                    <tr style="border-bottom: 1px solid #F1F5F9;"><td style="padding: 8px 0; color: #64748B;">Suspect Phone:</td><td style="padding: 8px 0; color: #0F172A;">{suspect_phone}</td></tr>
+                    <tr style="border-bottom: 1px solid #F1F5F9;"><td style="padding: 8px 0; color: #64748B;">Suspect Email:</td><td style="padding: 8px 0; color: #0F172A;">{suspect_email}</td></tr>
+                    <tr style="border-bottom: 1px solid #F1F5F9;"><td style="padding: 8px 0; color: #64748B;">Bank Settlement:</td><td style="padding: 8px 0; color: #0F172A;">{bank_details}</td></tr>
+                    <tr><td style="padding: 8px 0; color: #64748B;">Fair-Hearing Status:</td><td style="padding: 8px 0; font-weight: bold; color: #D97706;">{notice_status}</td></tr>
+                </table>
+
+                <div style="text-align: center; margin: 30px 0 15px;">
+                    <a href="{admin_report_url}" style="background: #0284C7; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; display: inline-block;">
+                        Open Report in Admin Portal &rarr;
+                    </a>
+                </div>
+                <p style="color: #94A3B8; font-size: 12px; text-align: center;">VerifyNG Automated Incident Alert System</p>
+            </div>
+            """
+            text_body = (
+                f"NEW INCIDENT REPORT FILED — {site_name}\n\n"
+                f"Reference: #{report.reference_number}\n"
+                f"Accused Entity: {target_name}\n"
+                f"Allegation: {report.title}\n"
+                f"Claimed Loss: {amount_lost_str}\n"
+                f"Suspect Phone: {suspect_phone}\n"
+                f"Suspect Email: {suspect_email}\n"
+                f"Bank Settlement: {bank_details}\n"
+                f"Status: {notice_status}\n\n"
+                f"Review & Dispatch Notice: {admin_report_url}\n"
+            )
+
+            for rec in recipients:
+                try:
+                    send_email_notification_task.delay(
+                        recipient_email=rec,
+                        subject=subject,
+                        message_body=text_body,
+                        html_message=html_body,
+                    )
+                except Exception as ex:
+                    try:
+                        from django.core.mail import send_mail
+                        send_mail(subject, text_body, None, [rec], html_message=html_body, fail_silently=True)
+                    except Exception:
+                        logger.warning("Failed to deliver admin alert to %s: %s", rec, ex)
+
+        # Telegram Admin Alert (if configured)
+        telegram_chat_id = (
+            getattr(cfg, 'telegram_admin_chat_id', '') or 
+            getattr(settings, 'TELEGRAM_ADMIN_CHAT_ID', '')
+        )
+        if telegram_chat_id and str(telegram_chat_id).strip():
+            tg_msg = (
+                f"🚨 *NEW INCIDENT REPORT FILED*\n\n"
+                f"*Reference:* #{report.reference_number}\n"
+                f"*Accused:* {target_name}\n"
+                f"*Allegation:* {report.title}\n"
+                f"*Loss Claimed:* {amount_lost_str}\n"
+                f"*Phone:* {suspect_phone}\n"
+                f"*Fair-Hearing Notice:* {notice_status}\n\n"
+                f"👉 [Review in Admin Portal]({admin_report_url})"
+            )
+            try:
+                from integrations.messaging.telegram_bot import TelegramBotClient
+                bot = TelegramBotClient()
+                bot.send_message(chat_id=str(telegram_chat_id).strip(), text=tg_msg, parse_mode="Markdown")
+            except Exception as tg_ex:
+                logger.warning("Telegram admin alert error: %s", tg_ex)
+        else:
+            logger.info("Telegram admin chat ID not configured; skipping Telegram alert.")
+
+    except Exception as exc:
+        logger.error("Error in dispatch_admin_new_report_alert for report %s: %s", report.reference_number, exc)

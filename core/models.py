@@ -59,6 +59,17 @@ class SiteConfiguration(models.Model):
         default='support@verifyng.com',
         help_text="Support email address shown in emails, footer, and generated documents.",
     )
+    admin_alert_email = models.EmailField(
+        blank=True,
+        default='',
+        help_text="Email to receive instant administrative alerts when new fraud reports or disputes are filed. Falls back to support_email / superusers if blank.",
+    )
+    telegram_admin_chat_id = models.CharField(
+        max_length=50,
+        blank=True,
+        default='',
+        help_text="Telegram User ID or Group Chat ID to receive instant moderation alerts. Leave blank until ready to activate.",
+    )
     company_reg_number = models.CharField(
         max_length=100,
         blank=True,

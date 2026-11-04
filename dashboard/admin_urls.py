@@ -22,6 +22,7 @@ from dashboard.admin_views import (
     AdminReportsView,
     AdminReportDetailView,
     AdminReportTransitionView,
+    AdminReportDispatchNoticeView,
     AdminReportLegacyRedirectView,
     AdminDossierPaymentsView,
     AdminDossierPaymentActionView,
@@ -100,6 +101,8 @@ urlpatterns = [
     path('reports/<uuid:public_id>/', AdminReportDetailView.as_view(), name='report_detail'),
     path('reports/<uuid:public_id>/transition/', AdminReportTransitionView.as_view(), name='report_transition'),
     path('reports/<int:pk>/transition/', AdminReportTransitionView.as_view(), name='report_transition_legacy'),
+    path('reports/<uuid:public_id>/dispatch-notice/', AdminReportDispatchNoticeView.as_view(), name='report_dispatch_notice'),
+    path('reports/<int:pk>/dispatch-notice/', AdminReportDispatchNoticeView.as_view(), name='report_dispatch_notice_legacy'),
     path('reports/<int:pk>/', AdminReportLegacyRedirectView.as_view(), name='report_legacy_redirect'),
 
     # ── Dossier & Petition Payments ──────────────────────────────────────────

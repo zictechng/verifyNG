@@ -1115,6 +1115,45 @@ class AdminReportTransitionView(SuperAdminRequiredMixin, View):
         return redirect('admin_portal:report_detail', public_id=report.public_id)
 
 
+class AdminReportDispatchNoticeView(SuperAdminRequiredMixin, View):
+    section_name = "Fraud Reports"
+    required_permission = ("reports.change_fraudreport", "reports.view_fraudreport")
+
+    def post(self, request, public_id=None, pk=None):
+        lookup = {'public_id': public_id} if public_id else {'pk': pk}
+        report = get_object_or_404(FraudReport, **lookup)
+
+        now = timezone.now()
+        report.notice_dispatched_at = now
+        report.save(update_fields=['notice_dispatched_at', 'updated_at'])
+
+        deadline_str = (now + timedelta(days=7)).strftime('%d %B %Y')
+
+        AuditLog.objects.create(
+            action="WHATSAPP_NOTICE_DISPATCHED",
+            performed_by=request.user,
+            details={
+                "report_id": report.id,
+                "reference": report.reference_number,
+                "dispatched_at": now.isoformat(),
+                "dispute_deadline": deadline_str,
+                "channel": request.POST.get('channel', 'WhatsApp'),
+                "suspect_phone": report.suspect_phone or '',
+            }
+        )
+
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.content_type == 'application/json':
+            return JsonResponse({
+                'ok': True,
+                'dispatched_at': now.strftime('%d %B %Y, %H:%M'),
+                'dispute_deadline': deadline_str,
+                'message': f"Fair-hearing notice recorded. Statutory 7-day clock started (closes {deadline_str}).",
+            })
+
+        messages.success(request, f"Fair-hearing notice dispatched for report {report.reference_number}. 7-day response window started (closes {deadline_str}).")
+        return redirect('admin_portal:report_detail', public_id=report.public_id)
+
+
 # ── Dossier & Petition Payments ──────────────────────────────────────────
 
 class AdminDossierPaymentsView(AdminPermissionRequiredMixin, TemplateView):
@@ -2955,6 +2994,10 @@ class AdminPlatformSettingsView(SuperAdminRequiredMixin, TemplateView):
             site_config.company_bank_account_name = request.POST.get('company_bank_account_name', site_config.company_bank_account_name).strip()
         if 'company_bank_account_number' in request.POST:
             site_config.company_bank_account_number = request.POST.get('company_bank_account_number', site_config.company_bank_account_number).strip()
+        if 'admin_alert_email' in request.POST:
+            site_config.admin_alert_email = request.POST.get('admin_alert_email', '').strip()
+        if 'telegram_admin_chat_id' in request.POST:
+            site_config.telegram_admin_chat_id = request.POST.get('telegram_admin_chat_id', '').strip()
         site_config.save()
         config.save()
 

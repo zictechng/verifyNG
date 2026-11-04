@@ -4,7 +4,7 @@ from core.models import SiteConfiguration
 
 @admin.register(SiteConfiguration)
 class SiteConfigurationAdmin(admin.ModelAdmin):
-    list_display = ('site_name', 'base_url', 'support_email', 'updated_at')
+    list_display = ('site_name', 'base_url', 'support_email', 'admin_alert_email', 'updated_at')
 
     fieldsets = (
         ('Branding & Identity', {
@@ -19,7 +19,10 @@ class SiteConfigurationAdmin(admin.ModelAdmin):
                 'base_url is used to build links in emails. '
                 'Update this to your live domain before going to production.'
             ),
-            'fields': ('base_url', 'support_email', 'company_reg_number', 'company_address'),
+            'fields': (
+                'base_url', 'support_email', 'admin_alert_email',
+                'telegram_admin_chat_id', 'company_reg_number', 'company_address'
+            ),
         }),
         ('Social Media Links', {
             'description': 'Leave a field blank to hide that link from the email and website footer.',

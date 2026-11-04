@@ -128,6 +128,11 @@ class FraudReport(models.Model):
         blank=True,
         help_text="Internal moderation data; must not be exposed in public API responses"
     )
+    notice_dispatched_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Timestamp when statutory fair-hearing notice was dispatched to accused party (starts 7-day clock)"
+    )
     created_at = models.DateTimeField(
         default=timezone.now
     )
@@ -305,7 +310,9 @@ class FraudReport(models.Model):
             target_name = "Account Holder"
 
         amount_str = self.amount_lost_formatted or "Unspecified"
-        deadline_str = self.dispute_deadline or "7 days from filing"
+        from django.utils import timezone
+        from datetime import timedelta
+        deadline_str = (timezone.now() + timedelta(days=7)).strftime('%d %B %Y')
 
         msg = (
             f"⚖️ *OFFICIAL NOTICE: FAIR HEARING & RIGHT OF RESPONSE*\n"
@@ -346,19 +353,60 @@ class FraudReport(models.Model):
         return f"{val[:4]}****{val[-3:]}"
 
     @property
+    def is_notice_dispatched(self):
+        """Returns True if statutory fair-hearing notice has been dispatched to accused party."""
+        if self.notice_dispatched_at:
+            return True
+        if self.suspect_email:
+            return True
+        if not self.pk:
+            return False
+        return self.audit_logs.filter(action__in=['NOTICE_DISPATCHED', 'WHATSAPP_NOTICE_DISPATCHED']).exists()
+
+    @property
     def dispute_deadline(self):
-        """The 7-day fair-hearing / right-of-response expiration date."""
-        ctx = self.suspect_context
-        if ctx.get('dispute_deadline'):
-            return ctx['dispute_deadline']
-        base_time = self.created_at or timezone.now()
-        return (base_time + timedelta(days=7)).strftime('%d %B %Y')
+        """
+        The 7-day fair-hearing expiration date calculated strictly from the notice dispatch date.
+        If notice has not yet been served/dispatched, the 7-day statutory clock has NOT started.
+        """
+        dispatch_time = self.notice_dispatched_at
+        if not dispatch_time and self.pk:
+            dispatch_log = self.audit_logs.filter(
+                action__in=['NOTICE_DISPATCHED', 'WHATSAPP_NOTICE_DISPATCHED']
+            ).order_by('-timestamp').first()
+            if dispatch_log:
+                dispatch_time = dispatch_log.timestamp
+            elif self.suspect_email:
+                dispatch_time = self.created_at
+
+        if dispatch_time:
+            return (dispatch_time + timedelta(days=7)).strftime('%d %B %Y')
+
+        if self.suspect_email and self.created_at:
+            return (self.created_at + timedelta(days=7)).strftime('%d %B %Y')
+
+        return "Pending Dispatch (7 Days from Service)"
 
     @property
     def is_within_dispute_window(self):
-        """Returns True if within the 7-day fair-hearing window."""
-        base_time = self.created_at or timezone.now()
-        return timezone.now() <= (base_time + timedelta(days=7))
+        """
+        Returns True if within the 7-day fair-hearing window.
+        If notice has not been dispatched, statutory time does not run against accused party.
+        """
+        dispatch_time = self.notice_dispatched_at
+        if not dispatch_time and self.pk:
+            dispatch_log = self.audit_logs.filter(
+                action__in=['NOTICE_DISPATCHED', 'WHATSAPP_NOTICE_DISPATCHED']
+            ).order_by('-timestamp').first()
+            if dispatch_log:
+                dispatch_time = dispatch_log.timestamp
+            elif self.suspect_email:
+                dispatch_time = self.created_at
+
+        if not dispatch_time:
+            # Notice not yet served — clock has not started, so cannot be expired
+            return True
+        return timezone.now() <= (dispatch_time + timedelta(days=7))
 
     @property
     def complainant_rebuttal(self):
