@@ -5,6 +5,64 @@ from django.utils.text import slugify
 from payments.models import MerchantProfile, NigerianBank
 from payments.bank_services import resolve_bank_account
 
+def generate_slug_suggestions(base_slug: str, current_instance_pk=None, state: str = '') -> list:
+    """
+    Generate 2 to 3 guaranteed available, clean handle suggestions when a requested slug is already taken.
+    Example for 'sendmoor':
+      - sendmoor_store
+      - sendmoor_ng
+      - sendmoor_hub
+    """
+    from django.utils.text import slugify
+    clean_base = slugify(base_slug).replace('-', '_')
+    if not clean_base:
+        clean_base = 'store'
+
+    reserved = {'admin', 'api', 'portal', 'auth', 'login', 'register', 'dashboard', 'trust', 'verify', 'v', 'report', 'dispute'}
+
+    candidate_suffixes = [
+        '_store',
+        '_ng',
+        '_hub',
+        '_official',
+        '_shop',
+        '_brand',
+        '_biz',
+        '_online',
+        '_hq'
+    ]
+    if state and len(state) >= 3:
+        clean_state = slugify(state).replace('-', '_')
+        candidate_suffixes.insert(0, f"_{clean_state}")
+
+    suggestions = []
+    for suff in candidate_suffixes:
+        candidate = f"{clean_base}{suff}"
+        if len(candidate) > 140:
+            candidate = candidate[:140]
+        if candidate in reserved:
+            continue
+        qs = MerchantProfile.objects.filter(store_slug__iexact=candidate)
+        if current_instance_pk:
+            qs = qs.exclude(pk=current_instance_pk)
+        if not qs.exists() and candidate not in suggestions:
+            suggestions.append(candidate)
+            if len(suggestions) >= 3:
+                break
+
+    num = 1
+    while len(suggestions) < 3 and num < 50:
+        candidate = f"{clean_base}{num}"
+        qs = MerchantProfile.objects.filter(store_slug__iexact=candidate)
+        if current_instance_pk:
+            qs = qs.exclude(pk=current_instance_pk)
+        if not qs.exists() and candidate not in suggestions:
+            suggestions.append(candidate)
+        num += 1
+
+    return suggestions[:3]
+
+
 class MerchantApplicationForm(forms.ModelForm):
     # Live webcam photo (captured as base64 data url from frontend)
     webcam_selfie_data = forms.CharField(
@@ -197,6 +255,29 @@ class MerchantApplicationForm(forms.ModelForm):
                 if field_name in self.fields and key in links:
                     self.fields[field_name].initial = links[key]
 
+    def clean_store_name(self):
+        name = self.cleaned_data.get('store_name', '').strip()
+        if not name:
+            raise forms.ValidationError("Please provide your store or brand name.")
+        if len(name) < 2:
+            raise forms.ValidationError("Store name must be at least 2 characters.")
+
+        # Check if an active/pending merchant already has this exact store name
+        qs = MerchantProfile.objects.filter(store_name__iexact=name).exclude(status__in=['rejected', 'suspended'])
+        if self.instance and self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+
+        if qs.exists():
+            existing = qs.first()
+            existing_slug = existing.store_slug
+            loc = existing.operating_state or existing.city_town
+            loc_str = f" in {loc}" if loc else ""
+            raise forms.ValidationError(
+                f"The store name '{name}' is already registered by an active merchant (@{existing_slug}){loc_str}. "
+                f"To prevent buyer confusion and protect brand credibility, please add a location or specialty to distinguish your store (e.g. '{name} Lagos', '{name} Store', or '{name} Hub')."
+            )
+        return name
+
     def clean_store_slug(self):
         # If already active, strictly preserve original store slug
         if self.instance and self.instance.pk and self.instance.status == 'active':
@@ -221,7 +302,13 @@ class MerchantApplicationForm(forms.ModelForm):
         if self.instance and self.instance.pk:
             qs = qs.exclude(pk=self.instance.pk)
         if qs.exists():
-            raise forms.ValidationError(f"The handle '@{slug}' is already registered. Please choose another slug.")
+            state = self.cleaned_data.get('operating_state', '')
+            instance_pk = self.instance.pk if (self.instance and self.instance.pk) else None
+            suggestions = generate_slug_suggestions(slug, current_instance_pk=instance_pk, state=state)
+            sug_text = ", ".join([f"@{s}" for s in suggestions]) if suggestions else f"@{slug}_ng"
+            raise forms.ValidationError(
+                f"The handle '@{slug}' is already registered. Try one of these available suggestions: {sug_text}."
+            )
 
         return slug
 

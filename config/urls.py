@@ -51,6 +51,7 @@ urlpatterns = [
     path('reports/', include('reports.urls', namespace='reports')),
     # Real-time Bank Resolution Endpoint (used across merchant & report forms)
     path('api/resolve-bank/', __import__('payments.merchant_views', fromlist=['ResolveBankAjaxView']).ResolveBankAjaxView.as_view(), name='api_resolve_bank'),
+    path('api/check-merchant-handle/', __import__('payments.merchant_views', fromlist=['CheckMerchantHandleAjaxView']).CheckMerchantHandleAjaxView.as_view(), name='api_check_merchant_handle'),
     # Verified Merchant Trust Seal Clean URLs
     path('trust-seal/', __import__('payments.merchant_views', fromlist=['MerchantLandingView']).MerchantLandingView.as_view(), name='merchant_landing'),
     path('trust-seal/apply/', __import__('payments.merchant_views', fromlist=['MerchantApplyView']).MerchantApplyView.as_view(), name='merchant_apply'),

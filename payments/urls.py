@@ -1,10 +1,11 @@
 # payments/urls.py
 from django.urls import path
 from . import views
-from .merchant_views import MerchantLandingView, MerchantApplyView, MerchantBankChangeRequestView
+from .merchant_views import MerchantLandingView, MerchantApplyView, MerchantBankChangeRequestView, CheckMerchantHandleAjaxView
 views.MerchantLandingView = MerchantLandingView
 views.MerchantApplyView = MerchantApplyView
 views.MerchantBankChangeRequestView = MerchantBankChangeRequestView
+views.CheckMerchantHandleAjaxView = CheckMerchantHandleAjaxView
 
 app_name = 'payments'
 
@@ -24,4 +25,5 @@ urlpatterns = [
     path('trust-badge/', views.MerchantLandingView.as_view(), name='merchant_landing'),
     path('trust-badge/apply/', views.MerchantApplyView.as_view(), name='merchant_apply'),
     path('trust-badge/request-bank-change/', views.MerchantBankChangeRequestView.as_view(), name='merchant_request_bank_change'),
+    path('trust-badge/check-handle/', views.CheckMerchantHandleAjaxView.as_view(), name='merchant_check_handle'),
 ]

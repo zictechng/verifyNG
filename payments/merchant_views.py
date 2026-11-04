@@ -44,6 +44,86 @@ class ResolveBankAjaxView(View):
         result = resolve_bank_account(account_number, bank_name)
         return JsonResponse(result)
 
+class CheckMerchantHandleAjaxView(View):
+    """
+    AJAX endpoint for real-time handle availability check & smart name suggestions.
+    GET /api/check-merchant-handle/?slug=sendmoor&store_name=Sendmoor
+    """
+    def get(self, request, *args, **kwargs):
+        slug_raw = request.GET.get('slug', '').strip()
+        store_name = request.GET.get('store_name', '').strip()
+        from django.utils.text import slugify
+        from payments.merchant_forms import generate_slug_suggestions
+
+        current_pk = None
+        if request.user.is_authenticated and hasattr(request.user, 'merchant_profile'):
+            current_pk = request.user.merchant_profile.pk
+
+        slug = slugify(slug_raw) if slug_raw else slugify(store_name)
+
+        reserved = {'admin', 'api', 'portal', 'auth', 'login', 'register', 'dashboard', 'trust', 'verify', 'v', 'report', 'dispute'}
+
+        name_collision = False
+        name_warning = ""
+        if store_name:
+            qs_name = MerchantProfile.objects.filter(store_name__iexact=store_name).exclude(status__in=['rejected', 'suspended'])
+            if current_pk:
+                qs_name = qs_name.exclude(pk=current_pk)
+            if qs_name.exists():
+                existing = qs_name.first()
+                loc = existing.operating_state or existing.city_town
+                loc_str = f" in {loc}" if loc else ""
+                name_collision = True
+                name_warning = (
+                    f"A store named '{store_name}' is already active{loc_str} (@{existing.store_slug}). "
+                    f"Please add a location or specialty (e.g. '{store_name} Lagos' or '{store_name} Store') to prevent collision."
+                )
+
+        if not slug or len(slug) < 3:
+            return JsonResponse({
+                'available': False,
+                'name_collision': name_collision,
+                'name_warning': name_warning,
+                'slug': slug,
+                'suggestions': [],
+                'message': 'Handle must be at least 3 characters.'
+            })
+
+        if slug in reserved:
+            sugs = generate_slug_suggestions(slug, current_instance_pk=current_pk)
+            return JsonResponse({
+                'available': False,
+                'name_collision': name_collision,
+                'name_warning': name_warning,
+                'slug': slug,
+                'suggestions': sugs,
+                'message': f"@{slug} is a reserved system path. Try one of these:"
+            })
+
+        qs_slug = MerchantProfile.objects.filter(store_slug__iexact=slug)
+        if current_pk:
+            qs_slug = qs_slug.exclude(pk=current_pk)
+
+        if qs_slug.exists():
+            sugs = generate_slug_suggestions(slug, current_instance_pk=current_pk)
+            return JsonResponse({
+                'available': False,
+                'name_collision': name_collision,
+                'name_warning': name_warning,
+                'slug': slug,
+                'suggestions': sugs,
+                'message': f"@{slug} is already taken. Available suggestions:"
+            })
+
+        return JsonResponse({
+            'available': True,
+            'name_collision': name_collision,
+            'name_warning': name_warning,
+            'slug': slug,
+            'suggestions': [],
+            'message': f"@{slug} is available!"
+        })
+
 
 def get_merchant_fraud_reports(merchant: MerchantProfile):
     """

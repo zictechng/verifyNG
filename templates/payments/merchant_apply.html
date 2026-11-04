@@ -256,6 +256,7 @@
               <div class="col-md-7">
                 <label class="form-label-lg" for="merchantStoreName">Store / Brand Name <span class="text-danger">*</span></label>
                 {{ form.store_name }}
+                <div id="storeNameCollisionAlert" class="small mt-1.5 p-2 rounded-2" style="display:none; background:#FFFBEB; border:1px solid #FDE68A; color:#92400E; font-size:0.8rem; line-height:1.4;"></div>
                 {% if form.store_name.errors %}<div class="text-danger small mt-1">{{ form.store_name.errors }}</div>{% endif %}
               </div>
               <div class="col-md-5">
@@ -264,6 +265,7 @@
                   <span class="input-group-text bg-light text-muted" style="font-size:0.9rem;">verifyng.com/trust-seal/v/</span>
                   {{ form.store_slug }}
                 </div>
+                <div id="slugFeedbackArea" class="mt-1.5" style="display:none;"></div>
                 {% if form.store_slug.errors %}<div class="text-danger small mt-1">{{ form.store_slug.errors }}</div>{% endif %}
               </div>
             </div>
@@ -821,6 +823,132 @@
     document.getElementById('submitSpinner').style.display = 'inline-block';
     document.getElementById('btnSubmitApplication').setAttribute('disabled', 'disabled');
   });
+
+// Real-time Store Name & Handle Collision Check with Smart 2-3 Suggestions
+  (function() {
+    const nameInput = document.getElementById('merchantStoreName');
+    const slugInput = document.getElementById('merchantStoreSlug');
+    const nameAlert = document.getElementById('storeNameCollisionAlert');
+    const slugArea = document.getElementById('slugFeedbackArea');
+    if (!nameInput || !slugInput) return;
+
+    let manualSlugEdited = slugInput.value.trim().length > 0;
+    let checkTimeout = null;
+
+    slugInput.addEventListener('input', function() {
+      manualSlugEdited = true;
+      scheduleHandleCheck();
+    });
+
+    nameInput.addEventListener('input', function() {
+      if (!manualSlugEdited) {
+        const generated = slugifyStr(nameInput.value);
+        slugInput.value = generated;
+      }
+      scheduleHandleCheck();
+    });
+
+    nameInput.addEventListener('blur', scheduleHandleCheck);
+    slugInput.addEventListener('blur', scheduleHandleCheck);
+
+    function slugifyStr(text) {
+      return text.toString().toLowerCase().trim()
+        .replace(/\s+/g, '_')
+        .replace(/[^\w\-]+/g, '')
+        .replace(/\-\-+/g, '_');
+    }
+
+    function scheduleHandleCheck() {
+      clearTimeout(checkTimeout);
+      checkTimeout = setTimeout(performHandleCheck, 350);
+    }
+
+    window.applySuggestedSlug = function(sug) {
+      slugInput.value = sug;
+      manualSlugEdited = true;
+      performHandleCheck();
+    };
+
+    async function performHandleCheck() {
+      const storeName = nameInput.value.trim();
+      const slugVal = slugInput.value.trim();
+
+      if (!slugVal && !storeName) {
+        if (nameAlert) nameAlert.style.display = 'none';
+        if (slugArea) slugArea.style.display = 'none';
+        return;
+      }
+
+      try {
+        const resp = await fetch(`/api/check-merchant-handle/?store_name=${encodeURIComponent(storeName)}&slug=${encodeURIComponent(slugVal)}`);
+        if (!resp.ok) return;
+        const data = await resp.json();
+
+        // 1. Store Name collision alert
+        if (nameAlert) {
+          if (data.name_collision && data.name_warning) {
+            nameAlert.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-1 text-warning"></i> <strong>Brand Notice:</strong> ${data.name_warning}`;
+            nameAlert.style.display = 'block';
+          } else {
+            nameAlert.style.display = 'none';
+          }
+        }
+
+        // 2. Slug / Handle feedback & suggestions
+        if (slugArea) {
+          if (!slugVal || slugVal.length < 3) {
+            slugArea.style.display = 'none';
+            return;
+          }
+
+          if (data.available) {
+            slugArea.innerHTML = `
+              <div class="small fw-semibold text-success d-flex align-items-center gap-1 mt-1">
+                <i class="bi bi-check-circle-fill"></i>
+                <span>@${data.slug} is available for your store!</span>
+              </div>
+            `;
+            slugArea.style.display = 'block';
+          } else {
+            let sugsHtml = '';
+            if (data.suggestions && data.suggestions.length > 0) {
+              sugsHtml = `
+                <div class="mt-2">
+                  <span class="d-block small text-muted mb-1" style="font-size:0.75rem;">Click a recommended handle to use:</span>
+                  <div class="d-flex flex-wrap gap-1">
+                    ${data.suggestions.map(s => `
+                      <button type="button" class="btn btn-sm py-0.5 px-2 fw-semibold d-inline-flex align-items-center gap-1"
+                              style="background:#EAF6FC; border:1px solid #BCDFF4; color:#011B33; border-radius:14px; font-size:0.76rem; cursor:pointer;"
+                              onclick="applySuggestedSlug('${s}')">
+                        <i class="bi bi-plus-circle-dotted"></i> @${s}
+                      </button>
+                    `).join('')}
+                  </div>
+                </div>
+              `;
+            }
+
+            slugArea.innerHTML = `
+              <div class="p-2.5 rounded-2 mt-1" style="background:#FFFBEB; border:1px solid #FDE68A; color:#92400E; font-size:0.8rem; line-height:1.4;">
+                <div class="fw-bold d-flex align-items-center gap-1">
+                  <i class="bi bi-exclamation-circle-fill text-warning"></i>
+                  <span>${data.message || `@${slugVal} is unavailable.`}</span>
+                </div>
+                ${sugsHtml}
+              </div>
+            `;
+            slugArea.style.display = 'block';
+          }
+        }
+      } catch (err) {
+        console.error("Handle check error:", err);
+      }
+    }
+
+    if (slugInput.value.trim() || nameInput.value.trim()) {
+      scheduleHandleCheck();
+    }
+  })();
 
   // Real-time Bank Name Verification AJAX
   async function verifyBankLive() {
