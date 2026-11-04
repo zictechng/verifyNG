@@ -432,3 +432,55 @@ def _mask_phone(phone: str) -> str:
         return "***"
     return f"{phone[:5]}***{phone[-3:]}"
 
+
+
+# ---------------------------------------------------------------------------
+# Telegram Bot Webhooks
+# ---------------------------------------------------------------------------
+
+@router.post("/telegram/", auth=None, summary="Telegram bot inbound message webhook")
+def telegram_webhook(request: HttpRequest):
+    """
+    POST /api/v1/webhooks/telegram/
+
+    Receives inbound Telegram updates (messages, /check commands, inline queries).
+    Optionally validates X-Telegram-Bot-Api-Secret-Token when TELEGRAM_WEBHOOK_SECRET is set.
+    Always returns 200 OK so Telegram does not repeatedly retry delivery.
+    """
+    from integrations.messaging.telegram_bot import (
+        get_webhook_secret,
+        handle_telegram_update,
+        is_telegram_configured,
+    )
+
+    expected_secret = get_webhook_secret()
+    if expected_secret:
+        incoming_secret = request.headers.get("X-Telegram-Bot-Api-Secret-Token", "")
+        if not hmac.compare_digest(incoming_secret, expected_secret):
+            logger.warning("Telegram webhook secret mismatch - possible unauthorized call.")
+            raise HttpError(403, "Invalid webhook secret token.")
+
+    try:
+        body = request.body.decode("utf-8")
+        update_data = json.loads(body)
+    except Exception as exc:
+        logger.warning("Telegram webhook invalid JSON payload: %s", exc)
+        return {"ok": True, "error": "Invalid JSON"}
+
+    try:
+        handle_telegram_update(update_data)
+    except Exception as exc:
+        logger.error("Unhandled error processing Telegram update: %s", exc, exc_info=True)
+
+    return {"ok": True}
+
+
+@router.get("/telegram/", auth=None, summary="Telegram bot status check")
+def telegram_status(request: HttpRequest):
+    from integrations.messaging.telegram_bot import is_telegram_configured, get_bot_username
+    return {
+        "service": "VerifyNG Telegram Bot API",
+        "configured": is_telegram_configured(),
+        "bot_username": get_bot_username(),
+        "status": "online" if is_telegram_configured() else "token_pending",
+    }

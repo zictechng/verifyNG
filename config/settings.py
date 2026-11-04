@@ -248,6 +248,13 @@ WHATSAPP_APP_SECRET = env('WHATSAPP_APP_SECRET', default='')
 WHATSAPP_API_VERSION = env('WHATSAPP_API_VERSION', default='v19.0')
 
 # ==============================================================================
+# Telegram Bot API
+# ==============================================================================
+TELEGRAM_BOT_TOKEN = env('TELEGRAM_BOT_TOKEN', default='')
+TELEGRAM_BOT_USERNAME = env('TELEGRAM_BOT_USERNAME', default='verifyng_bot')
+TELEGRAM_WEBHOOK_SECRET = env('TELEGRAM_WEBHOOK_SECRET', default='')
+
+# ==============================================================================
 # Africa's Talking SMS
 # ==============================================================================
 AFRICASTALKING_USERNAME = env('AFRICASTALKING_USERNAME', default='')
