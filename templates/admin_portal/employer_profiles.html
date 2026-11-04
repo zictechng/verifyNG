@@ -55,28 +55,52 @@
           {% if ep.is_billing_exempt %}<span class="adm-badge adm-badge-blue ms-1" title="{{ ep.billing_exempt_notes|default:'Free Usage' }}">Free</span>{% endif %}
         </td>
         <td>{{ ep.created_at|date:"d M Y" }}</td>
-        <td class="d-flex gap-1">
+        <td class="d-flex gap-1 align-items-center">
           {% if not ep.is_verified %}
-          <form method="post" action="{% url 'admin_portal:employer_action' ep.public_id %}">
-            {% csrf_token %}<input type="hidden" name="action" value="verify">
-            <button class="btn btn-adm-sm btn-adm-success">Verify</button>
-          </form>
+          <button type="button" class="btn btn-adm-sm btn-adm-success"
+                  data-confirm-action=""
+                  data-title="Approve Employer CAC Verification"
+                  data-body="Are you sure you want to approve CAC verification for &lt;strong&gt;{{ ep.company_name|escape }}&lt;/strong&gt; (RC/BN: {{ ep.company_rc_number|default:'Not provided' }})?&lt;br&gt;&lt;br&gt;&lt;span class='text-muted small'&gt;This will activate their verified organization badge, unlock candidate vetting, and enable complimentary service entitlements.&lt;/span&gt;"
+                  data-confirm-label="Yes, Approve &amp; Verify"
+                  data-confirm-class="btn-primary"
+                  data-form-action="{% url 'admin_portal:employer_action' ep.public_id %}"
+                  data-hidden-action="verify">
+            Verify
+          </button>
           {% else %}
-          <form method="post" action="{% url 'admin_portal:employer_action' ep.public_id %}">
-            {% csrf_token %}<input type="hidden" name="action" value="unverify">
-            <button class="btn btn-adm-sm btn-adm-outline">Unverify</button>
-          </form>
+          <button type="button" class="btn btn-adm-sm btn-adm-outline"
+                  data-confirm-action=""
+                  data-title="Remove Verification Badge"
+                  data-body="Are you sure you want to remove verified organization status for &lt;strong&gt;{{ ep.company_name|escape }}&lt;/strong&gt;?&lt;br&gt;&lt;br&gt;&lt;span class='text-muted small'&gt;Candidate vetting and active clearance checks will be locked.&lt;/span&gt;"
+                  data-confirm-label="Yes, Remove Verification"
+                  data-confirm-class="btn-warning"
+                  data-form-action="{% url 'admin_portal:employer_action' ep.public_id %}"
+                  data-hidden-action="unverify">
+            Unverify
+          </button>
           {% endif %}
           {% if ep.user.is_active %}
-          <form method="post" action="{% url 'admin_portal:employer_action' ep.public_id %}">
-            {% csrf_token %}<input type="hidden" name="action" value="suspend">
-            <button class="btn btn-adm-sm btn-adm-danger">Suspend</button>
-          </form>
+          <button type="button" class="btn btn-adm-sm btn-adm-danger"
+                  data-confirm-action=""
+                  data-title="Suspend Employer Account"
+                  data-body="Suspending &lt;strong&gt;{{ ep.company_name|escape }}&lt;/strong&gt; will immediately block all its team members (&lt;strong&gt;{{ ep.user.email }}&lt;/strong&gt;) from logging in, conducting background checks, or accessing candidate data."
+                  data-confirm-label="Yes, Suspend Account"
+                  data-confirm-class="btn-danger"
+                  data-form-action="{% url 'admin_portal:employer_action' ep.public_id %}"
+                  data-hidden-action="suspend">
+            Suspend
+          </button>
           {% else %}
-          <form method="post" action="{% url 'admin_portal:employer_action' ep.public_id %}">
-            {% csrf_token %}<input type="hidden" name="action" value="reinstate">
-            <button class="btn btn-adm-sm btn-adm-success">Reinstate</button>
-          </form>
+          <button type="button" class="btn btn-adm-sm btn-adm-success"
+                  data-confirm-action=""
+                  data-title="Reinstate Employer Account"
+                  data-body="This will restore active login and background check processing access for &lt;strong&gt;{{ ep.company_name|escape }}&lt;/strong&gt; (&lt;strong&gt;{{ ep.user.email }}&lt;/strong&gt;)."
+                  data-confirm-label="Yes, Reinstate"
+                  data-confirm-class="btn-success"
+                  data-form-action="{% url 'admin_portal:employer_action' ep.public_id %}"
+                  data-hidden-action="reinstate">
+            Reinstate
+          </button>
           {% endif %}
         </td>
       </tr>

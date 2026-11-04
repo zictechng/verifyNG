@@ -36,11 +36,14 @@
       confirmBtn.addEventListener('click', handleConfirm);
     }
 
-    /* All buttons with [data-confirm-action] */
-    document.querySelectorAll('[data-confirm-action]').forEach(function (btn) {
-      btn.addEventListener('click', function () {
+    /* Delegated click listener: catches all [data-confirm-action] buttons,
+       including dynamically paginated or filtered table rows */
+    document.addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-confirm-action]');
+      if (btn) {
+        e.preventDefault();
         openFromButton(btn);
-      });
+      }
     });
   }
 
