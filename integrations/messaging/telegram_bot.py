@@ -7,10 +7,10 @@ Capabilities:
 - Commands: /check, /start, /help, /report, /verify
 - Multi-Entity Detection:
     1. Phone numbers: 08012345678, +2348012345678
-    2. Bank Accounts: 0123456789 (Access Bank), 0123456789 GTBank, 0123456789
+    2. Bank Accounts: 0123456789 (Bank Name), 0123456789 GTBank, 0123456789
        -> Cross-checks Verified Settlement Bank Binding for merchants!
-    3. Store names & Merchant Handles: @sendmoorng, sendmoorng, Sendmoor
-    4. Workforce Certificate IDs: VNG-2026-99E1E30C, CERT-XXXX
+    3. Store names & Merchant Handles: @storename, storename, Sendmoor
+    4. Workforce Certificate IDs: VNG-CERT-XXXXX, CERT-XXXX
     5. CAC Registration Numbers: RC123456, BN987654, 9909988777654
     6. NIN (National Identity Number): NIN 12345678901, 12345678901
     7. General name & subject lookups
@@ -42,6 +42,18 @@ def get_bot_username() -> str:
 
 def get_webhook_secret() -> str:
     return getattr(settings, 'TELEGRAM_WEBHOOK_SECRET', '') or ''
+
+
+def get_telegram_public_site_url() -> str:
+    """
+    Returns a public HTTPS URL suitable for Telegram inline buttons.
+    Telegram Bot API rejects localhost and raw local IP addresses in InlineKeyboardButton URLs.
+    """
+    from core.email_utils import get_dynamic_base_url
+    base = get_dynamic_base_url().rstrip('/')
+    if 'localhost' in base or '127.0.0.1' in base:
+        return getattr(settings, 'TELEGRAM_PUBLIC_SITE_URL', 'https://verifyng.com')
+    return base
 
 
 def is_telegram_configured() -> bool:
@@ -146,15 +158,14 @@ def perform_unified_check(query_str: str) -> Dict[str, Any]:
     """
     Dispatches a query string across all VerifyNG trust domains:
       1. Bank Account (10 digits) + Merchant Settlement Bank cross-check
-      2. Store Name or Merchant Handle (@sendmoorng, sendmoorng)
+      2. Store Name or Merchant Handle (@storename, storename)
       3. Workforce Certificate ID (VNG-2026-..., CERT-...)
       4. CAC / Corporate Number (RC123456, BN987654)
       5. Phone Number (Nigerian mobile/landline)
       6. NIN (11 digits)
       7. Subject / Person / Entity Name fallback
     """
-    from core.email_utils import get_dynamic_base_url
-    site_url = get_dynamic_base_url()
+    site_url = get_telegram_public_site_url()
 
     raw_query = query_str.strip()
     if not raw_query:
@@ -169,17 +180,25 @@ def perform_unified_check(query_str: str) -> Dict[str, Any]:
 
     # -----------------------------------------------------------------------
     # Case A: Store Handle prefix or explicit Merchant Handle query
-    # E.g. "@sendmoorng" or store handle starting with @
+    # E.g. "@storename" or store handle starting with @
     # -----------------------------------------------------------------------
     if raw_query.startswith('@'):
         clean_slug = raw_query.lstrip('@').strip().lower()
         merchant = MerchantProfile.objects.filter(store_slug__iexact=clean_slug).first()
         if merchant:
             return _build_merchant_result(merchant, site_url, query=raw_query)
+        else:
+            return {
+                "found": False,
+                "entity_type": "store_not_found",
+                "query": raw_query,
+                "handle": clean_slug,
+                "site_url": site_url,
+            }
 
     # -----------------------------------------------------------------------
     # Case B: Workforce Certificate ID
-    # E.g. VNG-2026-99E1E30C, VNG-CERT-..., CERT-...
+    # E.g. VNG-CERT-XXXXX, VNG-CERT-..., CERT-...
     # -----------------------------------------------------------------------
     upper_query = raw_query.upper().strip()
     if upper_query.startswith("VNG-") or upper_query.startswith("CERT-") or "-CERT-" in upper_query:
@@ -188,10 +207,18 @@ def perform_unified_check(query_str: str) -> Dict[str, Any]:
             cert = VerificationCertificate.objects.filter(certificate_id__icontains=upper_query).first()
         if cert:
             return _build_certificate_result(cert, site_url, query=raw_query)
+        else:
+            return {
+                "found": False,
+                "entity_type": "certificate_not_found",
+                "query": raw_query,
+                "cert_id": upper_query,
+                "site_url": site_url,
+            }
 
     # -----------------------------------------------------------------------
     # Case C: Bank Account (10 digits) with optional Bank Name
-    # E.g. "0123456789 (Access Bank)" or "0123456789 Access Bank" or "0123456789"
+    # E.g. "0123456789 (Bank Name)" or "0123456789 Access Bank" or "0123456789"
     # -----------------------------------------------------------------------
     acc_match = re.search(r'\b(\d{10})\b', raw_query)
     if acc_match:
@@ -352,7 +379,7 @@ def perform_unified_check(query_str: str) -> Dict[str, Any]:
 
     # -----------------------------------------------------------------------
     # Case G: Store Name / Merchant Slug without @ prefix
-    # E.g. "sendmoorng" or "Sendmoor"
+    # E.g. "storename" or "Sendmoor"
     # -----------------------------------------------------------------------
     clean_text = raw_query.strip().lower()
     merchant = MerchantProfile.objects.filter(
@@ -458,6 +485,8 @@ def format_check_result_html(result: Dict[str, Any]) -> Tuple[str, Optional[Dict
     Renders structured Telegram HTML and creates inline buttons.
     """
     site_url = result.get("site_url", "https://verifyng.com").rstrip('/')
+    if "localhost" in site_url or "127.0.0.1" in site_url:
+        site_url = getattr(settings, "TELEGRAM_PUBLIC_SITE_URL", "https://verifyng.com")
     query = html.escape(result.get("query", ""))
     entity_type = result.get("entity_type", "unknown")
 
@@ -471,11 +500,21 @@ def format_check_result_html(result: Dict[str, Any]) -> Tuple[str, Optional[Dict
         is_active = (m.status == 'active')
         status_badge = "🛡️ <b>VERIFIED MERCHANT</b> (Active Anti-Scam Shield)" if is_active else f"⚠️ <b>Status:</b> {html.escape(m.get_status_display())}"
 
+        if is_active:
+            m_score = "🟢 <b>98 / 100</b> (High Trust • Verified Merchant)"
+        elif m.status in ('disputed', 'under_dispute'):
+            m_score = "🟡 <b>50 / 100</b> (Caution • Customer Dispute)"
+        elif m.status == 'suspended':
+            m_score = "🔴 <b>15 / 100</b> (High Risk • Suspended)"
+        else:
+            m_score = "⚪ <b>65 / 100</b> (Pending Review)"
+
         lines = [
             "🏪 <b>VerifyNG Verified Merchant Search</b>",
             "━━━━━━━━━━━━━━━━━━━━━",
             f"<b>Store:</b> {store_name} (@{store_slug})",
             f"<b>Trust Status:</b> {status_badge}",
+            f"🎯 <b>Trust Score:</b> {m_score}",
             f"<b>Category:</b> {html.escape(m.category or 'Merchant')} • {html.escape(m.operating_state or 'Nigeria')}",
         ]
 
@@ -502,6 +541,8 @@ def format_check_result_html(result: Dict[str, Any]) -> Tuple[str, Optional[Dict
             ])
 
         lines.extend([
+            "",
+            "⚖️ <b>Notice:</b> Identity &amp; settlement credentials authenticated. Reduces impersonation risk, but does not constitute an unconditional guarantee. Buyers should always practice standard transaction diligence.",
             "━━━━━━━━━━━━━━━━━━━━━",
             f"🌐 <a href=\"{site_url}/merchants/{store_slug}/\">View Official Merchant Trust Profile</a>",
         ])
@@ -536,12 +577,22 @@ def format_check_result_html(result: Dict[str, Any]) -> Tuple[str, Optional[Dict
 
         check_level = html.escape(c.get_check_level_display()) if hasattr(c, 'get_check_level_display') else "Standard"
 
+        if status == 'active':
+            c_score = "🟢 <b>100 / 100</b> (Tamper-Proof Credential Cleared)"
+        elif status == 'suspended':
+            c_score = "🟡 <b>40 / 100</b> (Compliance Hold)"
+        elif status == 'revoked':
+            c_score = "🔴 <b>0 / 100</b> (Revoked / Nullified)"
+        else:
+            c_score = "⚪ <b>50 / 100</b> (Pending Clearance)"
+
         lines = [
             "📜 <b>VerifyNG Workforce Trust Certificate</b>",
             "━━━━━━━━━━━━━━━━━━━━━",
             f"<b>Certificate ID:</b> <code>{cert_id}</code>",
             f"<b>Holder:</b> {holder_name}",
             f"<b>Status:</b> {status_badge}",
+            f"🎯 <b>Trust Score:</b> {c_score}",
             f"<b>Clearance Level:</b> {check_level}",
             f"<b>Issued:</b> {c.issued_at.strftime('%d %b %Y') if c.issued_at else 'N/A'}",
         ]
@@ -549,6 +600,8 @@ def format_check_result_html(result: Dict[str, Any]) -> Tuple[str, Optional[Dict
             lines.append(f"<b>Valid Through:</b> {c.expires_at.strftime('%d %b %Y')}")
 
         lines.extend([
+            "",
+            "⚖️ <b>Notice:</b> Clearance credential authenticated. Employers and parties should still practice standard transaction diligence.",
             "━━━━━━━━━━━━━━━━━━━━━",
             f"🌐 <a href=\"{site_url}/verify/certificate/{cert_id}/\">Verify Original Security Document</a>",
         ])
@@ -591,19 +644,30 @@ def format_check_result_html(result: Dict[str, Any]) -> Tuple[str, Optional[Dict
             ])
 
         lines.append("")
-        if reports_count > 0:
-            lines.extend([
-                f"🚨 <b>Trust Rating:</b> 🔴 HIGH RISK",
-                f"⚠️ <b>Active Fraud Reports:</b> {reports_count} verified scam report(s)",
-                "<i>Caution: Do NOT transfer funds to this account before verifying!</i>",
-            ])
+        if m_bound:
+            b_score = "🟢 <b>98 / 100</b> (Legally Bound Merchant Settlement Account)"
+            rating_text = "🛡️ <b>Trust Rating:</b> 🟢 VERIFIED SETTLEMENT BINDING"
+            notice_text = "⚖️ <b>Notice:</b> Account bound to an authenticated merchant. Pay ONLY to this verified account and practice standard transaction diligence."
+        elif reports_count > 0:
+            b_score = f"🔴 <b>15 / 100</b> (High Risk • {reports_count} Scam Report(s))"
+            rating_text = "🚨 <b>Trust Rating:</b> 🔴 HIGH RISK"
+            notice_text = "⚠️ <b>Caution:</b> Active fraud complaints registered. Do not transfer funds without independent verification."
         else:
-            lines.extend([
-                f"🛡️ <b>Trust Rating:</b> 🟢 CLEAN / NO ACTIVE REPORTS",
-                "✅ 0 verified scam reports registered on VerifyNG.",
-            ])
+            b_score = "⚪ <b>50 / 100</b> (Unrated • 0 Prior Complaints)"
+            rating_text = "🛡️ <b>Trust Status:</b> ⚪ UNVERIFIED (No Prior Complaints on File)"
+            notice_text = "⚖️ <b>Notice:</b> No complaints on file. This does not confirm legitimacy. Buyers should always practice standard transaction diligence."
+
+        lines.append(f"🎯 <b>Trust Score:</b> {b_score}")
+        lines.append(rating_text)
+        if reports_count > 0:
+            lines.append(f"⚠️ <b>Active Fraud Reports:</b> {reports_count} verified scam report(s)")
+            lines.append("<i>Caution: Do NOT transfer funds to this account before verifying!</i>")
+        else:
+            lines.append("✅ 0 verified scam reports registered on VerifyNG.")
 
         lines.extend([
+            "",
+            notice_text,
             "━━━━━━━━━━━━━━━━━━━━━",
             f"🔗 <a href=\"{site_url}/check/?q={acc_no}\">Run Comprehensive Background Check</a>",
         ])
@@ -645,12 +709,24 @@ def format_check_result_html(result: Dict[str, Any]) -> Tuple[str, Optional[Dict
             lines.append("<i>CAC record queried against national business database.</i>")
 
         lines.append("")
+        if emp and emp.is_verified:
+            cac_score = "🟢 <b>96 / 100</b> (CAC Officially Verified)"
+        elif reports_count > 0:
+            cac_score = f"🔴 <b>20 / 100</b> (High Risk • {reports_count} Flagged Report(s))"
+        elif emp:
+            cac_score = "🟢 <b>85 / 100</b> (Registered Corporate Entity)"
+        else:
+            cac_score = "⚪ <b>75 / 100</b> (CAC Registered)"
+
+        lines.append(f"🎯 <b>Trust Score:</b> {cac_score}")
         if reports_count > 0:
             lines.append(f"🚨 <b>Fraud Reports:</b> {reports_count} active report(s)")
         else:
             lines.append("✅ <b>Fraud Record:</b> Clean (0 active reports)")
 
         lines.extend([
+            "",
+            "⚖️ <b>Notice:</b> Corporate registration verified with CAC. Business vetting reduces impersonation risk, but parties should always practice standard transaction diligence.",
             "━━━━━━━━━━━━━━━━━━━━━",
             f"🔗 <a href=\"{site_url}/check/?q={cac_code}\">View Enterprise Vetting Record</a>",
         ])
@@ -686,19 +762,30 @@ def format_check_result_html(result: Dict[str, Any]) -> Tuple[str, Optional[Dict
             ])
 
         lines.append("")
-        if reports_count > 0:
-            lines.extend([
-                f"🚨 <b>Trust Status:</b> 🔴 HIGH RISK",
-                f"⚠️ <b>Fraud Reports:</b> {reports_count} verified scam report(s)",
-                "<i>Warning: Multiple scam complaints registered on this number.</i>",
-            ])
+        if m_bound:
+            p_score = "🟢 <b>96 / 100</b> (Official Merchant Contact)"
+            rating_text = "🛡️ <b>Trust Status:</b> 🟢 OFFICIAL MERCHANT CONTACT"
+            notice_text = "⚖️ <b>Notice:</b> Contact tied to an authenticated merchant. Buyers should always practice standard transaction diligence."
+        elif reports_count > 0:
+            p_score = f"🔴 <b>15 / 100</b> (High Risk • {reports_count} Scam Report(s))"
+            rating_text = "🚨 <b>Trust Status:</b> 🔴 HIGH RISK"
+            notice_text = "⚠️ <b>Caution:</b> Multiple scam complaints registered on this number. Do not transact without independent verification."
         else:
-            lines.extend([
-                f"🛡️ <b>Trust Status:</b> 🟢 CLEAN / SAFE",
-                "✅ 0 verified scam reports registered on VerifyNG.",
-            ])
+            p_score = "⚪ <b>50 / 100</b> (Unrated • 0 Prior Reports)"
+            rating_text = "🛡️ <b>Trust Status:</b> ⚪ UNVERIFIED (No Reports on File)"
+            notice_text = "⚖️ <b>Notice:</b> No scam complaints on file for this number. This does not confirm legitimacy. Buyers should always practice standard transaction diligence."
+
+        lines.append(f"🎯 <b>Trust Score:</b> {p_score}")
+        lines.append(rating_text)
+        if reports_count > 0:
+            lines.append(f"⚠️ <b>Fraud Reports:</b> {reports_count} verified scam report(s)")
+            lines.append("<i>Warning: Multiple scam complaints registered on this number.</i>")
+        else:
+            lines.append("✅ 0 verified scam reports registered on VerifyNG.")
 
         lines.extend([
+            "",
+            notice_text,
             "━━━━━━━━━━━━━━━━━━━━━",
             f"🔗 <a href=\"{site_url}/check/?q={phone_no}\">View Full Phone Audit</a>",
         ])
@@ -729,11 +816,17 @@ def format_check_result_html(result: Dict[str, Any]) -> Tuple[str, Optional[Dict
             "",
         ]
         if reports_count > 0:
+            nin_score = f"🔴 <b>20 / 100</b> (High Risk • {reports_count} Verified Report(s))"
+            lines.append(f"🎯 <b>Trust Score:</b> {nin_score}")
             lines.append(f"🚨 <b>Warning:</b> {reports_count} verified fraud record(s) on file.")
         else:
+            nin_score = "🟢 <b>95 / 100</b> (Clean Identity Record)"
+            lines.append(f"🎯 <b>Trust Score:</b> {nin_score}")
             lines.append("✅ <b>Status:</b> Clean identity (0 active fraud records)")
 
         lines.extend([
+            "",
+            "⚖️ <b>Notice:</b> National identity audit completed. Does not constitute a financial guarantee. Parties should always practice standard transaction diligence.",
             "━━━━━━━━━━━━━━━━━━━━━",
             f"🔗 <a href=\"{site_url}/check/\">Verify on VerifyNG Security Portal</a>",
         ])
@@ -748,17 +841,85 @@ def format_check_result_html(result: Dict[str, Any]) -> Tuple[str, Optional[Dict
         return "\n".join(lines), keyboard
 
     # -----------------------------------------------------------------------
-    # 7. UNKNOWN / NO RECORD FOUND
+    # 7. STORE HANDLE NOT FOUND
+    # -----------------------------------------------------------------------
+    if entity_type == "store_not_found":
+        handle = html.escape(result.get("handle", query))
+        lines = [
+            "🏪 <b>Merchant Registry Search</b>",
+            "━━━━━━━━━━━━━━━━━━━━━",
+            f"<b>Queried Handle:</b> <code>@{handle}</code>",
+            "",
+            "⚠️ <b>NOT REGISTERED AS A VERIFIED MERCHANT</b>",
+            "No active verified merchant profile exists on VerifyNG for this handle.",
+            "",
+            "<b>What this means:</b>",
+            "• This store has NOT verified its government ID with VerifyNG.",
+            "• They do NOT have a verified settlement bank binding or anti-scam shield.",
+            "",
+            "⚖️ <b>Notice:</b> Unverified online sellers carry higher transaction risk. Request their official VerifyNG badge link or use escrow before transferring funds. Buyers should always practice standard transaction diligence.",
+            "━━━━━━━━━━━━━━━━━━━━━",
+            f"🌐 <a href=\"{site_url}/merchants/apply/\">Apply for Merchant Verification</a>",
+        ]
+        keyboard = {
+            "inline_keyboard": [
+                [
+                    {"text": "🛡️ Apply for Merchant Badge", "url": f"{site_url}/merchants/apply/"},
+                    {"text": "🚨 Report Suspicious Store", "url": f"{site_url}/reports/submit/"},
+                ]
+            ]
+        }
+        return "\n".join(lines), keyboard
+
+    # -----------------------------------------------------------------------
+    # 8. WORKFORCE CERTIFICATE NOT FOUND
+    # -----------------------------------------------------------------------
+    if entity_type == "certificate_not_found":
+        cert_id = html.escape(result.get("cert_id", query))
+        lines = [
+            "📜 <b>Workforce Certificate Audit</b>",
+            "━━━━━━━━━━━━━━━━━━━━━",
+            f"<b>Certificate ID:</b> <code>{cert_id}</code>",
+            "",
+            "🔴 <b>CERTIFICATE NOT FOUND IN REGISTRY</b>",
+            "No official clearance credential matches this certificate ID in the national VerifyNG database.",
+            "",
+            "<b>What this means:</b>",
+            "• This certificate may be counterfeit, altered, or mistyped.",
+            "• It has NOT been verified or issued by VerifyNG.",
+            "",
+            "⚠️ <b>Caution:</b> Do not accept unverified documents for hiring, leasing, or clearance. Candidate must generate an authentic credential via VerifyNG. Always practice standard transaction diligence.",
+            "━━━━━━━━━━━━━━━━━━━━━",
+            f"🌐 <a href=\"{site_url}/verify/\">Verify Original Documents</a>",
+        ]
+        keyboard = {
+            "inline_keyboard": [
+                [
+                    {"text": "🔍 Verify Portal", "url": f"{site_url}/verify/"},
+                    {"text": "🚨 Report Counterfeit", "url": f"{site_url}/reports/submit/"},
+                ]
+            ]
+        }
+        return "\n".join(lines), keyboard
+
+    # -----------------------------------------------------------------------
+    # 9. GENERAL / UNKNOWN QUERY
     # -----------------------------------------------------------------------
     lines = [
         "🔍 <b>VerifyNG Trust Check Result</b>",
         "━━━━━━━━━━━━━━━━━━━━━",
         f"<b>Query:</b> <code>{query}</code>",
         "",
-        "✅ <b>No Active Fraud Reports Found</b>",
-        "This identifier has no reported scam allegations or blacklists on VerifyNG.",
+        "⚪ <b>No Matching Records or Scam Reports Found</b>",
+        "This identifier has no verified merchant badge, issued certificate, or community fraud reports on file.",
         "",
-        "💡 <i>Tip: If this is an online seller, ask them for their verified store handle (e.g. <code>@sendmoorng</code>) or verified settlement bank to guarantee escrow/reputation protection.</i>",
+        "💡 <b>Search Tips:</b>",
+        "• Send a <b>Phone Number</b> (e.g. <code>08012345678</code>)",
+        "• Send a <b>Bank Account</b> (e.g. <code>0123456789 Access Bank</code>)",
+        "• Send a <b>Store Handle</b> (e.g. <code>@storename</code>)",
+        "• Send a <b>CAC RC Number</b> (e.g. <code>RC123456</code>)",
+        "",
+        "⚖️ <b>Notice:</b> Absence of reports is not proof of legitimacy. Anyone can open an account or line today. Buyers should always practice standard transaction diligence.",
         "━━━━━━━━━━━━━━━━━━━━━",
         f"🌐 <a href=\"{site_url}/check/?q={query}\">Search Full Platform Database</a>",
     ]
@@ -766,7 +927,7 @@ def format_check_result_html(result: Dict[str, Any]) -> Tuple[str, Optional[Dict
     keyboard = {
         "inline_keyboard": [
             [
-                {"text": "🔍 Full Search", "url": f"{site_url}/check/?q={query}"},
+                {"text": "🔍 Full Web Search", "url": f"{site_url}/check/?q={query}"},
                 {"text": "🚨 Report Fraud", "url": f"{site_url}/reports/submit/"},
             ]
         ]
@@ -782,8 +943,7 @@ def handle_telegram_update(update: Dict[str, Any]) -> None:
     """
     Main entry point for handling parsed Telegram webhook updates.
     """
-    from core.email_utils import get_dynamic_base_url
-    site_url = get_dynamic_base_url().rstrip('/')
+    site_url = get_telegram_public_site_url().rstrip('/')
 
     # 1. Inline Query Support (e.g. @verifyng_bot 08012345678)
     if "inline_query" in update:
@@ -854,23 +1014,34 @@ def handle_telegram_update(update: Dict[str, Any]) -> None:
         send_telegram_message(chat_id, text, reply_markup=keyboard, reply_to_message_id=message_id)
         return
 
-    # /check command or direct text query
+    # Input routing: supports "/check <q>", "check <q>", or direct text queries (e.g. "08012345678")
+    clean_input = raw_text.strip()
+    lower_input = clean_input.lower()
+
+    # If user sends just "check" or "/check" alone
+    if lower_input in ("check", "/check") or lower_input.startswith(("/check@", "check@")):
+        _send_check_usage(chat_id)
+        return
+
     query_body = ""
-    if lower_text.startswith("/check"):
-        # Strip "/check" or "/check@botname"
-        parts = raw_text.split(maxsplit=1)
-        if len(parts) > 1:
-            query_body = parts[1].strip()
-        else:
-            _send_check_usage(chat_id)
-            return
+    if lower_input.startswith("/check ") or lower_input.startswith("check "):
+        parts = clean_input.split(maxsplit=1)
+        query_body = parts[1].strip() if len(parts) > 1 else ""
+    elif lower_input.startswith("/"):
+        # Unknown slash command
+        text = (
+            "🤔 <b>Command Not Recognized</b>\n\n"
+            "Send /help to view all commands, or simply type any phone number, bank account, store handle (@store), or certificate ID directly."
+        )
+        send_telegram_message(chat_id, text, reply_to_message_id=message_id)
+        return
     else:
-        # If in a private 1-on-1 chat, allow direct text lookup without needing /check!
+        # Direct text query in private chat (no 'check' or '/' needed)
         chat_type = chat.get("type", "private")
         if chat_type == "private":
-            query_body = raw_text
+            query_body = clean_input
         else:
-            return  # In group chats, ignore messages that don't start with /check
+            return  # In group chats, ignore general chatter that does not start with /check
 
     # Execute Unified Check
     result = perform_unified_check(query_body)
@@ -885,10 +1056,10 @@ def _send_start_welcome(chat_id: int | str, from_user: Dict[str, Any], site_url:
         "I am the <b>VerifyNG Security Bot</b> 🛡️ — Nigeria's official public safety and anti-scam intelligence assistant.\n\n"
         "<b>What I Can Check Instantly:</b>\n"
         "• 📱 <b>Phone Numbers:</b> <code>/check 08012345678</code>\n"
-        "• 🏦 <b>Bank Accounts:</b> <code>/check 0123456789 (Access Bank)</code>\n"
-        "• 🏪 <b>Store Names &amp; Handles:</b> <code>/check @sendmoorng</code>\n"
+        "• 🏦 <b>Bank Accounts:</b> <code>/check 0123456789 (Bank Name)</code>\n"
+        "• 🏪 <b>Store Names &amp; Handles:</b> <code>/check @storename</code>\n"
         "• 🏢 <b>CAC Registrations:</b> <code>/check RC123456</code>\n"
-        "• 📜 <b>Workforce Certificates:</b> <code>/check VNG-2026-99E1E30C</code>\n"
+        "• 📜 <b>Workforce Certificates:</b> <code>/check VNG-CERT-XXXXX</code>\n"
         "• 🪪 <b>NIN Identity:</b> <code>/check NIN 12345678901</code>\n\n"
         "<i>In private chat, you can also simply send any number, store name, or account directly!</i>"
     )
@@ -912,19 +1083,19 @@ def _send_help_guide(chat_id: int | str, site_url: str) -> None:
         "📖 <b>VerifyNG Bot — Command Guide</b>\n"
         "━━━━━━━━━━━━━━━━━━━━━\n\n"
         "<b>1. Bank Account Check:</b>\n"
-        "<code>/check 0123456789 (Access Bank)</code>\n"
+        "<code>/check 0123456789 (Bank Name)</code>\n"
         "<i>Cross-references verified merchant settlement accounts and active fraud complaints.</i>\n\n"
         "<b>2. Phone Number Check:</b>\n"
         "<code>/check 08012345678</code>\n"
         "<i>Audits seller phone numbers against community scam reports.</i>\n\n"
         "<b>3. Merchant Store / Handle:</b>\n"
-        "<code>/check @sendmoorng</code> or <code>/check sendmoorng</code>\n"
+        "<code>/check @storename</code> or <code>/check storename</code>\n"
         "<i>Validates Verified Merchant Seal, legal binding, and approved bank details.</i>\n\n"
         "<b>4. Corporate / CAC Registry:</b>\n"
         "<code>/check RC123456</code> or <code>/check BN987654</code>\n"
         "<i>Verifies business legitimacy and registered status.</i>\n\n"
         "<b>5. Candidate Trust Certificate:</b>\n"
-        "<code>/check VNG-2026-99E1E30C</code>\n"
+        "<code>/check VNG-CERT-XXXXX</code>\n"
         "<i>Verifies tamper-proof background check and criminal clearance credentials.</i>\n\n"
         "<b>6. National Identity:</b>\n"
         "<code>/check NIN 12345678901</code>\n\n"
@@ -938,10 +1109,10 @@ def _send_check_usage(chat_id: int | str) -> None:
         "ℹ️ <b>How to Use /check:</b>\n\n"
         "Please provide an identifier after the command:\n"
         "• <code>/check 08012345678</code> (Phone)\n"
-        "• <code>/check 0123456789 (Access Bank)</code> (Account)\n"
-        "• <code>/check @sendmoorng</code> (Store Handle)\n"
+        "• <code>/check 0123456789 (Bank Name)</code> (Account)\n"
+        "• <code>/check @storename</code> (Store Handle)\n"
         "• <code>/check RC123456</code> (CAC Registration)\n"
-        "• <code>/check VNG-2026-99E1E30C</code> (Certificate ID)\n"
+        "• <code>/check VNG-CERT-XXXXX</code> (Certificate ID)\n"
         "• <code>/check NIN 12345678901</code> (National ID)"
     )
     send_telegram_message(chat_id, text)
