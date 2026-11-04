@@ -263,6 +263,72 @@ class FraudReport(models.Model):
         return f"{val[:3]}***{val[-2:]}"
 
     @property
+    def whatsapp_clean_phone(self):
+        """
+        Returns the suspect phone normalized to E.164 digits without '+' for WhatsApp wa.me links.
+        E.g. '08012345678' -> '2348012345678', '+2348012345678' -> '2348012345678'
+        """
+        ph = self.suspect_phone
+        if not ph:
+            return ""
+        import re
+        digits = re.sub(r'\D', '', str(ph))
+        if not digits:
+            return ""
+        if digits.startswith('0') and len(digits) == 11:
+            digits = '234' + digits[1:]
+        elif len(digits) == 10 and digits[0] in ('7', '8', '9'):
+            digits = '234' + digits
+        return digits
+
+    @property
+    def whatsapp_due_process_url(self):
+        """
+        Generates a 1-click WhatsApp due-process dispatch link for moderators.
+        Opens WhatsApp Web pre-loaded with the statutory 7-day fair-hearing notice,
+        incident reference, loss amount, and direct dispute filing link.
+        """
+        phone = self.whatsapp_clean_phone
+        if not phone:
+            return ""
+
+        from core.site_utils import get_dynamic_base_url
+        import urllib.parse
+
+        base_url = get_dynamic_base_url().rstrip('/')
+        dispute_url = f"{base_url}/reports/{self.reference_number}/dispute/"
+
+        target_name = ""
+        if hasattr(self, 'target_subject') and self.target_subject and self.target_subject.name:
+            target_name = self.target_subject.name
+        else:
+            target_name = "Account Holder"
+
+        amount_str = self.amount_lost_formatted or "Unspecified"
+        deadline_str = self.dispute_deadline or "7 days from filing"
+
+        msg = (
+            f"⚖️ *OFFICIAL NOTICE: FAIR HEARING & RIGHT OF RESPONSE*\n"
+            f"*VerifyNG Public Trust & Safety Registry*\n\n"
+            f"*Reference:* #{self.reference_number}\n"
+            f"*Accused Party:* {target_name}\n"
+            f"*Allegation Summary:* {self.title}\n"
+            f"*Claimed Amount:* {amount_str}\n"
+            f"*Due-Process Response Window:* 7 Calendar Days (Expires {deadline_str})\n\n"
+            f"Hello,\n\n"
+            f"A formal incident complaint has been lodged against your account/business on the VerifyNG National Trust Registry.\n\n"
+            f"Under VerifyNG Fair Hearing and Statutory Due-Process guidelines, you are entitled to review the complaint, submit your formal defense statement, and upload counter-evidence (receipts, delivery notes, or proof of resolution) before moderation concludes.\n\n"
+            f"👉 *Submit Your Statement & Counter-Evidence Here:*\n"
+            f"{dispute_url}\n\n"
+            f"*Note:* If no response is received by {deadline_str}, the investigation will conclude based strictly on the evidence submitted by the complainant, which may affect your public trust standing.\n\n"
+            f"VerifyNG Compliance & Dispute Resolution Desk\n"
+            f"support@verifyng.com | www.verifyng.com"
+        )
+
+        encoded_msg = urllib.parse.quote(msg)
+        return f"https://wa.me/{phone}?text={encoded_msg}"
+
+    @property
     def masked_nin(self):
         """
         Masked National Identification Number (NIN / National ID) for public views.
