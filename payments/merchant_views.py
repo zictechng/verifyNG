@@ -237,6 +237,9 @@ class MerchantApplyView(LoginRequiredMixin, View):
     template_name = "payments/merchant_apply.html"
 
     def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return self.handle_no_permission()
+
         site_settings = SiteSettings.get()
         if not site_settings.merchant_badge_enabled:
             messages.warning(request, "The Verified Merchant Seal program is currently closed to new applications.")
@@ -244,7 +247,7 @@ class MerchantApplyView(LoginRequiredMixin, View):
 
         # Check Tier 1 KYC gate
         user = request.user
-        tier1_verified = (user.id_verification_status == 'verified' or getattr(user, 'identity_verified', False))
+        tier1_verified = (getattr(user, 'id_verification_status', None) == 'verified' or getattr(user, 'identity_verified', False))
         
         employer_prof = getattr(user, 'employer_profile', None)
         employer_verified = bool(employer_prof and employer_prof.is_verified)
