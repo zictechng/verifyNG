@@ -631,119 +631,68 @@ class AdminUserDetailView(SuperAdminRequiredMixin, TemplateView):
             return redirect('admin_portal:user_detail', public_id=public_id)
         
         elif action == 'verify_identity':
-            target_user.identity_verified = True
-            target_user.id_verification_status = 'verified'
-            target_user.id_verified_at = timezone.now()
-            target_user.id_rejection_reason = ''
-            target_user.save(update_fields=['identity_verified', 'id_verification_status', 'id_verified_at', 'id_rejection_reason'])
-            AuditLog.objects.create(
-                action="ADMIN_USER_IDENTITY_VERIFIED",
-                performed_by=request.user,
-                details={
-                    "target_user_id": target_user.id,
-                    "target_username": target_user.username,
-                    "id_type": target_user.id_type,
-                    "id_number": target_user.masked_id_number,
-                }
+            from users.services import IdentityVerificationLifecycleService
+            IdentityVerificationLifecycleService.transition_to_basic_verified(
+                user=target_user,
+                officer=request.user,
+                notes=request.POST.get('verification_notes', ''),
+                request=request
             )
-            # Dispatch compliance notification & email to user
-            try:
-                from notifications.services import dispatch_notification
-                from notifications.email_templates import build_identity_verified
-                id_display = target_user.get_id_type_display() if hasattr(target_user, 'get_id_type_display') else (target_user.id_type or 'Government ID')
-                subject, html_body, text_body = build_identity_verified(
-                    username=target_user.get_full_name() or target_user.username,
-                    id_type=id_display
-                )
-                dispatch_notification(
-                    recipient=target_user,
-                    event_type='VERIFICATION_COMPLETED',
-                    title='Identity Verification Approved',
-                    body=f"Your {id_display} verification has been approved. You now hold a Verified Profile badge with full platform access.",
-                    object_reference=f"ID-{target_user.public_id}",
-                    subject=subject,
-                    html_body=html_body,
-                    text_body=text_body,
-                )
-            except Exception as e:
-                logger.warning(f"Failed to dispatch identity verification notification for {target_user.username}: {e}")
-
             messages.success(request, f"Government identity verified for '{target_user.get_full_name() or target_user.username}'.")
             return redirect('admin_portal:user_detail', public_id=public_id)
 
-        elif action == 'reject_identity':
-            target_user.identity_verified = False
-            target_user.id_verification_status = 'rejected'
-            reason = request.POST.get('rejection_reason', '').strip()
-            target_user.id_rejection_reason = reason if reason else 'Document could not be authenticated against registry standards.'
-            target_user.save(update_fields=['identity_verified', 'id_verification_status', 'id_rejection_reason'])
-            AuditLog.objects.create(
-                action="ADMIN_USER_IDENTITY_REJECTED",
-                performed_by=request.user,
-                details={
-                    "target_user_id": target_user.id,
-                    "target_username": target_user.username,
-                    "reason": target_user.id_rejection_reason,
-                }
+        elif action == 'verify_enhanced_identity':
+            from users.services import IdentityVerificationLifecycleService
+            IdentityVerificationLifecycleService.transition_to_enhanced_verified(
+                user=target_user,
+                officer=request.user,
+                notes=request.POST.get('verification_notes', ''),
+                request=request
             )
-            # Dispatch compliance notification & email to user
-            try:
-                from notifications.services import dispatch_notification
-                from notifications.email_templates import build_identity_rejected
-                id_display = target_user.get_id_type_display() if hasattr(target_user, 'get_id_type_display') else (target_user.id_type or 'Government ID')
-                subject, html_body, text_body = build_identity_rejected(
-                    username=target_user.get_full_name() or target_user.username,
-                    id_type=id_display,
-                    reason=target_user.id_rejection_reason,
-                )
-                dispatch_notification(
-                    recipient=target_user,
-                    event_type='VERIFICATION_REJECTED',
-                    title='Identity Verification Declined',
-                    body=f"Your identity document could not be verified by compliance. Reason: {target_user.id_rejection_reason}",
-                    object_reference=f"ID-{target_user.public_id}",
-                    subject=subject,
-                    html_body=html_body,
-                    text_body=text_body,
-                )
-            except Exception as e:
-                logger.warning(f"Failed to dispatch identity rejection notification for {target_user.username}: {e}")
+            messages.success(request, f"Enhanced identity verified for '{target_user.get_full_name() or target_user.username}'.")
+            return redirect('admin_portal:user_detail', public_id=public_id)
 
+        elif action == 'reject_identity':
+            from users.services import IdentityVerificationLifecycleService
+            reason = request.POST.get('rejection_reason', '').strip()
+            IdentityVerificationLifecycleService.transition_to_rejected(
+                user=target_user,
+                reason=reason,
+                officer=request.user,
+                request=request
+            )
             messages.success(request, f"Identity proof declined for '{target_user.username}'.")
             return redirect('admin_portal:user_detail', public_id=public_id)
 
-        elif action == 'revoke_identity':
-            target_user.identity_verified = False
-            target_user.id_verification_status = 'unverified'
-            target_user.save(update_fields=['identity_verified', 'id_verification_status'])
-            AuditLog.objects.create(
-                action="ADMIN_USER_IDENTITY_REVOKED",
-                performed_by=request.user,
-                details={
-                    "target_user_id": target_user.id,
-                    "target_username": target_user.username,
-                }
+        elif action == 'suspend_identity':
+            from users.services import IdentityVerificationLifecycleService
+            reason = request.POST.get('suspension_reason', '').strip()
+            IdentityVerificationLifecycleService.transition_to_suspended(
+                user=target_user,
+                reason=reason,
+                officer=request.user,
+                request=request
             )
-            # Dispatch compliance notification & email to user
-            try:
-                from notifications.services import dispatch_notification
-                from notifications.email_templates import build_identity_revoked
-                subject, html_body, text_body = build_identity_revoked(
-                    username=target_user.get_full_name() or target_user.username,
-                )
-                dispatch_notification(
-                    recipient=target_user,
-                    event_type='VERIFICATION_REJECTED',
-                    title='Identity Verification Revoked',
-                    body="Your verified identity badge has been revoked by platform compliance. Please review your profile credentials.",
-                    object_reference=f"ID-{target_user.public_id}",
-                    subject=subject,
-                    html_body=html_body,
-                    text_body=text_body,
-                )
-            except Exception as e:
-                logger.warning(f"Failed to dispatch identity revocation notification for {target_user.username}: {e}")
+            messages.success(request, f"Identity verification suspended for '{target_user.username}'.")
+            return redirect('admin_portal:user_detail', public_id=public_id)
 
+        elif action == 'expire_identity':
+            from users.services import IdentityVerificationLifecycleService
+            IdentityVerificationLifecycleService.transition_to_expired(
+                user=target_user,
+                officer=request.user,
+                request=request
+            )
+            messages.success(request, f"Identity verification marked expired for '{target_user.username}'.")
+            return redirect('admin_portal:user_detail', public_id=public_id)
+
+        elif action == 'revoke_identity':
+            from users.services import IdentityVerificationLifecycleService
+            IdentityVerificationLifecycleService.transition_to_revoked(
+                user=target_user,
+                officer=request.user,
+                request=request
+            )
             messages.success(request, f"Identity verification badge revoked for '{target_user.username}'.")
             return redirect('admin_portal:user_detail', public_id=public_id)
 
