@@ -236,7 +236,7 @@ class IdentityVerificationLifecycleService:
 
     @classmethod
     @transaction.atomic
-    def transition_to_expired(cls, user, officer=None, request=None):
+    def transition_to_expired(cls, user, reason='', officer=None, request=None):
         """
         Marks an identity verification as expired (e.g. document reached expiration date).
         Synchronizes:
@@ -244,6 +244,8 @@ class IdentityVerificationLifecycleService:
           - id_verification_status = 'expired'
           - If assurance_level was 'basic_verified', resets to 'unverified'.
         """
+        reason_clean = str(reason or '').strip() or 'Submitted document validity period has expired.'
+
         if user.assurance_level == 'basic_verified':
             user.assurance_level = 'unverified'
 
@@ -259,6 +261,7 @@ class IdentityVerificationLifecycleService:
             details={
                 "target_user_id": user.id,
                 "target_username": user.username,
+                "reason": reason_clean,
             }
         )
 
@@ -272,7 +275,7 @@ class IdentityVerificationLifecycleService:
 
     @classmethod
     @transaction.atomic
-    def transition_to_revoked(cls, user, officer=None, request=None):
+    def transition_to_revoked(cls, user, reason='', officer=None, request=None):
         """
         Fully revokes identity credentials and returns user to clean unverified state.
         Synchronizes:
@@ -280,6 +283,8 @@ class IdentityVerificationLifecycleService:
           - identity_verified = False
           - id_verification_status = 'unverified'
         """
+        reason_clean = str(reason or '').strip() or 'Identity verification credentials withdrawn by compliance.'
+
         user.assurance_level = 'unverified'
         user.identity_verified = False
         user.id_verification_status = 'unverified'
@@ -293,6 +298,7 @@ class IdentityVerificationLifecycleService:
             details={
                 "target_user_id": user.id,
                 "target_username": user.username,
+                "reason": reason_clean,
             }
         )
 

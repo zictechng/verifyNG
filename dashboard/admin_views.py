@@ -643,10 +643,17 @@ class AdminUserDetailView(SuperAdminRequiredMixin, TemplateView):
 
         elif action == 'verify_enhanced_identity':
             from users.services import IdentityVerificationLifecycleService
+            provider = request.POST.get('enhanced_provider', '').strip()
+            method = request.POST.get('enhanced_method', '').strip()
+            ref = request.POST.get('enhanced_reference', '').strip()
+            notes_raw = request.POST.get('verification_notes', '').strip()
+            evidence_summary = f"Method: {method or 'Biometric/Registry Check'} | Provider: {provider or 'Authoritative Registry'} | Ref: {ref or 'N/A'}"
+            if notes_raw:
+                evidence_summary += f" | Notes: {notes_raw}"
             IdentityVerificationLifecycleService.transition_to_enhanced_verified(
                 user=target_user,
                 officer=request.user,
-                notes=request.POST.get('verification_notes', ''),
+                notes=evidence_summary,
                 request=request
             )
             messages.success(request, f"Enhanced identity verified for '{target_user.get_full_name() or target_user.username}'.")
@@ -678,8 +685,10 @@ class AdminUserDetailView(SuperAdminRequiredMixin, TemplateView):
 
         elif action == 'expire_identity':
             from users.services import IdentityVerificationLifecycleService
+            reason = request.POST.get('expiry_reason', '').strip()
             IdentityVerificationLifecycleService.transition_to_expired(
                 user=target_user,
+                reason=reason,
                 officer=request.user,
                 request=request
             )
@@ -688,8 +697,10 @@ class AdminUserDetailView(SuperAdminRequiredMixin, TemplateView):
 
         elif action == 'revoke_identity':
             from users.services import IdentityVerificationLifecycleService
+            reason = request.POST.get('revocation_reason', '').strip()
             IdentityVerificationLifecycleService.transition_to_revoked(
                 user=target_user,
+                reason=reason,
                 officer=request.user,
                 request=request
             )
@@ -704,6 +715,60 @@ class AdminUserDetailView(SuperAdminRequiredMixin, TemplateView):
         target_user = get_object_or_404(User, public_id=self.kwargs['public_id'])
         ctx['target_user'] = target_user
         ctx['role_choices'] = User.ROLE_CHOICES
+
+        # Document Issuing Country & Authority Configuration
+        from users.country_config import get_country_config, DEFAULT_COUNTRY
+
+        latest_sub_log = AuditLog.objects.filter(
+            action="USER_IDENTITY_VERIFICATION_SUBMITTED",
+            performed_by=target_user
+        ).order_by('-timestamp').first()
+
+        doc_issuing_country = None
+        if latest_sub_log and isinstance(latest_sub_log.details, dict):
+            doc_issuing_country = latest_sub_log.details.get('issuing_country')
+        if not doc_issuing_country:
+            doc_issuing_country = getattr(target_user, 'country', None) or DEFAULT_COUNTRY
+
+        country_cfg = get_country_config(doc_issuing_country)
+        doc_info = None
+        if country_cfg and target_user.id_type:
+            doc_info = country_cfg['accepted_documents'].get(target_user.id_type.lower())
+
+        ctx['id_issuing_country_code'] = doc_issuing_country
+        ctx['id_issuing_country_name'] = country_cfg['name'] if country_cfg else 'Not configured'
+        ctx['id_issuing_authority'] = doc_info.get('authority', 'Not configured') if doc_info else 'Not configured'
+        ctx['id_doc_spec_name'] = doc_info.get('name', target_user.get_id_type_display()) if doc_info else target_user.get_id_type_display()
+
+        # Independent Assurance Standing Display
+        assurance_level = getattr(target_user, 'assurance_level', 'unverified')
+        lifecycle_status = getattr(target_user, 'id_verification_status', 'unverified')
+
+        if lifecycle_status == 'pending':
+            assurance_standing = "Awaiting review"
+            assurance_badge_class = "amber"
+        elif lifecycle_status == 'verified':
+            if assurance_level == 'enhanced_verified':
+                assurance_standing = "Enhanced Verified"
+                assurance_badge_class = "blue"
+            else:
+                assurance_standing = "Basic Verified"
+                assurance_badge_class = "green"
+        elif lifecycle_status == 'rejected':
+            assurance_standing = "Not verified"
+            assurance_badge_class = "red"
+        elif lifecycle_status == 'suspended':
+            assurance_standing = "Previously verified; currently suspended"
+            assurance_badge_class = "amber"
+        elif lifecycle_status == 'expired':
+            assurance_standing = "Verification has expired"
+            assurance_badge_class = "gray"
+        else:
+            assurance_standing = "Not verified"
+            assurance_badge_class = "gray"
+
+        ctx['id_assurance_standing'] = assurance_standing
+        ctx['id_assurance_badge_class'] = assurance_badge_class
 
         # Inside the view's get() method, add to ctx:
         service_rules = UserServiceAccess.objects.filter(user=target_user)

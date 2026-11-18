@@ -796,21 +796,30 @@
           </div>
           <span class="fw-bold" style="color:#011B33; font-size: 0.95rem;">Identity Verification &amp; Name Comparison Desk</span>
         </div>
-        <div class="d-flex align-items-center gap-2">
+        <div class="d-flex align-items-center gap-2 flex-wrap">
           {% if target_user.id_type %}
             <span class="adm-badge blue fw-semibold" style="letter-spacing:0.02em;">
-              {{ target_user.get_id_type_display|default:target_user.id_type|upper }}
+              {{ id_doc_spec_name|default:target_user.get_id_type_display|default:target_user.id_type|upper }}
             </span>
           {% endif %}
-          {% if target_user.identity_verified %}
+          {# Separate Lifecycle Status Badge #}
+          {% if target_user.id_verification_status == 'verified' %}
             <span class="adm-badge green"><span class="dot"></span>Verified</span>
           {% elif target_user.id_verification_status == 'pending' %}
             <span class="adm-badge amber"><span class="dot"></span>Pending Compliance Review</span>
           {% elif target_user.id_verification_status == 'rejected' %}
             <span class="adm-badge red"><span class="dot"></span>Declined</span>
+          {% elif target_user.id_verification_status == 'suspended' %}
+            <span class="adm-badge amber"><span class="dot"></span>Suspended</span>
+          {% elif target_user.id_verification_status == 'expired' %}
+            <span class="adm-badge gray"><span class="dot"></span>Expired</span>
           {% else %}
             <span class="adm-badge gray">Unverified</span>
           {% endif %}
+          {# Separate Assurance Standing Badge #}
+          <span class="adm-badge {{ id_assurance_badge_class|default:'gray' }}">
+            {{ id_assurance_standing|default:"Not verified" }}
+          </span>
         </div>
       </div>
 
@@ -874,26 +883,53 @@
                     <i class="bi bi-shield-check me-1"></i>Submitted Government ID
                   </span>
                   <span class="badge" style="background:#EAF6FC;color:#011B33;border:1px solid #BCDFF4;font-size:0.7rem;">
-                    {{ target_user.get_id_type_display|default:target_user.id_type|upper }}
+                    {{ id_doc_spec_name|default:target_user.get_id_type_display|default:target_user.id_type|upper }}
                   </span>
                 </div>
 
+                <table class="table table-sm table-borderless mb-2 small" style="font-size:0.82rem;">
+                  <tr>
+                    <td class="text-muted ps-0 py-1" style="width:38%;">Issuing Country:</td>
+                    <td class="fw-semibold text-dark py-1">
+                      {{ id_issuing_country_name|default:"Not configured" }}
+                      {% if id_issuing_country_code and id_issuing_country_name != 'Not configured' %}
+                        <span class="text-muted fw-normal">({{ id_issuing_country_code }})</span>
+                      {% endif %}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="text-muted ps-0 py-1">Issuing Authority:</td>
+                    <td class="fw-semibold text-dark py-1">{{ id_issuing_authority|default:"Not configured" }}</td>
+                  </tr>
+                  <tr>
+                    <td class="text-muted ps-0 py-1">Assurance Standing:</td>
+                    <td class="py-1">
+                      <span class="adm-badge {{ id_assurance_badge_class|default:'gray' }} py-0.5 px-2" style="font-size:0.72rem;">
+                        {{ id_assurance_standing|default:"Not verified" }}
+                      </span>
+                    </td>
+                  </tr>
+                </table>
+
                 <div class="mb-3 pb-2 border-bottom" style="border-color:#BCDFF4 !important;">
-                  <div class="text-muted" style="font-size:0.72rem;">Identification Number</div>
+                  <div class="text-muted" style="font-size:0.72rem;">Identification Number (Masked by default)</div>
                   <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
                     <span class="font-monospace fw-bold fs-5 text-dark" id="displayIdNumber">
-                      {{ target_user.id_number|default:target_user.masked_id_number|default:"—" }}
+                      {{ target_user.masked_id_number|default:"—" }}
                     </span>
                     {% if target_user.id_number %}
-                      <button type="button" class="btn btn-sm btn-adm-primary py-0.5 px-2" style="font-size:0.72rem;border-radius:4px;"
-                              onclick="navigator.clipboard.writeText('{{ target_user.id_number }}'); this.innerText='Copied!'; setTimeout(()=>this.innerText='Copy', 1500);"
-                              title="Copy full ID number to clipboard">
-                        Copy
-                      </button>
+                      <div class="d-flex gap-1">
+                        <button type="button" class="btn btn-sm btn-outline-secondary py-0.5 px-2" style="font-size:0.72rem;border-radius:4px;"
+                                onclick="const el=document.getElementById('displayIdNumber'); if(el.innerText==='{{ target_user.masked_id_number }}'){el.innerText='{{ target_user.id_number }}'; this.innerText='Hide';}else{el.innerText='{{ target_user.masked_id_number }}'; this.innerText='Reveal';}">
+                          Reveal
+                        </button>
+                        <button type="button" class="btn btn-sm btn-adm-primary py-0.5 px-2" style="font-size:0.72rem;border-radius:4px;"
+                                onclick="navigator.clipboard.writeText('{{ target_user.id_number }}'); this.innerText='Copied!'; setTimeout(()=>this.innerText='Copy', 1500);"
+                                title="Copy full ID number to clipboard">
+                          Copy
+                        </button>
+                      </div>
                     {% endif %}
-                  </div>
-                  <div class="text-muted" style="font-size:0.72rem; margin-top:2px;">
-                    Masked: <span class="font-monospace">{{ target_user.masked_id_number|default:"—" }}</span>
                   </div>
                 </div>
 
@@ -922,7 +958,7 @@
                   {% endif %}
                   {% if target_user.id_rejection_reason %}
                   <tr>
-                    <td class="text-danger ps-0 py-1">Decline Reason:</td>
+                    <td class="text-danger ps-0 py-1">Notice / Reason:</td>
                     <td class="py-1 text-danger small">{{ target_user.id_rejection_reason }}</td>
                   </tr>
                   {% endif %}
@@ -938,7 +974,7 @@
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2.2" class="flex-shrink-0 mt-0.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
               <div class="small" style="color:#92400E; font-size:0.8rem; line-height:1.45;">
                 <strong>Compliance Protocol — Name Match Audit:</strong>
-                Inspect the uploaded document below to confirm that the legal name printed on the <strong>{{ target_user.get_id_type_display|default:"Government ID" }}</strong> strictly matches the registered name <strong>"{{ target_user.get_full_name|default:target_user.username }}"</strong>. 
+                Inspect the uploaded document below to confirm that the legal name printed on the <strong>{{ id_doc_spec_name|default:target_user.get_id_type_display|default:"Government ID" }}</strong> strictly matches the registered name <strong>"{{ target_user.get_full_name|default:target_user.username }}"</strong>. 
                 Third-party documents or names belonging to another individual must be <strong>Declined</strong> immediately.
               </div>
             </div>
@@ -960,33 +996,39 @@
             </div>
 
             <div class="d-flex align-items-center gap-2 flex-wrap">
-              {% if not target_user.identity_verified %}
+              {% if target_user.id_verification_status != 'verified' %}
                 <button type="button" class="btn btn-adm-primary"
                         data-confirm-action=""
-                        data-title="Approve User Identity Verification"
-                        data-body="Are you sure you want to approve identity verification for <strong>{{ target_user.get_full_name|default:target_user.username }}</strong> ({{ target_user.get_id_type_display|default:target_user.id_type|upper }}: {{ target_user.masked_id_number }})?<br><br>You confirm that the document name strictly matches the user account name. This will grant the user a verified identity badge."
-                        data-confirm-label="Yes, Approve &amp; Verify"
+                        data-title="Approve as Basic Verified (Evidence Review)"
+                        data-body="Confirm that the legal name on the submitted <strong>{{ id_doc_spec_name }}</strong> strictly matches the registered name <strong>{{ target_user.get_full_name|default:target_user.username }}</strong>.<br><br><small class='text-muted'>Note: Basic verification confirms manual review of photo ID evidence. It does not certify biometric or government-confirmed authenticity.</small>"
+                        data-confirm-label="Yes, Approve Basic"
                         data-confirm-class="btn-primary"
                         data-form-action="{% url 'admin_portal:user_detail' target_user.public_id %}"
                         data-hidden-action="verify_identity">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                  Approve &amp; Mark Verified
+                  Approve as Basic Verified
                 </button>
+
+                <button type="button" class="btn btn-outline-primary btn-sm px-3" data-bs-toggle="modal" data-bs-target="#approveEnhancedIdModal">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  Approve as Enhanced Verified
+                </button>
+
                 <button type="button" class="btn btn-adm-primary" data-bs-toggle="modal" data-bs-target="#rejectUserIdModal">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
                   Decline ID Proof
                 </button>
               {% else %}
-                <button type="button" class="btn btn-adm-primary"
-                        data-confirm-action=""
-                        data-title="Revoke Identity Verification"
-                        data-body="Are you sure you want to revoke the identity verification badge for <strong>{{ target_user.get_full_name|default:target_user.username }}</strong>?<br><br>Their status will return to unverified and they will need to resubmit."
-                        data-confirm-label="Yes, Revoke Verification"
-                        data-confirm-class="btn-primary"
-                        data-form-action="{% url 'admin_portal:user_detail' target_user.public_id %}"
-                        data-hidden-action="revoke_identity">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-                  Revoke Identity Badge
+                <button type="button" class="btn btn-outline-warning btn-sm px-3" data-bs-toggle="modal" data-bs-target="#suspendUserIdModal">
+                  <i class="bi bi-pause-circle me-1"></i>Suspend Verification
+                </button>
+
+                <button type="button" class="btn btn-outline-secondary btn-sm px-3" data-bs-toggle="modal" data-bs-target="#expireUserIdModal">
+                  <i class="bi bi-clock-history me-1"></i>Mark as Expired
+                </button>
+
+                <button type="button" class="btn btn-outline-danger btn-sm px-3" data-bs-toggle="modal" data-bs-target="#revokeUserIdModal">
+                  <i class="bi bi-x-circle me-1"></i>Revoke Verification
                 </button>
               {% endif %}
             </div>
@@ -1509,6 +1551,172 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 });
 </script>
+
+{# ── Approve as Enhanced Verified Modal (Documented Higher-Assurance Check) ── #}
+<div class="modal fade" id="approveEnhancedIdModal" tabindex="-1" aria-labelledby="approveEnhancedIdModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content shadow-lg border-0" style="border-radius:14px;">
+      <form method="post" action="{% url 'admin_portal:user_detail' target_user.public_id %}" id="approveEnhancedIdForm">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="verify_enhanced_identity">
+        <div class="modal-header border-bottom py-3" style="background:#F0F9FF;">
+          <h5 class="modal-title fw-bold mb-0 text-primary" id="approveEnhancedIdModalLabel" style="font-size:1.05rem;">
+            <i class="bi bi-shield-lock-fill me-1"></i>Approve as Enhanced Verified
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body py-3">
+          <p class="small text-secondary mb-3">
+            Enhanced verification establishes higher-assurance standing for <strong>{{ target_user.get_full_name|default:target_user.username }}</strong>. Document the method and provider details of the authoritative check below.
+          </p>
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Verification Method <span class="text-danger">*</span></label>
+            <select name="enhanced_method" class="form-select form-select-sm" required>
+              <option value="Authoritative Biometric Registry Check" selected>Authoritative Biometric Registry Check</option>
+              <option value="Direct Government Registry API Lookup">Direct Government Registry API Lookup</option>
+              <option value="Official Regulatory Database Extract">Official Regulatory Database Extract</option>
+              <option value="Manual Regulatory Desk Confirmation">Manual Regulatory Desk Confirmation</option>
+            </select>
+          </div>
+
+          <div class="row g-2 mb-3">
+            <div class="col-sm-6">
+              <label class="form-label small fw-semibold">Provider / Source <span class="text-danger">*</span></label>
+              <input type="text" name="enhanced_provider" class="form-control form-control-sm" required
+                     placeholder="e.g. Smile ID, ANIP, NIMC, DHA">
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label small fw-semibold">Reference / Job ID <span class="text-danger">*</span></label>
+              <input type="text" name="enhanced_reference" class="form-control form-control-sm" required
+                     placeholder="e.g. JOB-891234, TKT-4412">
+            </div>
+          </div>
+
+          <div class="mb-2">
+            <label class="form-label small fw-semibold">Compliance Officer Justification / Notes</label>
+            <textarea name="verification_notes" class="form-control form-control-sm" rows="2"
+                      placeholder="e.g. Facial biometric match score 98.4% against official national identity registry."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer border-top py-2 gap-2">
+          <button type="button" class="btn btn-adm-primary px-3" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary px-4 d-inline-flex align-items-center gap-2">
+            <i class="bi bi-shield-check"></i>Confirm Enhanced Approval
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{# ── Suspend Identity Verification Modal ── #}
+<div class="modal fade" id="suspendUserIdModal" tabindex="-1" aria-labelledby="suspendUserIdModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content shadow-lg border-0" style="border-radius:14px;">
+      <form method="post" action="{% url 'admin_portal:user_detail' target_user.public_id %}" id="suspendUserIdForm">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="suspend_identity">
+        <div class="modal-header border-bottom py-3" style="background:#FFFBEB;">
+          <h5 class="modal-title fw-bold mb-0 text-warning" id="suspendUserIdModalLabel" style="font-size:1.05rem;">
+            <i class="bi bi-pause-circle me-1"></i>Suspend Identity Verification
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body py-3">
+          <p class="small text-secondary mb-3">
+            Temporarily suspends verification standing for <strong>{{ target_user.get_full_name|default:target_user.username }}</strong>. 
+            Verification-gated platform features will be locked, but account login will remain active unless blocked separately. Historical evidence and assurance tiers are safely preserved.
+          </p>
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold" for="suspendUserIdReason">Reason for Suspension <span class="text-danger">*</span></label>
+            <textarea name="suspension_reason" id="suspendUserIdReason" class="form-control form-control-sm" rows="3" required
+                      placeholder="e.g. Identity verification temporarily suspended pending investigation of suspicious report activity."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer border-top py-2 gap-2">
+          <button type="button" class="btn btn-adm-primary px-3" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-warning px-4">
+            Yes, Suspend Verification
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{# ── Mark Identity Verification Expired Modal ── #}
+<div class="modal fade" id="expireUserIdModal" tabindex="-1" aria-labelledby="expireUserIdModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content shadow-lg border-0" style="border-radius:14px;">
+      <form method="post" action="{% url 'admin_portal:user_detail' target_user.public_id %}" id="expireUserIdForm">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="expire_identity">
+        <div class="modal-header border-bottom py-3" style="background:#F8FAFC;">
+          <h5 class="modal-title fw-bold mb-0 text-secondary" id="expireUserIdModalLabel" style="font-size:1.05rem;">
+            <i class="bi bi-clock-history me-1"></i>Mark Identity as Expired
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body py-3">
+          <p class="small text-secondary mb-3">
+            Marks the identity credentials for <strong>{{ target_user.get_full_name|default:target_user.username }}</strong> as expired. 
+            The user will be prompted to submit updated documentation to restore verified access.
+          </p>
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold" for="expireUserIdReason">Expiration Note / Reason</label>
+            <input type="text" name="expiry_reason" id="expireUserIdReason" class="form-control form-control-sm"
+                   placeholder="e.g. Document validity period expired on 31 Dec 2025.">
+          </div>
+        </div>
+        <div class="modal-footer border-top py-2 gap-2">
+          <button type="button" class="btn btn-adm-primary px-3" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-secondary px-4">
+            Mark Expired
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{# ── Revoke Identity Verification Modal ── #}
+<div class="modal fade" id="revokeUserIdModal" tabindex="-1" aria-labelledby="revokeUserIdModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content shadow-lg border-0" style="border-radius:14px;">
+      <form method="post" action="{% url 'admin_portal:user_detail' target_user.public_id %}" id="revokeUserIdForm">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="revoke_identity">
+        <div class="modal-header border-bottom py-3" style="background:#FEF2F2;">
+          <h5 class="modal-title fw-bold mb-0 text-danger" id="revokeUserIdModalLabel" style="font-size:1.05rem;">
+            <i class="bi bi-x-circle me-1"></i>Revoke Identity Verification
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body py-3">
+          <p class="small text-secondary mb-3">
+            Permanently withdraws the verified identity badge for <strong>{{ target_user.get_full_name|default:target_user.username }}</strong> through the central lifecycle service. 
+            Their status will return to unverified and an immutable compliance audit record will be created.
+          </p>
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold" for="revokeUserIdReason">Reason for Revocation <span class="text-danger">*</span></label>
+            <textarea name="revocation_reason" id="revokeUserIdReason" class="form-control form-control-sm" rows="3" required
+                      placeholder="e.g. Verification credentials withdrawn following formal regulatory notice of invalid identity document."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer border-top py-2 gap-2">
+          <button type="button" class="btn btn-adm-primary px-3" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-danger px-4">
+            Confirm Revocation
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 
 {% endblock admin_body %}
 
