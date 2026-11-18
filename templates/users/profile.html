@@ -123,7 +123,15 @@
                         {% csrf_token %}
 
                         <div class="row g-3 mb-3">
-                            <div class="col-sm-6">
+                            <div class="col-sm-4">
+                                <label class="form-label small fw-semibold">Document-Issuing Country <span class="text-danger">*</span></label>
+                                <select name="issuing_country" id="issuing_country_select" class="form-select" style="font-size:16px;">
+                                    {% for c_code, c_name in supported_countries %}
+                                        <option value="{{ c_code }}" {% if default_issuing_country == c_code %}selected{% endif %}>{{ c_name }} ({{ c_code }})</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-sm-4">
                                 <label class="form-label small fw-semibold">Government Document Type <span class="text-danger">*</span></label>
                                 <select name="id_type" id="id_type_select" class="form-select" required style="font-size:16px;">
                                     <option value="nin" {% if user_profile.id_type == 'nin' or not user_profile.id_type %}selected{% endif %}>National Identity Number (NIN)</option>
@@ -132,7 +140,7 @@
                                     <option value="drivers_license" {% if user_profile.id_type == 'drivers_license' %}selected{% endif %}>Driver's License (FRSC)</option>
                                 </select>
                             </div>
-                            <div class="col-sm-6">
+                            <div class="col-sm-4">
                                 <label class="form-label small fw-semibold" id="id_number_label">Identification Number <span class="text-danger">*</span></label>
                                 <input type="text" name="id_number" id="id_number_input" class="form-control font-monospace"
                                        value="{{ user_profile.id_number }}" required placeholder="Enter 11-digit NIN" style="font-size:16px;">
@@ -533,21 +541,60 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Dynamic guidance based on ID type
-    if (typeSelect && numInput && numHelp) {
-        const guidance = {
-            'nin': { placeholder: 'Enter 11-digit NIN', help: 'Enter your 11-digit National Identity Number.', label: 'NIN Number' },
-            'bvn': { placeholder: 'Enter 11-digit BVN', help: 'Enter your 11-digit Bank Verification Number issued by your bank.', label: 'Bank Verification Number (BVN)' },
-            'voters_card': { placeholder: 'e.g. 90F5B12345678901234', help: 'Enter your 19-digit alphanumeric Voter Identification Number (VIN).', label: 'Voter ID (VIN)' },
-            'passport': { placeholder: 'e.g. A12345678', help: 'Enter your standard Nigerian Passport Number.', label: 'Passport Number' },
-            'drivers_license': { placeholder: 'e.g. ABC123456789', help: 'Enter your 12-character Driver’s License Number.', label: 'License Number' }
-        };
-        typeSelect.addEventListener('change', function () {
-            const cfg = guidance[typeSelect.value] || guidance['nin'];
-            numInput.placeholder = cfg.placeholder;
-            numHelp.textContent = cfg.help;
-            numLabel.innerHTML = cfg.label + ' <span class="text-danger">*</span>';
+    // Dynamic documents and guidance based on Country & ID type
+    const countrySelect = document.getElementById('issuing_country_select');
+    let countryDocsMap = {};
+    try {
+        countryDocsMap = JSON.parse('{{ country_documents_json|default:"{}"|escapejs }}');
+    } catch (e) {
+        countryDocsMap = {};
+    }
+
+    function updateDocumentsForCountry(countryCode, preserveSelectedVal) {
+        if (!typeSelect || !countryDocsMap[countryCode]) return;
+        const docs = countryDocsMap[countryCode].documents;
+        const currentVal = preserveSelectedVal || typeSelect.value;
+        typeSelect.innerHTML = '';
+        docs.forEach(function (d) {
+            const opt = document.createElement('option');
+            opt.value = d.code;
+            opt.textContent = d.name;
+            if (d.code === currentVal) opt.selected = true;
+            typeSelect.appendChild(opt);
         });
+        updateInputGuidance();
+    }
+
+    function updateInputGuidance() {
+        if (!typeSelect || !numInput) return;
+        const cCode = countrySelect ? (countrySelect.value || 'NG') : 'NG';
+        const docCode = typeSelect.value;
+        if (countryDocsMap[cCode]) {
+            const doc = countryDocsMap[cCode].documents.find(function (d) { return d.code === docCode; });
+            if (doc) {
+                numInput.placeholder = doc.placeholder || 'Enter ID number';
+                if (numHelp) numHelp.textContent = doc.help_text || '';
+                if (numLabel) numLabel.innerHTML = doc.name + ' <span class="text-danger">*</span>';
+                return;
+            }
+        }
+        numInput.placeholder = 'Enter ID number';
+        if (numHelp) numHelp.textContent = '';
+        if (numLabel) numLabel.innerHTML = 'Identification Number <span class="text-danger">*</span>';
+    }
+
+    if (countrySelect) {
+        countrySelect.addEventListener('change', function () {
+            updateDocumentsForCountry(countrySelect.value);
+        });
+        // Initial setup if country selected has documents
+        if (countryDocsMap[countrySelect.value]) {
+            updateDocumentsForCountry(countrySelect.value, '{{ user_profile.id_type|default:"" }}');
+        }
+    }
+
+    if (typeSelect) {
+        typeSelect.addEventListener('change', updateInputGuidance);
     }
 
     function formatBytes(bytes) {

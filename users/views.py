@@ -149,6 +149,31 @@ class UserProfileView(LoginRequiredMixin, DetailView):
     def get_object(self, queryset=None):
         return self.request.user
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        import json
+        from users.country_config import get_supported_countries, _REGISTRY, DEFAULT_COUNTRY
+        context['supported_countries'] = get_supported_countries()
+        user_country = getattr(self.request.user, 'country', None) or DEFAULT_COUNTRY
+        context['default_issuing_country'] = user_country
+
+        country_docs = {}
+        for code, mod in _REGISTRY.items():
+            country_docs[code] = {
+                "name": mod.COUNTRY_NAME,
+                "documents": [
+                    {
+                        "code": d["code"],
+                        "name": d["name"],
+                        "placeholder": d.get("placeholder", ""),
+                        "help_text": d.get("help_text", ""),
+                    }
+                    for d in mod.ACCEPTED_DOCUMENTS.values()
+                ]
+            }
+        context['country_documents_json'] = json.dumps(country_docs)
+        return context
+
 
 # ── Password Reset Flow ───────────────────────────────────────────────────────
 
@@ -494,6 +519,10 @@ class UserIdentityVerificationSubmitView(LoginRequiredMixin, View):
         user = request.user
         id_type = request.POST.get('id_type', '').strip().lower()
         id_number = request.POST.get('id_number', '').strip()
+        issuing_country = request.POST.get('issuing_country', '').strip().upper()
+        if not issuing_country:
+            # Fall back to user's residence country if known, or Nigeria default for backward compatibility
+            issuing_country = getattr(user, 'country', None) or 'NG'
 
         # Strict Security & Policy Gate: BVN is a financial identifier, not an accepted identity document
         if id_type == 'bvn':
@@ -504,26 +533,24 @@ class UserIdentityVerificationSubmitView(LoginRequiredMixin, View):
             )
             return redirect('users:profile')
 
-        id_doc = request.FILES.get('id_document')
-
-        valid_types = [c[0] for c in User.ID_TYPE_CHOICES if c[0] != 'bvn']
-        if id_type not in valid_types:
-            messages.error(request, "Please select a valid government identity document type.")
+        from users.country_config import validate_document_number, is_country_supported
+        if not is_country_supported(issuing_country):
+            messages.error(request, f"Document-issuing country '{issuing_country}' is not currently supported for identity verification.")
             return redirect('users:profile')
 
-        if not id_number:
-            messages.error(request, "Please enter your official identification number.")
+        is_valid, validation_result = validate_document_number(
+            issuing_country=issuing_country,
+            doc_type=id_type,
+            number=id_number
+        )
+        if not is_valid:
+            messages.error(request, validation_result)
             return redirect('users:profile')
 
-        # NIN specific validation: exactly 11 digits
-        if id_type == 'nin':
-            cleaned_nin = re.sub(r'\D', '', id_number)
-            if len(cleaned_nin) != 11:
-                messages.error(request, "A National Identity Number (NIN) must contain exactly 11 digits.")
-                return redirect('users:profile')
-            id_number = cleaned_nin
+        id_number = validation_result  # Sanitized and cleaned number
 
         file_uploaded = False
+        id_doc = request.FILES.get('id_document')
         if id_doc:
             if id_doc.size > 5 * 1024 * 1024:
                 messages.error(request, "Uploaded document exceeds the 5MB size limit. Please upload a smaller file.")
@@ -552,6 +579,7 @@ class UserIdentityVerificationSubmitView(LoginRequiredMixin, View):
             ip_address=get_client_ip(request),
             details={
                 "id_type": id_type,
+                "issuing_country": issuing_country,
                 "has_new_document": file_uploaded,
             }
         )
