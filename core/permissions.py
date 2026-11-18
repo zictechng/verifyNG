@@ -273,22 +273,41 @@ def is_account_blocked(user) -> bool:
     return False
 
 
-def is_profile_verified(user) -> tuple[bool, str]:
+class VerificationResult(tuple):
     """
-    Central, reusable verification check for active platform operations.
-    Returns (is_verified: bool, reason_message: str).
+    Dual-nature verification outcome:
+    1. In boolean contexts (`if res:`, `bool(res)`), evaluates strictly to `allowed: bool` (prevents truthy-tuple loophole).
+    2. In tuple unpacking contexts (`verified, reason = res`), unpacks cleanly as `(allowed, reason)`.
+    3. In equality comparisons (`res == True`, `res == False`), compares against boolean `allowed`.
+    """
+    def __new__(cls, allowed: bool, reason: str = ""):
+        obj = super().__new__(cls, (bool(allowed), str(reason)))
+        obj.allowed = bool(allowed)
+        obj.reason = str(reason)
+        return obj
 
-    Rules:
-    1. Unauthenticated or blocked/suspended users -> (False, reason)
-    2. Superusers, staff, verification officers, and moderators -> (True, "") [Administrative bypass]
-    3. Employers / Agencies / Businesses:
-       - Must have verified company CAC profile (employer_profile.is_verified=True or verification_status='verified')
-       - Or active membership in a verified employer organization
-    4. Individuals / Candidates:
-       - Must have verified personal identity (user.identity_verified=True or id_verification_status='verified')
+    def __bool__(self):
+        return self.allowed
+
+    def __eq__(self, other):
+        if isinstance(other, bool):
+            return self.allowed == other
+        return super().__eq__(other)
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+
+def _check_security_preamble(user):
+    """
+    Validates user authentication, active state, suspension, and administrative bypass.
+    Returns (result, message, unwrapped_user):
+      - If result is False: security check failed; caller immediately returns VerificationResult(False, message).
+      - If result is True: administrative bypass granted; caller immediately returns VerificationResult(True, "").
+      - If result is None: check passed; caller proceeds with tier-specific checks on unwrapped_user.
     """
     if not user or not user.is_authenticated:
-        return False, "Authentication is required to access this resource."
+        return False, "Authentication is required to access this resource.", user
 
     # Recursively unwrap SimpleLazyObject and OTPMiddleware partials
     while hasattr(user, '_wrapped'):
@@ -306,10 +325,10 @@ def is_profile_verified(user) -> tuple[bool, str]:
         user = getattr(user, '_wrapped', user)
 
     if not getattr(user, 'is_active', True):
-        return False, "Your account has been deactivated. Please contact platform support."
+        return False, "Your account has been deactivated. Please contact platform support.", user
 
     if getattr(user, 'is_suspended', False) is True:
-        return False, "Your account is suspended. Platform actions are restricted."
+        return False, "Your account is suspended. Platform actions are restricted.", user
 
     # Administrative bypass: Superusers, staff, verification officers, and moderators
     if (
@@ -317,57 +336,264 @@ def is_profile_verified(user) -> tuple[bool, str]:
         or getattr(user, 'is_staff', False) is True
         or getattr(user, 'role', None) in ('officer', 'moderator')
     ):
-        return True, ""
+        return True, "", user
 
-    # Check Employer / Organization accounts
-    if is_employer(user):
-        profile = getattr(user, 'employer_profile', None)
-        if profile and (getattr(profile, 'is_verified', False) is True or getattr(profile, 'verification_status', None) == 'verified'):
-            return True, ""
+    return None, "", user
 
-        # Check if user is an active team member of a verified employer organization
-        try:
-            active_verified_org = user.employer_memberships.filter(
-                is_active=True,
-                employer__employer_profile__is_verified=True
-            ).exists()
-            if active_verified_org:
-                return True, ""
-        except Exception:
-            pass
 
-        emp_status = getattr(profile, 'verification_status', 'unverified') if profile else 'unverified'
-        if emp_status == 'pending' or (profile and getattr(profile, 'cac_document', None)):
-            return False, "Your company CAC verification is currently under compliance review. Platform actions will be unlocked once approved."
-        elif emp_status == 'rejected':
-            return False, "Your company CAC document was declined by compliance. Please review your company profile and submit a valid document."
-        return False, "Company verification required. Please submit your CAC incorporation document to access this service."
+def has_basic_identity_access(user) -> VerificationResult:
+    """
+    Permissions check for Basic Identity Evidence Reviewed (Free individual tier).
+    Grants access to citizen fraud reporting, trust badges, and standard platform actions.
+    """
+    bypass, reason, u = _check_security_preamble(user)
+    if bypass is not None:
+        return VerificationResult(bypass, reason)
 
-    # Individual / Candidate accounts
-    if getattr(user, 'id_verification_status', None) == 'verified':
-        return True, ""
+    id_status = getattr(u, 'id_verification_status', 'unverified')
 
-    raw_verified = getattr(user, 'identity_verified', False)
-    if isinstance(raw_verified, bool) and raw_verified is True:
-        return True, ""
+    # Explicit non-active lifecycle states always deny access
+    if id_status == 'rejected':
+        return VerificationResult(False, "Your identity verification was declined by compliance. Please review and re-submit a valid government ID.")
+    elif id_status == 'suspended':
+        return VerificationResult(False, "Your identity verification has been suspended by compliance. Platform actions are restricted.")
+    elif id_status == 'expired':
+        return VerificationResult(False, "Your identity document on file has expired. Please submit an updated document to restore access.")
+
+    # Individual assurance level or verified lifecycle status
+    if getattr(u, 'assurance_level', None) in ('basic_verified', 'enhanced_verified') and id_status == 'verified':
+        return VerificationResult(True, "")
+
+    # Backward compatibility with legacy verified status
+    if id_status == 'verified' or getattr(u, 'identity_verified', False) is True:
+        return VerificationResult(True, "")
 
     # Handle case where OTPMiddleware attached a partial to identity_verified
-    if getattr(user, 'pk', None):
+    if getattr(u, 'pk', None):
         try:
             UserModel = get_user_model()
-            if UserModel.objects.filter(pk=user.pk, identity_verified=True).exists():
-                return True, ""
-            if UserModel.objects.filter(pk=user.pk, id_verification_status='verified').exists():
-                return True, ""
+            if UserModel.objects.filter(pk=u.pk, id_verification_status='verified').exists():
+                return VerificationResult(True, "")
+            if UserModel.objects.filter(pk=u.pk, identity_verified=True).exclude(id_verification_status__in=['rejected', 'suspended', 'expired']).exists():
+                return VerificationResult(True, "")
         except Exception:
             pass
 
-    id_status = getattr(user, 'id_verification_status', 'unverified')
-    if id_status == 'pending' or getattr(user, 'has_id_document', False):
-        return False, "Your identity verification is currently under compliance review. Platform actions will be unlocked once approved."
+    if id_status == 'pending' or getattr(u, 'has_id_document', False):
+        return VerificationResult(False, "Your identity verification is currently under compliance review. Platform actions will be unlocked once approved.")
+    return VerificationResult(False, "Identity verification required. Please submit your official government ID (NIN, BVN, PVC, or Passport) to verify your profile.")
+
+
+def has_enhanced_identity_access(user) -> VerificationResult:
+    """
+    Permissions check for Enhanced Identity Verified (High assurance / Commercial tier).
+    Requires authoritative third-party biometric or registry check (e.g. Smile ID, verified national database match).
+    """
+    bypass, reason, u = _check_security_preamble(user)
+    if bypass is not None:
+        return VerificationResult(bypass, reason)
+
+    if (
+        getattr(u, 'assurance_level', None) == 'enhanced_verified'
+        and getattr(u, 'id_verification_status', None) == 'verified'
+        and getattr(u, 'identity_verified', False) is True
+    ):
+        return VerificationResult(True, "")
+
+    id_status = getattr(u, 'id_verification_status', 'unverified')
+    if id_status == 'suspended':
+        return VerificationResult(False, "Enhanced identity access is unavailable: verification is suspended.")
+    elif id_status == 'expired':
+        return VerificationResult(False, "Enhanced identity access is unavailable: document has expired.")
     elif id_status == 'rejected':
-        return False, "Your identity verification was declined by compliance. Please review and re-submit a valid government ID."
-    return False, "Identity verification required. Please submit your official government ID (NIN, BVN, PVC, or Passport) to verify your profile."
+        return VerificationResult(False, "Enhanced identity access is unavailable: verification was declined.")
+    elif getattr(u, 'assurance_level', None) == 'basic_verified':
+        return VerificationResult(False, "Enhanced identity verification required. Please complete biometric or authoritative registry verification.")
+    return VerificationResult(False, "Enhanced verification required. Please complete verified profile and commercial identity checks.")
+
+
+def has_verified_business_access(user) -> VerificationResult:
+    """
+    Permissions check for Corporate / Business Entity Verified (CAC, ORC, RCCM, BRS).
+    Independent of director's personal identity. Checks corporate entity incorporation.
+    """
+    bypass, reason, u = _check_security_preamble(user)
+    if bypass is not None:
+        return VerificationResult(bypass, reason)
+
+    # Must be an employer/organization user
+    if not is_employer(u):
+        return VerificationResult(False, "Employer or business account required to access corporate features.")
+
+    profile = getattr(u, 'employer_profile', None)
+    if profile and (getattr(profile, 'is_verified', False) is True or getattr(profile, 'verification_status', None) == 'verified'):
+        return VerificationResult(True, "")
+
+    # Check if user is an active team member of a verified employer organization
+    try:
+        active_verified_org = (
+            u.employer_memberships.filter(is_active=True, employer__is_verified=True).exists()
+            or u.employer_memberships.filter(is_active=True, employer__employer_profile__is_verified=True).exists()
+        )
+        if active_verified_org:
+            return VerificationResult(True, "")
+    except Exception:
+        pass
+
+    emp_status = getattr(profile, 'verification_status', 'unverified') if profile else 'unverified'
+    if emp_status == 'pending' or (profile and getattr(profile, 'cac_document', None)):
+        return VerificationResult(False, "Your company CAC verification is currently under compliance review. Platform actions will be unlocked once approved.")
+    elif emp_status == 'rejected':
+        return VerificationResult(False, "Your company CAC document was declined by compliance. Please review your company profile and submit a valid document.")
+    elif emp_status == 'suspended':
+        return VerificationResult(False, "Your company business verification has been suspended by compliance.")
+    elif emp_status == 'expired':
+        return VerificationResult(False, "Your company business verification has expired.")
+    return VerificationResult(False, "Company verification required. Please submit your CAC incorporation document to access this service.")
+
+
+def is_profile_verified(user) -> VerificationResult:
+    """
+    Backward-compatible verification check for active platform operations.
+    Returns VerificationResult:
+      - In boolean contexts (`if is_profile_verified(user):`), evaluates strictly to `allowed: bool`
+      - In tuple unpacking contexts (`verified, message = is_profile_verified(user)`), unpacks to `(allowed, message)`
+      - In equality comparisons (`res == True` or `res == False`), compares against boolean `allowed`.
+
+    Rules:
+    1. Unauthenticated or blocked/suspended users -> (False, reason)
+    2. Superusers, staff, verification officers, and moderators -> (True, "") [Administrative bypass]
+    3. Employers / Agencies / Businesses:
+       - Must have verified company CAC profile (or active membership in a verified employer organization)
+    4. Individuals / Candidates:
+       - Must have verified personal identity (basic or enhanced verified)
+    """
+    if is_employer(user):
+        return has_verified_business_access(user)
+    return has_basic_identity_access(user)
+
+
+def basic_identity_required(view_func=None, redirect_url=None):
+    """
+    View decorator requiring authenticated user with approved basic identity verification.
+    Unauthenticated users are redirected to login.
+    Unverified users receive a warning message and are redirected to users:profile.
+    """
+    def decorator(func):
+        @wraps(func)
+        def wrapper(request, *args, **kwargs):
+            if not request.user.is_authenticated:
+                return redirect_to_login(request.get_full_path())
+
+            res = has_basic_identity_access(request.user)
+            if not res:
+                messages.warning(request, res.reason)
+                return redirect(redirect_url or 'users:profile')
+
+            return func(request, *args, **kwargs)
+        return wrapper
+
+    if view_func is not None:
+        return decorator(view_func)
+    return decorator
+
+
+def enhanced_identity_required(view_func=None, redirect_url=None):
+    """
+    View decorator requiring authenticated user with approved enhanced identity verification.
+    Unauthenticated users are redirected to login.
+    Unverified or basic-only users receive a warning message and are redirected to users:profile.
+    """
+    def decorator(func):
+        @wraps(func)
+        def wrapper(request, *args, **kwargs):
+            if not request.user.is_authenticated:
+                return redirect_to_login(request.get_full_path())
+
+            res = has_enhanced_identity_access(request.user)
+            if not res:
+                messages.warning(request, res.reason)
+                return redirect(redirect_url or 'users:profile')
+
+            return func(request, *args, **kwargs)
+        return wrapper
+
+    if view_func is not None:
+        return decorator(view_func)
+    return decorator
+
+
+def verified_business_required(view_func=None, redirect_url=None):
+    """
+    View decorator requiring authenticated user with verified corporate/business entity registration.
+    Unauthenticated users are redirected to login.
+    Unverified employers receive a warning message and are redirected to employer:profile.
+    """
+    def decorator(func):
+        @wraps(func)
+        def wrapper(request, *args, **kwargs):
+            if not request.user.is_authenticated:
+                return redirect_to_login(request.get_full_path())
+
+            res = has_verified_business_access(request.user)
+            if not res:
+                messages.warning(request, res.reason)
+                return redirect(redirect_url or 'employer:profile')
+
+            return func(request, *args, **kwargs)
+        return wrapper
+
+    if view_func is not None:
+        return decorator(view_func)
+    return decorator
+
+
+class BasicIdentityRequiredMixin:
+    """CBV mixin enforcing basic identity verification."""
+    basic_redirect_url = None
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect_to_login(request.get_full_path())
+
+        res = has_basic_identity_access(request.user)
+        if not res:
+            messages.warning(request, res.reason)
+            return redirect(self.basic_redirect_url or 'users:profile')
+
+        return super().dispatch(request, *args, **kwargs)
+
+
+class EnhancedIdentityRequiredMixin:
+    """CBV mixin enforcing enhanced identity verification."""
+    enhanced_redirect_url = None
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect_to_login(request.get_full_path())
+
+        res = has_enhanced_identity_access(request.user)
+        if not res:
+            messages.warning(request, res.reason)
+            return redirect(self.enhanced_redirect_url or 'users:profile')
+
+        return super().dispatch(request, *args, **kwargs)
+
+
+class VerifiedBusinessRequiredMixin:
+    """CBV mixin enforcing verified business/employer status."""
+    business_redirect_url = None
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect_to_login(request.get_full_path())
+
+        res = has_verified_business_access(request.user)
+        if not res:
+            messages.warning(request, res.reason)
+            return redirect(self.business_redirect_url or 'employer:profile')
+
+        return super().dispatch(request, *args, **kwargs)
 
 
 def verified_profile_required(view_func=None, redirect_url=None):
