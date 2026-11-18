@@ -492,11 +492,21 @@ class UserIdentityVerificationSubmitView(LoginRequiredMixin, View):
     """Handles submission of personal government ID verification credentials."""
     def post(self, request):
         user = request.user
-        id_type = request.POST.get('id_type', '').strip()
+        id_type = request.POST.get('id_type', '').strip().lower()
         id_number = request.POST.get('id_number', '').strip()
+
+        # Strict Security & Policy Gate: BVN is a financial identifier, not an accepted identity document
+        if id_type == 'bvn':
+            messages.error(
+                request,
+                "A Bank Verification Number (BVN) is a financial identifier and cannot be accepted as a photo identity document. "
+                "Please provide a recognized government photo ID (NIN Slip/Card, International Passport, Driver's License, or Voter's Card)."
+            )
+            return redirect('users:profile')
+
         id_doc = request.FILES.get('id_document')
 
-        valid_types = [c[0] for c in User.ID_TYPE_CHOICES]
+        valid_types = [c[0] for c in User.ID_TYPE_CHOICES if c[0] != 'bvn']
         if id_type not in valid_types:
             messages.error(request, "Please select a valid government identity document type.")
             return redirect('users:profile')
@@ -505,19 +515,13 @@ class UserIdentityVerificationSubmitView(LoginRequiredMixin, View):
             messages.error(request, "Please enter your official identification number.")
             return redirect('users:profile')
 
-        # NIN & BVN specific validation: exactly 11 digits
+        # NIN specific validation: exactly 11 digits
         if id_type == 'nin':
             cleaned_nin = re.sub(r'\D', '', id_number)
             if len(cleaned_nin) != 11:
                 messages.error(request, "A National Identity Number (NIN) must contain exactly 11 digits.")
                 return redirect('users:profile')
             id_number = cleaned_nin
-        elif id_type == 'bvn':
-            cleaned_bvn = re.sub(r'\D', '', id_number)
-            if len(cleaned_bvn) != 11:
-                messages.error(request, "A Bank Verification Number (BVN) must contain exactly 11 digits.")
-                return redirect('users:profile')
-            id_number = cleaned_bvn
 
         file_uploaded = False
         if id_doc:

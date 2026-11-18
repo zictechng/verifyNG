@@ -23,6 +23,33 @@ class EmployerProfile(models.Model):
         blank=True,
         help_text="CAC Registration Number (RC/BN)"
     )
+    country = models.CharField(
+        max_length=2,
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="ISO-2 country code of legal business registration (e.g. NG, GH, BJ, SN, KE)"
+    )
+    REGISTRATION_TYPE_CHOICES = (
+        ('cac', 'Nigeria Corporate Affairs Commission (CAC)'),
+        ('orc', 'Ghana Office of the Registrar of Companies (ORC)'),
+        ('rccm', 'OHADA Commercial Registry (RCCM)'),
+        ('brs', 'Kenya Business Registration Service (BRS)'),
+        ('other', 'Other National Company Registry'),
+    )
+    registration_type = models.CharField(
+        max_length=20,
+        choices=REGISTRATION_TYPE_CHOICES,
+        blank=True,
+        default='',
+        help_text="Official registry authority where the corporate entity is registered"
+    )
+    tax_identification_number = models.CharField(
+        max_length=50,
+        blank=True,
+        default='',
+        help_text="National Tax Identification Number (TIN/IFU/PIN)"
+    )
     industry = models.CharField(max_length=100, blank=True)
     company_address = models.TextField(blank=True)
     contact_phone = models.CharField(max_length=20, blank=True)
@@ -31,6 +58,8 @@ class EmployerProfile(models.Model):
         ('pending', 'Pending Review'),
         ('verified', 'Verified'),
         ('rejected', 'Rejected'),
+        ('suspended', 'Temporarily Suspended'),
+        ('expired', 'Expired'),
     )
     cac_document = models.FileField(
         upload_to='cac_certificates/%Y/%m/',

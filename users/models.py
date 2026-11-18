@@ -22,10 +22,20 @@ class User(AbstractUser):
     )
     ID_TYPE_CHOICES = (
         ('nin', 'National Identity Number (NIN)'),
-        ('bvn', 'Bank Verification Number (BVN)'),
+        ('bvn', 'Bank Verification Number (Legacy BVN)'),
         ('voters_card', 'Permanent Voter Card (PVC)'),
         ('passport', 'International Passport'),
         ('drivers_license', "Driver's License"),
+        ('ghana_card', 'Ghana Card (NIA)'),
+        ('cip', "Certificat d'Identification Personnelle (CIP)"),
+        ('cni', "Carte Nationale d'Identité (CNI)"),
+        ('national_id', 'National Identity Card'),
+    )
+
+    ASSURANCE_LEVEL_CHOICES = (
+        ('unverified', 'Unverified'),
+        ('basic_verified', 'Basic Identity Evidence Reviewed'),
+        ('enhanced_verified', 'Enhanced Identity Verified'),
     )
 
     ID_STATUS_CHOICES = (
@@ -33,6 +43,23 @@ class User(AbstractUser):
         ('pending', 'Pending Compliance Review'),
         ('verified', 'Verified'),
         ('rejected', 'Declined'),
+        ('suspended', 'Temporarily Suspended'),
+        ('expired', 'Expired'),
+    )
+
+    country = models.CharField(
+        max_length=2,
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="ISO-2 country code of citizenship or residence (e.g. NG, GH, BJ, SN, KE)"
+    )
+    assurance_level = models.CharField(
+        max_length=25,
+        choices=ASSURANCE_LEVEL_CHOICES,
+        default='unverified',
+        db_index=True,
+        help_text="Identity assurance tier established by reviewed evidence"
     )
 
     id_type = models.CharField(
