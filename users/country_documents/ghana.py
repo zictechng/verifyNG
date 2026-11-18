@@ -42,3 +42,41 @@ ACCEPTED_DOCUMENTS = {
         "error_message": "A Ghanaian Driver's License number must contain 8 to 12 alphanumeric characters.",
     },
 }
+
+# ─────────────────────────────────────────────────────────────────────────────
+# BUSINESS & CORPORATE REGISTRATION SPECIFICATIONS (ORC)
+# ─────────────────────────────────────────────────────────────────────────────
+BUSINESS_REGISTRATION_AUTHORITY = "Office of the Registrar of Companies (ORC)"
+
+BUSINESS_REGISTRATION_TYPES = {
+    "orc": {
+        "code": "orc",
+        "name": "Office of the Registrar of Companies (ORC)",
+        "authority": "Office of the Registrar of Companies (ORC)",
+        "accepted_entities": [
+            ("cs", "Company Limited by Shares (CS)"),
+            ("ca", "Company Limited by Guarantee (CA)"),
+            ("bn", "Sole Proprietorship / Business Name (BN)"),
+            ("pl", "Partnership (PL)"),
+        ],
+        "placeholder": "e.g. CS123452021 or BN123456789",
+        "help_text": "Enter your ORC registration number (starts with CS, CA, BN, PL, or CO).",
+        "regex": r"^(CS|CA|BN|PL|CO)[- ]?[A-Za-z0-9]{6,12}$",
+        "clean_function": lambda n: re.sub(r"[\s\-]", "", n).upper(),
+        "error_message": "A valid Ghanaian ORC registration number must start with CS, CA, BN, PL, or CO followed by 6 to 12 alphanumeric characters.",
+        "required_documents": [
+            "ORC Certificate of Incorporation",
+            "Certificate to Commence Business",
+        ],
+    }
+}
+
+TAX_IDENTIFICATION_SPEC = {
+    "name": "Ghana Revenue Authority TIN / Ghana Card PIN",
+    "authority": "Ghana Revenue Authority (GRA)",
+    "placeholder": "e.g. P0012345678 or GHA-123456789-0",
+    "regex": r"^(P\d{10}|GHA-\d{9,10}-\d|C\d{10})$",
+    "clean_function": lambda n: re.sub(r"[\s]", "", n).upper(),
+    "error_message": "A valid Ghanaian Tax Identification Number must be a GRA TIN (e.g. P0012345678) or Ghana Card PIN (GHA-XXXXXXXXX-X).",
+}
+

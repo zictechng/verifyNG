@@ -51,3 +51,40 @@ ACCEPTED_DOCUMENTS = {
         "error_message": "A valid Nigerian Driver's License number must contain 11 to 12 alphanumeric characters.",
     },
 }
+
+# ─────────────────────────────────────────────────────────────────────────────
+# BUSINESS & CORPORATE REGISTRATION SPECIFICATIONS (CAC)
+# ─────────────────────────────────────────────────────────────────────────────
+BUSINESS_REGISTRATION_AUTHORITY = "Corporate Affairs Commission (CAC)"
+
+BUSINESS_REGISTRATION_TYPES = {
+    "cac": {
+        "code": "cac",
+        "name": "Corporate Affairs Commission (CAC)",
+        "authority": "Corporate Affairs Commission (CAC)",
+        "accepted_entities": [
+            ("rc", "Private/Public Limited Company (RC)"),
+            ("bn", "Business Name / Enterprise (BN)"),
+            ("it", "Incorporated Trustees / NGO (IT)"),
+        ],
+        "placeholder": "e.g. RC-1234567 or BN-123456",
+        "help_text": "Enter your official CAC registration number including optional RC, BN, or IT prefix.",
+        "regex": r"^(RC|BN|IT|LLP)?[- ]?\d{5,8}$",
+        "clean_function": lambda n: re.sub(r"\s+", "", n).upper(),
+        "error_message": "A valid Nigerian CAC registration number must be 5 to 8 digits, optionally prefixed with RC, BN, or IT.",
+        "required_documents": [
+            "CAC Certificate of Incorporation",
+            "CAC Status Report / Form CAC 1.1",
+        ],
+    }
+}
+
+TAX_IDENTIFICATION_SPEC = {
+    "name": "Taxpayer Identification Number (FIRS/JTB TIN)",
+    "authority": "Federal Inland Revenue Service (FIRS) / Joint Tax Board (JTB)",
+    "placeholder": "e.g. 12345678-0001 or 10-digit TIN",
+    "regex": r"^\d{8,12}(-\d{3,4})?$",
+    "clean_function": lambda n: re.sub(r"[\s]", "", n),
+    "error_message": "A valid Nigerian TIN consists of 8 to 12 digits, with an optional branch suffix (e.g. 12345678-0001).",
+}
+

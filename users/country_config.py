@@ -154,3 +154,115 @@ def validate_document_number(
             return False, doc_rule.get("error_message", "Invalid identification number format.")
 
     return True, cleaned_number
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PAN-AFRICAN CORPORATE & BUSINESS CONFIGURATION ENGINE
+# ─────────────────────────────────────────────────────────────────────────────
+
+def get_country_business_config(country_code: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    """
+    Returns business registration configuration dict for the given country code.
+
+    Rules:
+    - country_code is None or empty: Returns Nigeria CAC config (backward compatibility for legacy accounts).
+    - country_code is valid ISO code in registry: Returns that country's specific business configuration.
+    - country_code is an unknown/unsupported code: Returns None (NEVER silently becomes Nigeria).
+    """
+    if country_code is None or country_code == "":
+        mod = _REGISTRY[DEFAULT_COUNTRY]
+        return {
+            "code": mod.COUNTRY_CODE,
+            "name": mod.COUNTRY_NAME,
+            "registration_authority": getattr(mod, "BUSINESS_REGISTRATION_AUTHORITY", "Corporate Affairs Commission (CAC)"),
+            "registration_types": getattr(mod, "BUSINESS_REGISTRATION_TYPES", {}),
+            "tax_spec": getattr(mod, "TAX_IDENTIFICATION_SPEC", None),
+        }
+
+    normalized = str(country_code).strip().upper()
+    if normalized in _REGISTRY:
+        mod = _REGISTRY[normalized]
+        return {
+            "code": mod.COUNTRY_CODE,
+            "name": mod.COUNTRY_NAME,
+            "registration_authority": getattr(mod, "BUSINESS_REGISTRATION_AUTHORITY", "National Company Registry"),
+            "registration_types": getattr(mod, "BUSINESS_REGISTRATION_TYPES", {}),
+            "tax_spec": getattr(mod, "TAX_IDENTIFICATION_SPEC", None),
+        }
+
+    return None
+
+
+def validate_business_registration(
+    country_code: Optional[str],
+    reg_type: str,
+    reg_number: str,
+    tin_number: Optional[str] = None
+) -> Tuple[bool, str, Dict[str, str]]:
+    """
+    Validates business registration number and optional tax ID against country-specific rules.
+
+    Safeguards:
+    1. Plausibility Syntax Check Only: Does not constitute or guarantee registry confirmation.
+    2. Legacy Nigeria fallback applies strictly when country_code is None or empty. Explicit unsupported codes reject cleanly.
+    3. Handles country-specific registration types and tax identifiers.
+
+    Returns:
+        (is_valid: bool, error_message: str, cleaned_data: Dict[str, str])
+    """
+    cleaned_data = {
+        "reg_type": str(reg_type or "").strip().lower(),
+        "reg_number": str(reg_number or "").strip(),
+        "tin_number": str(tin_number or "").strip(),
+    }
+
+    if not cleaned_data["reg_number"]:
+        return False, "Please enter your official business registration number.", cleaned_data
+
+    # Resolve Country Business Configuration
+    config = get_country_business_config(country_code)
+    if config is None:
+        return False, f"Country of registration '{country_code}' is not currently supported for corporate verification.", cleaned_data
+
+    reg_types = config["registration_types"]
+    selected_type = cleaned_data["reg_type"]
+
+    # If reg_type is omitted or invalid, pick default or first available type
+    if not selected_type or selected_type not in reg_types:
+        # If country has a single primary reg type (e.g. 'cac', 'orc', 'brs', 'rccm', 'cipc')
+        if len(reg_types) == 1:
+            selected_type = list(reg_types.keys())[0]
+            cleaned_data["reg_type"] = selected_type
+        elif "cac" in reg_types and (country_code is None or country_code.upper() == "NG"):
+            selected_type = "cac"
+            cleaned_data["reg_type"] = "cac"
+        else:
+            valid_types = ", ".join(reg_types.keys())
+            return False, f"Please select a valid registration type for {config['name']} ({valid_types}).", cleaned_data
+
+    type_spec = reg_types[selected_type]
+
+    # Clean registration number
+    clean_func = type_spec.get("clean_function")
+    cleaned_reg_number = clean_func(cleaned_data["reg_number"]) if callable(clean_func) else cleaned_data["reg_number"]
+    cleaned_data["reg_number"] = cleaned_reg_number
+
+    # Check registration number regex
+    regex_pattern = type_spec.get("regex")
+    if regex_pattern and not re.match(regex_pattern, cleaned_reg_number):
+        return False, type_spec.get("error_message", "Invalid registration number format."), cleaned_data
+
+    # Validate TIN if provided
+    raw_tin = cleaned_data["tin_number"]
+    tax_spec = config.get("tax_spec")
+    if raw_tin and tax_spec:
+        tin_clean_func = tax_spec.get("clean_function")
+        cleaned_tin = tin_clean_func(raw_tin) if callable(tin_clean_func) else raw_tin
+        cleaned_data["tin_number"] = cleaned_tin
+
+        tin_regex = tax_spec.get("regex")
+        if tin_regex and not re.match(tin_regex, cleaned_tin):
+            return False, tax_spec.get("error_message", "Invalid Tax Identification Number format."), cleaned_data
+
+    return True, "", cleaned_data
+

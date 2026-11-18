@@ -60,31 +60,68 @@
                 <form method="post" id="companyProfileForm" enctype="multipart/form-data" novalidate>
                     {% csrf_token %}
 
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Country of Legal Registration <span class="text-danger">*</span></label>
+                            {% if profile.is_verified %}
+                                <input type="text" class="form-control bg-light" value="{{ profile.country|default:'NG' }}" readonly disabled style="font-size:16px;">
+                            {% else %}
+                                <select name="country" id="id_country" class="form-select" style="font-size:16px;">
+                                    {% for code, name in supported_countries %}
+                                        <option value="{{ code }}" {% if profile.country == code or not profile.country and code == 'NG' %}selected{% endif %}>
+                                            {{ name }} ({{ code }})
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                <div class="form-text small">Select the African nation where your company is officially incorporated.</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Registry Authority</label>
+                            <input type="text" class="form-control bg-light" id="id_reg_authority_display"
+                                   value="{{ reg_authority }}" readonly disabled style="font-size:16px;">
+                            <div class="form-text small">Official government commercial registry.</div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small" id="id_reg_number_label">Registration / Incorporation Number <span class="text-danger">*</span></label>
+                            {% if profile.is_verified %}
+                                <div class="position-relative">
+                                    <input type="text" class="form-control bg-light font-monospace" value="{{ profile.company_rc_number }}" readonly disabled style="font-size:16px;">
+                                    <span class="position-absolute end-0 top-50 translate-middle-y me-2 small text-success" title="Verified Entity">🔒 Verified</span>
+                                </div>
+                            {% else %}
+                                <input type="text" name="company_rc_number" id="id_company_rc_number" class="form-control font-monospace"
+                                       value="{{ profile.company_rc_number }}" maxlength="50"
+                                       placeholder="e.g. RC-1234567, CS123452021, CPR/2021/12345" style="font-size:16px;">
+                                <div class="form-text small" id="id_reg_number_help">Official corporate registration number issued by your national registry.</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Tax Identification Number (TIN / PIN / IFU)</label>
+                            {% if profile.is_verified %}
+                                <input type="text" class="form-control bg-light font-monospace" value="{{ profile.tax_identification_number|default:'Not provided' }}" readonly disabled style="font-size:16px;">
+                            {% else %}
+                                <input type="text" name="tax_identification_number" id="id_tax_identification_number" class="form-control font-monospace"
+                                       value="{{ profile.tax_identification_number }}" maxlength="50"
+                                       placeholder="e.g. FIRS TIN, KRA PIN, GRA TIN, IFU, SARS" style="font-size:16px;">
+                                <div class="form-text small">National business tax identifier for corporate tax compliance.</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
                     <div class="mb-3">
                         <label class="form-label fw-semibold small">Company Legal Name <span class="text-danger">*</span></label>
                         {% if profile.is_verified %}
                             <div class="position-relative">
                                 <input type="text" class="form-control bg-light" value="{{ profile.company_name }}" readonly disabled style="font-size:16px;">
-                                <span class="position-absolute end-0 top-50 translate-middle-y me-2 small text-success" title="CAC Verified Entity">🔒 Verified</span>
+                                <span class="position-absolute end-0 top-50 translate-middle-y me-2 small text-success" title="Verified Entity">🔒 Verified</span>
                             </div>
                         {% else %}
                             <input type="text" name="company_name" id="id_company_name" class="form-control"
                                    value="{{ profile.company_name }}" required maxlength="200" style="font-size:16px;">
-                        {% endif %}
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold small">CAC Registration Number (RC/BN) <span class="text-danger">*</span></label>
-                        {% if profile.is_verified %}
-                            <div class="position-relative">
-                                <input type="text" class="form-control bg-light font-monospace" value="{{ profile.company_rc_number }}" readonly disabled style="font-size:16px;">
-                                <span class="position-absolute end-0 top-50 translate-middle-y me-2 small text-success" title="CAC Verified Entity">🔒 Verified</span>
-                            </div>
-                        {% else %}
-                            <input type="text" name="company_rc_number" id="id_company_rc_number" class="form-control font-monospace"
-                                   value="{{ profile.company_rc_number }}" maxlength="50"
-                                   placeholder="e.g. RC123456 or BN987654" style="font-size:16px;">
-                            <div class="form-text small">Enter your official Corporate Affairs Commission registration number.</div>
                         {% endif %}
                     </div>
 

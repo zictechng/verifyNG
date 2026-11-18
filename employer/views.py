@@ -206,27 +206,75 @@ def employer_profile(request):
             messages.error(
                 request,
                 'Your company has been officially verified by compliance. Registered corporate details are locked. '
-                'If you need to update company details or CAC documents, please contact support for compliance assistance.'
+                'If you need to update company details or registration documents, please contact support for compliance assistance.'
             )
             return redirect('employer:profile')
 
-        profile.company_name = request.POST.get('company_name', profile.company_name).strip()
-        profile.company_rc_number = request.POST.get('company_rc_number', '').strip()
+        from users.country_config import (
+            get_supported_countries,
+            get_country_business_config,
+            validate_business_registration,
+            DEFAULT_COUNTRY,
+        )
+
+        company_name_input = request.POST.get('company_name', profile.company_name).strip()
+        country_input = request.POST.get('country', '').strip().upper()
+        reg_type_input = request.POST.get('registration_type', '').strip().lower()
+        rc_number_input = request.POST.get('company_rc_number', '').strip()
+        tin_input = request.POST.get('tax_identification_number', '').strip()
+
+        # Determine country: new submission requires country; legacy defaults to NG
+        country_to_use = country_input or profile.country
+        cac_file = request.FILES.get('cac_document')
+        is_resubmit = request.POST.get('resubmit_review') == '1'
+
+        if (cac_file or is_resubmit or rc_number_input) and not country_to_use:
+            country_to_use = DEFAULT_COUNTRY
+
+        # Validate registration and tax numbers against country spec
+        if rc_number_input or cac_file or is_resubmit:
+            reg_type_to_validate = reg_type_input or profile.registration_type or ''
+            is_valid, err_msg, cleaned_data = validate_business_registration(
+                country_code=country_to_use,
+                reg_type=reg_type_to_validate,
+                reg_number=rc_number_input or profile.company_rc_number,
+                tin_number=tin_input or profile.tax_identification_number
+            )
+            if not is_valid and (rc_number_input or cac_file or is_resubmit):
+                messages.error(request, err_msg)
+                return redirect('employer:profile')
+
+            if is_valid:
+                rc_number_input = cleaned_data.get('reg_number', rc_number_input)
+                reg_type_input = cleaned_data.get('reg_type', reg_type_input)
+                if cleaned_data.get('tin_number'):
+                    tin_input = cleaned_data.get('tin_number')
+
+        profile.company_name = company_name_input
+        if country_to_use:
+            profile.country = country_to_use
+        if reg_type_input:
+            profile.registration_type = reg_type_input
+        if rc_number_input:
+            profile.company_rc_number = rc_number_input
+        if tin_input:
+            profile.tax_identification_number = tin_input
         profile.industry = request.POST.get('industry', '').strip()
         profile.company_address = request.POST.get('company_address', '').strip()
         profile.contact_phone = request.POST.get('contact_phone', '').strip()
 
-        cac_file = request.FILES.get('cac_document')
         file_uploaded = False
 
         if cac_file:
             if cac_file.size > 5 * 1024 * 1024:
-                messages.error(request, 'The uploaded CAC document exceeds the 5MB size limit. Please upload a smaller file.')
+                messages.error(request, 'The uploaded business document exceeds the 5MB size limit. Please upload a smaller file.')
                 return redirect('employer:profile')
             ext = cac_file.name.split('.')[-1].lower() if '.' in cac_file.name else ''
             if ext not in ('pdf', 'jpg', 'jpeg', 'png'):
                 messages.error(request, 'Invalid file format. Please upload a PDF, JPG, or PNG document.')
                 return redirect('employer:profile')
+
+            previous_doc = profile.cac_document.name if profile.cac_document else None
             profile.cac_document = cac_file
             profile.cac_uploaded_at = timezone.now()
             file_uploaded = True
@@ -234,7 +282,26 @@ def employer_profile(request):
                 profile.verification_status = 'pending'
                 profile.rejection_reason = ''
 
-        if request.POST.get('resubmit_review') == '1' and not profile.is_verified and profile.has_cac_document:
+            # Audit log submission preserving previous document evidence
+            from reports.models import AuditLog
+            AuditLog.objects.create(
+                action='EMPLOYER_BUSINESS_DOCUMENT_SUBMITTED',
+                action_type='VERIFICATION',
+                performed_by=request.user,
+                target_user=request.user,
+                details={
+                    'employer_profile_id': profile.id,
+                    'company_name': profile.company_name,
+                    'country': profile.country,
+                    'registration_type': profile.registration_type,
+                    'company_rc_number': profile.company_rc_number,
+                    'tax_identification_number': profile.tax_identification_number,
+                    'previous_document': previous_doc,
+                    'new_document': cac_file.name,
+                }
+            )
+
+        if is_resubmit and not profile.is_verified and profile.has_cac_document:
             profile.verification_status = 'pending'
             profile.rejection_reason = ''
 
@@ -242,20 +309,28 @@ def employer_profile(request):
 
         if file_uploaded:
             if not profile.is_verified:
-                messages.success(request, 'Company profile updated and CAC incorporation document submitted for compliance verification.')
+                messages.success(request, 'Company profile updated and registration document submitted for compliance verification.')
             else:
-                messages.success(request, 'Company profile and updated CAC document saved successfully.')
-        elif request.POST.get('resubmit_review') == '1':
+                messages.success(request, 'Company profile and updated business document saved successfully.')
+        elif is_resubmit:
             messages.success(request, 'Your company profile has been resubmitted for verification review.')
         else:
             messages.success(request, 'Company profile updated successfully.')
 
         return redirect('employer:profile')
 
+    from users.country_config import get_supported_countries, get_country_business_config, DEFAULT_COUNTRY
+    supported_countries = get_supported_countries()
+    country_code = profile.country or DEFAULT_COUNTRY
+    country_cfg = get_country_business_config(country_code)
 
     context = {
         'profile': profile,
         'page_title': 'Company Profile',
+        'supported_countries': supported_countries,
+        'current_country_code': country_code,
+        'country_business_config': country_cfg,
+        'reg_authority': country_cfg.get('registration_authority', 'Corporate Registry') if country_cfg else 'Corporate Registry',
     }
     return render(request, 'employer/profile.html', context)
 

@@ -50,3 +50,41 @@ ACCEPTED_DOCUMENTS = {
         "error_message": "A South African passport number must consist of 1 letter followed by 8 digits.",
     },
 }
+
+# ─────────────────────────────────────────────────────────────────────────────
+# BUSINESS & CORPORATE REGISTRATION SPECIFICATIONS (CIPC)
+# ─────────────────────────────────────────────────────────────────────────────
+BUSINESS_REGISTRATION_AUTHORITY = "Companies and Intellectual Property Commission (CIPC)"
+
+BUSINESS_REGISTRATION_TYPES = {
+    "cipc": {
+        "code": "cipc",
+        "name": "Companies and Intellectual Property Commission (CIPC)",
+        "authority": "Companies and Intellectual Property Commission (CIPC)",
+        "accepted_entities": [
+            ("pty_ltd", "Proprietary Limited Company ((Pty) Ltd / 07)"),
+            ("npc", "Non-Profit Company (NPC / 08)"),
+            ("inc", "Personal Liability Company (Inc / 21)"),
+            ("cc", "Close Corporation (CC / 23)"),
+        ],
+        "placeholder": "e.g. 2019/123456/07 or 2021/654321/08",
+        "help_text": "Enter your 12-digit CIPC Enterprise Number in YYYY/NNNNNN/NN format.",
+        "regex": r"^(19|20)\d{2}[-/ ]?\d{6}[-/ ]?\d{2}$",
+        "clean_function": lambda n: re.sub(r"[\s]", "", n),
+        "error_message": "A valid South African CIPC Enterprise Number must follow YYYY/NNNNNN/NN format (e.g. 2019/123456/07).",
+        "required_documents": [
+            "CIPC Registration Certificate (CoR 14.3)",
+            "CIPC Company Disclosure Certificate",
+        ],
+    }
+}
+
+TAX_IDENTIFICATION_SPEC = {
+    "name": "SARS Income Tax Reference Number",
+    "authority": "South African Revenue Service (SARS)",
+    "placeholder": "Enter 10-digit SARS Tax Number",
+    "regex": r"^9\d{9}$",
+    "clean_function": lambda n: re.sub(r"\D", "", n),
+    "error_message": "A South African SARS income tax reference number consists of 10 digits starting with 9.",
+}
+

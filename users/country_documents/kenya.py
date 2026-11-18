@@ -41,3 +41,40 @@ ACCEPTED_DOCUMENTS = {
         "error_message": "A Kenyan Alien Card number must contain 6 to 10 alphanumeric characters.",
     },
 }
+
+# ─────────────────────────────────────────────────────────────────────────────
+# BUSINESS & CORPORATE REGISTRATION SPECIFICATIONS (BRS)
+# ─────────────────────────────────────────────────────────────────────────────
+BUSINESS_REGISTRATION_AUTHORITY = "Business Registration Service (BRS)"
+
+BUSINESS_REGISTRATION_TYPES = {
+    "brs": {
+        "code": "brs",
+        "name": "Business Registration Service (BRS)",
+        "authority": "Business Registration Service (BRS) / eCitizen",
+        "accepted_entities": [
+            ("cpr", "Private Limited Company (CPR / PVT)"),
+            ("bn", "Business Name / Sole Proprietor (BN)"),
+            ("llp", "Limited Liability Partnership (LLP)"),
+        ],
+        "placeholder": "e.g. CPR/2021/12345 or PVT-XYZ123 or BN/2020/54321",
+        "help_text": "Enter your official BRS registration number as registered on eCitizen.",
+        "regex": r"^((CPR|BN|LLP)/\d{4}/\d{3,8}|PVT-[A-Za-z0-9]{5,12}|[A-Za-z0-9]{6,15})$",
+        "clean_function": lambda n: re.sub(r"[\s]", "", n).upper(),
+        "error_message": "A valid Kenyan BRS registration number follows CPR/YYYY/NNNNN, BN/YYYY/NNNNN, or PVT-XXXXXX format.",
+        "required_documents": [
+            "CR12 Official Search / Status Report",
+            "Certificate of Incorporation",
+        ],
+    }
+}
+
+TAX_IDENTIFICATION_SPEC = {
+    "name": "Kenya Revenue Authority Personal/Company Identification Number (KRA PIN)",
+    "authority": "Kenya Revenue Authority (KRA)",
+    "placeholder": "e.g. P051234567Z",
+    "regex": r"^[A-Za-z]\d{9}[A-Za-z]$",
+    "clean_function": lambda n: re.sub(r"[\s\-]", "", n).upper(),
+    "error_message": "A valid Kenyan KRA PIN consists of 11 characters starting with a letter, 9 digits, and ending with a letter (e.g. P051234567Z).",
+}
+

@@ -1827,6 +1827,21 @@ class AdminEmployerDetailView(SuperAdminRequiredMixin, TemplateView):
         from payments.models import Transaction
         ctx['employer_prepaid_balance'] = get_user_prepaid_balance(profile.user)
         ctx['employer_transactions'] = Transaction.objects.filter(user=profile.user).order_by('-created_at')[:10]
+
+        # Country-aware business metadata & authority resolution
+        from users.country_config import get_country_business_config, DEFAULT_COUNTRY
+        country_code = getattr(profile, 'country', None) or DEFAULT_COUNTRY
+        country_cfg = get_country_business_config(country_code)
+        reg_type = getattr(profile, 'registration_type', 'cac') or 'cac'
+        reg_types = country_cfg.get('registration_types', {}) if country_cfg else {}
+        type_spec = reg_types.get(reg_type)
+
+        ctx['reg_country_code'] = country_code
+        ctx['reg_country_name'] = country_cfg['name'] if country_cfg else 'Not configured'
+        ctx['reg_authority'] = type_spec.get('authority', country_cfg.get('registration_authority', 'Official Registry')) if country_cfg else 'Not configured'
+        ctx['reg_type_name'] = type_spec.get('name', reg_type.upper()) if type_spec else reg_type.upper()
+        ctx['tax_spec_name'] = country_cfg.get('tax_spec', {}).get('name', 'Tax ID') if country_cfg and country_cfg.get('tax_spec') else 'Tax ID'
+
         return ctx
 
 
@@ -1919,104 +1934,68 @@ class AdminEmployerCACDocumentView(SuperAdminRequiredMixin, View):
 class AdminEmployerActionView(SuperAdminRequiredMixin, View):
     section_name = "Agency & Employers"
     required_permission = ("employer.change_employerprofile", "employer.view_employerprofile")
-    """POST: verify, unverify, or toggle billing exemption for an employer profile."""
+    """POST: verify, unverify, suspend verification, expire, or toggle billing exemption for an employer profile."""
     def post(self, request, public_id):
+        from employer.services import BusinessVerificationLifecycleService
         profile = get_object_or_404(
             EmployerProfile.objects.select_related('user'),
             user__public_id=public_id
         )
         action = request.POST.get('action', '')
+
         if action == 'verify':
-            profile.is_verified = True
-            profile.verification_status = 'verified'
-            profile.rejection_reason = ''
-            profile.verified_at = timezone.now()
-            # Default to candidate checks waived on verification if not specified
             selected_services = request.POST.getlist('exempt_services')
-            profile.exempt_services = selected_services if selected_services else ['check']
-            if not profile.billing_exempt_notes:
-                profile.billing_exempt_notes = "Verified Company Complimentary Access"
-            profile.save(update_fields=['is_verified', 'verification_status', 'rejection_reason', 'verified_at', 'exempt_services', 'billing_exempt_notes'])
-            
-            # Dispatch compliance notification & email to employer
-            try:
-                from notifications.services import dispatch_notification
-                from notifications.email_templates import build_employer_verified
-                subject, html_body, text_body = build_employer_verified(
-                    company_name=profile.company_name,
-                    username=profile.user.get_full_name() or profile.user.username,
-                )
-                dispatch_notification(
-                    recipient=profile.user,
-                    event_type='VERIFICATION_COMPLETED',
-                    title='Company CAC Verification Approved',
-                    body=f"CAC documentation for {profile.company_name} has been verified and approved. Candidate vetting, bulk uploads, and clearance reports are now unlocked.",
-                    object_reference=f"CAC-{profile.company_rc_number or profile.public_id}",
-                    subject=subject,
-                    html_body=html_body,
-                    text_body=text_body,
-                )
-            except Exception as e:
-                logger.warning(f"Failed to dispatch employer verification notification: {e}")
-
+            if selected_services:
+                profile.exempt_services = selected_services
+                profile.save(update_fields=['exempt_services'])
+            BusinessVerificationLifecycleService.transition_to_verified(
+                profile=profile,
+                officer=request.user,
+                notes=request.POST.get('verification_notes', ''),
+                request=request
+            )
             msg = f"Employer '{profile.company_name}' verified with complimentary service entitlements."
+
         elif action == 'reject':
-            profile.is_verified = False
-            profile.verification_status = 'rejected'
             reason = request.POST.get('rejection_reason', '').strip()
-            profile.rejection_reason = reason if reason else 'CAC registration document or details could not be validated.'
-            profile.save(update_fields=['is_verified', 'verification_status', 'rejection_reason'])
+            BusinessVerificationLifecycleService.transition_to_rejected(
+                profile=profile,
+                reason=reason,
+                officer=request.user,
+                request=request
+            )
+            msg = f"Business verification declined for '{profile.company_name}'."
 
-            # Dispatch compliance notification & email to employer
-            try:
-                from notifications.services import dispatch_notification
-                from notifications.email_templates import build_employer_rejected
-                subject, html_body, text_body = build_employer_rejected(
-                    company_name=profile.company_name,
-                    username=profile.user.get_full_name() or profile.user.username,
-                    reason=profile.rejection_reason,
-                )
-                dispatch_notification(
-                    recipient=profile.user,
-                    event_type='VERIFICATION_REJECTED',
-                    title='Company CAC Verification Declined',
-                    body=f"CAC verification for {profile.company_name} could not be approved. Reason: {profile.rejection_reason}",
-                    object_reference=f"CAC-{profile.company_rc_number or profile.public_id}",
-                    subject=subject,
-                    html_body=html_body,
-                    text_body=text_body,
-                )
-            except Exception as e:
-                logger.warning(f"Failed to dispatch employer rejection notification: {e}")
+        elif action == 'suspend_verification':
+            reason = request.POST.get('suspension_reason', '').strip()
+            BusinessVerificationLifecycleService.transition_to_suspended(
+                profile=profile,
+                reason=reason,
+                officer=request.user,
+                request=request
+            )
+            msg = f"Business verification suspended for '{profile.company_name}' (user account login remains active)."
 
-            msg = f"CAC verification declined for '{profile.company_name}'."
-        elif action == 'unverify':
-            profile.is_verified = False
-            profile.verification_status = 'unverified'
-            profile.save(update_fields=['is_verified', 'verification_status'])
+        elif action == 'expire_verification':
+            reason = request.POST.get('expiry_reason', '').strip()
+            BusinessVerificationLifecycleService.transition_to_expired(
+                profile=profile,
+                reason=reason,
+                officer=request.user,
+                request=request
+            )
+            msg = f"Business verification marked expired for '{profile.company_name}'."
 
-            # Dispatch compliance notification & email to employer
-            try:
-                from notifications.services import dispatch_notification
-                from notifications.email_templates import build_employer_unverified
-                subject, html_body, text_body = build_employer_unverified(
-                    company_name=profile.company_name,
-                    username=profile.user.get_full_name() or profile.user.username,
-                )
-                dispatch_notification(
-                    recipient=profile.user,
-                    event_type='VERIFICATION_REJECTED',
-                    title='Company Verification Status Removed',
-                    body=f"Verified company status for {profile.company_name} has been removed. Platform candidate checks have been locked.",
-                    object_reference=f"CAC-{profile.public_id}",
-                    subject=subject,
-                    html_body=html_body,
-                    text_body=text_body,
-                )
-            except Exception as e:
-                logger.warning(f"Failed to dispatch employer unverified notification: {e}")
-
+        elif action in ('unverify', 'revoke_verification'):
+            reason = request.POST.get('revocation_reason', '').strip()
+            BusinessVerificationLifecycleService.transition_to_revoked(
+                profile=profile,
+                reason=reason,
+                officer=request.user,
+                request=request
+            )
             msg = f"Employer '{profile.company_name}' unverified."
+
         elif action == 'update_billing_exempt':
             profile.is_billing_exempt = request.POST.get('is_billing_exempt') == 'on'
             profile.exempt_services = request.POST.getlist('exempt_services')
@@ -2024,24 +2003,37 @@ class AdminEmployerActionView(SuperAdminRequiredMixin, View):
             profile.save(update_fields=['is_billing_exempt', 'exempt_services', 'billing_exempt_notes', 'updated_at'])
             count = len(profile.exempt_services)
             msg = f"Service entitlements updated for '{profile.company_name}' ({count} service(s) complimentary)."
+            AuditLog.objects.create(
+                action="ADMIN_EMPLOYER_UPDATE_BILLING_EXEMPT",
+                performed_by=request.user,
+                details={"employer_profile_id": profile.id, "company": profile.company_name}
+            )
+
         elif action == 'suspend':
             profile.user.is_active = False
             profile.user.save(update_fields=['is_active'])
             msg = f"Employer account '{profile.company_name}' suspended."
+            AuditLog.objects.create(
+                action="ADMIN_EMPLOYER_SUSPEND",
+                performed_by=request.user,
+                details={"employer_profile_id": profile.id, "company": profile.company_name}
+            )
+
         elif action == 'reinstate':
             profile.user.is_active = True
             profile.user.save(update_fields=['is_active'])
             msg = f"Employer account '{profile.company_name}' reinstated."
+            AuditLog.objects.create(
+                action="ADMIN_EMPLOYER_REINSTATE",
+                performed_by=request.user,
+                details={"employer_profile_id": profile.id, "company": profile.company_name}
+            )
+
         else:
             messages.error(request, "Invalid action.")
             return redirect('admin_portal:employer_profiles')
-        AuditLog.objects.create(
-            action=f"ADMIN_EMPLOYER_{action.upper()}",
-            performed_by=request.user,
-            details={"employer_profile_id": profile.id, "company": profile.company_name}
-        )
+
         messages.success(request, msg)
-        # Return back to detail page if requested
         next_url = request.POST.get('next')
         if next_url:
             return redirect(next_url)
