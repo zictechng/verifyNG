@@ -15,6 +15,7 @@ from dashboard.admin_views import (
     # Users — extended
     AdminUserDetailView,
     AdminUserIdentityDocumentView,
+    AdminAlternativeVerificationDocumentView,
     AdminUserActivityExportView,
     AdminUserHardDeleteView,
     AdminUserBlockView,
@@ -89,6 +90,7 @@ urlpatterns = [
     path('users/<uuid:public_id>/hard-delete/', AdminUserHardDeleteView.as_view(), name='user_hard_delete'),
     path('users/<uuid:public_id>/export/', AdminUserActivityExportView.as_view(), name='user_activity_export'),
     path('users/<uuid:public_id>/id-document/', AdminUserIdentityDocumentView.as_view(), name='user_id_document'),
+    path('alternative-verification/<int:submission_id>/document/<str:doc_field>/', AdminAlternativeVerificationDocumentView.as_view(), name='alternative_verification_document'),
 
         # ── User Creation ────────────────────────────────────────────────────────
     path('users/create/', AdminCreateUserView.as_view(), name='user_create'),

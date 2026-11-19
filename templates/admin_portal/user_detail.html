@@ -163,6 +163,157 @@
       </div>
     </div>
 
+    <!-- ── Alternative Person Verification (Path B) Card ── -->
+    <div class="adm-card mb-4">
+      <div class="adm-card-header d-flex justify-content-between align-items-center">
+        <span>Alternative Personhood (Path B)</span>
+        {% if has_approved_path_b %}
+          <span class="adm-badge green"><span class="dot"></span>Approved Reporter</span>
+        {% elif path_b_submissions.0.status == 'pending' %}
+          <span class="adm-badge amber"><span class="dot"></span>Pending Review</span>
+        {% elif path_b_submissions.0.status == 'rejected' %}
+          <span class="adm-badge red"><span class="dot"></span>Declined</span>
+        {% elif path_b_submissions.0.status == 'revoked' %}
+          <span class="adm-badge gray">Revoked</span>
+        {% else %}
+          <span class="adm-badge gray">None</span>
+        {% endif %}
+      </div>
+      <div class="p-3">
+        {% if path_b_submissions %}
+          {% with sub=path_b_submissions.0 %}
+            <table class="table table-sm mb-3 small">
+              <tr>
+                <th style="color:var(--adm-muted);font-weight:500;width:40%;">Challenge Type</th>
+                <td class="fw-semibold">{{ sub.get_evidence_type_display }}</td>
+              </tr>
+              <tr>
+                <th style="color:var(--adm-muted);font-weight:500;">Status</th>
+                <td><span class="fw-bold">{{ sub.get_status_display }}</span></td>
+              </tr>
+              <tr>
+                <th style="color:var(--adm-muted);font-weight:500;">Residence</th>
+                <td>{{ sub.residential_address }}, {{ sub.residential_country }}</td>
+              </tr>
+              <tr>
+                <th style="color:var(--adm-muted);font-weight:500;">Declaration</th>
+                <td class="small text-muted font-monospace" style="font-size:0.8rem;">"{{ sub.declaration_statement }}"</td>
+              </tr>
+              <tr>
+                <th style="color:var(--adm-muted);font-weight:500;">Submitted At</th>
+                <td>{{ sub.submitted_at|date:"d M Y, H:i" }}</td>
+              </tr>
+              {% if sub.reviewed_at %}
+              <tr>
+                <th style="color:var(--adm-muted);font-weight:500;">Reviewed At</th>
+                <td>{{ sub.reviewed_at|date:"d M Y, H:i" }} {% if sub.reviewed_by %}(by {{ sub.reviewed_by.username }}){% endif %}</td>
+              </tr>
+              {% endif %}
+              {% if sub.rejection_reason %}
+              <tr>
+                <th style="color:var(--adm-muted);font-weight:500;">Decline Reason</th>
+                <td class="text-danger small">{{ sub.rejection_reason }}</td>
+              </tr>
+              {% endif %}
+            </table>
+
+            <div class="d-flex gap-2 mb-3">
+              <a href="{% url 'admin_portal:alternative_verification_document' sub.id 'selfie' %}" target="_blank" class="btn btn-adm-sm btn-adm-primary flex-grow-1 d-inline-flex align-items-center justify-content-center gap-1">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                View Selfie Challenge
+              </a>
+              {% if sub.supporting_document %}
+              <a href="{% url 'admin_portal:alternative_verification_document' sub.id 'document' %}" target="_blank" class="btn btn-adm-sm btn-adm-primary flex-grow-1 d-inline-flex align-items-center justify-content-center gap-1">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                View Supporting Doc
+              </a>
+              {% endif %}
+            </div>
+
+            <div class="d-flex flex-wrap gap-2 pt-2 border-top">
+              {% if sub.status == 'pending' %}
+                <form method="post" action="{% url 'admin_portal:user_detail' target_user.public_id %}" class="d-inline">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="approve_path_b">
+                  <input type="hidden" name="submission_id" value="{{ sub.id }}">
+                  <button type="submit" class="btn btn-sm btn-success px-3 fw-semibold">
+                    <i class="bi bi-check-circle me-1"></i>Approve Path B
+                  </button>
+                </form>
+
+                <button type="button" class="btn btn-sm btn-outline-danger px-3 fw-semibold" data-bs-toggle="modal" data-bs-target="#rejectPathBModal-{{ sub.id }}">
+                  <i class="bi bi-x-circle me-1"></i>Decline Path B
+                </button>
+
+                <!-- Modal for Reject Path B -->
+                <div class="modal fade" id="rejectPathBModal-{{ sub.id }}" tabindex="-1" aria-hidden="true">
+                  <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content shadow-lg border-0" style="border-radius:14px;">
+                      <form method="post" action="{% url 'admin_portal:user_detail' target_user.public_id %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="reject_path_b">
+                        <input type="hidden" name="submission_id" value="{{ sub.id }}">
+                        <div class="modal-header border-bottom py-3">
+                          <h6 class="modal-title fw-bold">Decline Alternative Personhood Verification</h6>
+                          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body py-3">
+                          <p class="small text-secondary mb-3">
+                            Provide a reason for declining this Path B challenge. The user will be notified and allowed to resubmit.
+                          </p>
+                          <textarea name="rejection_reason" class="form-control" rows="3" placeholder="e.g. Handwritten verification card is blurry or date does not match." required></textarea>
+                        </div>
+                        <div class="modal-footer py-2">
+                          <button type="button" class="btn btn-sm btn-light" data-bs-dismiss="modal">Cancel</button>
+                          <button type="submit" class="btn btn-sm btn-danger px-3">Confirm Decline</button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              {% elif sub.status == 'approved' %}
+                <button type="button" class="btn btn-sm btn-outline-danger px-3 fw-semibold" data-bs-toggle="modal" data-bs-target="#revokePathBModal">
+                  <i class="bi bi-slash-circle me-1"></i>Revoke Alternative Standing
+                </button>
+
+                <!-- Modal for Revoke Path B -->
+                <div class="modal fade" id="revokePathBModal" tabindex="-1" aria-hidden="true">
+                  <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content shadow-lg border-0" style="border-radius:14px;">
+                      <form method="post" action="{% url 'admin_portal:user_detail' target_user.public_id %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="revoke_path_b">
+                        <div class="modal-header border-bottom py-3">
+                          <h6 class="modal-title fw-bold text-danger">Revoke Alternative Personhood Verification</h6>
+                          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body py-3">
+                          <p class="small text-secondary mb-3">
+                            Are you sure you want to revoke Path B verification for <strong>{{ target_user.username }}</strong>?
+                            If this user has independent qualifying Path A government ID evidence, report-publishing standing will be preserved; otherwise, report-publishing will be disabled.
+                          </p>
+                          <textarea name="revocation_reason" class="form-control" rows="2" placeholder="Reason for revocation..."></textarea>
+                        </div>
+                        <div class="modal-footer py-2">
+                          <button type="button" class="btn btn-sm btn-light" data-bs-dismiss="modal">Cancel</button>
+                          <button type="submit" class="btn btn-sm btn-danger px-3">Revoke Standing</button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              {% endif %}
+            </div>
+          {% endwith %}
+        {% else %}
+          <div class="text-center py-3 text-muted small">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="mb-2 text-secondary opacity-50"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <p class="mb-0">No alternative personhood verification submissions.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
     <!-- ── Quick Actions ──────────────────────────────────────── -->
     <div class="card shadow-sm mb-4">
       <div class="card-header bg-white fw-semibold py-3">

@@ -25,7 +25,7 @@ from dateutil.relativedelta import relativedelta
 from reports.storage_services import get_storage_service
 import mimetypes
 import urllib.request
-from django.http import Http404, HttpResponse, HttpResponseRedirect
+from django.http import Http404, HttpResponse, HttpResponseRedirect, FileResponse
 from django.db.models import Q
 from django.utils.dateparse import parse_date
 from django.utils import timezone as tz
@@ -603,6 +603,54 @@ class AdminUserIdentityDocumentView(SuperAdminRequiredMixin, View):
         )
         return response
 
+
+class AdminAlternativeVerificationDocumentView(SuperAdminRequiredMixin, View):
+    """
+    Secure streaming proxy for compliance officers to view sensitive Path B private evidence
+    (selfie verification challenge, supporting address proof) directly from private storage.
+    Zero public URLs, POSIX filesystem streaming, and strict compliance access controls.
+    """
+    section_name = "User Management"
+    required_permission = "users.view_user"
+
+    def get(self, request, submission_id, doc_field='selfie'):
+        from users.models import AlternativeVerificationSubmission
+        submission = get_object_or_404(AlternativeVerificationSubmission, id=submission_id)
+
+        file_field = submission.selfie_image if doc_field == 'selfie' else submission.supporting_document
+        if not file_field:
+            raise Http404("Document not found.")
+
+        try:
+            opened_file = file_field.open('rb')
+        except Exception:
+            raise Http404("Could not access the private evidence file.")
+
+        ext = file_field.name.split('.')[-1].lower() if '.' in file_field.name else 'jpg'
+        content_type, _ = mimetypes.guess_type(file_field.name)
+        if not content_type:
+            content_type = 'application/pdf' if ext == 'pdf' else 'image/jpeg'
+
+        as_download = request.GET.get('download') == '1'
+        disposition = 'attachment' if as_download else 'inline'
+
+        AuditLog.objects.create(
+            action="ADMIN_VIEW_ALTERNATIVE_VERIFICATION_DOCUMENT",
+            performed_by=request.user,
+            details={
+                "submission_id": submission.id,
+                "target_user_id": submission.user.id,
+                "doc_field": doc_field,
+            }
+        )
+
+        response = FileResponse(opened_file, content_type=content_type)
+        response['Content-Disposition'] = f'{disposition}; filename="path_b_{doc_field}_{submission.id}.{ext}"'
+        response['X-Content-Type-Options'] = 'nosniff'
+        response['X-Frame-Options'] = 'SAMEORIGIN'
+        return response
+
+
 class AdminUserDetailView(SuperAdminRequiredMixin, TemplateView):
     section_name = "User Management"
     required_permission = "users.view_user"
@@ -705,6 +753,82 @@ class AdminUserDetailView(SuperAdminRequiredMixin, TemplateView):
                 request=request
             )
             messages.success(request, f"Identity verification badge revoked for '{target_user.username}'.")
+            return redirect('admin_portal:user_detail', public_id=public_id)
+
+        elif action == 'approve_path_b':
+            from users.models import AlternativeVerificationSubmission
+            submission_id = request.POST.get('submission_id')
+            submission = get_object_or_404(AlternativeVerificationSubmission, id=submission_id, user=target_user)
+
+            submission.status = 'approved'
+            submission.reviewed_at = timezone.now()
+            submission.reviewed_by = request.user
+            submission.rejection_reason = ''
+            submission.save()
+
+            # Confers report publishing standing without claiming legal government identity
+            target_user.can_publish_reports = True
+            target_user.save(update_fields=['can_publish_reports'])
+
+            AuditLog.objects.create(
+                action="ADMIN_APPROVE_ALTERNATIVE_VERIFICATION",
+                performed_by=request.user,
+                details={"target_user_id": target_user.id, "submission_id": submission.id}
+            )
+            messages.success(request, f"Alternative Person Verification (Path B) approved for '{target_user.username}'. Report publishing standing granted.")
+            return redirect('admin_portal:user_detail', public_id=public_id)
+
+        elif action == 'reject_path_b':
+            from users.models import AlternativeVerificationSubmission
+            from core.permissions import has_strict_path_a_evidence
+            submission_id = request.POST.get('submission_id')
+            submission = get_object_or_404(AlternativeVerificationSubmission, id=submission_id, user=target_user)
+            reason = request.POST.get('rejection_reason', '').strip() or 'Submitted selfie challenge or declaration could not be validated.'
+
+            submission.status = 'rejected'
+            submission.rejection_reason = reason
+            submission.reviewed_at = timezone.now()
+            submission.reviewed_by = request.user
+            submission.save()
+
+            # Recalculate publishing eligibility: remove if no other approved Path B and no qualifying Path A
+            has_other_approved_b = target_user.alternative_verification_submissions.filter(status='approved').exists()
+            has_qualifying_a = has_strict_path_a_evidence(target_user).allowed
+            if not has_other_approved_b and not has_qualifying_a:
+                target_user.can_publish_reports = False
+                target_user.save(update_fields=['can_publish_reports'])
+
+            AuditLog.objects.create(
+                action="ADMIN_REJECT_ALTERNATIVE_VERIFICATION",
+                performed_by=request.user,
+                details={"target_user_id": target_user.id, "submission_id": submission.id, "reason": reason}
+            )
+            messages.success(request, f"Alternative Person Verification declined for '{target_user.username}'.")
+            return redirect('admin_portal:user_detail', public_id=public_id)
+
+        elif action == 'revoke_path_b':
+            from core.permissions import has_strict_path_a_evidence
+            reason = request.POST.get('revocation_reason', '').strip()
+
+            # Revoke all approved Path B submissions
+            target_user.alternative_verification_submissions.filter(status='approved').update(status='revoked')
+
+            # Centralized helper ensures strict Path A eligibility is preserved
+            path_a_qualifies = has_strict_path_a_evidence(target_user).allowed
+            if not path_a_qualifies:
+                target_user.can_publish_reports = False
+                target_user.save(update_fields=['can_publish_reports'])
+
+            AuditLog.objects.create(
+                action="ADMIN_REVOKE_ALTERNATIVE_VERIFICATION",
+                performed_by=request.user,
+                details={"target_user_id": target_user.id, "reason": reason, "path_a_preserved": path_a_qualifies}
+            )
+
+            if path_a_qualifies:
+                messages.success(request, f"Path B verification revoked for '{target_user.username}'. Report publishing standing preserved via independent Path A government ID.")
+            else:
+                messages.success(request, f"Path B verification revoked for '{target_user.username}'. Report publishing standing removed.")
             return redirect('admin_portal:user_detail', public_id=public_id)
 
         messages.error(request, "Invalid action.")
@@ -840,6 +964,10 @@ class AdminUserDetailView(SuperAdminRequiredMixin, TemplateView):
         from payments.models import Transaction
         ctx['user_prepaid_balance'] = get_user_prepaid_balance(target_user)
         ctx['user_transactions'] = Transaction.objects.filter(user=target_user).order_by('-created_at')[:10]
+
+        # Alternative Person Verification (Path B)
+        ctx['path_b_submissions'] = target_user.alternative_verification_submissions.all()
+        ctx['has_approved_path_b'] = target_user.alternative_verification_submissions.filter(status='approved').exists()
         return ctx
 
 
