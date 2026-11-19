@@ -215,6 +215,146 @@
                 {% endif %}
             </div>
 
+            {# ── Path B: Alternative Person Verification (Community Reporter Standing) ── #}
+            <div class="vng-card p-4 mb-4" id="alternativeVerificationCard" style="border-radius:14px;background:#ffffff;border:1px solid #e2e8f0;box-shadow:0 4px 14px rgba(15,23,42,0.04);">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="rounded-circle p-2.5 d-inline-flex align-items-center justify-content-center flex-shrink-0" style="background:#f8fafc;border:1px solid #cbd5e1;width:44px;height:44px;">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                                <circle cx="9" cy="7" r="4"/>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="fw-bold text-dark d-flex align-items-center gap-2 flex-wrap" style="font-size:16px;">
+                                Alternative Person Verification
+                                <span class="badge bg-light text-secondary border fw-normal" style="font-size:12px;">Path B &bull; No Government ID Required</span>
+                            </div>
+                            <div class="small text-muted">
+                                Establish genuine personhood to publish community scam and fraud reports without an official government identity document.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {# ── Path B Status Banners ── #}
+                {% if has_approved_path_b %}
+                    <div class="d-flex align-items-start gap-3 p-3 rounded-3 mb-3" style="background:#ECFDF5;border:1px solid #A7F3D0;">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" class="flex-shrink-0 mt-0.5">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                            <polyline points="22 4 12 14.01 9 11.01"/>
+                        </svg>
+                        <div>
+                            <div class="fw-bold text-success" style="font-size:15px;">Approved Community Reporter</div>
+                            <div class="small text-muted mt-1">
+                                Your Alternative Personhood submission has been reviewed and approved by compliance. You are authorized to publish community scam and fraud reports.
+                            </div>
+                            <div class="small text-secondary mt-1">
+                                <em>Note: Path B confers report-publishing standing only and does not establish verified legal identity or official trust badges.</em>
+                            </div>
+                        </div>
+                    </div>
+                {% elif has_pending_path_b %}
+                    <div class="d-flex align-items-start gap-3 p-3 rounded-3 mb-3" style="background:#EFF6FF;border:1px solid #BFDBFE;">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2" class="flex-shrink-0 mt-0.5">
+                            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                        <div>
+                            <div class="fw-bold text-primary" style="font-size:15px;">Alternative Verification Under Review</div>
+                            <div class="small text-muted mt-1">
+                                Your selfie challenge, residential declaration, and supporting proof were submitted on 
+                                {{ latest_path_b.submitted_at|date:"d M Y, H:i"|default:"recently" }}. A compliance officer will review your evidence shortly.
+                            </div>
+                        </div>
+                    </div>
+                {% elif latest_path_b and latest_path_b.status == 'rejected' %}
+                    <div class="d-flex align-items-start gap-3 p-3 rounded-3 mb-3" style="background:#FEF2F2;border:1px solid #FECACA;">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2" class="flex-shrink-0 mt-0.5">
+                            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                        </svg>
+                        <div>
+                            <div class="fw-bold text-danger" style="font-size:15px;">Alternative Verification Declined</div>
+                            <div class="small text-danger mt-1">
+                                <strong>Reason:</strong> {{ latest_path_b.rejection_reason|default:"The submitted challenge photo or address declaration could not be validated." }}
+                            </div>
+                            <div class="small text-muted mt-1">
+                                You may review your selfie challenge and submit an updated application below.
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+
+                {# ── Path B Submission Form (shown if not approved and not pending) ── #}
+                {% if not has_approved_path_b and not has_pending_path_b %}
+                <div class="pt-3 border-top mt-3">
+                    <form method="post" action="{% url 'users:verify_alternative_submit' %}" enctype="multipart/form-data" id="pathBVerificationForm" novalidate>
+                        {% csrf_token %}
+
+                        <div class="alert alert-light border small text-muted mb-3">
+                            <strong>Challenge Requirement:</strong> Take a clear photo of yourself holding a handwritten piece of paper with your <strong>Full Name</strong>, <strong>Today's Date</strong>, and the word <strong>"VerifyNG"</strong>. This confirms live personhood without requiring a national passport or ID card.
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-sm-6">
+                                <label class="form-label small fw-semibold">Verification Challenge Format <span class="text-danger">*</span></label>
+                                <select name="evidence_type" class="form-select" style="font-size:15px;">
+                                    <option value="selfie_card" selected>Selfie with Handwritten Verification Card</option>
+                                    <option value="video_challenge">Recorded Video Challenge Prompt</option>
+                                </select>
+                            </div>
+                            <div class="col-sm-6">
+                                <label class="form-label small fw-semibold">Country of Physical Residence <span class="text-danger">*</span></label>
+                                <select name="residential_country" class="form-select" style="font-size:15px;">
+                                    {% for c_code, c_name in supported_countries %}
+                                        <option value="{{ c_code }}" {% if default_issuing_country == c_code or c_code == 'NG' %}selected{% endif %}>{{ c_name }} ({{ c_code }})</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Physical Residential Address <span class="text-danger">*</span></label>
+                            <textarea name="residential_address" class="form-control" rows="2" placeholder="Enter your full street address, landmark, city, and state" required style="font-size:15px;"></textarea>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-sm-6">
+                                <label class="form-label small fw-semibold d-flex justify-content-between align-items-center">
+                                    <span>Upload Selfie Challenge Photo <span class="text-danger">*</span></span>
+                                    <span class="badge bg-light text-secondary border fw-normal">JPG, PNG &bull; Max 5MB</span>
+                                </label>
+                                <input type="file" name="selfie_image" accept=".jpg,.jpeg,.png,.webp" class="form-control" required>
+                                <div class="form-text small">Your face and the handwritten card must both be sharp and clearly legible.</div>
+                            </div>
+                            <div class="col-sm-6">
+                                <label class="form-label small fw-semibold d-flex justify-content-between align-items-center">
+                                    <span>Supporting Document <span class="text-muted fw-normal">(Optional)</span></span>
+                                    <span class="badge bg-light text-secondary border fw-normal">PDF, JPG &bull; Max 5MB</span>
+                                </label>
+                                <input type="file" name="supporting_document" accept=".pdf,.jpg,.jpeg,.png" class="form-control">
+                                <div class="form-text small">Utility bill, employment letter, or community reference proof (optional).</div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Personal Declaration Statement <span class="text-danger">*</span></label>
+                            <textarea name="declaration_statement" class="form-control" rows="3" placeholder="I solemnly declare that my identity, address, and personhood details submitted here are truthful and accurate. I understand that submitting false credentials will result in permanent account termination." required minlength="20" style="font-size:15px;"></textarea>
+                            <div class="form-text small">Minimum 20 characters required confirming the truthfulness of your submission.</div>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center pt-2">
+                            <span class="small text-muted" style="font-size:12px;">🔒 Stored in restricted private evidence vault with zero public access.</span>
+                            <button type="submit" class="btn btn-outline-dark btn-sm px-4 fw-semibold">
+                                Submit Alternative Verification
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+
             {# ── Verified Merchant Trust Seal & Bio Link Card ── #}
             <div class="vng-card p-4 mb-4" style="border-radius:14px;background:#ffffff;border:1px solid #e2e8f0;box-shadow:0 4px 14px rgba(15,23,42,0.04);">
                 <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">

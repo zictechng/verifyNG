@@ -388,10 +388,21 @@ class UserProfileUpdateView(LoginRequiredMixin, View):
         except Exception:
             pass
 
+        path_b_submissions = request.user.alternative_verification_submissions.all()
+        has_approved_path_b = path_b_submissions.filter(status='approved').exists()
+        has_pending_path_b = path_b_submissions.filter(status='pending').exists()
+        from users.forms import PathBAlternativeVerificationForm
+        path_b_form = PathBAlternativeVerificationForm()
+
         return render(request, self.template_name, {
             'form': form,
             'user_profile': request.user,
             'merchant_seal': merchant_seal,
+            'path_b_submissions': path_b_submissions,
+            'latest_path_b': path_b_submissions.first(),
+            'has_approved_path_b': has_approved_path_b,
+            'has_pending_path_b': has_pending_path_b,
+            'path_b_form': path_b_form,
         })
 
     def post(self, request):
@@ -429,10 +440,22 @@ class UserProfileUpdateView(LoginRequiredMixin, View):
             form.save()
             messages.success(request, 'Profile updated successfully.')
             return HttpResponseRedirect(reverse_lazy('users:profile'))
+
+        path_b_submissions = user.alternative_verification_submissions.all()
+        has_approved_path_b = path_b_submissions.filter(status='approved').exists()
+        has_pending_path_b = path_b_submissions.filter(status='pending').exists()
+        from users.forms import PathBAlternativeVerificationForm
+        path_b_form = PathBAlternativeVerificationForm()
+
         return render(request, self.template_name, {
             'form': form,
             'user_profile': user,
             'merchant_seal': merchant_seal,
+            'path_b_submissions': path_b_submissions,
+            'latest_path_b': path_b_submissions.first(),
+            'has_approved_path_b': has_approved_path_b,
+            'has_pending_path_b': has_pending_path_b,
+            'path_b_form': path_b_form,
         })
 
 
@@ -621,6 +644,63 @@ class UserIdentityDocumentView(LoginRequiredMixin, View):
         response['X-Frame-Options'] = 'SAMEORIGIN'
         doc_file.close()
         return response
+
+
+class PathBVerificationSubmitView(LoginRequiredMixin, View):
+    """
+    Handles user submission of Alternative Person Verification (Path B).
+    Strictly validates declaration statement, private evidence storage, and user status.
+    """
+    def post(self, request):
+        user = request.user
+
+        # 1. Enforce account standing: Suspended accounts cannot submit
+        if getattr(user, 'is_suspended', False) or getattr(user, 'id_verification_status', None) == 'suspended':
+            messages.error(request, "Your account is suspended. Platform verification submissions are restricted.")
+            return redirect(reverse('users:profile') + '?tab=verification')
+
+        # 2. Block submissions if there is already an active pending application
+        if user.alternative_verification_submissions.filter(status='pending').exists():
+            messages.warning(
+                request,
+                "You already have an Alternative Verification application pending compliance review. "
+                "Please wait for an officer to review your submission."
+            )
+            return redirect(reverse('users:profile') + '?tab=verification')
+
+        # 3. Validate form
+        from users.forms import PathBAlternativeVerificationForm
+        form = PathBAlternativeVerificationForm(request.POST, request.FILES)
+        if not form.is_valid():
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field.replace('_', ' ').capitalize()}: {error}")
+            return redirect(reverse('users:profile') + '?tab=verification')
+
+        # 4. Save submission bound to private evidence storage
+        submission = form.save(commit=False)
+        submission.user = user
+        submission.status = 'pending'
+        submission.save()
+
+        # 5. Audit log entry
+        AuditLog.objects.create(
+            action="USER_ALTERNATIVE_VERIFICATION_SUBMITTED",
+            performed_by=user,
+            ip_address=get_client_ip(request),
+            details={
+                "submission_id": submission.pk,
+                "evidence_type": submission.evidence_type,
+                "residential_country": submission.residential_country,
+            }
+        )
+
+        messages.success(
+            request,
+            "Your Alternative Person Verification application has been submitted successfully. "
+            "Our compliance officers will review your selfie challenge and declaration."
+        )
+        return redirect(reverse('users:profile') + '?tab=verification')
 
 
 class DeleteAccountView(LoginRequiredMixin, View):

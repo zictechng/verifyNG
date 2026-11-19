@@ -13,6 +13,7 @@ from users.views import (
     DeleteAccountView,
     UserIdentityVerificationSubmitView,
     UserIdentityDocumentView,
+    PathBVerificationSubmitView,
     CustomPasswordResetView,
     CustomPasswordResetDoneView,
     CustomPasswordResetConfirmView,
@@ -41,6 +42,7 @@ urlpatterns = [
     path('profile/', UserProfileUpdateView.as_view(), name='profile'),
     path('profile/legal-name-change/', LegalNameChangeRequestView.as_view(), name='legal_name_change_request'),
     path('profile/verify-identity/', UserIdentityVerificationSubmitView.as_view(), name='verify_identity_submit'),
+    path('profile/verify-alternative/', PathBVerificationSubmitView.as_view(), name='verify_alternative_submit'),
     path('profile/id-document/', UserIdentityDocumentView.as_view(), name='id_document_preview'),
     path('delete-account/', DeleteAccountView.as_view(), name='delete_account'),
     path(

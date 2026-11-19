@@ -1,3 +1,4 @@
+import os
 from django import forms
 from django.contrib.auth.forms import (
     UserCreationForm,
@@ -6,7 +7,8 @@ from django.contrib.auth.forms import (
     SetPasswordForm,
     PasswordChangeForm,  
 )
-from users.models import User
+from users.models import User, AlternativeVerificationSubmission
+from users.country_config import get_supported_countries
 from employer.models import EmployerProfile
 
 class CustomUserCreationForm(UserCreationForm):
@@ -346,5 +348,87 @@ class AgencyRegistrationForm(UserCreationForm):
             except Exception:
                 pass
         return user
+
+
+class PathBAlternativeVerificationForm(forms.ModelForm):
+    """
+    Form for individuals without official government ID to submit Alternative Person
+    Verification (Path B) for community report publishing.
+    """
+    ALLOWED_IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.webp'}
+    ALLOWED_DOC_EXTENSIONS = {'.pdf', '.jpg', '.jpeg', '.png'}
+    MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+
+    residential_country = forms.ChoiceField(
+        choices=get_supported_countries,
+        widget=forms.Select(attrs={'class': 'form-select', 'id': 'path_b_country'}),
+        help_text="Country of current physical residence"
+    )
+    residential_address = forms.CharField(
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 2,
+            'placeholder': 'Enter your full street address, city, and state'
+        }),
+        required=True
+    )
+    declaration_statement = forms.CharField(
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 3,
+            'placeholder': 'I solemnly confirm that my identity is truthful and accurate...'
+        }),
+        required=True,
+        min_length=20,
+        error_messages={
+            'required': 'A declaration statement confirming your identity is required.',
+            'min_length': 'Declaration statement must be at least 20 characters long.'
+        }
+    )
+
+    class Meta:
+        model = AlternativeVerificationSubmission
+        fields = [
+            'evidence_type',
+            'selfie_image',
+            'supporting_document',
+            'residential_country',
+            'residential_address',
+            'declaration_statement',
+        ]
+        widgets = {
+            'evidence_type': forms.Select(attrs={'class': 'form-select'}),
+        }
+
+    def clean_declaration_statement(self):
+        stmt = (self.cleaned_data.get('declaration_statement') or '').strip()
+        if not stmt or len(stmt) < 20:
+            raise forms.ValidationError(
+                "A declaration statement of at least 20 characters confirming your identity is required."
+            )
+        return stmt
+
+    def clean_selfie_image(self):
+        file = self.cleaned_data.get('selfie_image')
+        if not file:
+            raise forms.ValidationError("Selfie verification challenge photo is required.")
+        ext = os.path.splitext(file.name)[1].lower()
+        if ext not in self.ALLOWED_IMAGE_EXTENSIONS:
+            raise forms.ValidationError("Selfie photo must be a JPG, JPEG, PNG, or WEBP image.")
+        if file.size > self.MAX_FILE_SIZE:
+            raise forms.ValidationError("Selfie photo must not exceed 5MB.")
+        return file
+
+    def clean_supporting_document(self):
+        file = self.cleaned_data.get('supporting_document')
+        if not file:
+            return None
+        ext = os.path.splitext(file.name)[1].lower()
+        if ext not in self.ALLOWED_DOC_EXTENSIONS:
+            raise forms.ValidationError("Supporting document must be a PDF, JPG, JPEG, or PNG file.")
+        if file.size > self.MAX_FILE_SIZE:
+            raise forms.ValidationError("Supporting document must not exceed 5MB.")
+        return file
+
 
 
