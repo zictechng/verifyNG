@@ -151,6 +151,9 @@ IDENTIFIER_HASH_PEPPER = env('IDENTIFIER_HASH_PEPPER', default='')
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
+# Private evidence storage directory (strictly isolated from public MEDIA_ROOT)
+PRIVATE_MEDIA_ROOT = BASE_DIR / 'private_media'
+
 # Django 5.x Universal Storage Configuration
 # Uses Cloudinary when credentials are configured in .env; automatically falls back to local disk
 STORAGES = {

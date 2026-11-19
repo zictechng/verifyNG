@@ -166,3 +166,45 @@ class UniversalCloudinaryStorage(Storage):
         if not self.is_configured:
             return self._local_storage.get_available_name(clean_name, max_length=max_length)
         return clean_name
+
+
+@deconstructible
+class PrivateEvidenceStorage(FileSystemStorage):
+    """
+    Dedicated private filesystem storage for sensitive verification evidence (Path B selfies, non-ID proof).
+
+    Multi-Layered Security Guarantees:
+    1. Isolated Storage Directory: Files are written to PRIVATE_MEDIA_ROOT (BASE_DIR / 'private_media'),
+       completely separate from public MEDIA_ROOT (BASE_DIR / 'media').
+    2. Restrictive Filesystem Permissions: Enforces directory_permissions_mode = 0o700 (drwx------)
+       and file_permissions_mode = 0o600 (-rw-------) on supported POSIX filesystems.
+    3. Zero Public URLs: Initialized with base_url=None. Calling file.url explicitly raises
+       ValueError, preventing templates, serializers, or APIs from generating or leaking public URLs.
+    4. No Web Server Exposure: Neither Django's media URL patterns nor production web server
+       static directives route to PRIVATE_MEDIA_ROOT.
+    5. Exclusive Compliance Access: Files are accessed strictly via authenticated officer streaming proxies.
+    """
+    def __init__(self, location=None, base_url=None):
+        if location is None:
+            location = getattr(settings, 'PRIVATE_MEDIA_ROOT', settings.BASE_DIR / 'private_media')
+        super().__init__(
+            location=location,
+            base_url=None,
+            file_permissions_mode=0o600,
+            directory_permissions_mode=0o700
+        )
+
+    @property
+    def base_url(self):
+        return None
+
+    def url(self, name):
+        raise ValueError(
+            "Private verification evidence cannot be accessed via public URLs. "
+            "Use AdminAlternativeVerificationDocumentView for compliance streaming."
+        )
+
+
+# Module-level singleton instance for model field binding
+private_evidence_storage = PrivateEvidenceStorage()
+

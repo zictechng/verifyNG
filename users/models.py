@@ -2,6 +2,8 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils import timezone
 import uuid
+from core.storage import private_evidence_storage
+
 
 class User(AbstractUser):
     ROLE_CHOICES = (
@@ -131,6 +133,11 @@ class User(AbstractUser):
         db_index=True,
         help_text="Public-facing user identifier — never expose the integer PK"
     )
+    can_publish_reports = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text="Designates whether compliance has approved this user to publish community reports."
+    )
     @property
     def has_id_document(self):
         return bool(self.id_document and hasattr(self.id_document, 'name') and self.id_document.name)
@@ -179,6 +186,8 @@ class User(AbstractUser):
     # which can leak into instance attributes during save(). Force bool types.
         if not isinstance(self.identity_verified, bool):
             self.identity_verified = False
+        if not isinstance(self.can_publish_reports, bool):
+            self.can_publish_reports = False
         if not isinstance(self.is_billing_exempt, bool):
             self.is_billing_exempt = False
         if not isinstance(self.is_active, bool):
@@ -321,4 +330,103 @@ class UserServiceAccess(models.Model):
     def __str__(self):
         state = 'RESTRICTED' if self.is_restricted else 'allowed'
         return f"{self.user.username} → {self.service}: {state}"
+
+
+class AlternativeVerificationSubmission(models.Model):
+    """
+    Submission and review record for Alternative Person Verification (Path B).
+    Completely decoupled from government identity verification (Path A).
+    Allows individuals without government ID to establish personhood for community reporting.
+    """
+    STATUS_CHOICES = (
+        ('pending', 'Pending Compliance Review'),
+        ('approved', 'Approved for Report Publishing'),
+        ('rejected', 'Declined — Resubmission Allowed'),
+        ('revoked', 'Revoked by Compliance'),
+    )
+
+    EVIDENCE_TYPE_CHOICES = (
+        ('selfie_card', 'Manual Selfie Challenge with Date/Verification Card'),
+        ('video_challenge', 'Recorded Video Prompt (Extensible)'),
+        ('third_party_liveness', 'External Certified Liveness Check (Extensible)'),
+    )
+
+    user = models.ForeignKey(
+        'users.User',
+        on_delete=models.CASCADE,
+        related_name='alternative_verification_submissions',
+        help_text="Applicant account"
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='pending',
+        db_index=True
+    )
+    evidence_type = models.CharField(
+        max_length=30,
+        choices=EVIDENCE_TYPE_CHOICES,
+        default='selfie_card',
+        help_text="Format of personhood evidence submitted (manual review baseline)"
+    )
+
+    # Evidence Uploads (Restricted private storage; no public URLs)
+    selfie_image = models.FileField(
+        storage=private_evidence_storage,
+        upload_to='alternative_proofs/%Y/%m/',
+        help_text="Selfie challenge image showing user holding handwritten verification card"
+    )
+    supporting_document = models.FileField(
+        storage=private_evidence_storage,
+        upload_to='alternative_proofs/%Y/%m/',
+        blank=True,
+        null=True,
+        help_text="Optional non-ID proof of address, workplace letter, or utility bill"
+    )
+
+    # Residential & Personhood Declaration
+    residential_country = models.CharField(
+        max_length=2,
+        help_text="ISO-2 country code of physical residence"
+    )
+    residential_address = models.TextField(
+        help_text="Declared physical residential address"
+    )
+    declaration_statement = models.TextField(
+        blank=True,
+        default='',
+        help_text="Applicant statement confirming truthfulness of identity"
+    )
+
+    # Review & Lifecycle Attribution
+    submitted_at = models.DateTimeField(
+        default=timezone.now,
+        db_index=True
+    )
+    reviewed_at = models.DateTimeField(
+        null=True,
+        blank=True
+    )
+    reviewed_by = models.ForeignKey(
+        'users.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='alternative_verifications_reviewed',
+        help_text="Compliance officer who evaluated the submission"
+    )
+    rejection_reason = models.TextField(
+        blank=True,
+        default='',
+        help_text="Feedback provided by compliance officer if declined"
+    )
+
+    class Meta:
+        verbose_name = "Alternative Verification Submission"
+        verbose_name_plural = "Alternative Verification Submissions"
+        ordering = ['-submitted_at', '-id']
+
+    def __str__(self):
+        return f"Path B Submission for {self.user.username} ({self.status}) at {self.submitted_at:%Y-%m-%d}"
+
 
