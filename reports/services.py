@@ -4,11 +4,13 @@ import logging
 from datetime import timedelta
 from django.utils import timezone
 from django.db import transaction, IntegrityError
+from django.core.exceptions import PermissionDenied
 from reports.models import FraudReport, ReportEvidence, AuditLog, Dispute
 from identities.models import SubjectEntity, Identifier, BusinessProfile
 from identities.utils import hash_identifier_value
 from reports.storage_services import get_storage_service, StorageError
 from core.tasks import send_email_notification_task
+from core.permissions import can_user_publish_reports
 from notifications import email_templates
 
 logger = logging.getLogger(__name__)
@@ -48,6 +50,12 @@ def create_fraud_report(reporter, subject_name, subject_type, title, allegation,
     Uploads evidence to cloud/local storage before DB write.
     Cleans up uploaded asset if DB write fails.
     """
+    # 0. Enforce report-publishing authorization at service layer boundary
+    # Must be validated before any storage/Cloudinary upload or database transactions
+    pub_check = can_user_publish_reports(reporter)
+    if not pub_check.allowed:
+        raise PermissionDenied(pub_check.reason or "You are not authorized to publish community reports.")
+
     storage = get_storage_service()
     uploaded_cloud_meta = None
 

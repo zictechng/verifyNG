@@ -6,7 +6,7 @@ from datetime import date
 from ninja import NinjaAPI, Schema
 from ninja.errors import HttpError
 from ninja.security import django_auth
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError, PermissionDenied
 from django.http import HttpResponse, Http404
 
 from identities.utils import hash_identifier_value
@@ -385,9 +385,15 @@ def create_report(request, payload: ReportSubmitRequest):
 
     Errors:
       400 — ValidationError raised by the service layer.
+      403 — PermissionDenied if user lacks report-publishing eligibility.
       500 — StorageError (guarded; file upload not applicable at API layer).
       500 — Unexpected exception.
     """
+    from core.permissions import can_user_publish_reports
+    pub_check = can_user_publish_reports(request.user)
+    if not pub_check.allowed:
+        raise HttpError(403, pub_check.reason or "You do not have permission to publish reports.")
+
     try:
         fraud_report = create_fraud_report(
             reporter=request.user,
@@ -408,6 +414,8 @@ def create_report(request, payload: ReportSubmitRequest):
             suspect_state=payload.suspect_state,
             suspect_city=payload.suspect_city,
         )
+    except PermissionDenied as exc:
+        raise HttpError(403, str(exc))
     except ValidationError as exc:
         message = exc.message if hasattr(exc, "message") else str(exc)
         logger.warning(

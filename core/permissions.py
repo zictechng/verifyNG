@@ -649,3 +649,155 @@ class VerifiedProfileRequiredMixin:
             return redirect('users:profile')
 
         return super().dispatch(request, *args, **kwargs)
+
+
+ACCEPTABLE_PATH_A_DOCUMENTS = {
+    'nin', 'voters_card', 'passport', 'drivers_license',
+    'ghana_card', 'cip', 'cni', 'national_id'
+}
+
+
+def has_strict_path_a_evidence(user) -> VerificationResult:
+    """
+    Evaluates whether an individual satisfies the strict Path A (Government Identity Evidence)
+    criteria for report-publishing eligibility.
+
+    Centralized helper used by:
+      1. `can_user_publish_reports()`
+      2. Admin Path B revocation handler (when recalculating independent Path A standing)
+
+    Strict Path A Criteria (all 8 must pass):
+      1. User is authenticated and active
+      2. User account is not suspended (is_suspended == False)
+      3. No active 'fraud_report' service restriction in UserServiceAccess
+      4. id_verification_status == 'verified'
+      5. Accepted identity document type (id_type in ACCEPTABLE_PATH_A_DOCUMENTS; BVN excluded)
+      6. Non-empty submitted identity document file (bool(id_document))
+      7. Verification timestamp is populated (id_verified_at is not None)
+      8. Base identity access check passes (has_basic_identity_access(user).allowed == True)
+    """
+    if not user or not user.is_authenticated:
+        return VerificationResult(False, "Authentication required.")
+
+    # Unwrap lazy user objects
+    while hasattr(user, '_wrapped'):
+        if hasattr(user, '_is_setup') and not user._is_setup():
+            user._setup()
+        user = getattr(user, '_wrapped', user)
+    if callable(user):
+        try:
+            user = user()
+        except Exception:
+            pass
+
+    if not getattr(user, 'is_active', True):
+        return VerificationResult(False, "Your account has been deactivated.")
+
+    if getattr(user, 'is_suspended', False) is True:
+        return VerificationResult(False, "Your account is suspended. Platform actions are restricted.")
+
+    # Check per-user service access restriction
+    try:
+        from users.models import UserServiceAccess
+        if UserServiceAccess.objects.filter(user=user, service='fraud_report', is_restricted=True).exists():
+            return VerificationResult(False, "Access to fraud crime reporting has been restricted for your account by platform administration.")
+    except Exception:
+        pass
+
+    # Strict lifecycle status
+    if getattr(user, 'id_verification_status', None) != 'verified':
+        return VerificationResult(False, "Approved government identity verification required.")
+
+    # Strict document type
+    doc_type = (getattr(user, 'id_type', '') or '').lower()
+    if doc_type not in ACCEPTABLE_PATH_A_DOCUMENTS:
+        return VerificationResult(False, "A qualifying physical government identity document is required for report publishing.")
+
+    # Non-empty document file
+    doc_file = getattr(user, 'id_document', None)
+    if not doc_file or not str(doc_file).strip():
+        return VerificationResult(False, "A submitted identity document file is required.")
+
+    # Verification timestamp
+    if not getattr(user, 'id_verified_at', None):
+        return VerificationResult(False, "Identity verification timestamp is missing.")
+
+    # Base access sanity check
+    base_access = has_basic_identity_access(user)
+    if not base_access.allowed:
+        return VerificationResult(False, base_access.reason)
+
+    return VerificationResult(True, "")
+
+
+def can_user_publish_reports(user) -> VerificationResult:
+    """
+    Security gate for publishing community fraud and misconduct reports.
+
+    Enforces:
+      Gate 1 (Base Security): Authenticated, active, not suspended.
+      Gate 2 (Service Restriction): No 'fraud_report' block in UserServiceAccess.
+      Gate 3 (Security Suspension): id_verification_status != 'suspended'.
+      Gate 4 (Explicit Eligibility): can_publish_reports == True.
+      Gate 5 (Dual-Pathway Evidence):
+         - Path B: user.alternative_verification_submissions.filter(status='approved').exists()
+           (Preserves existing approval even if subsequent submissions are pending/rejected)
+         - Path A: has_strict_path_a_evidence(user).allowed == True
+      Gate 6 (Default Denial): Returns failure if neither pathway is valid.
+
+    Note: Superusers, staff, and officers filing personal community reports as complainants
+    must meet these same criteria (no staff complainant bypass).
+    """
+    if not user or not user.is_authenticated:
+        return VerificationResult(False, "Authentication required to submit reports.")
+
+    # Unwrap lazy user
+    while hasattr(user, '_wrapped'):
+        if hasattr(user, '_is_setup') and not user._is_setup():
+            user._setup()
+        user = getattr(user, '_wrapped', user)
+    if callable(user):
+        try:
+            user = user()
+        except Exception:
+            pass
+
+    # Gate 1: Base security
+    if not getattr(user, 'is_active', True):
+        return VerificationResult(False, "Your account has been deactivated.")
+    if getattr(user, 'is_suspended', False) is True:
+        return VerificationResult(False, "Your account is suspended. Platform actions are restricted.")
+
+    # Gate 2: Service-level restriction
+    try:
+        from users.models import UserServiceAccess
+        if UserServiceAccess.objects.filter(user=user, service='fraud_report', is_restricted=True).exists():
+            return VerificationResult(False, "Access to fraud crime reporting has been restricted for your account by platform administration.")
+    except Exception:
+        pass
+
+    # Gate 3: Security suspension of identity
+    if getattr(user, 'id_verification_status', None) == 'suspended':
+        return VerificationResult(False, "Your identity verification has been suspended. Platform publishing actions are restricted.")
+
+    # Gate 4: Explicit publishing flag
+    if not getattr(user, 'can_publish_reports', False):
+        return VerificationResult(False, "Report publishing eligibility required. Please complete identity or community personhood verification.")
+
+    # Gate 5: Dual-Pathway Resolution
+    # 5a. Independent Path B (Alternative Personhood)
+    try:
+        has_active_path_b = user.alternative_verification_submissions.filter(status='approved').exists()
+        if has_active_path_b:
+            return VerificationResult(True, "")
+    except Exception:
+        pass
+
+    # 5b. Strict Path A (Government Identity Evidence)
+    path_a_result = has_strict_path_a_evidence(user)
+    if path_a_result.allowed:
+        return VerificationResult(True, "")
+
+    # Gate 6: Default denial
+    return VerificationResult(False, path_a_result.reason or "Qualifying identity or community verification required to publish reports.")
+

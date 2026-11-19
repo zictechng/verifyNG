@@ -50,12 +50,12 @@ class ReportCreateView(LoginRequiredMixin, FormView):
                 )
                 return redirect(get_user_home_url(request.user))
 
-            from core.permissions import is_profile_verified
-            verified, v_msg = is_profile_verified(request.user)
-            if not verified:
+            from core.permissions import can_user_publish_reports
+            can_pub = can_user_publish_reports(request.user)
+            if not can_pub:
                 messages.warning(
                     request,
-                    v_msg or "You must verify your identity (NIN or BVN) before submitting a fraud report."
+                    can_pub.reason or "You must complete account verification before submitting a community report."
                 )
                 return redirect(reverse('users:profile') + '?tab=verification')
         return super().dispatch(request, *args, **kwargs)
