@@ -547,18 +547,9 @@
                                     <div>
                                         <h3 class="h5 fw-bold text-dark mb-1" style="font-size:18px;">4. Select Accepted Document Type</h3>
                                         <p class="text-muted small mb-0" style="font-size:13.5px; line-height: 1.5;">
-                                            Choose your qualifying official credential and enter the document identification number.
+                                            Choose your qualifying official credential and enter your document identification number.
                                         </p>
                                     </div>
-                                </div>
-
-                                {# Dynamic document selector pills #}
-                                <div class="mb-3">
-                                    <label class="form-label small fw-semibold text-dark">Accepted Credentials for <span id="selectedCountryNameLabel">Nigeria</span> <span class="text-danger">*</span></label>
-                                    <div class="row g-2" id="docTypeTileContainer">
-                                        {# Populated via JavaScript based on chosen country #}
-                                    </div>
-                                    <select name="id_type_fallback" id="id_type_select" class="d-none"></select>
                                 </div>
 
                                 {# BVN Exclusion Warning Banner #}
@@ -569,15 +560,33 @@
                                     </div>
                                 </div>
 
-                                {# Document ID Number Input #}
+                                {# Document Type Dropdown & ID Number Card #}
                                 <div class="card border rounded-3 p-3 p-sm-4 mb-3" style="background:#F8FAFC;">
-                                    <label class="form-label small fw-semibold text-dark" id="id_number_label">
-                                        Identification Number <span class="text-danger">*</span>
-                                    </label>
-                                    <div style="max-width: 420px;">
-                                        <input type="text" id="id_number_input" class="form-control font-monospace"
-                                               value="{{ user_profile.id_number }}" required placeholder="Enter 11-digit NIN" style="font-size:16px;">
-                                        <div id="id_number_help" class="form-text small mt-1 text-muted">Enter your official identification number.</div>
+                                    {# Document Type Select Dropdown #}
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-semibold text-dark" for="id_type_select">
+                                            Government Document Type (<span id="selectedCountryNameLabel">Nigeria</span>) <span class="text-danger">*</span>
+                                        </label>
+                                        <div style="max-width: 440px;">
+                                            <select name="id_type" id="id_type_select" class="form-select" style="font-size: 15px;" onchange="onDocTypeSelectChange()">
+                                                {# Populated dynamically by JS based on selected country #}
+                                            </select>
+                                            <div id="selectedDocHelpText" class="form-text small mt-1 text-muted">
+                                                Select your qualifying official government-issued identity credential.
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {# Document ID Number Input #}
+                                    <div class="pt-3 border-top">
+                                        <label class="form-label small fw-semibold text-dark" id="id_number_label">
+                                            Identification Number <span class="text-danger">*</span>
+                                        </label>
+                                        <div style="max-width: 440px;">
+                                            <input type="text" id="id_number_input" class="form-control font-monospace"
+                                                   value="{{ user_profile.id_number }}" required placeholder="Enter 11-digit NIN" style="font-size:16px;">
+                                            <div id="id_number_help" class="form-text small mt-1 text-muted">Enter your official identification number.</div>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -1724,79 +1733,80 @@ function selectWizardCountry(code, name) {
     populateDocTypesForCountry(code);
 }
 
-/* ── Step 4: Document Type Selection ── */
+/* ── Step 4: Document Type Dropdown Selection ── */
 function populateDocTypesForCountry(countryCode) {
-    const container = document.getElementById('docTypeTileContainer');
+    const selectEl = document.getElementById('id_type_select');
     const label = document.getElementById('selectedCountryNameLabel');
     if (label) label.textContent = selectedCountryName || countryCode;
 
-    if (!container || !countryDocsMap[countryCode]) return;
+    if (!selectEl || !countryDocsMap[countryCode]) return;
 
     const docs = countryDocsMap[countryCode].documents;
-    container.innerHTML = '';
+    selectEl.innerHTML = '';
 
-    docs.forEach((doc, idx) => {
-        const col = document.createElement('div');
-        col.className = 'col-sm-6';
-        const isActive = (doc.code === selectedDocCode || (idx === 0 && !docs.some(d => d.code === selectedDocCode)));
-        if (isActive) {
-            selectedDocCode = doc.code;
+    let matchedSelected = false;
+    docs.forEach((doc) => {
+        const opt = document.createElement('option');
+        opt.value = doc.code;
+        opt.textContent = doc.name;
+        opt.dataset.placeholder = doc.placeholder || '';
+        opt.dataset.helpText = doc.help_text || '';
+        if (doc.code === selectedDocCode) {
+            opt.selected = true;
+            matchedSelected = true;
             selectedDocName = doc.name;
         }
-
-        col.innerHTML = `
-            <div class="vng-doc-tile p-3 rounded-3 border d-flex align-items-center justify-content-between ${isActive ? 'vng-tile-active' : ''}"
-                 onclick="selectWizardDocType('${doc.code}', '${doc.name.replace(/'/g, "\\'")}', '${(doc.placeholder || '').replace(/'/g, "\\'")}', '${(doc.help_text || '').replace(/'/g, "\\'")}')">
-                <div class="d-flex align-items-center gap-2">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2">
-                        <rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><line x1="15" y1="8" x2="17" y2="8"/><line x1="15" y1="12" x2="17" y2="12"/><line x1="7" y1="16" x2="17" y2="16"/>
-                    </svg>
-                    <div>
-                        <div class="fw-bold text-dark small">${doc.name}</div>
-                        <div class="text-muted" style="font-size:11px;">${doc.help_text || 'Official credential'}</div>
-                    </div>
-                </div>
-                <div class="vng-tile-check">✓</div>
-            </div>
-        `;
-        container.appendChild(col);
+        selectEl.appendChild(opt);
     });
 
-    updateWizardDocGuidance();
+    if (!matchedSelected && docs.length > 0) {
+        selectEl.selectedIndex = 0;
+        selectedDocCode = docs[0].code;
+        selectedDocName = docs[0].name;
+    }
+
+    onDocTypeSelectChange();
+}
+
+function onDocTypeSelectChange() {
+    const selectEl = document.getElementById('id_type_select');
+    if (!selectEl) return;
+
+    const selectedOpt = selectEl.options[selectEl.selectedIndex];
+    if (!selectedOpt) return;
+
+    selectedDocCode = selectedOpt.value;
+    selectedDocName = selectedOpt.textContent;
+
+    const hiddenDoc = document.getElementById('wizard_id_type');
+    if (hiddenDoc) hiddenDoc.value = selectedDocCode;
+
+    const placeholder = selectedOpt.dataset.placeholder || 'Enter ID number';
+    const helpText = selectedOpt.dataset.helpText || 'Enter your official identification number.';
+
+    const idInput = document.getElementById('id_number_input');
+    const idHelp = document.getElementById('id_number_help');
+    const idLabel = document.getElementById('id_number_label');
+    const docHelp = document.getElementById('selectedDocHelpText');
+
+    if (idInput && placeholder) idInput.placeholder = placeholder;
+    if (idHelp && helpText) idHelp.textContent = helpText;
+    if (idLabel) idLabel.innerHTML = `${selectedDocName} Number <span class="text-danger">*</span>`;
+    if (docHelp) docHelp.textContent = helpText || 'Official government-issued identity credential.';
 }
 
 function selectWizardDocType(code, name, placeholder, helpText) {
     selectedDocCode = code;
     selectedDocName = name;
-
-    const hiddenDoc = document.getElementById('wizard_id_type');
-    if (hiddenDoc) hiddenDoc.value = code;
-
-    document.querySelectorAll('.vng-doc-tile').forEach(t => t.classList.remove('vng-tile-active'));
-    event?.currentTarget?.classList.add('vng-tile-active');
-
-    const idInput = document.getElementById('id_number_input');
-    const idHelp = document.getElementById('id_number_help');
-    const idLabel = document.getElementById('id_number_label');
-
-    if (idInput && placeholder) idInput.placeholder = placeholder;
-    if (idHelp && helpText) idHelp.textContent = helpText;
-    if (idLabel) idLabel.innerHTML = `${name} <span class="text-danger">*</span>`;
+    const selectEl = document.getElementById('id_type_select');
+    if (selectEl) {
+        selectEl.value = code;
+    }
+    onDocTypeSelectChange();
 }
 
 function updateWizardDocGuidance() {
-    const cCode = selectedCountryCode || 'NG';
-    if (countryDocsMap[cCode]) {
-        const doc = countryDocsMap[cCode].documents.find(d => d.code === selectedDocCode);
-        if (doc) {
-            const idInput = document.getElementById('id_number_input');
-            const idHelp = document.getElementById('id_number_help');
-            const idLabel = document.getElementById('id_number_label');
-            if (idInput) idInput.placeholder = doc.placeholder || 'Enter ID number';
-            if (idHelp) idHelp.textContent = doc.help_text || '';
-            if (idLabel) idLabel.innerHTML = `${doc.name} <span class="text-danger">*</span>`;
-        }
-    }
+    onDocTypeSelectChange();
 }
 
 /* ── Step 5: Camera Document Capture ── */
