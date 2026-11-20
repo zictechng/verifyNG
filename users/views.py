@@ -407,7 +407,7 @@ class VerifyAccountView(LoginRequiredMixin, View):
         if selected_method not in ('government_id', 'alternative'):
             selected_method = ''
 
-        is_email_verified = getattr(user, 'is_email_verified', False) or bool(request.session.get('vng_verified_email'))
+        is_email_verified = bool(getattr(user, 'email_verified', False)) or (bool(request.session.get('vng_verified_email')) and request.session.get('vng_verified_email') == getattr(user, 'email', None))
         is_phone_verified = getattr(user, 'phone_verified', False) or bool(request.session.get('vng_verified_phone'))
         user_phone = getattr(user, 'phone_number', '') or request.session.get('vng_verified_phone', '')
 

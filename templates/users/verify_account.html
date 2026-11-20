@@ -4,6 +4,9 @@
 {% block title %}Verify Account | {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
 
 {% block content %}
+{# Top Toast for smooth, non-intrusive feedback #}
+<div id="wizardGlobalToast" class="alert d-none position-fixed top-0 start-50 translate-middle-x mt-4 shadow-lg py-2.5 px-4 rounded-pill" style="z-index:99999;font-size:14px;max-width:90%;"></div>
+
 <div class="container py-4 py-md-5">
     <div class="row">
 
@@ -92,7 +95,7 @@
                             <div>
                                 <div class="d-flex align-items-center justify-content-between mb-3">
                                     <div class="vng-method-icon rounded-3 d-inline-flex align-items-center justify-content-center flex-shrink-0"
-                                         style="width:44px;height:44px;background:#EFF6FF;color:#2563EB;">
+                                         style="width:42px;height:42px;background:#EFF6FF;color:#2563EB;">
                                         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                             <rect x="3" y="4" width="18" height="16" rx="3"/>
                                             <circle cx="9" cy="10" r="2"/>
@@ -101,28 +104,28 @@
                                     </div>
                                     <div>
                                         {% if user_profile.identity_verified or user_profile.id_verification_status == 'verified' %}
-                                            <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 rounded-pill fw-semibold" style="font-size:13.5px;">✓ Verified</span>
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 rounded-pill fw-semibold" style="font-size:12px;">✓ Verified</span>
                                         {% elif user_profile.id_verification_status == 'pending' or user_profile.has_id_document and user_profile.id_verification_status != 'rejected' %}
-                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1 rounded-pill fw-semibold" style="font-size:13.5px;">Under Review</span>
+                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1 rounded-pill fw-semibold" style="font-size:12px;">Under Review</span>
                                         {% else %}
-                                            <span class="badge bg-primary text-white px-2.5 py-1 rounded-pill fw-semibold" style="font-size:13.5px;">Recommended</span>
+                                            <span class="badge rounded-pill fw-semibold" style="background:#0D6EFD;color:#ffffff;font-size:12px;padding:5px 14px;">Recommended</span>
                                         {% endif %}
                                     </div>
                                 </div>
 
                                 <h3 class="h6 fw-bold mb-2 text-dark" style="font-size:16px;">Government Identity Document</h3>
                                 <p class="text-muted small mb-0" style="font-size:13.5px;line-height:1.55;color:#475569;">
-                                    Verify your account using an official physical or digital government document (NIN Slip, Voter's Card, International Passport, or Driver's License).
+                                    Verify your account using an official government ID of your country (NIN Slip, Voter's Card, Passport, or Driver's License).
                                 </p>
                             </div>
 
-                            <div class="pt-3 mt-4 border-top d-flex align-items-center justify-content-between">
-                                <span class="small text-muted fw-medium" style="font-size:12.5px;">Physical Government Proof</span>
+                            <div class="pt-3 mt-4 d-flex align-items-center justify-content-between">
+                                <span class="small fw-medium" style="font-size:13px;color:#334155;">Physical Government Proof</span>
                                 <span class="vng-method-status-pill {% if selected_method == 'government_id' %}vng-status-active{% else %}vng-status-idle{% endif %}">
                                     {% if selected_method == 'government_id' %}
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" class="me-1"><polyline points="20 6 9 17 4 12"/></svg> Selected
+                                        ✓ Selected
                                     {% else %}
-                                        <span class="vng-radio-empty-circle me-1.5"></span> Select Method
+                                        Select Method &rarr;
                                     {% endif %}
                                 </span>
                             </div>
@@ -136,35 +139,35 @@
                             <div>
                                 <div class="d-flex align-items-center justify-content-between mb-3">
                                     <div class="vng-method-icon rounded-3 d-inline-flex align-items-center justify-content-center flex-shrink-0"
-                                         style="width:44px;height:44px;background:#F8FAFC;color:#64748B;border:1px solid #E2E8F0;">
+                                         style="width:42px;height:42px;background:#F0FDF4;color:#16A34A;border:1px solid #DCFCE7;">
                                         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                                         </svg>
                                     </div>
                                     <div>
                                         {% if has_approved_path_b %}
-                                            <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 rounded-pill fw-semibold" style="font-size:11.5px;">✓ Community Approved</span>
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 rounded-pill fw-semibold" style="font-size:12px;">✓ Community Approved</span>
                                         {% elif has_pending_path_b %}
-                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1 rounded-pill fw-semibold" style="font-size:11.5px;">Under Review</span>
+                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1 rounded-pill fw-semibold" style="font-size:12px;">Under Review</span>
                                         {% else %}
-                                            <span class="badge bg-light text-secondary border px-2.5 py-1 rounded-pill fw-semibold" style="font-size:11.5px;">No Government ID Needed</span>
+                                            <span class="badge rounded-pill fw-medium" style="background:#F8FAFC;border:1px solid #E2E8F0;color:#64748B;font-size:12px;padding:5px 12px;">No ID Required</span>
                                         {% endif %}
                                     </div>
                                 </div>
 
                                 <h3 class="h6 fw-bold mb-2 text-dark" style="font-size:16px;">Alternative Person Verification</h3>
                                 <p class="text-muted small mb-0" style="font-size:13.5px;line-height:1.55;color:#475569;">
-                                    Establish genuine personhood to verify your account via a live selfie handwritten note challenge and residential address.
+                                    Establish genuine personhood to verify your account without an official government ID card to unlock the platform services .
                                 </p>
                             </div>
 
-                            <div class="pt-3 mt-4 border-top d-flex align-items-center justify-content-between">
-                                <span class="small text-muted fw-medium" style="font-size:12.5px;">Live Selfie &bull; Personhood</span>
+                            <div class="pt-3 mt-4 d-flex align-items-center justify-content-between">
+                                <span class="small fw-medium" style="font-size:13px;color:#334155;">Live Selfie &bull; Personhood</span>
                                 <span class="vng-method-status-pill {% if selected_method == 'alternative' %}vng-status-active{% else %}vng-status-idle{% endif %}">
                                     {% if selected_method == 'alternative' %}
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" class="me-1"><polyline points="20 6 9 17 4 12"/></svg> Selected
+                                        ✓ Selected
                                     {% else %}
-                                        <span class="vng-radio-empty-circle me-1.5"></span> Select Method
+                                        Select Method &rarr;
                                     {% endif %}
                                 </span>
                             </div>
@@ -377,20 +380,23 @@
                                     </div>
                                 </div>
 
-                                <div class="card border rounded-3 p-3 p-sm-4 mb-3" style="background:#F8FAFC;">
+                                <div class="vng-wizard-card mb-3" style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:24px 20px !important;">
                                     <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
                                         <div>
                                             <div class="small text-muted fw-semibold mb-0.5" style="font-size:11.5px;">REGISTERED ACCOUNT EMAIL</div>
                                             <div class="fw-bold text-dark" style="font-size:16px;">{{ request.user.email }}</div>
                                         </div>
-                                        <div id="emailVerifiedBadgeWrap">
+                                        <div id="emailVerifiedBadgeWrap" class="d-flex align-items-center gap-2">
                                             {% if is_email_verified %}
                                                 <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1.5 rounded-pill fw-semibold" style="font-size:12px;">
                                                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" class="me-1"><polyline points="20 6 9 17 4 12"/></svg>
                                                     Email Address Confirmed
                                                 </span>
+                                                <button type="button" class="btn btn-sm btn-link text-muted text-decoration-none p-0 small" style="font-size:11.5px;" onclick="sendEmailOtp()">
+                                                    (Re-verify)
+                                                </button>
                                             {% else %}
-                                                <button type="button" id="btnSendEmailCode" class="btn btn-sm btn-outline-primary fw-semibold" onclick="sendEmailOtp()">
+                                                <button type="button" id="btnSendEmailCode" class="btn btn-sm btn-primary fw-semibold px-3" onclick="sendEmailOtp()">
                                                     Send 6-Digit Email Code
                                                 </button>
                                             {% endif %}
@@ -404,12 +410,15 @@
                                         </div>
                                         <div class="d-flex align-items-center gap-2 flex-wrap">
                                             <input type="text" id="wizardEmailOtpCode" maxlength="6" class="form-control font-monospace text-center fw-bold"
-                                                   placeholder="Enter OTP Code" style="max-width: 160px; font-size: 16px; letter-spacing: 4px;">
+                                                   placeholder="Enter OTP Code" style="max-width: 260px; font-size: 16px; letter-spacing: 4px;">
                                             <button type="button" class="btn btn-sm btn-primary fw-semibold px-3" onclick="verifyEmailOtp()">
                                                 Verify Email Code
                                             </button>
                                         </div>
                                     </div>
+
+                                    {# Inline feedback container for email OTP #}
+                                    <div id="emailOtpAlert" class="alert d-none py-2 px-3 small rounded-3 mt-3 mb-0" role="alert"></div>
                                 </div>
 
                                 <div class="d-flex align-items-center justify-content-end pt-3 border-top">
@@ -438,7 +447,7 @@
                                     </div>
                                 </div>
 
-                                <div class="card border rounded-3 p-3 p-sm-4 mb-3" style="background:#F8FAFC;">
+                                <div class="vng-wizard-card mb-3" style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:24px 20px !important;">
                                     <label class="form-label small fw-semibold text-dark">Mobile Phone Number <span class="text-danger">*</span></label>
                                     <div class="input-group mb-2" style="max-width: 420px;">
                                         <span class="input-group-text bg-white text-muted">
@@ -479,6 +488,9 @@
                                             Code valid for 10 minutes.
                                         </div>
                                     </div>
+
+                                    {# Inline feedback container for phone OTP #}
+                                    <div id="phoneOtpAlert" class="alert d-none py-2 px-3 small rounded-3 mt-3 mb-0" role="alert"></div>
                                 </div>
 
                                 <div class="d-flex align-items-center justify-content-between pt-3 border-top flex-wrap gap-2">
@@ -561,7 +573,7 @@
                                 </div>
 
                                 {# Document Type Dropdown & ID Number Card #}
-                                <div class="card border rounded-3 p-3 p-sm-4 mb-3" style="background:#F8FAFC;">
+                                <div class="vng-wizard-card mb-3" style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:24px 20px !important;">
                                     {# Document Type Select Dropdown #}
                                     <div class="mb-3">
                                         <label class="form-label small fw-semibold text-dark" for="id_type_select">
@@ -588,6 +600,9 @@
                                             <div id="id_number_help" class="form-text small mt-1 text-muted">Enter your official identification number.</div>
                                         </div>
                                     </div>
+
+                                    {# Inline feedback container for document validation #}
+                                    <div id="docValidationAlert" class="alert d-none py-2 px-3 small rounded-3 mt-3 mb-0" role="alert"></div>
                                 </div>
 
                                 <div class="d-flex align-items-center justify-content-between pt-3 border-top flex-wrap gap-2">
@@ -621,7 +636,7 @@
                                 </div>
 
                                 {# Live Viewfinder / Capture Box #}
-                                <div class="card border rounded-3 p-3 p-sm-4 mb-3 text-center" style="background:#0F172A; color:#FFFFFF;">
+                                <div class="vng-camera-card mb-3 text-center" style="background:#0F172A;color:#FFFFFF;border:1px solid #1E293B;border-radius:12px;padding:24px 20px !important;">
                                     {# Live video feed #}
                                     <div id="idCameraViewWrap" class="position-relative mx-auto mb-3 overflow-hidden rounded-3" style="max-width: 520px; background:#000000; min-height: 240px;">
                                         <video id="idCameraVideo" autoplay playsinline muted class="w-100 h-100 d-none" style="object-fit: cover; max-height: 320px;"></video>
@@ -664,6 +679,9 @@
                                             Switch Camera
                                         </button>
                                     </div>
+
+                                    {# Inline feedback container for Step 5 #}
+                                    <div id="idCameraAlert" class="alert d-none py-2 px-3 small rounded-3 mt-3 mb-0" role="alert"></div>
                                 </div>
 
                                 {# Fallback File Upload / Browse Dropzone #}
@@ -710,7 +728,7 @@
                                 </div>
 
                                 {# Selfie Viewfinder Card #}
-                                <div class="card border rounded-3 p-3 p-sm-4 mb-3 text-center" style="background:#0F172A; color:#FFFFFF;">
+                                <div class="vng-camera-card mb-3 text-center" style="background:#0F172A;color:#FFFFFF;border:1px solid #1E293B;border-radius:12px;padding:24px 20px !important;">
                                     <div id="selfieCameraViewWrap" class="position-relative mx-auto mb-3 overflow-hidden rounded-3" style="max-width: 420px; background:#000000; min-height: 280px;">
                                         <video id="selfieCameraVideo" autoplay playsinline muted class="w-100 h-100 d-none" style="object-fit: cover; max-height: 320px;"></video>
                                         <canvas id="selfieCaptureCanvas" class="d-none"></canvas>
@@ -749,6 +767,9 @@
                                             Retake Selfie
                                         </button>
                                     </div>
+
+                                    {# Inline feedback container for Step 6 #}
+                                    <div id="selfieCameraAlert" class="alert d-none py-2 px-3 small rounded-3 mt-3 mb-0" role="alert"></div>
                                 </div>
 
                                 {# Fallback Selfie Upload #}
@@ -796,7 +817,7 @@
                                 </div>
 
                                 {# Comprehensive Review Summary Table / Card #}
-                                <div class="card border rounded-3 p-3 p-sm-4 mb-3" style="background:#F8FAFC;">
+                                <div class="vng-wizard-card mb-3" style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:24px 20px !important;">
                                     <div class="row g-3">
                                         {# Item 1: Email #}
                                         <div class="col-sm-6 border-bottom pb-2">
@@ -1089,7 +1110,33 @@
 </div>
 
 <style>
-/* ── Spacing Utility Fallback ── */
+/* ── Wizard Step Cards & Spacing (Ensures generous padding everywhere) ── */
+.vng-wizard-card {
+    background: #F8FAFC !important;
+    border: 1px solid #E2E8F0 !important;
+    border-radius: 12px !important;
+    padding: 1.5rem !important;
+    margin-bottom: 1rem !important;
+}
+@media (max-width: 576px) {
+    .vng-wizard-card {
+        padding: 1.25rem 1rem !important;
+    }
+}
+.vng-camera-card {
+    background: #0F172A !important;
+    color: #FFFFFF !important;
+    border: 1px solid #1E293B !important;
+    border-radius: 12px !important;
+    padding: 1.5rem !important;
+    margin-bottom: 1rem !important;
+}
+@media (max-width: 576px) {
+    .vng-camera-card {
+        padding: 1.25rem 1rem !important;
+    }
+}
+
 .p-3\.5 {
     padding: 1.25rem !important;
 }
@@ -1127,17 +1174,17 @@
 .vng-method-status-pill {
     font-size: 13px;
     font-weight: 500;
-    color: #475569;
+    color: #334155;
     display: inline-flex;
     align-items: center;
     transition: all 0.15s ease;
 }
 .vng-status-active {
-    color: #2563EB !important;
-    font-weight: 600;
+    color: #1E293B !important;
+    font-weight: 600 !important;
 }
 .vng-status-idle {
-    color: #64748B !important;
+    color: #475569 !important;
 }
 .vng-method-card:hover .vng-status-idle {
     color: #0F172A !important;
@@ -1330,10 +1377,10 @@ function updateMethodRadio(card, isSelected) {
     if (pill) {
         if (isSelected) {
             pill.className = 'vng-method-status-pill vng-status-active';
-            pill.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" class="me-1"><polyline points="20 6 9 17 4 12"/></svg> Selected';
+            pill.innerHTML = '✓ Selected';
         } else {
             pill.className = 'vng-method-status-pill vng-status-idle';
-            pill.innerHTML = '<span class="vng-radio-empty-circle me-1.5"></span> Select Method';
+            pill.innerHTML = 'Select Method &rarr;';
         }
     }
 }
@@ -1384,6 +1431,27 @@ let isPhoneVerified = {% if is_phone_verified %}true{% else %}false{% endif %};
 function getCsrfToken() {
     const el = document.querySelector('[name=csrfmiddlewaretoken]');
     return el ? el.value : '';
+}
+
+function showWizardNotice(msg, type = 'danger', inlineElementId = null) {
+    if (inlineElementId) {
+        const el = document.getElementById(inlineElementId);
+        if (el) {
+            el.className = `alert alert-${type === 'success' ? 'success' : 'danger'} py-2 px-3 small rounded-3 mt-3 mb-0 d-block`;
+            el.innerHTML = (type === 'success' ? '✓ ' : '⚠️ ') + msg;
+            el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            return;
+        }
+    }
+    const toast = document.getElementById('wizardGlobalToast');
+    if (toast) {
+        toast.className = `alert alert-${type === 'success' ? 'success' : 'danger'} position-fixed top-0 start-50 translate-middle-x mt-4 shadow-lg py-2.5 px-4 rounded-pill d-block`;
+        toast.innerHTML = (type === 'success' ? '✓ ' : '⚠️ ') + msg;
+        clearTimeout(window._wizardToastTimer);
+        window._wizardToastTimer = setTimeout(() => {
+            toast.className = 'alert d-none';
+        }, 5000);
+    }
 }
 
 function wizardShowStep(stepNum) {
@@ -1478,7 +1546,7 @@ function wizardNextStep(current) {
         const phoneInput = document.getElementById('wizardPhoneInput');
         const phoneVal = phoneInput ? phoneInput.value.trim() : '';
         if (!phoneVal) {
-            alert('Please enter your mobile phone number with international country code.');
+            showWizardNotice('Please enter your mobile phone number with international country code.', 'danger', 'phoneOtpAlert');
             phoneInput?.focus();
             return;
         }
@@ -1493,7 +1561,7 @@ function wizardNextStep(current) {
         const idNumInput = document.getElementById('id_number_input');
         const idNumVal = idNumInput ? idNumInput.value.trim() : '';
         if (!idNumVal) {
-            alert('Please enter your identification document number.');
+            showWizardNotice('Please enter your identification document number.', 'danger', 'docValidationAlert');
             idNumInput?.focus();
             return;
         }
@@ -1509,7 +1577,7 @@ function wizardNextStep(current) {
         const hasExisting = {% if user_profile.has_id_document %}true{% else %}false{% endif %};
 
         if (!hasFile && !hasCaptured && !hasExisting) {
-            alert('Please capture a clear photo of your ID document or upload a document file.');
+            showWizardNotice('Please capture a clear photo of your ID document or upload a document file.', 'danger', 'idCameraAlert');
             return;
         }
     } else if (current === 6) {
@@ -1520,7 +1588,7 @@ function wizardNextStep(current) {
         const hasExistingSelfie = {% if has_selfie %}true{% else %}false{% endif %};
 
         if (!hasSelfieFile && !hasCapturedSelfie && !hasExistingSelfie) {
-            alert('Please complete the live selfie exercise or upload a selfie photograph.');
+            showWizardNotice('Please complete the live selfie exercise or upload a selfie photograph.', 'danger', 'selfieCameraAlert');
             return;
         }
     }
@@ -1556,16 +1624,17 @@ function sendEmailOtp() {
         if (msgEl) {
             msgEl.textContent = data.message || 'Confirmation code sent to your inbox.';
             if (data.dev_code) {
-                msgEl.innerHTML = `${data.message} <span class="badge bg-light text-dark border">Test Code: <strong>${data.dev_code}</strong></span>`;
+                msgEl.innerHTML = `${data.message}`;
             }
         }
+        showWizardNotice(data.message || 'Confirmation code sent to your inbox. Please check spam/promotions folder if not in inbox.', 'success', 'emailOtpAlert');
     })
     .catch(() => {
         if (btn) {
             btn.disabled = false;
             btn.textContent = 'Send 6-Digit Email Code';
         }
-        alert('Could not dispatch email verification code. Please try again.');
+        showWizardNotice('Could not dispatch email verification code. Please try again.', 'danger', 'emailOtpAlert');
     });
 }
 
@@ -1573,7 +1642,7 @@ function verifyEmailOtp() {
     const codeInput = document.getElementById('wizardEmailOtpCode');
     const code = codeInput ? codeInput.value.trim() : '';
     if (!code || code.length < 6) {
-        alert('Please enter the 6-digit confirmation code from your email.');
+        showWizardNotice('Please enter the 6-digit confirmation code from your email.', 'danger', 'emailOtpAlert');
         codeInput?.focus();
         return;
     }
@@ -1601,13 +1670,13 @@ function verifyEmailOtp() {
             }
             const block = document.getElementById('emailOtpInputBlock');
             if (block) block.classList.add('d-none');
-            alert('Email verified successfully!');
+            showWizardNotice('Email address verified successfully!', 'success', 'emailOtpAlert');
         } else {
-            alert(data.message || 'Invalid code. Please try again.');
+            showWizardNotice(data.message || 'Invalid code. Please check your inbox and try again.', 'danger', 'emailOtpAlert');
         }
     })
     .catch(() => {
-        alert('Verification request failed. Please check connection and try again.');
+        showWizardNotice('Verification request failed. Please check connection and try again.', 'danger', 'emailOtpAlert');
     });
 }
 
@@ -1616,7 +1685,7 @@ function sendPhoneOtp(channel) {
     const phoneInput = document.getElementById('wizardPhoneInput');
     const phone = phoneInput ? phoneInput.value.trim() : '';
     if (!phone || phone.length < 8) {
-        alert('Please enter a valid mobile number with country code (e.g. +234 801 234 5678).');
+        showWizardNotice('Please enter a valid mobile number with country code (e.g. +234 801 234 5678).', 'danger', 'phoneOtpAlert');
         phoneInput?.focus();
         return;
     }
@@ -1648,12 +1717,13 @@ function sendPhoneOtp(channel) {
                 notice.innerHTML = `${data.message} <span class="badge bg-light text-dark border">Test Code: <strong>${data.dev_code}</strong></span>`;
             }
         }
+        showWizardNotice(data.message || 'Verification code dispatched to your phone.', 'success', 'phoneOtpAlert');
         startPhoneResendTimer();
     })
     .catch(() => {
         if (waBtn) waBtn.disabled = false;
         if (smsBtn) smsBtn.disabled = false;
-        alert('Could not dispatch phone verification code. Please check number and try again.');
+        showWizardNotice('Could not dispatch phone verification code. Please check number and try again.', 'danger', 'phoneOtpAlert');
     });
 }
 
@@ -1678,7 +1748,7 @@ function verifyPhoneOtp() {
     const phone = phoneInput ? phoneInput.value.trim() : '';
 
     if (!code || code.length < 6) {
-        alert('Please enter the 6-digit verification code.');
+        showWizardNotice('Please enter the 6-digit verification code.', 'danger', 'phoneOtpAlert');
         codeInput?.focus();
         return;
     }
@@ -1704,13 +1774,13 @@ function verifyPhoneOtp() {
             if (badge) badge.classList.remove('d-none');
             const block = document.getElementById('phoneOtpInputBlock');
             if (block) block.classList.add('d-none');
-            alert(data.message || 'Phone verified successfully!');
+            showWizardNotice(data.message || 'Phone number verified successfully!', 'success', 'phoneOtpAlert');
         } else {
-            alert(data.message || 'Invalid code. Please try again.');
+            showWizardNotice(data.message || 'Invalid code. Please try again.', 'danger', 'phoneOtpAlert');
         }
     })
     .catch(() => {
-        alert('Verification request failed. Please check connection and try again.');
+        showWizardNotice('Verification request failed. Please check connection and try again.', 'danger', 'phoneOtpAlert');
     });
 }
 
@@ -1844,7 +1914,7 @@ async function startIdCamera() {
         if (btnTake) btnTake.classList.remove('d-none');
         if (btnSwitch) btnSwitch.classList.remove('d-none');
     } catch (err) {
-        alert('Could not open camera. Please ensure camera permissions are allowed, or use the file upload option below.');
+        showWizardNotice('Could not open camera. Please ensure camera permissions are allowed, or use the file upload option below.', 'danger', 'idCameraAlert');
     }
 }
 
@@ -1936,7 +2006,7 @@ async function startSelfieCamera() {
         if (btnStart) btnStart.classList.add('d-none');
         if (btnTake) btnTake.classList.remove('d-none');
     } catch (err) {
-        alert('Could not open front camera. Please ensure permissions are allowed or upload a selfie file.');
+        showWizardNotice('Could not open front camera. Please ensure permissions are allowed or upload a selfie file.', 'danger', 'selfieCameraAlert');
     }
 }
 

@@ -215,8 +215,9 @@ def verify_phone_otp(session, user, entered_code: str, phone_input: str) -> Tupl
     if phone and expected_phone and phone != expected_phone:
         return False, "The phone number does not match the number the code was sent to."
 
-    clean_code = str(entered_code).strip()
-    if clean_code != str(otp_data.get('code', '')):
+    clean_code = str(entered_code).strip().replace(' ', '').replace('-', '')
+    expected_code = str(otp_data.get('code', '')).strip().replace(' ', '').replace('-', '')
+    if clean_code != expected_code:
         if hasattr(session, 'modified'):
             session.modified = True
         return False, "Invalid verification code. Please check your messages and try again."
@@ -325,8 +326,9 @@ def verify_email_otp(session, user, entered_code: str) -> Tuple[bool, str]:
             session.modified = True
         return False, "Too many failed attempts. Please request a new verification code."
 
-    clean_code = str(entered_code).strip()
-    if clean_code != str(otp_data.get('code', '')):
+    clean_code = str(entered_code).strip().replace(' ', '').replace('-', '')
+    expected_code = str(otp_data.get('code', '')).strip().replace(' ', '').replace('-', '')
+    if clean_code != expected_code:
         if hasattr(session, 'modified'):
             session.modified = True
         return False, "Invalid email verification code. Please check your inbox and try again."
