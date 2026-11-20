@@ -110,7 +110,7 @@
                 <div class="fw-semibold" style="color:#1E40AF;">Identity Document Under Compliance Review</div>
                 <div class="small" style="color:#1E40AF;">
                     Your official identity credentials are under review by our compliance team.
-                    <a href="{% url 'users:profile' %}" style="color:#1E40AF;font-weight:600;text-decoration:underline;">View submission status &rarr;</a>
+                    <a href="{% url 'users:verify_account' %}" style="color:#1E40AF;font-weight:600;text-decoration:underline;">View submission status &rarr;</a>
                 </div>
             </div>
         </div>
@@ -124,7 +124,7 @@
                 <div class="fw-semibold" style="color:#991B1B;">Identity Verification Declined</div>
                 <div class="small" style="color:#991B1B;">
                     {{ request.user.id_rejection_reason|default:"Your credentials could not be authenticated." }}
-                    <a href="{% url 'users:profile' %}" style="color:#991B1B;font-weight:600;text-decoration:underline;">Upload updated ID proof &rarr;</a>
+                    <a href="{% url 'users:verify_account' %}" style="color:#991B1B;font-weight:600;text-decoration:underline;">Upload updated ID proof &rarr;</a>
                 </div>
             </div>
         </div>
@@ -139,7 +139,7 @@
                 <div class="fw-semibold" style="color:#92400E;">Account verification required</div>
                 <div class="small" style="color:#92400E;">
                     Verify your account on your
-                    <a href="{% url 'users:profile' %}" style="color:#92400E;font-weight:600;text-decoration:underline;">profile page</a>
+                    <a href="{% url 'users:verify_account' %}" style="color:#92400E;font-weight:600;text-decoration:underline;">verification page</a>
                     to activate your profile and unlock platform services.
                 </div>
             </div>
@@ -253,7 +253,7 @@
                             <div class="small text-muted d-flex align-items-center gap-2 mt-1"><span>Account type:</span> <span class="badge bg-secondary">{{ request.user.get_role_display|default:"Individual" }}</span></div>
                         </div>
                     </div>
-                    <a href="{% url 'users:profile' %}" class="btn btn-vng-outline btn-sm w-100 mb-2">
+                    <a href="{% url 'users:verify_account' %}" class="btn btn-vng-outline btn-sm w-100 mb-2">
                         View Submission Status &rarr;
                     </a>
                 {% elif request.user.id_verification_status == 'rejected' %}
@@ -268,7 +268,7 @@
                             <div class="small text-muted d-flex align-items-center gap-2 mt-1"><span>Account type:</span> <span class="badge bg-secondary">{{ request.user.get_role_display|default:"Individual" }}</span></div>
                         </div>
                     </div>
-                    <a href="{% url 'users:profile' %}" class="btn btn-vng-outline btn-sm w-100 mb-2">
+                    <a href="{% url 'users:verify_account' %}" class="btn btn-vng-outline btn-sm w-100 mb-2">
                         Resubmit ID Document &rarr;
                     </a>
                 {% else %}
@@ -283,7 +283,7 @@
                             <div class="small text-muted d-flex align-items-center gap-2 mt-1"><span>Account type:</span> <span class="badge bg-secondary">{{ request.user.get_role_display|default:"Individual" }}</span></div>
                         </div>
                     </div>
-                    <a href="{% url 'users:profile' %}" class="btn btn-vng-outline btn-sm w-100 mb-2">
+                    <a href="{% url 'users:verify_account' %}" class="btn btn-vng-outline btn-sm w-100 mb-2">
                         Start Verification &rarr;
                     </a>
                 {% endif %}

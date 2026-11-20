@@ -1,0 +1,858 @@
+{% extends 'public/base.html' %}
+{% load static %}
+
+{% block title %}Verify Account | {{ site_config.site_name|default:"VerifyNG" }}{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-md-5">
+    <div class="row">
+
+        {% with active_section='verify_account' %}
+        {% include 'users/_sidebar.html' %}
+        {% endwith %}
+
+        <div class="col-lg-9 col-md-8">
+            {# ── Page Header ── #}
+            <div class="mb-4">
+                <nav aria-label="breadcrumb" class="mb-2">
+                    <ol class="breadcrumb small mb-0">
+                        <li class="breadcrumb-item"><a href="{% url 'users:profile' %}" class="text-decoration-none text-muted">Account</a></li>
+                        <li class="breadcrumb-item active" aria-current="page" style="color:var(--vng-ink);">Verify Account</li>
+                    </ol>
+                </nav>
+                <h1 class="h4 fw-bold mb-1" style="color:var(--vng-ink);">Verify Account</h1>
+                <p class="small text-muted mb-0">Select your preferred verification method to activate your profile and unlock platform services.</p>
+            </div>
+
+            {# ── Overall Account Status Overview Banner ── #}
+            {% if user_profile.identity_verified or user_profile.id_verification_status == 'verified' or has_approved_path_b %}
+            <div class="alert d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4 p-3.5"
+                 style="background:#ECFDF5;border:1px solid #A7F3D0;border-radius:12px;">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-circle p-2 d-inline-flex align-items-center justify-content-center flex-shrink-0" style="background:#D1FAE5;color:#059669;width:38px;height:38px;">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    </div>
+                    <div>
+                        <div class="fw-bold text-success" style="font-size:14.5px;">Account Verified &bull; Active Access</div>
+                        <div class="small text-muted" style="font-size:13px;">
+                            {% if user_profile.identity_verified or user_profile.id_verification_status == 'verified' %}
+                                Official Government Identity verified ({{ user_profile.get_id_type_display|default:"National ID" }}). Community reporting and official credentials unlocked.
+                            {% elif has_approved_path_b %}
+                                Alternative Personhood verified. Community scam and fraud reporting unlocked.
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <span class="badge bg-success text-white px-3 py-1.5 rounded-pill" style="font-size:12px;">Active &amp; Verified</span>
+            </div>
+            {% elif user_profile.id_verification_status == 'pending' or has_pending_path_b %}
+            <div class="alert d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4 p-3.5"
+                 style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:12px;">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-circle p-2 d-inline-flex align-items-center justify-content-center flex-shrink-0" style="background:#DBEAFE;color:#2563EB;width:38px;height:38px;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    </div>
+                    <div>
+                        <div class="fw-bold text-primary" style="font-size:14.5px;">Verification Under Compliance Review</div>
+                        <div class="small text-muted" style="font-size:13px;">Your submitted credentials are currently undergoing compliance vetting. Platform services will activate upon approval.</div>
+                    </div>
+                </div>
+                <span class="badge bg-primary text-white px-3 py-1.5 rounded-pill" style="font-size:12px;">Under Review</span>
+            </div>
+            {% elif user_profile.id_verification_status == 'rejected' and not has_approved_path_b %}
+            <div class="alert d-flex align-items-start gap-3 mb-4 p-3.5"
+                 style="background:#FEF2F2;border:1px solid #FECACA;border-radius:12px;">
+                <div class="rounded-circle p-2 d-inline-flex align-items-center justify-content-center flex-shrink-0 mt-0.5" style="background:#FEE2E2;color:#DC2626;width:36px;height:36px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                </div>
+                <div>
+                    <div class="fw-bold text-danger" style="font-size:14.5px;">Previous Verification Declined</div>
+                    <div class="small text-danger mt-0.5" style="font-size:13px;">
+                        Reason: {{ user_profile.id_rejection_reason|default:"Your credentials could not be authenticated against compliance standards." }}
+                    </div>
+                    <div class="small text-muted mt-1" style="font-size:12.5px;">Please review the guidance below, upload a clear document, or choose the Alternative Personhood option.</div>
+                </div>
+            </div>
+            {% endif %}
+
+            {# ── Method Selection Cards ── #}
+            <div class="mb-4">
+                <div class="small fw-bold text-uppercase text-muted letter-spacing-1 mb-2.5" style="font-size:11.5px;">Choose Verification Method</div>
+                <div class="row g-3">
+                    {# Option 1: Government Identity Document #}
+                    <div class="col-md-6">
+                        <div class="vng-method-card p-3.5 h-100 d-flex flex-column justify-content-between position-relative cursor-pointer transition-all {% if selected_method == 'government_id' %}vng-method-active{% endif %}"
+                             id="methodCardGovId" onclick="selectVerificationMethod('government_id')">
+                            <div>
+                                <div class="d-flex align-items-center justify-content-between mb-2.5">
+                                    <div class="vng-method-icon rounded-3 d-inline-flex align-items-center justify-content-center"
+                                         style="width:40px;height:40px;background:#EFF6FF;color:#2563EB;">
+                                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <rect x="3" y="4" width="18" height="16" rx="3"/>
+                                            <circle cx="9" cy="10" r="2"/>
+                                            <line x1="15" y1="8" x2="17" y2="8"/><line x1="15" y1="12" x2="17" y2="12"/><line x1="7" y1="16" x2="17" y2="16"/>
+                                        </svg>
+                                    </div>
+                                    {% if user_profile.identity_verified or user_profile.id_verification_status == 'verified' %}
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 rounded-pill" style="font-size:11px;">✓ Verified Citizen</span>
+                                    {% elif user_profile.id_verification_status == 'pending' or user_profile.has_id_document and user_profile.id_verification_status != 'rejected' %}
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1 rounded-pill" style="font-size:11px;">Under Review</span>
+                                    {% else %}
+                                        <span class="badge bg-primary-subtle text-primary px-2.5 py-1 rounded-pill" style="font-size:11px;font-weight:600;">Recommended</span>
+                                    {% endif %}
+                                </div>
+                                <h3 class="h6 fw-bold mb-1 text-dark" style="font-size:15.5px;">Government Identity Document</h3>
+                                <p class="text-muted small mb-3" style="font-size:13px;line-height:1.45;">
+                                    Verify your identity using an official physical or digital government document (NIN Slip, Voter's Card, International Passport, or Driver's License).
+                                </p>
+                            </div>
+                            <div class="pt-2 border-top d-flex align-items-center justify-content-between">
+                                <span class="small text-muted" style="font-size:12px;">Physical Government Proof</span>
+                                <span class="vng-method-select-btn small fw-semibold {% if selected_method == 'government_id' %}text-primary{% else %}text-muted{% endif %}">
+                                    <span class="vng-method-radio me-1">{% if selected_method == 'government_id' %}●{% else %}○{% endif %}</span> Select Method
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {# Option 2: Alternative Personhood Verification #}
+                    <div class="col-md-6">
+                        <div class="vng-method-card p-3.5 h-100 d-flex flex-column justify-content-between position-relative cursor-pointer transition-all {% if selected_method == 'alternative' %}vng-method-active{% endif %}"
+                             id="methodCardAlternative" onclick="selectVerificationMethod('alternative')">
+                            <div>
+                                <div class="d-flex align-items-center justify-content-between mb-2.5">
+                                    <div class="vng-method-icon rounded-3 d-inline-flex align-items-center justify-content-center"
+                                         style="width:40px;height:40px;background:#F8FAFC;color:#475569;border:1px solid #E2E8F0;">
+                                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                                        </svg>
+                                    </div>
+                                    {% if has_approved_path_b %}
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 rounded-pill" style="font-size:11px;">✓ Community Approved</span>
+                                    {% elif has_pending_path_b %}
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1 rounded-pill" style="font-size:11px;">Under Review</span>
+                                    {% else %}
+                                        <span class="badge bg-light text-secondary border px-2.5 py-1 rounded-pill" style="font-size:11px;">No Government ID Needed</span>
+                                    {% endif %}
+                                </div>
+                                <h3 class="h6 fw-bold mb-1 text-dark" style="font-size:15.5px;">Alternative Person Verification</h3>
+                                <p class="text-muted small mb-3" style="font-size:13px;line-height:1.45;">
+                                    Establish genuine personhood to publish community scam and fraud reports via a live selfie handwritten note challenge and residential address.
+                                </p>
+                            </div>
+                            <div class="pt-2 border-top d-flex align-items-center justify-content-between">
+                                <span class="small text-muted" style="font-size:12px;">Live Selfie &bull; Personhood</span>
+                                <span class="vng-method-select-btn small fw-semibold {% if selected_method == 'alternative' %}text-primary{% else %}text-muted{% endif %}">
+                                    <span class="vng-method-radio me-1">{% if selected_method == 'alternative' %}●{% else %}○{% endif %}</span> Select Method
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {# ── Initial Guidance Prompt When No Method is Selected ── #}
+            <div id="noMethodSelectedPrompt" class="{% if selected_method %}d-none{% endif %} mb-4">
+                <div class="vng-card p-4 text-center" style="border: 2px dashed #CBD5E1; background: #F8FAFC; border-radius: 14px;">
+                    <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3" style="width: 52px; height: 52px; background: #EFF6FF; color: #2563EB;">
+                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="4" width="18" height="16" rx="3"/>
+                            <path d="M12 9v6m-3-3h6"/>
+                        </svg>
+                    </div>
+                    <h2 class="h6 fw-bold text-dark mb-1" style="font-size: 16px;">Select a Verification Method to Begin</h2>
+                    <p class="small text-muted mb-0" style="max-width: 500px; margin: 0 auto; font-size: 13.5px; line-height: 1.5;">
+                        Please choose one of the two options above: <strong>Government Identity Document</strong> (for official citizen status and clearance certificates) or <strong>Alternative Person Verification</strong> (for community fraud reporting without an ID document).
+                    </p>
+                </div>
+            </div>
+
+            {# ══════════════════════════════════════════════════════════════════════ #}
+            {# SECTION 1: GOVERNMENT IDENTITY VERIFICATION FORM (Option 1)          #}
+            {# ══════════════════════════════════════════════════════════════════════ #}
+            <div id="methodGovIdContainer" class="{% if selected_method != 'government_id' %}d-none{% endif %}">
+                <div class="vng-card p-3 p-sm-4 mb-4" style="border-radius:14px;border:1px solid #e2e8f0;background:#ffffff;box-shadow:0 4px 14px rgba(15,23,42,0.03);">
+                    <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-3 flex-wrap gap-2">
+                        <div>
+                            <div class="fw-bold text-dark d-flex align-items-center gap-2" style="font-size:16px;">
+                                Government Identity Document Verification
+                            </div>
+                            <div class="small text-muted">Official identity verification for verified citizen status and clearance certificates.</div>
+                        </div>
+                        {% if user_profile.identity_verified or user_profile.id_verification_status == 'verified' %}
+                            <span class="badge bg-success px-2.5 py-1.5"><span class="dot"></span>Verified Individual</span>
+                        {% elif user_profile.id_verification_status == 'pending' or user_profile.has_id_document and user_profile.id_verification_status != 'rejected' %}
+                            <span class="badge bg-primary px-2.5 py-1.5"><span class="dot"></span>Under Compliance Review</span>
+                        {% elif user_profile.id_verification_status == 'rejected' %}
+                            <span class="badge bg-danger px-2.5 py-1.5"><span class="dot"></span>Verification Declined</span>
+                        {% else %}
+                            <span class="badge bg-warning text-dark px-2.5 py-1.5"><span class="dot"></span>Unverified</span>
+                        {% endif %}
+                    </div>
+
+                    {# ── State 1: Verified ── #}
+                    {% if user_profile.identity_verified or user_profile.id_verification_status == 'verified' %}
+                        <div class="d-flex align-items-start gap-3 p-3.5 rounded-3 mb-3" style="background:#ECFDF5;border:1px solid #BBF7D0;">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.2" class="flex-shrink-0 mt-0.5">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                                <polyline points="9 12 11 14 15 10" stroke-width="2.5"/>
+                            </svg>
+                            <div class="flex-grow-1">
+                                <div class="fw-bold text-success" style="font-size:15px;">Identity Confirmed &bull; NDPR Verified</div>
+                                <div class="small text-muted mt-1">
+                                    Verified via <strong>{{ user_profile.get_id_type_display|default:"Government Identity" }}</strong>
+                                    {% if user_profile.masked_id_number %}&bull; <span class="font-monospace text-dark fw-semibold">{{ user_profile.masked_id_number }}</span>{% endif %}
+                                    {% if user_profile.id_verified_at %}&bull; Verified on {{ user_profile.id_verified_at|date:"d M Y" }}{% endif %}
+                                </div>
+                                <div class="d-flex align-items-center gap-2 mt-2 pt-2 border-top border-success-subtle flex-wrap">
+                                    <span class="small text-muted">🔒 Legal name is permanently locked to verified government identity.</span>
+                                </div>
+                            </div>
+                        </div>
+
+                    {# ── State 2: Under Review ── #}
+                    {% elif user_profile.id_verification_status == 'pending' or user_profile.has_id_document and user_profile.id_verification_status != 'rejected' %}
+                        <div class="p-3.5 rounded-3 mb-3" style="background:#EFF6FF;border:1px solid #BFDBFE;">
+                            <div class="d-flex align-items-start justify-content-between gap-3">
+                                <div class="d-flex align-items-start gap-3">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2" class="flex-shrink-0 mt-0.5">
+                                        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                                    </svg>
+                                    <div>
+                                        <div class="fw-bold text-primary" style="font-size:14.5px;">Document Submitted &bull; Compliance Review in Progress</div>
+                                        <div class="small text-muted mt-0.5">
+                                            Submitted: <strong>{{ user_profile.get_id_type_display|default:"Government ID" }}</strong>
+                                            {% if user_profile.masked_id_number %}(<span class="font-monospace">{{ user_profile.masked_id_number }}</span>){% endif %}
+                                            {% if user_profile.id_submitted_at %}&bull; {{ user_profile.id_submitted_at|timesince }} ago{% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    {% if user_profile.has_id_document %}
+                                    <a href="{% url 'users:id_document_preview' %}" target="_blank" class="btn btn-sm btn-outline-primary fw-semibold" style="font-size:12px;">
+                                        View Uploaded ID
+                                    </a>
+                                    {% endif %}
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="toggleResubmitBtn" onclick="toggleIdResubmitForm()" style="font-size:12px;">
+                                        Update Proof
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                    {# ── State 3: Declined ── #}
+                    {% elif user_profile.id_verification_status == 'rejected' %}
+                        <div class="p-3.5 rounded-3 mb-3" style="background:#FEF2F2;border:1px solid #FCA5A5;">
+                            <div class="d-flex align-items-start gap-3">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2" class="flex-shrink-0 mt-0.5">
+                                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                                </svg>
+                                <div>
+                                    <div class="fw-bold text-danger" style="font-size:14.5px;">Verification Proof Declined</div>
+                                    <div class="small text-dark mt-0.5">
+                                        {{ user_profile.id_rejection_reason|default:"The submitted identity document could not be authenticated. Please ensure the document is clear, valid, and uncropped." }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    {# ── State 4: Unverified Initial Prompt ── #}
+                    {% else %}
+                        <div class="d-flex align-items-start gap-3 mb-3 p-3 rounded-3" style="background:#FFFBEB;border:1px solid #FDE68A;">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" class="flex-shrink-0 mt-0.5">
+                                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                            </svg>
+                            <div>
+                                <div class="fw-semibold text-dark" style="font-size:14.5px;">Government Credentials Required</div>
+                                <div class="small text-muted">
+                                    Provide your official government identity document to activate verified status and submit community reports.
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    {# ── Government ID Form Container ── #}
+                    {% if not user_profile.identity_verified and user_profile.id_verification_status != 'verified' %}
+                    <div id="idVerificationFormWrap" class="{% if user_profile.id_verification_status == 'pending' or user_profile.has_id_document and user_profile.id_verification_status != 'rejected' %}d-none{% endif %} pt-3 border-top mt-3">
+                        <form method="post" action="{% url 'users:verify_identity_submit' %}" enctype="multipart/form-data" id="identityVerificationForm" novalidate>
+                            {% csrf_token %}
+
+                            <div class="row g-3 mb-3">
+                                <div class="col-sm-4">
+                                    <label class="form-label small fw-semibold">Document-Issuing Country <span class="text-danger">*</span></label>
+                                    <select name="issuing_country" id="issuing_country_select" class="form-select" style="font-size:15px;">
+                                        {% for c_code, c_name in supported_countries %}
+                                            <option value="{{ c_code }}" {% if default_issuing_country == c_code %}selected{% endif %}>{{ c_name }} ({{ c_code }})</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-sm-4">
+                                    <label class="form-label small fw-semibold">Government Document Type <span class="text-danger">*</span></label>
+                                    <select name="id_type" id="id_type_select" class="form-select" required style="font-size:15px;">
+                                        <option value="nin" {% if user_profile.id_type == 'nin' or not user_profile.id_type %}selected{% endif %}>National Identity Number (NIN)</option>
+                                        <option value="voters_card" {% if user_profile.id_type == 'voters_card' %}selected{% endif %}>Permanent Voter's Card (PVC)</option>
+                                        <option value="passport" {% if user_profile.id_type == 'passport' %}selected{% endif %}>International Passport</option>
+                                        <option value="drivers_license" {% if user_profile.id_type == 'drivers_license' %}selected{% endif %}>Driver's License (FRSC)</option>
+                                    </select>
+                                </div>
+                                <div class="col-sm-4">
+                                    <label class="form-label small fw-semibold" id="id_number_label">Identification Number <span class="text-danger">*</span></label>
+                                    <input type="text" name="id_number" id="id_number_input" class="form-control font-monospace"
+                                           value="{{ user_profile.id_number }}" required placeholder="Enter 11-digit NIN" style="font-size:15px;">
+                                    <div id="id_number_help" class="form-text small">Enter your 11-digit National Identity Number.</div>
+                                </div>
+                            </div>
+
+                            {# Dropzone Box #}
+                            <div class="mb-3">
+                                <label class="form-label small fw-semibold d-flex justify-content-between align-items-center">
+                                    <span>Upload Identification Document Proof <span class="text-danger">*</span></span>
+                                    <span class="badge bg-light text-secondary border fw-normal">PDF, JPG, PNG &bull; Max 5MB</span>
+                                </label>
+
+                                <div id="idDropzone" class="vng-dropzone" tabindex="0" role="button" aria-label="Upload identification document">
+                                    <input type="file" name="id_document" id="idDocumentInput" accept=".pdf,.png,.jpg,.jpeg" class="d-none">
+
+                                    {# Idle state #}
+                                    <div id="idDropzoneIdle">
+                                        <div class="vng-dropzone-icon mb-2">
+                                            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="1.8">
+                                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                                <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                                            </svg>
+                                        </div>
+                                        <div class="fw-semibold text-dark small mb-1">
+                                            Drag &amp; drop your ID card or slip here, or <span class="text-primary text-decoration-underline">browse files</span>
+                                        </div>
+                                        <div class="text-muted" style="font-size:0.75rem;">
+                                            Attach a clear, uncropped photo or scan of your physical ID card or digital slip (PDF, JPG, PNG &bull; Max 5MB)
+                                        </div>
+                                    </div>
+
+                                    {# Preview state #}
+                                    <div id="idDropzonePreview" class="d-none">
+                                        <div class="d-inline-flex align-items-center gap-3 p-3 bg-white border rounded-3 shadow-sm text-start" style="max-width:100%;">
+                                            <div id="idPreviewIconWrap" class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+                                                 style="width:40px;height:40px;background:#EFF6FF;color:#2563EB;">
+                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                            </div>
+                                            <div class="overflow-hidden">
+                                                <div id="idPreviewFileName" class="fw-semibold text-truncate small text-dark" style="max-width:240px;">id_document.pdf</div>
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <span id="idPreviewFileSize" class="text-muted" style="font-size:0.75rem;">1.2 MB</span>
+                                                    <span class="badge bg-success-subtle text-success border border-success-subtle fw-normal" style="font-size:0.7rem;">Ready</span>
+                                                </div>
+                                            </div>
+                                            <div class="d-flex align-items-center gap-1 ms-2">
+                                                <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-2" id="btnChangeIdFile" title="Choose another file" style="font-size:0.75rem;">
+                                                    Change
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-outline-danger py-1 px-2" id="btnRemoveIdFile" title="Remove file" style="font-size:0.75rem;">
+                                                    &times;
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div id="idDropzoneError" class="text-danger small mt-2 fw-semibold d-none"></div>
+                            </div>
+
+                            <div class="d-flex justify-content-between align-items-center pt-2">
+                                <span class="small text-muted" style="font-size:12px;">🔒 Regulated NDPR compliant identity handling.</span>
+                                <button type="button" id="openIdConfirmBtn" class="btn btn-vng-primary btn-vng-sm px-4">
+                                    Submit Identity for Verification
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            {# ══════════════════════════════════════════════════════════════════════ #}
+            {# SECTION 2: ALTERNATIVE PERSON VERIFICATION FORM (Option 2)           #}
+            {# ══════════════════════════════════════════════════════════════════════ #}
+            <div id="methodAlternativeContainer" class="{% if selected_method != 'alternative' %}d-none{% endif %}">
+                <div class="vng-card p-3 p-sm-4 mb-4" style="border-radius:14px;border:1px solid #e2e8f0;background:#ffffff;box-shadow:0 4px 14px rgba(15,23,42,0.03);">
+                    <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-3 flex-wrap gap-2">
+                        <div>
+                            <div class="fw-bold text-dark d-flex align-items-center gap-2" style="font-size:16px;">
+                                Alternative Person Verification
+                                <span class="badge bg-light text-secondary border fw-normal" style="font-size:11.5px;">No Government ID Required</span>
+                            </div>
+                            <div class="small text-muted">Confirm genuine live personhood to unlock community scam and fraud reporting without an official government identity document.</div>
+                        </div>
+                        {% if has_approved_path_b %}
+                            <span class="badge bg-success px-2.5 py-1.5"><span class="dot"></span>Approved Community Reporter</span>
+                        {% elif has_pending_path_b %}
+                            <span class="badge bg-primary px-2.5 py-1.5"><span class="dot"></span>Under Compliance Review</span>
+                        {% else %}
+                            <span class="badge bg-warning text-dark px-2.5 py-1.5"><span class="dot"></span>Not Enrolled</span>
+                        {% endif %}
+                    </div>
+
+                    {# ── Path B Status Banners ── #}
+                    {% if has_approved_path_b %}
+                        <div class="d-flex align-items-start gap-3 p-3.5 rounded-3 mb-3" style="background:#ECFDF5;border:1px solid #A7F3D0;">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" class="flex-shrink-0 mt-0.5">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+                            </svg>
+                            <div>
+                                <div class="fw-bold text-success" style="font-size:15px;">Approved Community Reporter Standing Active</div>
+                                <div class="small text-muted mt-0.5">
+                                    Your live personhood challenge has been approved by compliance. You are authorized to submit community fraud and misconduct reports.
+                                </div>
+                            </div>
+                        </div>
+                    {% elif has_pending_path_b %}
+                        <div class="d-flex align-items-start gap-3 p-3.5 rounded-3 mb-3" style="background:#EFF6FF;border:1px solid #BFDBFE;">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2" class="flex-shrink-0 mt-0.5">
+                                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                            </svg>
+                            <div>
+                                <div class="fw-bold text-primary" style="font-size:14.5px;">Alternative Verification Under Review</div>
+                                <div class="small text-muted mt-0.5">
+                                    Your selfie challenge and residential declaration are queued for compliance review.
+                                    {% if latest_path_b and latest_path_b.created_at %}Submitted {{ latest_path_b.created_at|timesince }} ago.{% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    {# ── Previous Submissions History ── #}
+                    {% if path_b_submissions %}
+                    <div class="mb-4">
+                        <div class="small fw-bold text-muted text-uppercase mb-2" style="font-size:11.5px;">Submission History</div>
+                        <div class="list-group list-group-flush border rounded-3 overflow-hidden">
+                            {% for sub in path_b_submissions %}
+                            <div class="list-group-item d-flex align-items-center justify-content-between p-3 flex-wrap gap-2">
+                                <div>
+                                    <div class="fw-semibold text-dark small">{{ sub.get_evidence_type_display }} &bull; {{ sub.get_residential_country_display }}</div>
+                                    <div class="text-muted" style="font-size:12px;">Submitted on {{ sub.created_at|date:"d M Y, H:i" }}</div>
+                                    {% if sub.status == 'rejected' and sub.rejection_reason %}
+                                    <div class="small text-danger mt-1">Rejection Reason: {{ sub.rejection_reason }}</div>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    {% if sub.status == 'approved' %}
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 rounded-pill">Approved</span>
+                                    {% elif sub.status == 'pending' %}
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1 rounded-pill">Pending Review</span>
+                                    {% elif sub.status == 'rejected' %}
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2.5 py-1 rounded-pill">Rejected</span>
+                                    {% elif sub.status == 'revoked' %}
+                                        <span class="badge bg-secondary-subtle text-secondary border px-2.5 py-1 rounded-pill">Revoked</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {# ── Path B Submission Form ── #}
+                    {% if not has_approved_path_b and not has_pending_path_b %}
+                    <div class="pt-2">
+                        <div class="alert alert-light border d-flex align-items-start gap-3 p-3 rounded-3 mb-3">
+                            <span style="font-size:18px;">📝</span>
+                            <div class="small text-muted" style="font-size:13px;">
+                                <strong>Challenge Requirement:</strong> Take a clear photo of yourself holding a handwritten piece of paper with your <strong>Full Name, Today's Date, and the word "VerifyNG"</strong>. This confirms live personhood without requiring a national passport or ID card.
+                            </div>
+                        </div>
+
+                        <form method="post" action="{% url 'users:verify_alternative_submit' %}" enctype="multipart/form-data" novalidate>
+                            {% csrf_token %}
+
+                            <div class="row g-3 mb-3">
+                                <div class="col-sm-6">
+                                    <label class="form-label small fw-semibold">Verification Challenge Format <span class="text-danger">*</span></label>
+                                    <select name="evidence_type" class="form-select" required style="font-size:15px;">
+                                        <option value="selfie_card" selected>Selfie with Handwritten Verification Card</option>
+                                    </select>
+                                </div>
+                                <div class="col-sm-6">
+                                    <label class="form-label small fw-semibold">Country of Physical Residence <span class="text-danger">*</span></label>
+                                    <select name="residential_country" class="form-select" required style="font-size:15px;">
+                                        {% for c_code, c_name in supported_countries %}
+                                            <option value="{{ c_code }}" {% if default_issuing_country == c_code or c_code == 'NG' %}selected{% endif %}>{{ c_name }} ({{ c_code }})</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label small fw-semibold">Physical Residential Address <span class="text-danger">*</span></label>
+                                <textarea name="residential_address" class="form-control" rows="2" placeholder="Enter your full street address, landmark, city, and state" required style="font-size:15px;"></textarea>
+                            </div>
+
+                            <div class="row g-3 mb-3">
+                                <div class="col-sm-6">
+                                    <label class="form-label small fw-semibold d-flex justify-content-between align-items-center">
+                                        <span>Upload Selfie Challenge Photo <span class="text-danger">*</span></span>
+                                        <span class="badge bg-light text-secondary border fw-normal">JPG, PNG &bull; Max 5MB</span>
+                                    </label>
+                                    <input type="file" name="selfie_image" accept=".jpg,.jpeg,.png,.webp" class="form-control" required>
+                                    <div class="form-text small">Your face and the handwritten card must both be sharp and clearly legible.</div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <label class="form-label small fw-semibold d-flex justify-content-between align-items-center">
+                                        <span>Supporting Document <span class="text-muted fw-normal">(Optional)</span></span>
+                                        <span class="badge bg-light text-secondary border fw-normal">PDF, JPG &bull; Max 5MB</span>
+                                    </label>
+                                    <input type="file" name="supporting_document" accept=".pdf,.jpg,.jpeg,.png" class="form-control">
+                                    <div class="form-text small">Utility bill, employment letter, or community reference proof (optional).</div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label small fw-semibold">Personal Declaration Statement <span class="text-danger">*</span></label>
+                                <textarea name="declaration_statement" class="form-control" rows="3" placeholder="I solemnly declare that my identity, address, and personhood details submitted here are truthful and accurate. I understand that submitting false credentials will result in permanent account termination." required minlength="20" style="font-size:15px;"></textarea>
+                                <div class="form-text small">Minimum 20 characters required confirming the truthfulness of your submission.</div>
+                            </div>
+
+                            <div class="d-flex justify-content-between align-items-center pt-2">
+                                <span class="small text-muted" style="font-size:12px;">🔒 Stored in restricted private evidence vault with zero public access.</span>
+                                <button type="submit" class="btn btn-outline-dark btn-sm px-4 fw-semibold">
+                                    Submit Alternative Verification
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+{# ── Confirm Government ID Submission Modal ── #}
+<div class="modal fade" id="idConfirmModal" tabindex="-1" aria-labelledby="idConfirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow" style="border-radius:14px;">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="idConfirmModalLabel" style="font-size:1.1rem;">Confirm Identity Document Submission</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body pt-2">
+                <p class="text-muted small mb-3">
+                    Please review your identification details before submitting. Once verified, your legal name will be bound to your account profile.
+                </p>
+                <div class="bg-light p-3 rounded-3 mb-3 small">
+                    <div class="row g-2">
+                        <div class="col-5 text-muted">Issuing Country:</div>
+                        <div class="col-7 fw-semibold text-dark" id="modalConfirmCountry">—</div>
+                        <div class="col-5 text-muted">Document Type:</div>
+                        <div class="col-7 fw-semibold text-dark" id="modalConfirmDocType">—</div>
+                        <div class="col-5 text-muted">Document Number:</div>
+                        <div class="col-7 fw-semibold font-monospace text-dark" id="modalConfirmNumber">—</div>
+                        <div class="col-5 text-muted">Attached File:</div>
+                        <div class="col-7 fw-semibold text-truncate text-dark" id="modalConfirmFile">—</div>
+                    </div>
+                </div>
+                <div class="form-check small text-muted">
+                    <input class="form-check-input" type="checkbox" id="modalConfirmCertify" required>
+                    <label class="form-check-label" for="modalConfirmCertify">
+                        I certify that this government document belongs to me and all details are accurate.
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-sm btn-light px-3" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" id="confirmSubmitBtn" class="btn btn-sm btn-primary px-4 fw-semibold" disabled>
+                    Confirm &amp; Submit
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.vng-method-card {
+    background: #ffffff;
+    border: 1.5px solid #E2E8F0;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(15,23,42,0.03);
+    cursor: pointer;
+    transition: all 0.18s ease;
+}
+.vng-method-card:hover {
+    border-color: #CBD5E1;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(15,23,42,0.06);
+}
+.vng-method-card.vng-method-active {
+    border-color: var(--vng-primary, #2563EB) !important;
+    background: #F8FAFC !important;
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.12), 0 4px 12px rgba(37,99,235,0.08) !important;
+}
+.vng-method-active .vng-method-select-btn {
+    color: var(--vng-primary, #2563EB) !important;
+    font-weight: 700;
+}
+.vng-dropzone {
+    border: 2px dashed #CBD5E1;
+    border-radius: 10px;
+    padding: 24px 16px;
+    text-align: center;
+    background: #FAFAFA;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.vng-dropzone:hover, .vng-dropzone.dragover {
+    border-color: #2563EB;
+    background: #EFF6FF;
+}
+.dot {
+    width: 6px; height: 6px;
+    display: inline-block;
+    border-radius: 50%;
+    background: currentColor;
+    margin-right: 5px;
+    vertical-align: middle;
+}
+</style>
+
+<script>
+function selectVerificationMethod(method) {
+    const cardGov = document.getElementById('methodCardGovId');
+    const cardAlt = document.getElementById('methodCardAlternative');
+    const containerGov = document.getElementById('methodGovIdContainer');
+    const containerAlt = document.getElementById('methodAlternativeContainer');
+    const promptNoMethod = document.getElementById('noMethodSelectedPrompt');
+
+    if (promptNoMethod) {
+        promptNoMethod.classList.add('d-none');
+    }
+
+    if (method === 'alternative') {
+        cardGov.classList.remove('vng-method-active');
+        cardAlt.classList.add('vng-method-active');
+        containerGov.classList.add('d-none');
+        containerAlt.classList.remove('d-none');
+        updateMethodRadio(cardGov, false);
+        updateMethodRadio(cardAlt, true);
+        window.history.replaceState(null, '', '?method=alternative');
+    } else {
+        cardAlt.classList.remove('vng-method-active');
+        cardGov.classList.add('vng-method-active');
+        containerAlt.classList.add('d-none');
+        containerGov.classList.remove('d-none');
+        updateMethodRadio(cardGov, true);
+        updateMethodRadio(cardAlt, false);
+        window.history.replaceState(null, '', '?method=government_id');
+    }
+}
+
+function updateMethodRadio(card, isSelected) {
+    const radioSpan = card.querySelector('.vng-method-radio');
+    const selectBtn = card.querySelector('.vng-method-select-btn');
+    if (radioSpan) {
+        radioSpan.textContent = isSelected ? '●' : '○';
+    }
+    if (selectBtn) {
+        if (isSelected) {
+            selectBtn.classList.add('text-primary');
+            selectBtn.classList.remove('text-muted');
+        } else {
+            selectBtn.classList.remove('text-primary');
+            selectBtn.classList.add('text-muted');
+        }
+    }
+}
+
+function toggleIdResubmitForm() {
+    const wrap = document.getElementById('idVerificationFormWrap');
+    const btn = document.getElementById('toggleResubmitBtn');
+    if (wrap) {
+        wrap.classList.toggle('d-none');
+        if (btn) {
+            btn.textContent = wrap.classList.contains('d-none') ? 'Update Proof' : 'Cancel';
+        }
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Dynamic country documents mapping
+    let countryDocsMap = {};
+    try {
+        countryDocsMap = JSON.parse('{{ country_documents_json|default:"{}"|escapejs }}');
+    } catch (e) {
+        countryDocsMap = {};
+    }
+
+    const countrySelect = document.getElementById('issuing_country_select');
+    const docSelect = document.getElementById('id_type_select');
+    const idInput = document.getElementById('id_number_input');
+    const idLabel = document.getElementById('id_number_label');
+    const idHelp = document.getElementById('id_number_help');
+
+    function updateDocumentsForCountry(countryCode, preserveSelectedVal) {
+        if (!docSelect || !countryDocsMap[countryCode]) return;
+        const docs = countryDocsMap[countryCode].documents;
+        const currentVal = preserveSelectedVal || docSelect.value;
+        docSelect.innerHTML = '';
+        docs.forEach(function (d) {
+            const opt = document.createElement('option');
+            opt.value = d.code;
+            opt.textContent = d.name;
+            if (d.code === currentVal) opt.selected = true;
+            docSelect.appendChild(opt);
+        });
+        updateInputGuidance();
+    }
+
+    function updateInputGuidance() {
+        if (!docSelect || !idInput) return;
+        const cCode = countrySelect ? (countrySelect.value || 'NG') : 'NG';
+        const docCode = docSelect.value;
+        if (countryDocsMap[cCode]) {
+            const doc = countryDocsMap[cCode].documents.find(function (d) { return d.code === docCode; });
+            if (doc) {
+                idInput.placeholder = doc.placeholder || 'Enter ID number';
+                if (idHelp) idHelp.textContent = doc.help_text || '';
+                if (idLabel) idLabel.innerHTML = doc.name + ' <span class="text-danger">*</span>';
+                return;
+            }
+        }
+        idInput.placeholder = 'Enter ID number';
+        if (idHelp) idHelp.textContent = '';
+        if (idLabel) idLabel.innerHTML = 'Identification Number <span class="text-danger">*</span>';
+    }
+
+    if (countrySelect) {
+        countrySelect.addEventListener('change', function () {
+            updateDocumentsForCountry(countrySelect.value);
+        });
+        if (countryDocsMap[countrySelect.value]) {
+            updateDocumentsForCountry(countrySelect.value, '{{ user_profile.id_type|default:"" }}');
+        }
+    }
+    if (docSelect) {
+        docSelect.addEventListener('change', updateInputGuidance);
+    }
+    // Dropzone logic
+    const dropzone = document.getElementById('idDropzone');
+    const fileInput = document.getElementById('idDocumentInput');
+    const idleState = document.getElementById('idDropzoneIdle');
+    const previewState = document.getElementById('idDropzonePreview');
+    const fileNameEl = document.getElementById('idPreviewFileName');
+    const fileSizeEl = document.getElementById('idPreviewFileSize');
+    const errorEl = document.getElementById('idDropzoneError');
+    const btnChange = document.getElementById('btnChangeIdFile');
+    const btnRemove = document.getElementById('btnRemoveIdFile');
+
+    if (dropzone && fileInput) {
+        dropzone.addEventListener('click', function(e) {
+            if (e.target !== btnChange && e.target !== btnRemove && !btnChange?.contains(e.target) && !btnRemove?.contains(e.target)) {
+                fileInput.click();
+            }
+        });
+
+        dropzone.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            dropzone.classList.add('dragover');
+        });
+        dropzone.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            dropzone.classList.remove('dragover');
+        });
+        dropzone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            dropzone.classList.remove('dragover');
+            if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                handleFileSelect(e.dataTransfer.files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', function() {
+            if (fileInput.files && fileInput.files[0]) {
+                handleFileSelect(fileInput.files[0]);
+            }
+        });
+
+        btnChange?.addEventListener('click', function(e) {
+            e.stopPropagation();
+            fileInput.click();
+        });
+
+        btnRemove?.addEventListener('click', function(e) {
+            e.stopPropagation();
+            fileInput.value = '';
+            idleState?.classList.remove('d-none');
+            previewState?.classList.add('d-none');
+            errorEl?.classList.add('d-none');
+        });
+    }
+
+    function handleFileSelect(file) {
+        const allowedExts = ['.pdf', '.jpg', '.jpeg', '.png'];
+        const ext = '.' + file.name.split('.').pop().toLowerCase();
+        if (!allowedExts.includes(ext)) {
+            if (errorEl) {
+                errorEl.textContent = 'Invalid file type. Please upload a PDF, JPG, or PNG document.';
+                errorEl.classList.remove('d-none');
+            }
+            return;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            if (errorEl) {
+                errorEl.textContent = 'File exceeds the 5MB size limit. Please upload a smaller file.';
+                errorEl.classList.remove('d-none');
+            }
+            return;
+        }
+        if (errorEl) errorEl.classList.add('d-none');
+        if (fileNameEl) fileNameEl.textContent = file.name;
+        if (fileSizeEl) fileSizeEl.textContent = (file.size / (1024 * 1024)).toFixed(1) + ' MB';
+        idleState?.classList.add('d-none');
+        previewState?.classList.remove('d-none');
+    }
+
+    // Modal Confirmation logic
+    const openConfirmBtn = document.getElementById('openIdConfirmBtn');
+    const certifyCheckbox = document.getElementById('modalConfirmCertify');
+    const confirmSubmitBtn = document.getElementById('confirmSubmitBtn');
+    const form = document.getElementById('identityVerificationForm');
+
+    openConfirmBtn?.addEventListener('click', function() {
+        const countrySelect = document.getElementById('issuing_country_select');
+        const docSelect = document.getElementById('id_type_select');
+        const idInput = document.getElementById('id_number_input');
+
+        if (!idInput || !idInput.value.trim()) {
+            alert('Please enter your identification number.');
+            idInput?.focus();
+            return;
+        }
+
+        const countryText = countrySelect ? countrySelect.options[countrySelect.selectedIndex].text : '—';
+        const docText = docSelect ? docSelect.options[docSelect.selectedIndex].text : '—';
+        const fileText = (fileInput && fileInput.files[0]) ? fileInput.files[0].name : '{% if user_profile.has_id_document %}Existing uploaded document{% else %}No file selected{% endif %}';
+
+        document.getElementById('modalConfirmCountry').textContent = countryText;
+        document.getElementById('modalConfirmDocType').textContent = docText;
+        document.getElementById('modalConfirmNumber').textContent = idInput.value.trim();
+        document.getElementById('modalConfirmFile').textContent = fileText;
+
+        if (certifyCheckbox) certifyCheckbox.checked = false;
+        if (confirmSubmitBtn) confirmSubmitBtn.disabled = true;
+
+        const modalEl = document.getElementById('idConfirmModal');
+        if (modalEl && window.bootstrap) {
+            const modal = new bootstrap.Modal(modalEl);
+            modal.show();
+        }
+    });
+
+    certifyCheckbox?.addEventListener('change', function() {
+        if (confirmSubmitBtn) confirmSubmitBtn.disabled = !this.checked;
+    });
+
+    confirmSubmitBtn?.addEventListener('click', function() {
+        if (form) form.submit();
+    });
+});
+</script>
+{% endblock %}

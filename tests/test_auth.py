@@ -26,8 +26,15 @@ def make_user(username='testuser', password='StrongPass123!', email='test@exampl
         password=password,
     )
     if identity_verified:
+        from django.utils import timezone
         user.identity_verified = True
-        user.save(update_fields=['identity_verified'])
+        user.can_publish_reports = True
+        user.id_verification_status = 'verified'
+        user.id_type = 'nin'
+        user.id_number = '12345678901'
+        user.id_document = 'identity_documents/test_id.pdf'
+        user.id_verified_at = timezone.now()
+        user.save()
     return user
 
 

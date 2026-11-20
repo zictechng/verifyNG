@@ -355,6 +355,70 @@ class AccountHubView(LoginRequiredMixin, TemplateView):
         ctx['employer_profile'] = employer_profile
         return ctx
 
+class VerifyAccountView(LoginRequiredMixin, View):
+    """
+    Dedicated view for Account Verification.
+    Allows user to select between Government ID Verification (Option 1) and
+    Alternative Person Verification (Option 2) before displaying the submission form.
+    """
+    template_name = 'users/verify_account.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            from core.permissions import is_admin_or_subadmin
+            if is_admin_or_subadmin(request.user):
+                return redirect('admin_portal:profile')
+        return super().dispatch(request, *args, **kwargs)
+
+    def get(self, request):
+        user = request.user
+        import json
+        from users.country_config import get_supported_countries, _REGISTRY, DEFAULT_COUNTRY
+
+        supported_countries = get_supported_countries()
+        default_issuing_country = getattr(user, 'country', None) or DEFAULT_COUNTRY
+
+        country_docs = {}
+        for code, mod in _REGISTRY.items():
+            country_docs[code] = {
+                "name": mod.COUNTRY_NAME,
+                "documents": [
+                    {
+                        "code": d["code"],
+                        "name": d["name"],
+                        "placeholder": d.get("placeholder", ""),
+                        "help_text": d.get("help_text", ""),
+                    }
+                    for d in mod.ACCEPTED_DOCUMENTS.values()
+                ]
+            }
+        country_documents_json = json.dumps(country_docs)
+
+        path_b_submissions = user.alternative_verification_submissions.all()
+        has_approved_path_b = path_b_submissions.filter(status='approved').exists()
+        has_pending_path_b = path_b_submissions.filter(status='pending').exists()
+        from users.forms import PathBAlternativeVerificationForm
+        path_b_form = PathBAlternativeVerificationForm()
+
+        selected_method = request.GET.get('method', '').strip().lower()
+        if selected_method not in ('government_id', 'alternative'):
+            selected_method = ''
+
+        return render(request, self.template_name, {
+            'user_profile': user,
+            'supported_countries': supported_countries,
+            'default_issuing_country': default_issuing_country,
+            'country_documents_json': country_documents_json,
+            'path_b_submissions': path_b_submissions,
+            'latest_path_b': path_b_submissions.first(),
+            'has_approved_path_b': has_approved_path_b,
+            'has_pending_path_b': has_pending_path_b,
+            'path_b_form': path_b_form,
+            'selected_method': selected_method,
+            'active_section': 'verify_account',
+        })
+
+
 class UserProfileUpdateView(LoginRequiredMixin, View):
     """
     Allows authenticated users to update first_name, last_name, and email.
@@ -364,6 +428,8 @@ class UserProfileUpdateView(LoginRequiredMixin, View):
 
     def dispatch(self, request, *args, **kwargs):
         if request.user.is_authenticated:
+            if request.GET.get('tab') in ('verification', 'verify'):
+                return redirect('users:verify_account')
             from core.permissions import is_admin_or_subadmin
             if is_admin_or_subadmin(request.user):
                 return redirect('admin_portal:profile')
@@ -540,6 +606,7 @@ class UserIdentityVerificationSubmitView(LoginRequiredMixin, View):
     """Handles submission of personal government ID verification credentials."""
     def post(self, request):
         user = request.user
+        redirect_url = reverse('users:verify_account') + '?method=government_id'
         id_type = request.POST.get('id_type', '').strip().lower()
         id_number = request.POST.get('id_number', '').strip()
         issuing_country = request.POST.get('issuing_country', '').strip().upper()
@@ -554,12 +621,12 @@ class UserIdentityVerificationSubmitView(LoginRequiredMixin, View):
                 "A Bank Verification Number (BVN) is a financial identifier and cannot be accepted as a photo identity document. "
                 "Please provide a recognized government photo ID (NIN Slip/Card, International Passport, Driver's License, or Voter's Card)."
             )
-            return redirect('users:profile')
+            return redirect(redirect_url)
 
         from users.country_config import validate_document_number, is_country_supported
         if not is_country_supported(issuing_country):
             messages.error(request, f"Document-issuing country '{issuing_country}' is not currently supported for identity verification.")
-            return redirect('users:profile')
+            return redirect(redirect_url)
 
         is_valid, validation_result = validate_document_number(
             issuing_country=issuing_country,
@@ -568,7 +635,7 @@ class UserIdentityVerificationSubmitView(LoginRequiredMixin, View):
         )
         if not is_valid:
             messages.error(request, validation_result)
-            return redirect('users:profile')
+            return redirect(redirect_url)
 
         id_number = validation_result  # Sanitized and cleaned number
 
@@ -577,17 +644,17 @@ class UserIdentityVerificationSubmitView(LoginRequiredMixin, View):
         if id_doc:
             if id_doc.size > 5 * 1024 * 1024:
                 messages.error(request, "Uploaded document exceeds the 5MB size limit. Please upload a smaller file.")
-                return redirect('users:profile')
+                return redirect(redirect_url)
             ext = os.path.splitext(id_doc.name)[1].lower()
             if ext not in ('.pdf', '.jpg', '.jpeg', '.png'):
                 messages.error(request, "Invalid file format. Please upload a PDF, JPG, or PNG document.")
-                return redirect('users:profile')
+                return redirect(redirect_url)
 
             user.id_document = id_doc
             file_uploaded = True
         elif not user.has_id_document:
             messages.error(request, "Please attach a verifiable photo or scan of your government identity document.")
-            return redirect('users:profile')
+            return redirect(redirect_url)
 
         user.id_type = id_type
         user.id_number = id_number
@@ -611,7 +678,7 @@ class UserIdentityVerificationSubmitView(LoginRequiredMixin, View):
             request,
             "Your identity credentials and document have been submitted. Our compliance team will review your submission."
         )
-        return redirect('users:profile')
+        return redirect(redirect_url)
 
 
 @method_decorator(xframe_options_sameorigin, name='dispatch')
@@ -653,11 +720,12 @@ class PathBVerificationSubmitView(LoginRequiredMixin, View):
     """
     def post(self, request):
         user = request.user
+        redirect_url = reverse('users:verify_account') + '?method=alternative'
 
         # 1. Enforce account standing: Suspended accounts cannot submit
         if getattr(user, 'is_suspended', False) or getattr(user, 'id_verification_status', None) == 'suspended':
             messages.error(request, "Your account is suspended. Platform verification submissions are restricted.")
-            return redirect(reverse('users:profile') + '?tab=verification')
+            return redirect(redirect_url)
 
         # 2. Block submissions if there is already an active pending application
         if user.alternative_verification_submissions.filter(status='pending').exists():
@@ -666,7 +734,7 @@ class PathBVerificationSubmitView(LoginRequiredMixin, View):
                 "You already have an Alternative Verification application pending compliance review. "
                 "Please wait for an officer to review your submission."
             )
-            return redirect(reverse('users:profile') + '?tab=verification')
+            return redirect(redirect_url)
 
         # 3. Validate form
         from users.forms import PathBAlternativeVerificationForm
@@ -675,7 +743,7 @@ class PathBVerificationSubmitView(LoginRequiredMixin, View):
             for field, errors in form.errors.items():
                 for error in errors:
                     messages.error(request, f"{field.replace('_', ' ').capitalize()}: {error}")
-            return redirect(reverse('users:profile') + '?tab=verification')
+            return redirect(redirect_url)
 
         # 4. Save submission bound to private evidence storage
         submission = form.save(commit=False)
@@ -700,7 +768,7 @@ class PathBVerificationSubmitView(LoginRequiredMixin, View):
             "Your Alternative Person Verification application has been submitted successfully. "
             "Our compliance officers will review your selfie challenge and declaration."
         )
-        return redirect(reverse('users:profile') + '?tab=verification')
+        return redirect(redirect_url)
 
 
 class DeleteAccountView(LoginRequiredMixin, View):

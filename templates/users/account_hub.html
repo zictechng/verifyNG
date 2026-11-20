@@ -99,7 +99,7 @@
                                 <div class="small text-muted" style="font-size:11.5px;">Document submitted &bull; Compliance review in progress</div>
                             </div>
                         </div>
-                        <a href="{% if request.user.role in 'employer,agency,business' %}{% url 'employer:profile' %}{% else %}{% url 'users:profile' %}{% endif %}" class="btn btn-outline-primary btn-sm w-100 py-1 fw-semibold" style="font-size:12.5px;">
+                        <a href="{% if request.user.role in 'employer,agency,business' %}{% url 'employer:profile' %}{% else %}{% url 'users:verify_account' %}{% endif %}" class="btn btn-outline-primary btn-sm w-100 py-1 fw-semibold" style="font-size:12.5px;">
                             View Submission Status &rarr;
                         </a>
                     </div>
@@ -116,7 +116,7 @@
                                 <div class="small text-muted" style="font-size:11.5px;">Resubmission required</div>
                             </div>
                         </div>
-                        <a href="{% if request.user.role in 'employer,agency,business' %}{% url 'employer:profile' %}{% else %}{% url 'users:profile' %}{% endif %}" class="btn btn-outline-danger btn-sm w-100 py-1 fw-semibold" style="font-size:12.5px;">
+                        <a href="{% if request.user.role in 'employer,agency,business' %}{% url 'employer:profile' %}{% else %}{% url 'users:verify_account' %}{% endif %}" class="btn btn-outline-danger btn-sm w-100 py-1 fw-semibold" style="font-size:12.5px;">
                             Resubmit Document &rarr;
                         </a>
                     </div>
@@ -133,7 +133,7 @@
                                 <div class="small text-muted" style="font-size:11.5px;">Verify your account to activate your profile and unlock platform services</div>
                             </div>
                         </div>
-                        <a href="{% if request.user.role in 'employer,agency,business' %}{% url 'employer:profile' %}{% else %}{% url 'users:profile' %}{% endif %}" class="btn btn-outline-primary btn-sm w-100 py-1 fw-semibold" style="font-size:12.5px;">
+                        <a href="{% if request.user.role in 'employer,agency,business' %}{% url 'employer:profile' %}{% else %}{% url 'users:verify_account' %}{% endif %}" class="btn btn-outline-primary btn-sm w-100 py-1 fw-semibold" style="font-size:12.5px;">
                             Start Verification &rarr;
                         </a>
                     </div>
