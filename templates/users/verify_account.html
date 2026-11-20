@@ -26,7 +26,7 @@
 
             {# ── Overall Account Status Overview Banner ── #}
             {% if user_profile.identity_verified or user_profile.id_verification_status == 'verified' or has_approved_path_b %}
-            <div class="alert d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4 p-3.5"
+            <div class="alert d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4 p-3 p-sm-4"
                  style="background:#ECFDF5;border:1px solid #A7F3D0;border-radius:12px;">
                 <div class="d-flex align-items-center gap-3">
                     <div class="rounded-circle p-2 d-inline-flex align-items-center justify-content-center flex-shrink-0" style="background:#D1FAE5;color:#059669;width:38px;height:38px;">
@@ -46,7 +46,7 @@
                 <span class="badge bg-success text-white px-3 py-1.5 rounded-pill" style="font-size:12px;">Active &amp; Verified</span>
             </div>
             {% elif user_profile.id_verification_status == 'pending' or has_pending_path_b %}
-            <div class="alert d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4 p-3.5"
+            <div class="alert d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4 p-3 p-sm-4"
                  style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:12px;">
                 <div class="d-flex align-items-center gap-3">
                     <div class="rounded-circle p-2 d-inline-flex align-items-center justify-content-center flex-shrink-0" style="background:#DBEAFE;color:#2563EB;width:38px;height:38px;">
@@ -60,7 +60,7 @@
                 <span class="badge bg-primary text-white px-3 py-1.5 rounded-pill" style="font-size:12px;">Under Review</span>
             </div>
             {% elif user_profile.id_verification_status == 'rejected' and not has_approved_path_b %}
-            <div class="alert d-flex align-items-start gap-3 mb-4 p-3.5"
+            <div class="alert d-flex align-items-start gap-3 mb-4 p-3 p-sm-4"
                  style="background:#FEF2F2;border:1px solid #FECACA;border-radius:12px;">
                 <div class="rounded-circle p-2 d-inline-flex align-items-center justify-content-center flex-shrink-0 mt-0.5" style="background:#FEE2E2;color:#DC2626;width:36px;height:36px;">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
@@ -214,7 +214,7 @@
 
                     {# ── State 1: Verified ── #}
                     {% if user_profile.identity_verified or user_profile.id_verification_status == 'verified' %}
-                        <div class="d-flex align-items-start gap-3 p-3.5 rounded-3 mb-3" style="background:#ECFDF5;border:1px solid #BBF7D0;">
+                        <div class="d-flex align-items-start gap-3 p-3 p-sm-4 rounded-3 mb-3" style="background:#ECFDF5;border:1px solid #BBF7D0;">
                             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.2" class="flex-shrink-0 mt-0.5">
                                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                                 <polyline points="9 12 11 14 15 10" stroke-width="2.5"/>
@@ -234,7 +234,7 @@
 
                     {# ── State 2: Under Review ── #}
                     {% elif user_profile.id_verification_status == 'pending' or user_profile.has_id_document and user_profile.id_verification_status != 'rejected' %}
-                        <div class="p-3.5 rounded-3 mb-3" style="background:#EFF6FF;border:1px solid #BFDBFE;">
+                        <div class="p-3 p-sm-4 rounded-3 mb-3" style="background:#EFF6FF;border:1px solid #BFDBFE;">
                             <div class="d-flex align-items-start justify-content-between gap-3">
                                 <div class="d-flex align-items-start gap-3">
                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2" class="flex-shrink-0 mt-0.5">
@@ -243,7 +243,7 @@
                                     <div>
                                         <div class="fw-bold text-primary" style="font-size:14.5px;">Document Submitted &bull; Compliance Review in Progress</div>
                                         <div class="small text-muted mt-0.5">
-                                            Submitted: <strong>{{ user_profile.get_id_type_display|default:"Government ID" }}</strong>
+                                             Submitted: <strong>{{ user_profile.get_id_type_display|default:"Government ID" }}</strong>
                                             {% if user_profile.masked_id_number %}(<span class="font-monospace">{{ user_profile.masked_id_number }}</span>){% endif %}
                                             {% if user_profile.id_submitted_at %}&bull; {{ user_profile.id_submitted_at|timesince }} ago{% endif %}
                                         </div>
@@ -264,7 +264,7 @@
 
                     {# ── State 3: Declined ── #}
                     {% elif user_profile.id_verification_status == 'rejected' %}
-                        <div class="p-3.5 rounded-3 mb-3" style="background:#FEF2F2;border:1px solid #FCA5A5;">
+                        <div class="p-3 p-sm-4 rounded-3 mb-3" style="background:#FEF2F2;border:1px solid #FCA5A5;">
                             <div class="d-flex align-items-start gap-3">
                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2" class="flex-shrink-0 mt-0.5">
                                     <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
@@ -377,7 +377,7 @@
                                     </div>
                                 </div>
 
-                                <div class="card border rounded-3 p-3.5 mb-3" style="background:#F8FAFC;">
+                                <div class="card border rounded-3 p-3 p-sm-4 mb-3" style="background:#F8FAFC;">
                                     <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
                                         <div>
                                             <div class="small text-muted fw-semibold mb-0.5" style="font-size:11.5px;">REGISTERED ACCOUNT EMAIL</div>
@@ -400,7 +400,7 @@
                                     {# Email OTP entry block if not yet verified #}
                                     <div id="emailOtpInputBlock" class="d-none mt-3 pt-3 border-top">
                                         <div class="small text-muted mb-2" id="emailOtpStatusMsg">
-                                            A 6-digit confirmation code was sent to your inbox.
+                                             A 6-digit confirmation code was sent to your inbox.
                                         </div>
                                         <div class="d-flex align-items-center gap-2 flex-wrap">
                                             <input type="text" id="wizardEmailOtpCode" maxlength="6" class="form-control font-monospace text-center fw-bold"
@@ -438,7 +438,7 @@
                                     </div>
                                 </div>
 
-                                <div class="card border rounded-3 p-3.5 mb-3" style="background:#F8FAFC;">
+                                <div class="card border rounded-3 p-3 p-sm-4 mb-3" style="background:#F8FAFC;">
                                     <label class="form-label small fw-semibold text-dark">Mobile Phone Number <span class="text-danger">*</span></label>
                                     <div class="input-group mb-2" style="max-width: 420px;">
                                         <span class="input-group-text bg-white text-muted">
@@ -466,7 +466,7 @@
                                     </div>
 
                                     {# OTP input field container #}
-                                    <div id="phoneOtpInputBlock" class="d-none p-3 bg-white border rounded-3" style="max-width: 440px;">
+                                    <div id="phoneOtpInputBlock" class="d-none p-3 bg-white border rounded-3 mt-3" style="max-width: 440px;">
                                         <div class="small fw-semibold text-dark mb-1" id="phoneOtpNotice">Enter the 6-digit code sent to your phone:</div>
                                         <div class="d-flex align-items-center gap-2 mb-2">
                                             <input type="text" id="wizardPhoneOtpCode" maxlength="6" class="form-control font-monospace text-center fw-bold fs-5"
@@ -512,89 +512,8 @@
                                     </div>
                                 </div>
 
-                                <div class="row g-2 mb-3" id="countryTileGrid">
-                                    <div class="col-sm-6 col-md-4">
-                                        <div class="vng-country-tile p-3 rounded-3 border d-flex align-items-center justify-content-between cursor-pointer {% if default_issuing_country == 'NG' %}vng-tile-active{% endif %}"
-                                             onclick="selectWizardCountry('NG', 'Nigeria')">
-                                            <div class="d-flex align-items-center gap-2">
-                                                <span class="fs-4">🇳🇬</span>
-                                                <div>
-                                                    <div class="fw-bold text-dark small">Nigeria</div>
-                                                    <div class="text-muted" style="font-size:11px;">NIN, PVC, Passport, FRSC</div>
-                                                </div>
-                                            </div>
-                                            <div class="vng-tile-check">✓</div>
-                                        </div>
-                                    </div>
-                                    <div class="col-sm-6 col-md-4">
-                                        <div class="vng-country-tile p-3 rounded-3 border d-flex align-items-center justify-content-between cursor-pointer {% if default_issuing_country == 'GH' %}vng-tile-active{% endif %}"
-                                             onclick="selectWizardCountry('GH', 'Ghana')">
-                                            <div class="d-flex align-items-center gap-2">
-                                                <span class="fs-4">🇬🇭</span>
-                                                <div>
-                                                    <div class="fw-bold text-dark small">Ghana</div>
-                                                    <div class="text-muted" style="font-size:11px;">Ghana Card, Passport</div>
-                                                </div>
-                                            </div>
-                                            <div class="vng-tile-check">✓</div>
-                                        </div>
-                                    </div>
-                                    <div class="col-sm-6 col-md-4">
-                                        <div class="vng-country-tile p-3 rounded-3 border d-flex align-items-center justify-content-between cursor-pointer {% if default_issuing_country == 'KE' %}vng-tile-active{% endif %}"
-                                             onclick="selectWizardCountry('KE', 'Kenya')">
-                                            <div class="d-flex align-items-center gap-2">
-                                                <span class="fs-4">🇰🇪</span>
-                                                <div>
-                                                    <div class="fw-bold text-dark small">Kenya</div>
-                                                    <div class="text-muted" style="font-size:11px;">National ID, Huduma Namba</div>
-                                                </div>
-                                            </div>
-                                            <div class="vng-tile-check">✓</div>
-                                        </div>
-                                    </div>
-                                    <div class="col-sm-6 col-md-4">
-                                        <div class="vng-country-tile p-3 rounded-3 border d-flex align-items-center justify-content-between cursor-pointer {% if default_issuing_country == 'BJ' %}vng-tile-active{% endif %}"
-                                             onclick="selectWizardCountry('BJ', 'Benin')">
-                                            <div class="d-flex align-items-center gap-2">
-                                                <span class="fs-4">🇧🇯</span>
-                                                <div>
-                                                    <div class="fw-bold text-dark small">Benin</div>
-                                                    <div class="text-muted" style="font-size:11px;">CIP (NPI), CNI, Passeport</div>
-                                                </div>
-                                            </div>
-                                            <div class="vng-tile-check">✓</div>
-                                        </div>
-                                    </div>
-                                    <div class="col-sm-6 col-md-4">
-                                        <div class="vng-country-tile p-3 rounded-3 border d-flex align-items-center justify-content-between cursor-pointer {% if default_issuing_country == 'ZA' %}vng-tile-active{% endif %}"
-                                             onclick="selectWizardCountry('ZA', 'South Africa')">
-                                            <div class="d-flex align-items-center gap-2">
-                                                <span class="fs-4">🇿🇦</span>
-                                                <div>
-                                                    <div class="fw-bold text-dark small">South Africa</div>
-                                                    <div class="text-muted" style="font-size:11px;">Smart ID Card, Passport</div>
-                                                </div>
-                                            </div>
-                                            <div class="vng-tile-check">✓</div>
-                                        </div>
-                                    </div>
-                                    <div class="col-sm-6 col-md-4">
-                                        <div class="vng-country-tile p-3 rounded-3 border d-flex align-items-center justify-content-between cursor-pointer {% if default_issuing_country == 'SN' %}vng-tile-active{% endif %}"
-                                             onclick="selectWizardCountry('SN', 'Senegal')">
-                                            <div class="d-flex align-items-center gap-2">
-                                                <span class="fs-4">🇸🇳</span>
-                                                <div>
-                                                    <div class="fw-bold text-dark small">Senegal</div>
-                                                    <div class="text-muted" style="font-size:11px;">CNI CEDEAO, Passeport</div>
-                                                </div>
-                                            </div>
-                                            <div class="vng-tile-check">✓</div>
-                                        </div>
-                                    </div>
-                                </div>
-
                                 <div class="mb-3">
-                                    <label class="form-label small text-muted">Or select from all supported sovereign nations:</label>
+                                    <label class="form-label small text-muted">Select from all supported sovereign nations:</label>
                                     <select id="issuing_country_select" class="form-select" style="max-width:320px;">
                                         {% for c_code, c_name in supported_countries %}
                                             <option value="{{ c_code }}" {% if default_issuing_country == c_code %}selected{% endif %}>{{ c_name }} ({{ c_code }})</option>
@@ -651,7 +570,7 @@
                                 </div>
 
                                 {# Document ID Number Input #}
-                                <div class="card border rounded-3 p-3.5 mb-3" style="background:#F8FAFC;">
+                                <div class="card border rounded-3 p-3 p-sm-4 mb-3" style="background:#F8FAFC;">
                                     <label class="form-label small fw-semibold text-dark" id="id_number_label">
                                         Identification Number <span class="text-danger">*</span>
                                     </label>
@@ -986,7 +905,7 @@
 
                     {# ── Path B Status Banners ── #}
                     {% if has_approved_path_b %}
-                        <div class="d-flex align-items-start gap-3 p-3.5 rounded-3 mb-3" style="background:#ECFDF5;border:1px solid #A7F3D0;">
+                        <div class="d-flex align-items-start gap-3 p-3 p-sm-4 rounded-3 mb-3" style="background:#ECFDF5;border:1px solid #A7F3D0;">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" class="flex-shrink-0 mt-0.5">
                                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
                             </svg>
@@ -998,7 +917,7 @@
                             </div>
                         </div>
                     {% elif has_pending_path_b %}
-                        <div class="d-flex align-items-start gap-3 p-3.5 rounded-3 mb-3" style="background:#EFF6FF;border:1px solid #BFDBFE;">
+                        <div class="d-flex align-items-start gap-3 p-3 p-sm-4 rounded-3 mb-3" style="background:#EFF6FF;border:1px solid #BFDBFE;">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2" class="flex-shrink-0 mt-0.5">
                                 <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
                             </svg>
@@ -1161,6 +1080,11 @@
 </div>
 
 <style>
+/* ── Spacing Utility Fallback ── */
+.p-3\.5 {
+    padding: 1.25rem !important;
+}
+
 /* ── Method Selection Cards ── */
 .vng-method-card {
     background: #ffffff;
