@@ -598,7 +598,7 @@ class DisputeCreateView(LoginRequiredMixin, FormView):
             if not verified:
                 messages.warning(
                     request,
-                    v_msg or "You must verify your identity before submitting an official dispute affidavit."
+                    v_msg or "You must verify your account before submitting an official dispute affidavit."
                 )
                 return redirect(reverse('users:profile') + '?tab=verification')
         self.report = get_object_or_404(FraudReport, reference_number=kwargs['reference_number'])
@@ -823,7 +823,7 @@ class RebuttalCreateView(LoginRequiredMixin, FormView):
             if not verified:
                 messages.warning(
                     request,
-                    v_msg or "You must verify your identity before submitting an official dispute affidavit."
+                    v_msg or "You must verify your account before submitting an official dispute affidavit."
                 )
                 return redirect(reverse('users:profile') + '?tab=verification')
         self.report = get_object_or_404(FraudReport, reference_number=kwargs['reference_number'])

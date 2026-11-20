@@ -1,6 +1,7 @@
 from django.test import TestCase, Client
 from django.contrib.auth import get_user_model
 from django.urls import reverse
+from django.utils import timezone
 from employer.models import EmployerProfile
 from reports.models import FraudReport
 from identities.models import SubjectEntity
@@ -35,9 +36,13 @@ class VerifiedProfileGateTests(TestCase):
             email='verified@example.com',
             password='TestPass123!',
             role='individual',
+            can_publish_reports=True,
+            id_verification_status='verified',
+            identity_verified=True,
+            id_type='nin',
+            id_document='id.jpg',
+            id_verified_at=timezone.now(),
         )
-        self.verified_user.identity_verified = True
-        self.verified_user.save(update_fields=['identity_verified'])
 
         # 3. Suspended / blocked user
         self.suspended_user = User.objects.create_user(

@@ -557,7 +557,7 @@ class CertificateApplyView(LoginRequiredMixin, View):
             from core.permissions import is_profile_verified, is_employer
             verified, v_msg = is_profile_verified(request.user)
             if not verified:
-                messages.warning(request, v_msg or "Identity verification required before applying for a clearance certificate.")
+                messages.warning(request, v_msg or "Account verification required before applying for a clearance certificate.")
                 if is_employer(request.user):
                     return redirect(reverse('employer:profile') + '?tab=verification')
                 return redirect(reverse('users:profile') + '?tab=verification')

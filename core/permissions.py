@@ -379,9 +379,9 @@ def has_basic_identity_access(user) -> VerificationResult:
         except Exception:
             pass
 
-    if id_status == 'pending' or getattr(u, 'has_id_document', False):
-        return VerificationResult(False, "Your identity verification is currently under compliance review. Platform actions will be unlocked once approved.")
-    return VerificationResult(False, "Identity verification required. Please submit your official government ID (NIN, BVN, PVC, or Passport) to verify your profile.")
+    if id_status == 'pending' or (getattr(u, 'has_id_document', False) and id_status not in ('rejected', 'unverified', 'suspended', 'expired')):
+        return VerificationResult(False, "Your account verification is currently under compliance review. Platform actions will be unlocked once approved.")
+    return VerificationResult(False, "Account verification required. Verify your account on your profile page to activate your profile and unlock platform services.")
 
 
 def has_enhanced_identity_access(user) -> VerificationResult:
@@ -780,9 +780,19 @@ def can_user_publish_reports(user) -> VerificationResult:
     if getattr(user, 'id_verification_status', None) == 'suspended':
         return VerificationResult(False, "Your identity verification has been suspended. Platform publishing actions are restricted.")
 
+    # Check pending review status before general eligibility rejection
+    if getattr(user, 'id_verification_status', None) == 'pending' or getattr(user, 'has_id_document', False) and getattr(user, 'id_verification_status', None) != 'verified':
+        has_active_path_b = False
+        try:
+            has_active_path_b = user.alternative_verification_submissions.filter(status='approved').exists()
+        except Exception:
+            pass
+        if not has_active_path_b:
+            return VerificationResult(False, "Your account verification is currently under compliance review. Platform actions will be unlocked once approved.")
+
     # Gate 4: Explicit publishing flag
     if not getattr(user, 'can_publish_reports', False):
-        return VerificationResult(False, "Report publishing eligibility required. Please complete identity or community personhood verification.")
+        return VerificationResult(False, "Report publishing eligibility required. Please complete account verification or community personhood verification.")
 
     # Gate 5: Dual-Pathway Resolution
     # 5a. Independent Path B (Alternative Personhood)

@@ -244,7 +244,7 @@ def _route_command(text: str, sender_phone: str) -> Optional[str]:
             "To file a verified fraud report, please visit our secure web portal:\n"
             f"🔗 {site_url}/reports/submit/\n\n"
             "Anonymous reports are not accepted. "
-            "You will need to verify your identity (NIN or BVN) before submitting."
+            "You will need to verify your account before submitting."
         )
 
     if upper.startswith("VERIFY"):

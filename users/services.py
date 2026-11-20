@@ -64,9 +64,10 @@ class IdentityVerificationLifecycleService:
         user.id_verification_status = 'verified'
         user.id_verified_at = timezone.now()
         user.id_rejection_reason = ''
+        user.can_publish_reports = True
         user.save(update_fields=[
             'assurance_level', 'identity_verified', 'id_verification_status',
-            'id_verified_at', 'id_rejection_reason'
+            'id_verified_at', 'id_rejection_reason', 'can_publish_reports'
         ])
 
         # Audit Log
@@ -114,9 +115,10 @@ class IdentityVerificationLifecycleService:
         user.id_verification_status = 'verified'
         user.id_verified_at = timezone.now()
         user.id_rejection_reason = ''
+        user.can_publish_reports = True
         user.save(update_fields=[
             'assurance_level', 'identity_verified', 'id_verification_status',
-            'id_verified_at', 'id_rejection_reason'
+            'id_verified_at', 'id_rejection_reason', 'can_publish_reports'
         ])
 
         cls._create_audit_log(
@@ -165,8 +167,17 @@ class IdentityVerificationLifecycleService:
         user.identity_verified = False
         user.id_verification_status = 'rejected'
         user.id_rejection_reason = reason_clean
+        # Only reset report publishing if user has no independent Path B alternative verification
+        has_path_b = False
+        try:
+            has_path_b = user.alternative_verification_submissions.filter(status='approved').exists()
+        except Exception:
+            pass
+        if not has_path_b:
+            user.can_publish_reports = False
+
         user.save(update_fields=[
-            'assurance_level', 'identity_verified', 'id_verification_status', 'id_rejection_reason'
+            'assurance_level', 'identity_verified', 'id_verification_status', 'id_rejection_reason', 'can_publish_reports'
         ])
 
         cls._create_audit_log(

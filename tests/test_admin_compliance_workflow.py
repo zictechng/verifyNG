@@ -39,6 +39,7 @@ class AdminComplianceWorkflowTests(TestCase):
             role='individual',
             id_type='nin',
             id_number='12345678901',
+            id_document='id.jpg',
             id_verification_status='pending',
             identity_verified=False,
         )
@@ -204,7 +205,7 @@ class AdminComplianceWorkflowTests(TestCase):
 
         verified, msg = is_profile_verified(self.candidate)
         self.assertFalse(verified)
-        self.assertIn("Identity verification required", msg)
+        self.assertIn("Account verification required", msg)
 
     # ─────────────────────────────────────────────────────────────────────────
     # 2. EMPLOYER CAC APPROVAL & REJECTION WORKFLOW

@@ -62,10 +62,10 @@
                 </div>
             {% endif %}
 
-            <!-- Identity Status (Matches Desktop Experience) -->
+            <!-- Account Status (Matches Desktop Experience) -->
             <div class="mt-2 pt-2 border-top border-primary border-opacity-10">
                 <div class="d-flex align-items-center justify-content-between mb-2">
-                    <span class="small fw-semibold" style="color:#0F3A78;">Identity Status</span>
+                    <span class="small fw-semibold" style="color:#0F3A78;">Account Status</span>
                     {% if request.user.identity_verified or request.user.id_verification_status == 'verified' or employer_profile.is_verified %}
                         <span class="badge bg-success">Verified</span>
                     {% elif request.user.id_verification_status == 'pending' or employer_profile.verification_status == 'pending' or request.user.has_id_document and request.user.id_verification_status != 'rejected' and request.user.id_verification_status != 'verified' %}
@@ -83,8 +83,8 @@
                             <polyline points="9 12 11 14 15 10" stroke-width="2.5"/>
                         </svg>
                         <div>
-                            <div class="fw-bold text-success" style="font-size:13px;">Identity Confirmed</div>
-                            <div class="small text-muted" style="font-size:11.5px;">{{ request.user.get_id_type_display|default:"Government ID" }} &bull; Verified</div>
+                            <div class="fw-bold text-success" style="font-size:13px;">Account Verified</div>
+                            <div class="small text-muted" style="font-size:11.5px;">{{ request.user.get_id_type_display|default:"Account Profile" }} &bull; Verified</div>
                         </div>
                     </div>
                 {% elif request.user.id_verification_status == 'pending' or employer_profile.verification_status == 'pending' or request.user.has_id_document and request.user.id_verification_status != 'rejected' and request.user.id_verification_status != 'verified' %}
@@ -129,8 +129,8 @@
                                 <line x1="12" y1="16" x2="12.01" y2="16"/>
                             </svg>
                             <div>
-                                <div class="fw-bold" style="font-size:13px;color:#92400E;">Verify Your Identity</div>
-                                <div class="small text-muted" style="font-size:11.5px;">Required to submit reports and get certified</div>
+                                <div class="fw-bold" style="font-size:13px;color:#92400E;">Verify Your Account</div>
+                                <div class="small text-muted" style="font-size:11.5px;">Verify your account to activate your profile and unlock platform services</div>
                             </div>
                         </div>
                         <a href="{% if request.user.role in 'employer,agency,business' %}{% url 'employer:profile' %}{% else %}{% url 'users:profile' %}{% endif %}" class="btn btn-outline-primary btn-sm w-100 py-1 fw-semibold" style="font-size:12.5px;">
