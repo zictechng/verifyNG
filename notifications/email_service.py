@@ -50,11 +50,20 @@ def _build_mime_message(
     html_body: str,
     text_body: str,
 ) -> MIMEMultipart:
-    """Build a MIME multipart/alternative message for SMTP gates."""
+    """Build a MIME multipart/alternative message for SMTP gates with RFC compliance."""
+    from email.utils import formatdate, make_msgid
+
+    domain = from_email.split('@')[-1] if '@' in from_email else 'verifyng.com'
     msg = MIMEMultipart('alternative')
     msg['Subject'] = subject
     msg['From'] = f"{from_name} <{from_email}>"
     msg['To'] = to_email
+    msg['Date'] = formatdate(localtime=True)
+    msg['Message-ID'] = make_msgid(domain=domain)
+    msg['Reply-To'] = from_email
+    msg['Auto-Submitted'] = 'auto-generated'
+    msg['X-Entity-Ref-ID'] = make_msgid(domain=domain)
+
     msg.attach(MIMEText(text_body, 'plain', 'utf-8'))
     msg.attach(MIMEText(html_body, 'html', 'utf-8'))
     return msg
@@ -172,6 +181,8 @@ def _send_via_gmail_smtp(
 
     with smtplib.SMTP('smtp.gmail.com', 587, timeout=10) as server:
         server.ehlo()
+        server.starttls(context=context)
+        server.ehlo()
         server.login(username, password)
         server.sendmail(username, [to_email], msg.as_string())
 
@@ -189,6 +200,10 @@ def send_email(
     """
     Attempt to deliver an email through three failover gates in order.
 
+    For @gmail.com / @googlemail.com recipients, Gmail SMTP is prioritized
+    first to guarantee native DKIM and SPF alignment, ensuring direct Inbox
+    placement instead of shared hosting IP spam filtering.
+
     Returns:
         {
             "delivered": True,
@@ -205,32 +220,63 @@ def send_email(
     masked = _mask_email(to_email)
     gate_errors: dict[str, str] = {}
 
-    # ---- Gate 1: Mailtrap API ----
-    try:
-        _send_via_mailtrap_api(to_email, subject, html_body, text_body)
-        logger.info("Email delivered via Gate 1 (Mailtrap API) → %s", masked)
-        return {"delivered": True, "provider_used": "mailtrap_api"}
-    except Exception as exc:
-        gate_errors["gate1_mailtrap_api"] = f"{type(exc).__name__}: {exc}"
-        logger.warning("Gate 1 (Mailtrap API) failed for %s: %s", masked, gate_errors["gate1_mailtrap_api"])
+    is_gmail_recipient = to_email.lower().strip().endswith(('@gmail.com', '@googlemail.com'))
 
-    # ---- Gate 2: Namecheap SMTP ----
-    try:
-        _send_via_namecheap_smtp(to_email, subject, html_body, text_body)
-        logger.info("Email delivered via Gate 2 (Namecheap SMTP) → %s", masked)
-        return {"delivered": True, "provider_used": "namecheap_smtp"}
-    except Exception as exc:
-        gate_errors["gate2_namecheap_smtp"] = f"{type(exc).__name__}: {exc}"
-        logger.warning("Gate 2 (Namecheap SMTP) failed for %s: %s", masked, gate_errors["gate2_namecheap_smtp"])
+    if is_gmail_recipient:
+        # ---- Primary for Gmail: Gmail SMTP (native DKIM/SPF) ----
+        try:
+            _send_via_gmail_smtp(to_email, subject, html_body, text_body)
+            logger.info("Email delivered via Gate 3 (Gmail SMTP - primary for Gmail) → %s", masked)
+            return {"delivered": True, "provider_used": "gmail_smtp"}
+        except Exception as exc:
+            gate_errors["gate3_gmail_smtp"] = f"{type(exc).__name__}: {exc}"
+            logger.warning("Gmail SMTP primary attempt failed for %s: %s", masked, gate_errors["gate3_gmail_smtp"])
 
-    # ---- Gate 3: Gmail SMTP ----
-    try:
-        _send_via_gmail_smtp(to_email, subject, html_body, text_body)
-        logger.info("Email delivered via Gate 3 (Gmail SMTP) → %s", masked)
-        return {"delivered": True, "provider_used": "gmail_smtp"}
-    except Exception as exc:
-        gate_errors["gate3_gmail_smtp"] = f"{type(exc).__name__}: {exc}"
-        logger.warning("Gate 3 (Gmail SMTP) failed for %s: %s", masked, gate_errors["gate3_gmail_smtp"])
+        # Fallback 1: Namecheap SMTP
+        try:
+            _send_via_namecheap_smtp(to_email, subject, html_body, text_body)
+            logger.info("Email delivered via Gate 2 (Namecheap SMTP fallback) → %s", masked)
+            return {"delivered": True, "provider_used": "namecheap_smtp"}
+        except Exception as exc:
+            gate_errors["gate2_namecheap_smtp"] = f"{type(exc).__name__}: {exc}"
+            logger.warning("Gate 2 (Namecheap SMTP) failed for %s: %s", masked, gate_errors["gate2_namecheap_smtp"])
+
+        # Fallback 2: Mailtrap API
+        try:
+            _send_via_mailtrap_api(to_email, subject, html_body, text_body)
+            logger.info("Email delivered via Gate 1 (Mailtrap API fallback) → %s", masked)
+            return {"delivered": True, "provider_used": "mailtrap_api"}
+        except Exception as exc:
+            gate_errors["gate1_mailtrap_api"] = f"{type(exc).__name__}: {exc}"
+            logger.warning("Gate 1 (Mailtrap API) failed for %s: %s", masked, gate_errors["gate1_mailtrap_api"])
+
+    else:
+        # ---- Gate 1: Mailtrap API ----
+        try:
+            _send_via_mailtrap_api(to_email, subject, html_body, text_body)
+            logger.info("Email delivered via Gate 1 (Mailtrap API) → %s", masked)
+            return {"delivered": True, "provider_used": "mailtrap_api"}
+        except Exception as exc:
+            gate_errors["gate1_mailtrap_api"] = f"{type(exc).__name__}: {exc}"
+            logger.warning("Gate 1 (Mailtrap API) failed for %s: %s", masked, gate_errors["gate1_mailtrap_api"])
+
+        # ---- Gate 2: Namecheap SMTP ----
+        try:
+            _send_via_namecheap_smtp(to_email, subject, html_body, text_body)
+            logger.info("Email delivered via Gate 2 (Namecheap SMTP) → %s", masked)
+            return {"delivered": True, "provider_used": "namecheap_smtp"}
+        except Exception as exc:
+            gate_errors["gate2_namecheap_smtp"] = f"{type(exc).__name__}: {exc}"
+            logger.warning("Gate 2 (Namecheap SMTP) failed for %s: %s", masked, gate_errors["gate2_namecheap_smtp"])
+
+        # ---- Gate 3: Gmail SMTP ----
+        try:
+            _send_via_gmail_smtp(to_email, subject, html_body, text_body)
+            logger.info("Email delivered via Gate 3 (Gmail SMTP) → %s", masked)
+            return {"delivered": True, "provider_used": "gmail_smtp"}
+        except Exception as exc:
+            gate_errors["gate3_gmail_smtp"] = f"{type(exc).__name__}: {exc}"
+            logger.warning("Gate 3 (Gmail SMTP) failed for %s: %s", masked, gate_errors["gate3_gmail_smtp"])
 
     # All gates exhausted
     raise RuntimeError(
