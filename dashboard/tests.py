@@ -1,6 +1,7 @@
 
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from users.models import User
 from identities.models import SubjectEntity
@@ -14,10 +15,14 @@ from dashboard.views import _get_staff_context
 class DashboardAccessAndContextTestCase(TestCase):
     def setUp(self):
         self.individual_user = User.objects.create_user(
-            username='indiv_dash', email='indiv@example.com', password='password123', role='individual'
+            username='indiv_dash', email='indiv@example.com', password='password123', role='individual',
+            can_publish_reports=True, id_verification_status='verified',
+            id_type='nin', id_document='id.jpg', id_verified_at=timezone.now()
         )
         self.other_user = User.objects.create_user(
-            username='other_dash', email='other@example.com', password='password123', role='individual'
+            username='other_dash', email='other@example.com', password='password123', role='individual',
+            can_publish_reports=True, id_verification_status='verified',
+            id_type='nin', id_document='id.jpg', id_verified_at=timezone.now()
         )
         self.moderator_user = User.objects.create_user(
             username='mod_dash', email='mod@example.com', password='password123', role='moderator'

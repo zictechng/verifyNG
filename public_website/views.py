@@ -233,11 +233,22 @@ def report(request):
     POST — validate, delegate to create_fraud_report(), redirect on success.
 
     Authentication: @login_required — anonymous reports are rejected (CLAUDE.md §6).
+    Eligibility: can_user_publish_reports() required for community report submission.
     Error handling:
       StorageError  → evidence upload failed; surface as a field-level form error.
       ValidationError → service-level business rule violation; surface as non-field error.
       Exception     → unexpected; log and surface as non-field error.
     """
+    from core.permissions import can_user_publish_reports
+    from django.urls import reverse
+    can_pub = can_user_publish_reports(request.user)
+    if not can_pub:
+        messages.warning(
+            request,
+            can_pub.reason or "You must complete account verification before submitting a community report."
+        )
+        return redirect(f"{reverse('users:profile')}?tab=verification")
+
     if request.method == 'POST':
         form = FraudReportSubmissionForm(request.POST, request.FILES)
         if form.is_valid():

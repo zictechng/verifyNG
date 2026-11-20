@@ -2,6 +2,7 @@ from django.test import TestCase, RequestFactory
 from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import PermissionDenied
 from django.http import HttpResponse
+from django.utils import timezone
 
 from users.models import User
 from identities.models import SubjectEntity
@@ -573,7 +574,9 @@ from verification.services import (
 class EndToEndFraudReportAndPublicCheckTestCase(TestCase):
     def setUp(self):
         self.reporter = User.objects.create_user(
-            username='e2e_reporter', email='rep@example.com', password='password123', role='individual'
+            username='e2e_reporter', email='rep@example.com', password='password123', role='individual',
+            can_publish_reports=True, id_verification_status='verified',
+            id_type='nin', id_document='id.jpg', id_verified_at=timezone.now()
         )
         self.disputant = User.objects.create_user(
             username='e2e_disputant', email='disp@example.com', password='password123', role='individual'
@@ -731,7 +734,9 @@ class EndToEndVerificationAndPublicCheckTestCase(TestCase):
 class AdversarialSecurityAndXssTestCase(TestCase):
     def setUp(self):
         self.user_a = User.objects.create_user(
-            username='user_a', email='a@example.com', password='password123', role='individual'
+            username='user_a', email='a@example.com', password='password123', role='individual',
+            can_publish_reports=True, id_verification_status='verified',
+            id_type='nin', id_document='id.jpg', id_verified_at=timezone.now()
         )
         self.user_b = User.objects.create_user(
             username='user_b', email='b@example.com', password='password123', role='individual'

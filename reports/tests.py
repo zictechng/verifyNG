@@ -4,6 +4,7 @@ from unittest.mock import patch, MagicMock
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.utils import timezone
 from PIL import Image
 
 from users.models import User
@@ -12,6 +13,14 @@ from reports.models import FraudReport, ReportEvidence
 from reports.services import generate_report_reference_number, create_fraud_report
 from reports.forms import FraudReportSubmissionForm
 from reports.storage_services import CloudinaryEvidenceStorage, StorageError, get_storage_service_for_provider
+
+
+def make_verified_reporter(username='reporter', email='reporter@test.com', password='Password123!'):
+    return User.objects.create_user(
+        username=username, email=email, password=password, role='individual',
+        can_publish_reports=True, id_verification_status='verified',
+        id_type='nin', id_document='id.jpg', id_verified_at=timezone.now()
+    )
 
 
 class ReferenceNumberTestCase(TestCase):
@@ -26,10 +35,7 @@ class ReferenceNumberTestCase(TestCase):
 
 class FraudReportServiceTestCase(TestCase):
     def setUp(self):
-        self.reporter = User.objects.create_user(
-            username='reporter', email='reporter@test.com',
-            password='Password123!', role='individual'
-        )
+        self.reporter = make_verified_reporter(username='reporter', email='reporter@test.com')
         self.other = User.objects.create_user(
             username='other', email='other@test.com',
             password='Password123!', role='individual'
@@ -270,9 +276,7 @@ from reports.models import AuditLog
 
 class AuditLoggingTestCase(TestCase):
     def setUp(self):
-        self.reporter = User.objects.create_user(
-            username='rep_user', email='rep@test.com', password='Password123!', role='individual'
-        )
+        self.reporter = make_verified_reporter(username='rep_user', email='rep@test.com')
         self.moderator = User.objects.create_user(
             username='mod_user', email='mod@test.com', password='Password123!', role='moderator'
         )
@@ -376,9 +380,7 @@ from reports.services import (
 class Phase7Batch72WorkflowTestCase(TestCase):
     def setUp(self):
         mail.outbox = []
-        self.reporter = User.objects.create_user(
-            username='rep_user', email='reporter@example.com', password='password123', role='individual'
-        )
+        self.reporter = make_verified_reporter(username='rep_user', email='reporter@example.com', password='password123')
         self.disputant = User.objects.create_user(
             username='disp_user', email='disputant@example.com', password='password123', role='individual', identity_verified=True
         )
@@ -535,12 +537,7 @@ from reports.services import transition_report_state
 
 class FraudReportIdentifiersIntegrationTestCase(TestCase):
     def setUp(self):
-        self.reporter = User.objects.create_user(
-            username='reporter_id_test',
-            email='reporter_id@test.com',
-            password='Password123!',
-            role='individual'
-        )
+        self.reporter = make_verified_reporter(username='reporter_id_test', email='reporter_id@test.com')
 
     def test_fraud_report_with_suspect_identifiers_creates_hashes(self):
         """Verifies phone, bank account, CAC, and email are peppered, hashed, and linked to SubjectEntity."""
@@ -804,10 +801,7 @@ class DueProcessRebuttalCycleTestCase(TestCase):
 
 class PoliceEvidenceDossierTestCase(TestCase):
     def setUp(self):
-        self.reporter = User.objects.create_user(
-            username='dossier_reporter', email='reporter@testdossier.com',
-            password='Password123!', role='individual'
-        )
+        self.reporter = make_verified_reporter(username='dossier_reporter', email='reporter@testdossier.com')
         self.stranger = User.objects.create_user(
             username='stranger', email='stranger@testdossier.com',
             password='Password123!', role='individual'

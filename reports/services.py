@@ -42,7 +42,7 @@ def create_fraud_report(reporter, subject_name, subject_type, title, allegation,
                         suspect_bank_account=None, suspect_bank_name=None,
                         suspect_cac_number=None, suspect_email=None,
                         suspect_location=None, suspect_state=None, suspect_city=None,
-                        amount_lost=None):
+                        amount_lost=None, bypass_permission_check: bool = False):
     """
     Creates FraudReport and optional initial evidence atomically.
     Normalizes and registers provided suspect identifiers into identities.Identifier
@@ -52,9 +52,10 @@ def create_fraud_report(reporter, subject_name, subject_type, title, allegation,
     """
     # 0. Enforce report-publishing authorization at service layer boundary
     # Must be validated before any storage/Cloudinary upload or database transactions
-    pub_check = can_user_publish_reports(reporter)
-    if not pub_check.allowed:
-        raise PermissionDenied(pub_check.reason or "You are not authorized to publish community reports.")
+    if not bypass_permission_check:
+        pub_check = can_user_publish_reports(reporter)
+        if not pub_check.allowed:
+            raise PermissionDenied(pub_check.reason or "You are not authorized to publish community reports.")
 
     storage = get_storage_service()
     uploaded_cloud_meta = None

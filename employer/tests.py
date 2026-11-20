@@ -444,7 +444,7 @@ class EmployerProfileViewTest(TestCase):
     def test_post_updates_company_name(self):
         response = self.client.post(self.url, {
             'company_name': 'Updated Corp',
-            'company_rc_number': 'RC999',
+            'company_rc_number': 'RC123456',
             'industry': 'Finance',
             'company_address': '5 New Street',
             'contact_phone': '+2348099999999',

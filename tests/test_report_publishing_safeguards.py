@@ -102,6 +102,17 @@ class ReportPublishingSafeguardsTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertIn(reverse('users:profile'), response.url)
 
+    def test_unverified_user_cannot_publish_public_website_report_view(self):
+        """Public website /report/ view redirects unverified users to verification profile."""
+        from public_website.views import report as public_report_view
+        request = self.factory.get('/report/')
+        self._setup_request_session_and_messages(request, self.unverified_user)
+
+        response = public_report_view(request)
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(reverse('users:profile'), response.url)
+        self.assertIn('tab=verification', response.url)
+
     def test_unverified_user_cannot_publish_api(self):
         """JSON API raises HttpError(403) for unverified users."""
         request = self.factory.post('/api/v1/reports/')
