@@ -169,7 +169,8 @@ def send_phone_verification_otp(session, phone_input: str, preferred_channel: st
         'expires_at': time.time() + OTP_EXPIRY_SECONDS,
         'attempts': 0,
     }
-    session.modified = True
+    if hasattr(session, 'modified'):
+        session.modified = True
 
     response_data = {
         "success": True,
@@ -196,7 +197,8 @@ def verify_phone_otp(session, user, entered_code: str, phone_input: str) -> Tupl
     # Check expiration
     if time.time() > otp_data.get('expires_at', 0):
         session.pop('vng_phone_otp', None)
-        session.modified = True
+        if hasattr(session, 'modified'):
+            session.modified = True
         return False, "Verification code has expired. Please request a new code."
 
     # Track attempts
@@ -204,7 +206,8 @@ def verify_phone_otp(session, user, entered_code: str, phone_input: str) -> Tupl
     otp_data['attempts'] = attempts
     if attempts > MAX_VERIFICATION_ATTEMPTS:
         session.pop('vng_phone_otp', None)
-        session.modified = True
+        if hasattr(session, 'modified'):
+            session.modified = True
         return False, "Too many failed attempts. Please request a new verification code."
 
     phone = _normalise_phone(phone_input)
@@ -214,13 +217,15 @@ def verify_phone_otp(session, user, entered_code: str, phone_input: str) -> Tupl
 
     clean_code = str(entered_code).strip()
     if clean_code != str(otp_data.get('code', '')):
-        session.modified = True
+        if hasattr(session, 'modified'):
+            session.modified = True
         return False, "Invalid verification code. Please check your messages and try again."
 
     # Successful verification
     session.pop('vng_phone_otp', None)
     session['vng_verified_phone'] = phone or expected_phone
-    session.modified = True
+    if hasattr(session, 'modified'):
+        session.modified = True
 
     # Update user object
     if user and user.is_authenticated:
@@ -258,14 +263,25 @@ def send_email_verification_otp(session, user) -> Dict[str, Any]:
             ),
             'subject': 'VerifyNG — Your Email Verification Code',
         })
-        send_broadcast_email_task.delay(
-            to_email=email,
-            subject='VerifyNG — Your Email Verification Code',
-            html_body=html_body,
-            text_body=text_body,
-        )
+        # Deliver synchronously so the OTP arrives immediately without requiring a running Celery worker
+        from notifications.email_service import send_email
+        try:
+            send_email(
+                to_email=email,
+                subject='VerifyNG — Your Email Verification Code',
+                html_body=html_body,
+                text_body=text_body,
+            )
+        except Exception as direct_err:
+            logger.warning("Direct email OTP dispatch failed, attempting Celery queue: %s", direct_err)
+            send_broadcast_email_task.delay(
+                to_email=email,
+                subject='VerifyNG — Your Email Verification Code',
+                html_body=html_body,
+                text_body=text_body,
+            )
     except Exception as exc:
-        logger.warning("Email OTP task failed for %s: %s", _mask_email(email), exc)
+        logger.warning("Email OTP dispatch failed for %s: %s", _mask_email(email), exc)
 
     session['vng_email_otp'] = {
         'code': otp_code,
@@ -273,7 +289,8 @@ def send_email_verification_otp(session, user) -> Dict[str, Any]:
         'expires_at': time.time() + OTP_EXPIRY_SECONDS,
         'attempts': 0,
     }
-    session.modified = True
+    if hasattr(session, 'modified'):
+        session.modified = True
 
     res = {
         "success": True,
@@ -296,25 +313,29 @@ def verify_email_otp(session, user, entered_code: str) -> Tuple[bool, str]:
 
     if time.time() > otp_data.get('expires_at', 0):
         session.pop('vng_email_otp', None)
-        session.modified = True
+        if hasattr(session, 'modified'):
+            session.modified = True
         return False, "Verification code has expired. Please request a new code."
 
     attempts = otp_data.get('attempts', 0) + 1
     otp_data['attempts'] = attempts
     if attempts > MAX_VERIFICATION_ATTEMPTS:
         session.pop('vng_email_otp', None)
-        session.modified = True
+        if hasattr(session, 'modified'):
+            session.modified = True
         return False, "Too many failed attempts. Please request a new verification code."
 
     clean_code = str(entered_code).strip()
     if clean_code != str(otp_data.get('code', '')):
-        session.modified = True
+        if hasattr(session, 'modified'):
+            session.modified = True
         return False, "Invalid email verification code. Please check your inbox and try again."
 
     # Successful verification
     session.pop('vng_email_otp', None)
     session['vng_verified_email'] = user.email
-    session.modified = True
+    if hasattr(session, 'modified'):
+        session.modified = True
 
     if user and user.is_authenticated:
         user.email_verified = True

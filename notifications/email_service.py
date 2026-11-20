@@ -130,7 +130,11 @@ def _send_via_namecheap_smtp(
         raise ValueError("Namecheap SMTP credentials not configured")
 
     msg = _build_mime_message(from_name, from_email, to_email, subject, html_body, text_body)
-    context = ssl.create_default_context()
+    try:
+        import certifi
+        context = ssl.create_default_context(cafile=certifi.where())
+    except Exception:
+        context = ssl.create_default_context()
 
     with smtplib.SMTP_SSL(host, port, context=context, timeout=10) as server:
         server.login(username, password)
@@ -160,9 +164,13 @@ def _send_via_gmail_smtp(
 
     msg = _build_mime_message(from_name, username, to_email, subject, html_body, text_body)
 
+    try:
+        import certifi
+        context = ssl.create_default_context(cafile=certifi.where())
+    except Exception:
+        context = ssl.create_default_context()
+
     with smtplib.SMTP('smtp.gmail.com', 587, timeout=10) as server:
-        server.ehlo()
-        server.starttls(context=ssl.create_default_context())
         server.ehlo()
         server.login(username, password)
         server.sendmail(username, [to_email], msg.as_string())
