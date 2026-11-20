@@ -91,48 +91,38 @@
                              id="methodCardGovId" onclick="selectVerificationMethod('government_id')">
                             <div>
                                 <div class="d-flex align-items-center justify-content-between mb-3">
-                                    <div class="d-flex align-items-center gap-2">
-                                        <div class="vng-method-icon rounded-3 d-inline-flex align-items-center justify-content-center flex-shrink-0"
-                                             style="width:44px;height:44px;background:#EFF6FF;color:#2563EB;">
-                                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                <rect x="3" y="4" width="18" height="16" rx="3"/>
-                                                <circle cx="9" cy="10" r="2"/>
-                                                <line x1="15" y1="8" x2="17" y2="8"/><line x1="15" y1="12" x2="17" y2="12"/><line x1="7" y1="16" x2="17" y2="16"/>
-                                            </svg>
-                                        </div>
-                                        <div>
-                                            
-                                        </div>
+                                    <div class="vng-method-icon rounded-3 d-inline-flex align-items-center justify-content-center flex-shrink-0"
+                                         style="width:44px;height:44px;background:#EFF6FF;color:#2563EB;">
+                                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <rect x="3" y="4" width="18" height="16" rx="3"/>
+                                            <circle cx="9" cy="10" r="2"/>
+                                            <line x1="15" y1="8" x2="17" y2="8"/><line x1="15" y1="12" x2="17" y2="12"/><line x1="7" y1="16" x2="17" y2="16"/>
+                                        </svg>
                                     </div>
-                                    <div class="d-flex align-items-center gap-2">
+                                    <div>
                                         {% if user_profile.identity_verified or user_profile.id_verification_status == 'verified' %}
-                                            <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 rounded-pill fw-semibold" style="font-size:11px;">✓ Verified Citizen</span>
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 rounded-pill fw-semibold" style="font-size:13.5px;">✓ Verified</span>
                                         {% elif user_profile.id_verification_status == 'pending' or user_profile.has_id_document and user_profile.id_verification_status != 'rejected' %}
-                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1 rounded-pill fw-semibold" style="font-size:11px;">Under Review</span>
+                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1 rounded-pill fw-semibold" style="font-size:13.5px;">Under Review</span>
                                         {% else %}
-                                            <span class="badge bg-primary text-white px-2.5 py-1 rounded-pill fw-semibold" style="font-size:13px;">Recommended</span>
+                                            <span class="badge bg-primary text-white px-2.5 py-1 rounded-pill fw-semibold" style="font-size:13.5px;">Recommended</span>
                                         {% endif %}
-                                        <div class="vng-radio-circle">
-                                            <svg class="vng-radio-check" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3.5">
-                                                <polyline points="20 6 9 17 4 12"/>
-                                            </svg>
-                                        </div>
                                     </div>
                                 </div>
 
-                                <h3 class="h6 fw-bold mb-1 text-dark" style="font-size:16px;">Government Identity Document</h3>
-                                <p class="text-muted small mb-3" style="font-size:13px;line-height:1.5;min-height:38px;">
-                                    Verify your account using an official government ID of your country (NIN Slip, Voter's Card, Passport, or Driver's License).
+                                <h3 class="h6 fw-bold mb-2 text-dark" style="font-size:16px;">Government Identity Document</h3>
+                                <p class="text-muted small mb-0" style="font-size:13.5px;line-height:1.55;color:#475569;">
+                                    Verify your account using an official physical or digital government document (NIN Slip, Voter's Card, International Passport, or Driver's License).
                                 </p>
                             </div>
 
-                            <div class="pt-3 border-top d-flex align-items-center justify-content-between">
-                                <span class="small text-muted fw-medium" style="font-size:12px;">Physical Government Proof</span>
+                            <div class="pt-3 mt-4 border-top d-flex align-items-center justify-content-between">
+                                <span class="small text-muted fw-medium" style="font-size:12.5px;">Physical Government Proof</span>
                                 <span class="vng-method-status-pill {% if selected_method == 'government_id' %}vng-status-active{% else %}vng-status-idle{% endif %}">
                                     {% if selected_method == 'government_id' %}
                                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" class="me-1"><polyline points="20 6 9 17 4 12"/></svg> Selected
                                     {% else %}
-                                        Select Method &rarr;
+                                        <span class="vng-radio-empty-circle me-1.5"></span> Select Method
                                     {% endif %}
                                 </span>
                             </div>
@@ -145,47 +135,36 @@
                              id="methodCardAlternative" onclick="selectVerificationMethod('alternative')">
                             <div>
                                 <div class="d-flex align-items-center justify-content-between mb-3">
-                                    <div class="d-flex align-items-center gap-2">
-                                        <div class="vng-method-icon rounded-3 d-inline-flex align-items-center justify-content-center flex-shrink-0"
-                                             style="width:44px;height:44px;background:#F0FDF4;color:#059669;">
-                                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                                            </svg>
-                                        </div>
-                                        <div>
-                                            
-                                        </div>
+                                    <div class="vng-method-icon rounded-3 d-inline-flex align-items-center justify-content-center flex-shrink-0"
+                                         style="width:44px;height:44px;background:#F8FAFC;color:#64748B;border:1px solid #E2E8F0;">
+                                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                                        </svg>
                                     </div>
-                                    <div class="d-flex align-items-center gap-2">
+                                    <div>
                                         {% if has_approved_path_b %}
-                                            <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 rounded-pill fw-semibold" style="font-size:11px;">✓ Community Approved</span>
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 rounded-pill fw-semibold" style="font-size:11.5px;">✓ Community Approved</span>
                                         {% elif has_pending_path_b %}
-                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1 rounded-pill fw-semibold" style="font-size:11px;">Under Review</span>
+                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1 rounded-pill fw-semibold" style="font-size:11.5px;">Under Review</span>
                                         {% else %}
-                                            <span class="badge bg-light text-secondary border px-2.5 py-1 rounded-pill fw-semibold" style="font-size:13px;">No ID Required</span>
+                                            <span class="badge bg-light text-secondary border px-2.5 py-1 rounded-pill fw-semibold" style="font-size:11.5px;">No Government ID Needed</span>
                                         {% endif %}
-                                        <div class="vng-radio-circle">
-                                            <svg class="vng-radio-check" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3.5">
-                                                <polyline points="20 6 9 17 4 12"/>
-                                            </svg>
-                                        </div>
                                     </div>
                                 </div>
 
-                                <h3 class="h6 fw-bold mb-1 text-dark" style="font-size:16px;">Alternative Person Verification</h3>
-                                <p class="text-muted small mb-3" style="font-size:13px;line-height:1.5;min-height:38px;">
-                                    Establish genuine personhood to verify your account without an official government ID card to unlock the platform services .
+                                <h3 class="h6 fw-bold mb-2 text-dark" style="font-size:16px;">Alternative Person Verification</h3>
+                                <p class="text-muted small mb-0" style="font-size:13.5px;line-height:1.55;color:#475569;">
+                                    Establish genuine personhood to verify your account via a live selfie handwritten note challenge and residential address.
                                 </p>
-
                             </div>
 
-                            <div class="pt-3 border-top d-flex align-items-center justify-content-between">
-                                <span class="small text-muted fw-medium" style="font-size:12px;">Live Selfie &bull; Personhood</span>
+                            <div class="pt-3 mt-4 border-top d-flex align-items-center justify-content-between">
+                                <span class="small text-muted fw-medium" style="font-size:12.5px;">Live Selfie &bull; Personhood</span>
                                 <span class="vng-method-status-pill {% if selected_method == 'alternative' %}vng-status-active{% else %}vng-status-idle{% endif %}">
                                     {% if selected_method == 'alternative' %}
                                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" class="me-1"><polyline points="20 6 9 17 4 12"/></svg> Selected
                                     {% else %}
-                                        Select Method &rarr;
+                                        <span class="vng-radio-empty-circle me-1.5"></span> Select Method
                                     {% endif %}
                                 </span>
                             </div>
@@ -220,7 +199,7 @@
                             <div class="fw-bold text-dark d-flex align-items-center gap-2" style="font-size:16px;">
                                 Government Identity Document Verification
                             </div>
-                            <div class="small text-muted">Official identity verification for verified citizen status and clearance certificates.</div>
+                            <div class="small text-muted">Provide your official government identity document to verify your account.</div>
                         </div>
                         {% if user_profile.identity_verified or user_profile.id_verification_status == 'verified' %}
                             <span class="badge bg-success px-2.5 py-1.5"><span class="dot"></span>Verified Individual</span>
@@ -301,17 +280,7 @@
 
                     {# ── State 4: Unverified Initial Prompt ── #}
                     {% else %}
-                        <div class="d-flex align-items-start gap-3 mb-3 p-3 rounded-3" style="background:#FFFBEB;border:1px solid #FDE68A;">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" class="flex-shrink-0 mt-0.5">
-                                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-                            </svg>
-                            <div>
-                                <div class="fw-semibold text-dark" style="font-size:14.5px;">Government Credentials Required</div>
-                                <div class="small text-muted">
-                                    Provide your official government identity document to activate verified status and submit community reports.
-                                </div>
-                            </div>
-                        </div>
+                        
                     {% endif %}
 
                     {# ── Government ID Form Container: Step-by-Step Question Wizard ── #}
@@ -1192,6 +1161,76 @@
 </div>
 
 <style>
+/* ── Method Selection Cards ── */
+.vng-method-card {
+    background: #ffffff;
+    border: 1.5px solid #E2E8F0;
+    border-radius: 14px;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(15,23,42,0.04);
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    user-select: none;
+    position: relative;
+}
+.vng-method-card:hover {
+    border-color: #94A3B8;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(15,23,42,0.06);
+}
+.vng-method-card.vng-method-active {
+    border-color: #2563EB !important;
+    background: #FFFFFF !important;
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.12), 0 4px 16px rgba(37,99,235,0.06) !important;
+}
+.vng-radio-empty-circle {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 1.5px solid #94A3B8;
+    vertical-align: -2px;
+}
+.vng-method-status-pill {
+    font-size: 13px;
+    font-weight: 500;
+    color: #475569;
+    display: inline-flex;
+    align-items: center;
+    transition: all 0.15s ease;
+}
+.vng-status-active {
+    color: #2563EB !important;
+    font-weight: 600;
+}
+.vng-status-idle {
+    color: #64748B !important;
+}
+.vng-method-card:hover .vng-status-idle {
+    color: #0F172A !important;
+}
+.vng-dropzone {
+    border: 2px dashed #CBD5E1;
+    border-radius: 10px;
+    padding: 24px 16px;
+    text-align: center;
+    background: #FAFAFA;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.vng-dropzone:hover, .vng-dropzone.dragover {
+    border-color: #2563EB;
+    background: #EFF6FF;
+}
+.dot {
+    width: 6px; height: 6px;
+    display: inline-block;
+    border-radius: 50%;
+    background: currentColor;
+    margin-right: 5px;
+    vertical-align: middle;
+}
+
 /* ── Stepper UI & Wizard Navigation ── */
 .vng-stepper-pills {
     background: #F8FAFC;
@@ -1361,7 +1400,7 @@ function updateMethodRadio(card, isSelected) {
             pill.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" class="me-1"><polyline points="20 6 9 17 4 12"/></svg> Selected';
         } else {
             pill.className = 'vng-method-status-pill vng-status-idle';
-            pill.innerHTML = 'Select Method &rarr;';
+            pill.innerHTML = '<span class="vng-radio-empty-circle me-1.5"></span> Select Method';
         }
     }
 }
