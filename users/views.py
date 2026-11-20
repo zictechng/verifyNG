@@ -1,4 +1,6 @@
 import logging
+import base64
+import time
 
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import (
@@ -10,7 +12,8 @@ from django.contrib.auth.views import (
     PasswordResetConfirmView,
     PasswordResetCompleteView,
 )
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
+from django.core.files.base import ContentFile
 from django.shortcuts import render, redirect
 from django.urls import reverse_lazy
 from django.utils import timezone
@@ -404,6 +407,10 @@ class VerifyAccountView(LoginRequiredMixin, View):
         if selected_method not in ('government_id', 'alternative'):
             selected_method = ''
 
+        is_email_verified = getattr(user, 'is_email_verified', False) or bool(request.session.get('vng_verified_email'))
+        is_phone_verified = getattr(user, 'phone_verified', False) or bool(request.session.get('vng_verified_phone'))
+        user_phone = getattr(user, 'phone_number', '') or request.session.get('vng_verified_phone', '')
+
         return render(request, self.template_name, {
             'user_profile': user,
             'supported_countries': supported_countries,
@@ -415,6 +422,10 @@ class VerifyAccountView(LoginRequiredMixin, View):
             'has_pending_path_b': has_pending_path_b,
             'path_b_form': path_b_form,
             'selected_method': selected_method,
+            'is_email_verified': is_email_verified,
+            'is_phone_verified': is_phone_verified,
+            'user_phone': user_phone,
+            'has_selfie': getattr(user, 'has_selfie', False),
             'active_section': 'verify_account',
         })
 
@@ -602,6 +613,25 @@ class LegalNameChangeRequestView(LoginRequiredMixin, View):
         )
         return redirect(redirect_url)
 
+def decode_base64_image(data_url, prefix="image"):
+    """Decodes a data-URL (base64) into a Django ContentFile for storage."""
+    if not data_url or not isinstance(data_url, str) or ';base64,' not in data_url:
+        return None
+    try:
+        format_part, base64_part = data_url.split(';base64,', 1)
+        ext = 'jpg'
+        if 'png' in format_part.lower():
+            ext = 'png'
+        elif 'webp' in format_part.lower():
+            ext = 'webp'
+        decoded_bytes = base64.b64decode(base64_part)
+        filename = f"{prefix}_{int(time.time())}_{secrets.token_hex(3)}.{ext}"
+        return ContentFile(decoded_bytes, name=filename)
+    except Exception as exc:
+        logger.warning("Failed to decode base64 image (%s): %s", prefix, exc)
+        return None
+
+
 class UserIdentityVerificationSubmitView(LoginRequiredMixin, View):
     """Handles submission of personal government ID verification credentials."""
     def post(self, request):
@@ -641,12 +671,15 @@ class UserIdentityVerificationSubmitView(LoginRequiredMixin, View):
 
         file_uploaded = False
         id_doc = request.FILES.get('id_document')
+        if not id_doc and request.POST.get('id_document_data'):
+            id_doc = decode_base64_image(request.POST.get('id_document_data'), prefix=f"id_doc_{user.pk}")
+
         if id_doc:
-            if id_doc.size > 5 * 1024 * 1024:
+            if hasattr(id_doc, 'size') and id_doc.size > 5 * 1024 * 1024:
                 messages.error(request, "Uploaded document exceeds the 5MB size limit. Please upload a smaller file.")
                 return redirect(redirect_url)
-            ext = os.path.splitext(id_doc.name)[1].lower()
-            if ext not in ('.pdf', '.jpg', '.jpeg', '.png'):
+            ext = os.path.splitext(id_doc.name)[1].lower() if hasattr(id_doc, 'name') else '.jpg'
+            if ext not in ('.pdf', '.jpg', '.jpeg', '.png', '.webp'):
                 messages.error(request, "Invalid file format. Please upload a PDF, JPG, or PNG document.")
                 return redirect(redirect_url)
 
@@ -655,6 +688,22 @@ class UserIdentityVerificationSubmitView(LoginRequiredMixin, View):
         elif not user.has_id_document:
             messages.error(request, "Please attach a verifiable photo or scan of your government identity document.")
             return redirect(redirect_url)
+
+        # Handle selfie image from camera or upload
+        selfie_doc = request.FILES.get('id_selfie_image')
+        if not selfie_doc and request.POST.get('id_selfie_data'):
+            selfie_doc = decode_base64_image(request.POST.get('id_selfie_data'), prefix=f"selfie_{user.pk}")
+        if selfie_doc:
+            user.id_selfie_image = selfie_doc
+
+        # Handle phone number and phone/email verification standing
+        phone_number = request.POST.get('phone_number', '').strip()
+        if phone_number:
+            user.phone_number = phone_number
+        if request.session.get('vng_verified_phone') or request.POST.get('phone_verified') == 'true':
+            user.phone_verified = True
+        if request.session.get('vng_verified_email') or request.POST.get('email_verified') == 'true':
+            user.email_verified = True
 
         user.id_type = id_type
         user.id_number = id_number
@@ -671,6 +720,9 @@ class UserIdentityVerificationSubmitView(LoginRequiredMixin, View):
                 "id_type": id_type,
                 "issuing_country": issuing_country,
                 "has_new_document": file_uploaded,
+                "has_selfie": bool(getattr(user, 'id_selfie_image', None)),
+                "phone_verified": getattr(user, 'phone_verified', False),
+                "email_verified": getattr(user, 'email_verified', False),
             }
         )
 
@@ -679,6 +731,90 @@ class UserIdentityVerificationSubmitView(LoginRequiredMixin, View):
             "Your identity credentials and document have been submitted. Our compliance team will review your submission."
         )
         return redirect(redirect_url)
+
+
+@method_decorator(xframe_options_sameorigin, name='dispatch')
+class UserSelfieDocumentView(LoginRequiredMixin, View):
+    """In-browser image stream for the user to view their own uploaded verification selfie."""
+    def get(self, request):
+        user = request.user
+        if not user.has_selfie:
+            raise Http404("No selfie image uploaded.")
+
+        url = getattr(user.id_selfie_image, 'url', '')
+        as_download = request.GET.get('download') == '1'
+        if not as_download and url and url.startswith(('http://', 'https://')):
+            return HttpResponseRedirect(url)
+
+        try:
+            doc_file = user.id_selfie_image.open('rb')
+        except Exception:
+            if url and url.startswith(('http://', 'https://')):
+                return HttpResponseRedirect(url)
+            raise Http404("Selfie image could not be opened.")
+
+        ext = user.id_selfie_image.name.split('.')[-1].lower() if '.' in user.id_selfie_image.name else 'jpg'
+        content_type, _ = mimetypes.guess_type(user.id_selfie_image.name)
+        if not content_type:
+            content_type = 'image/jpeg'
+
+        response = HttpResponse(doc_file.read(), content_type=content_type)
+        response['Content-Disposition'] = f'inline; filename="selfie_proof.{ext}"'
+        response['X-Frame-Options'] = 'SAMEORIGIN'
+        doc_file.close()
+        return response
+
+
+class SendPhoneOTPView(LoginRequiredMixin, View):
+    """AJAX endpoint to dispatch phone verification OTP via WhatsApp Business API / SMS."""
+    def post(self, request):
+        import json
+        from users.verification_services import send_phone_verification_otp
+        try:
+            data = json.loads(request.body.decode('utf-8')) if request.body else {}
+        except Exception:
+            data = {}
+        phone = data.get('phone') or request.POST.get('phone', '')
+        channel = data.get('channel') or request.POST.get('channel', 'whatsapp')
+        res = send_phone_verification_otp(request.session, phone, preferred_channel=channel)
+        return JsonResponse(res)
+
+
+class VerifyPhoneOTPView(LoginRequiredMixin, View):
+    """AJAX endpoint to validate phone verification OTP."""
+    def post(self, request):
+        import json
+        from users.verification_services import verify_phone_otp
+        try:
+            data = json.loads(request.body.decode('utf-8')) if request.body else {}
+        except Exception:
+            data = {}
+        code = data.get('code') or request.POST.get('code', '')
+        phone = data.get('phone') or request.POST.get('phone', '')
+        ok, msg = verify_phone_otp(request.session, request.user, code, phone)
+        return JsonResponse({'success': ok, 'message': msg})
+
+
+class SendEmailOTPView(LoginRequiredMixin, View):
+    """AJAX endpoint to dispatch email verification OTP."""
+    def post(self, request):
+        from users.verification_services import send_email_verification_otp
+        res = send_email_verification_otp(request.session, request.user)
+        return JsonResponse(res)
+
+
+class VerifyEmailOTPView(LoginRequiredMixin, View):
+    """AJAX endpoint to validate email verification OTP."""
+    def post(self, request):
+        import json
+        from users.verification_services import verify_email_otp
+        try:
+            data = json.loads(request.body.decode('utf-8')) if request.body else {}
+        except Exception:
+            data = {}
+        code = data.get('code') or request.POST.get('code', '')
+        ok, msg = verify_email_otp(request.session, request.user, code)
+        return JsonResponse({'success': ok, 'message': msg})
 
 
 @method_decorator(xframe_options_sameorigin, name='dispatch')

@@ -314,98 +314,678 @@
                         </div>
                     {% endif %}
 
-                    {# ── Government ID Form Container ── #}
+                    {# ── Government ID Form Container: Step-by-Step Question Wizard ── #}
                     {% if not user_profile.identity_verified and user_profile.id_verification_status != 'verified' %}
                     <div id="idVerificationFormWrap" class="{% if user_profile.id_verification_status == 'pending' or user_profile.has_id_document and user_profile.id_verification_status != 'rejected' %}d-none{% endif %} pt-3 border-top mt-3">
+
+                        {# ── Wizard Stepper Header & Progress Bar ── #}
+                        <div class="vng-wizard-header mb-4">
+                            <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
+                                <div>
+                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1 rounded-pill fw-semibold" id="wizardStepBadge" style="font-size:11.5px;">
+                                        Step 1 of 7 &bull; Email Verification
+                                    </span>
+                                </div>
+                                <div class="small text-muted fw-medium" id="wizardStepPercent" style="font-size:12px;">
+                                    14% Completed
+                                </div>
+                            </div>
+                            <div class="progress" style="height: 6px; border-radius: 9999px; background: #E2E8F0;">
+                                <div id="wizardProgressBar" class="progress-bar bg-primary" role="progressbar" style="width: 14.3%; transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);"></div>
+                            </div>
+
+                            {# Desktop / Tablet Stepper Indicators #}
+                            <div class="vng-stepper-pills mt-3 d-none d-md-flex align-items-center justify-content-between">
+                                <div class="vng-step-pill vng-step-active" id="stepPill1" onclick="wizardJumpToStep(1)">
+                                    <div class="vng-pill-num">1</div>
+                                    <div class="vng-pill-label">Email</div>
+                                </div>
+                                <div class="vng-step-connector" id="stepConn1"></div>
+                                <div class="vng-step-pill" id="stepPill2" onclick="wizardJumpToStep(2)">
+                                    <div class="vng-pill-num">2</div>
+                                    <div class="vng-pill-label">Phone</div>
+                                </div>
+                                <div class="vng-step-connector" id="stepConn2"></div>
+                                <div class="vng-step-pill" id="stepPill3" onclick="wizardJumpToStep(3)">
+                                    <div class="vng-pill-num">3</div>
+                                    <div class="vng-pill-label">Country</div>
+                                </div>
+                                <div class="vng-step-connector" id="stepConn3"></div>
+                                <div class="vng-step-pill" id="stepPill4" onclick="wizardJumpToStep(4)">
+                                    <div class="vng-pill-num">4</div>
+                                    <div class="vng-pill-label">Document</div>
+                                </div>
+                                <div class="vng-step-connector" id="stepConn4"></div>
+                                <div class="vng-step-pill" id="stepPill5" onclick="wizardJumpToStep(5)">
+                                    <div class="vng-pill-num">5</div>
+                                    <div class="vng-pill-label">Camera ID</div>
+                                </div>
+                                <div class="vng-step-connector" id="stepConn5"></div>
+                                <div class="vng-step-pill" id="stepPill6" onclick="wizardJumpToStep(6)">
+                                    <div class="vng-pill-num">6</div>
+                                    <div class="vng-pill-label">Selfie</div>
+                                </div>
+                                <div class="vng-step-connector" id="stepConn6"></div>
+                                <div class="vng-step-pill" id="stepPill7" onclick="wizardJumpToStep(7)">
+                                    <div class="vng-pill-num">7</div>
+                                    <div class="vng-pill-label">Review</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {# ── Actual Form for Submission ── #}
                         <form method="post" action="{% url 'users:verify_identity_submit' %}" enctype="multipart/form-data" id="identityVerificationForm" novalidate>
                             {% csrf_token %}
+                            {# Hidden Form Inputs Synced Across Wizard Steps #}
+                            <input type="hidden" name="issuing_country" id="wizard_issuing_country" value="{{ default_issuing_country }}">
+                            <input type="hidden" name="id_type" id="wizard_id_type" value="{{ user_profile.id_type|default:'nin' }}">
+                            <input type="hidden" name="id_number" id="wizard_id_number" value="{{ user_profile.id_number|default:'' }}">
+                            <input type="hidden" name="phone_number" id="wizard_phone_number" value="{{ user_phone }}">
+                            <input type="hidden" name="phone_verified" id="wizard_phone_verified" value="{% if is_phone_verified %}true{% else %}false{% endif %}">
+                            <input type="hidden" name="email_verified" id="wizard_email_verified" value="{% if is_email_verified %}true{% else %}false{% endif %}">
+                            <input type="hidden" name="id_document_data" id="wizard_id_document_data" value="">
+                            <input type="hidden" name="id_selfie_data" id="wizard_id_selfie_data" value="">
+                            <input type="file" name="id_document" id="idDocumentFileInput" accept=".pdf,.png,.jpg,.jpeg" class="d-none">
+                            <input type="file" name="id_selfie_image" id="idSelfieFileInput" accept=".png,.jpg,.jpeg,.webp" class="d-none">
 
-                            <div class="row g-3 mb-3">
-                                <div class="col-sm-4">
-                                    <label class="form-label small fw-semibold">Document-Issuing Country <span class="text-danger">*</span></label>
-                                    <select name="issuing_country" id="issuing_country_select" class="form-select" style="font-size:15px;">
+                            {# ══════════════════════════════════════════════════════════════ #}
+                            {# STEP 1: Verify your email address                             #}
+                            {# ══════════════════════════════════════════════════════════════ #}
+                            <div class="vng-wizard-step-pane" id="vngStepPane1">
+                                <div class="d-flex align-items-start gap-3 mb-3">
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 text-primary"
+                                         style="width: 44px; height: 44px; background: #EFF6FF;">
+                                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                                            <polyline points="22,6 12,13 2,6"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h3 class="h5 fw-bold text-dark mb-1" style="font-size:18px;">1. Verify Your Email Address</h3>
+                                        <p class="text-muted small mb-0" style="font-size:13.5px; line-height: 1.5;">
+                                            We use your registered email for official regulatory correspondence, compliance review notifications, and TrustPass security clearance.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div class="card border rounded-3 p-3.5 mb-3" style="background:#F8FAFC;">
+                                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                        <div>
+                                            <div class="small text-muted fw-semibold mb-0.5" style="font-size:11.5px;">REGISTERED ACCOUNT EMAIL</div>
+                                            <div class="fw-bold text-dark" style="font-size:16px;">{{ request.user.email }}</div>
+                                        </div>
+                                        <div id="emailVerifiedBadgeWrap">
+                                            {% if is_email_verified %}
+                                                <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1.5 rounded-pill fw-semibold" style="font-size:12px;">
+                                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" class="me-1"><polyline points="20 6 9 17 4 12"/></svg>
+                                                    Email Address Confirmed
+                                                </span>
+                                            {% else %}
+                                                <button type="button" id="btnSendEmailCode" class="btn btn-sm btn-outline-primary fw-semibold" onclick="sendEmailOtp()">
+                                                    Send 6-Digit Email Code
+                                                </button>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+
+                                    {# Email OTP entry block if not yet verified #}
+                                    <div id="emailOtpInputBlock" class="d-none mt-3 pt-3 border-top">
+                                        <div class="small text-muted mb-2" id="emailOtpStatusMsg">
+                                            A 6-digit confirmation code was sent to your inbox.
+                                        </div>
+                                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                                            <input type="text" id="wizardEmailOtpCode" maxlength="6" class="form-control font-monospace text-center fw-bold"
+                                                   placeholder="123456" style="max-width: 160px; font-size: 16px; letter-spacing: 4px;">
+                                            <button type="button" class="btn btn-sm btn-primary fw-semibold px-3" onclick="verifyEmailOtp()">
+                                                Verify Email Code
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex align-items-center justify-content-end pt-3 border-top">
+                                    <button type="button" class="btn btn-vng-primary px-4 fw-semibold" onclick="wizardNextStep(1)">
+                                        Continue to Phone Verification &rarr;
+                                    </button>
+                                </div>
+                            </div>
+
+                            {# ══════════════════════════════════════════════════════════════ #}
+                            {# STEP 2: Verify your phone number (using WhatsApp OTP)        #}
+                            {# ══════════════════════════════════════════════════════════════ #}
+                            <div class="vng-wizard-step-pane d-none" id="vngStepPane2">
+                                <div class="d-flex align-items-start gap-3 mb-3">
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 text-success"
+                                         style="width: 44px; height: 44px; background: #F0FDF4;">
+                                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h3 class="h5 fw-bold text-dark mb-1" style="font-size:18px;">2. Verify Your Phone Number</h3>
+                                        <p class="text-muted small mb-0" style="font-size:13.5px; line-height: 1.5;">
+                                            We will send a 6-digit One-Time Password (OTP) to your WhatsApp. Automatic SMS fallback is provided if WhatsApp is not available.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div class="card border rounded-3 p-3.5 mb-3" style="background:#F8FAFC;">
+                                    <label class="form-label small fw-semibold text-dark">Mobile Phone Number <span class="text-danger">*</span></label>
+                                    <div class="input-group mb-2" style="max-width: 420px;">
+                                        <span class="input-group-text bg-white text-muted">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                                        </span>
+                                        <input type="tel" id="wizardPhoneInput" class="form-control" placeholder="+234 801 234 5678"
+                                               value="{{ user_phone }}" style="font-size: 15px;">
+                                    </div>
+                                    <div class="form-text small text-muted mb-3">Include international dial code (e.g. +234 for Nigeria, +233 for Ghana).</div>
+
+                                    {# Action buttons to dispatch OTP #}
+                                    <div class="d-flex align-items-center gap-2 flex-wrap mb-3" id="phoneDispatchBtnWrap">
+                                        <button type="button" id="btnSendWhatsAppOtp" class="btn btn-sm btn-success fw-semibold d-inline-flex align-items-center gap-1.5 px-3" onclick="sendPhoneOtp('whatsapp')">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                                <path d="M12.031 2C6.516 2 2.031 6.484 2.031 12c0 2.188.703 4.219 1.906 5.891L2 22l4.25-1.891C7.875 21.234 9.891 22 12.031 22c5.516 0 10-4.484 10-10s-4.484-10-10-10zm0 18.281c-1.859 0-3.594-.594-5.016-1.609l-.359-.25-2.516 1.125 1.141-2.453-.266-.375C3.891 15.25 3.312 13.688 3.312 12c0-4.813 3.906-8.719 8.719-8.719 4.813 0 8.719 3.906 8.719 8.719 0 4.813-3.906 8.281-8.719 8.281z"/>
+                                            </svg>
+                                            Send Code via WhatsApp
+                                        </button>
+                                        <button type="button" id="btnSendSmsOtp" class="btn btn-sm btn-outline-secondary fw-semibold px-3" onclick="sendPhoneOtp('sms')">
+                                            Send via SMS
+                                        </button>
+                                        <span id="phoneVerifiedStatusBadge" class="{% if not is_phone_verified %}d-none{% endif %} badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 rounded-pill">
+                                            ✓ Phone Number Verified
+                                        </span>
+                                    </div>
+
+                                    {# OTP input field container #}
+                                    <div id="phoneOtpInputBlock" class="d-none p-3 bg-white border rounded-3" style="max-width: 440px;">
+                                        <div class="small fw-semibold text-dark mb-1" id="phoneOtpNotice">Enter the 6-digit code sent to your phone:</div>
+                                        <div class="d-flex align-items-center gap-2 mb-2">
+                                            <input type="text" id="wizardPhoneOtpCode" maxlength="6" class="form-control font-monospace text-center fw-bold fs-5"
+                                                   placeholder="123456" style="letter-spacing: 6px; max-width: 170px;">
+                                            <button type="button" class="btn btn-primary fw-semibold px-3" onclick="verifyPhoneOtp()">
+                                                Verify Code
+                                            </button>
+                                        </div>
+                                        <div class="small text-muted" id="phoneOtpTimerText">
+                                            Code valid for 10 minutes.
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex align-items-center justify-content-between pt-3 border-top flex-wrap gap-2">
+                                    <button type="button" class="btn btn-outline-secondary px-3" onclick="wizardPrevStep(2)">
+                                        &larr; Back to Email
+                                    </button>
+                                    <button type="button" class="btn btn-vng-primary px-4 fw-semibold" onclick="wizardNextStep(2)">
+                                        Continue to Country Selection &rarr;
+                                    </button>
+                                </div>
+                            </div>
+
+                            {# ══════════════════════════════════════════════════════════════ #}
+                            {# STEP 3: Select document-issuing country                       #}
+                            {# ══════════════════════════════════════════════════════════════ #}
+                            <div class="vng-wizard-step-pane d-none" id="vngStepPane3">
+                                <div class="d-flex align-items-start gap-3 mb-3">
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 text-primary"
+                                         style="width: 44px; height: 44px; background: #EFF6FF;">
+                                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <circle cx="12" cy="12" r="10"/>
+                                            <line x1="2" y1="12" x2="22" y2="12"/>
+                                            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h3 class="h5 fw-bold text-dark mb-1" style="font-size:18px;">3. Select Document-Issuing Country</h3>
+                                        <p class="text-muted small mb-0" style="font-size:13.5px; line-height: 1.5;">
+                                            Select the sovereign African nation that issued your official government identity credential.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div class="row g-2 mb-3" id="countryTileGrid">
+                                    <div class="col-sm-6 col-md-4">
+                                        <div class="vng-country-tile p-3 rounded-3 border d-flex align-items-center justify-content-between cursor-pointer {% if default_issuing_country == 'NG' %}vng-tile-active{% endif %}"
+                                             onclick="selectWizardCountry('NG', 'Nigeria')">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <span class="fs-4">🇳🇬</span>
+                                                <div>
+                                                    <div class="fw-bold text-dark small">Nigeria</div>
+                                                    <div class="text-muted" style="font-size:11px;">NIN, PVC, Passport, FRSC</div>
+                                                </div>
+                                            </div>
+                                            <div class="vng-tile-check">✓</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-6 col-md-4">
+                                        <div class="vng-country-tile p-3 rounded-3 border d-flex align-items-center justify-content-between cursor-pointer {% if default_issuing_country == 'GH' %}vng-tile-active{% endif %}"
+                                             onclick="selectWizardCountry('GH', 'Ghana')">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <span class="fs-4">🇬🇭</span>
+                                                <div>
+                                                    <div class="fw-bold text-dark small">Ghana</div>
+                                                    <div class="text-muted" style="font-size:11px;">Ghana Card, Passport</div>
+                                                </div>
+                                            </div>
+                                            <div class="vng-tile-check">✓</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-6 col-md-4">
+                                        <div class="vng-country-tile p-3 rounded-3 border d-flex align-items-center justify-content-between cursor-pointer {% if default_issuing_country == 'KE' %}vng-tile-active{% endif %}"
+                                             onclick="selectWizardCountry('KE', 'Kenya')">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <span class="fs-4">🇰🇪</span>
+                                                <div>
+                                                    <div class="fw-bold text-dark small">Kenya</div>
+                                                    <div class="text-muted" style="font-size:11px;">National ID, Huduma Namba</div>
+                                                </div>
+                                            </div>
+                                            <div class="vng-tile-check">✓</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-6 col-md-4">
+                                        <div class="vng-country-tile p-3 rounded-3 border d-flex align-items-center justify-content-between cursor-pointer {% if default_issuing_country == 'BJ' %}vng-tile-active{% endif %}"
+                                             onclick="selectWizardCountry('BJ', 'Benin')">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <span class="fs-4">🇧🇯</span>
+                                                <div>
+                                                    <div class="fw-bold text-dark small">Benin</div>
+                                                    <div class="text-muted" style="font-size:11px;">CIP (NPI), CNI, Passeport</div>
+                                                </div>
+                                            </div>
+                                            <div class="vng-tile-check">✓</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-6 col-md-4">
+                                        <div class="vng-country-tile p-3 rounded-3 border d-flex align-items-center justify-content-between cursor-pointer {% if default_issuing_country == 'ZA' %}vng-tile-active{% endif %}"
+                                             onclick="selectWizardCountry('ZA', 'South Africa')">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <span class="fs-4">🇿🇦</span>
+                                                <div>
+                                                    <div class="fw-bold text-dark small">South Africa</div>
+                                                    <div class="text-muted" style="font-size:11px;">Smart ID Card, Passport</div>
+                                                </div>
+                                            </div>
+                                            <div class="vng-tile-check">✓</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-6 col-md-4">
+                                        <div class="vng-country-tile p-3 rounded-3 border d-flex align-items-center justify-content-between cursor-pointer {% if default_issuing_country == 'SN' %}vng-tile-active{% endif %}"
+                                             onclick="selectWizardCountry('SN', 'Senegal')">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <span class="fs-4">🇸🇳</span>
+                                                <div>
+                                                    <div class="fw-bold text-dark small">Senegal</div>
+                                                    <div class="text-muted" style="font-size:11px;">CNI CEDEAO, Passeport</div>
+                                                </div>
+                                            </div>
+                                            <div class="vng-tile-check">✓</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label small text-muted">Or select from all supported sovereign nations:</label>
+                                    <select id="issuing_country_select" class="form-select" style="max-width:320px;">
                                         {% for c_code, c_name in supported_countries %}
                                             <option value="{{ c_code }}" {% if default_issuing_country == c_code %}selected{% endif %}>{{ c_name }} ({{ c_code }})</option>
                                         {% endfor %}
                                     </select>
                                 </div>
-                                <div class="col-sm-4">
-                                    <label class="form-label small fw-semibold">Government Document Type <span class="text-danger">*</span></label>
-                                    <select name="id_type" id="id_type_select" class="form-select" required style="font-size:15px;">
-                                        <option value="nin" {% if user_profile.id_type == 'nin' or not user_profile.id_type %}selected{% endif %}>National Identity Number (NIN)</option>
-                                        <option value="voters_card" {% if user_profile.id_type == 'voters_card' %}selected{% endif %}>Permanent Voter's Card (PVC)</option>
-                                        <option value="passport" {% if user_profile.id_type == 'passport' %}selected{% endif %}>International Passport</option>
-                                        <option value="drivers_license" {% if user_profile.id_type == 'drivers_license' %}selected{% endif %}>Driver's License (FRSC)</option>
-                                    </select>
-                                </div>
-                                <div class="col-sm-4">
-                                    <label class="form-label small fw-semibold" id="id_number_label">Identification Number <span class="text-danger">*</span></label>
-                                    <input type="text" name="id_number" id="id_number_input" class="form-control font-monospace"
-                                           value="{{ user_profile.id_number }}" required placeholder="Enter 11-digit NIN" style="font-size:15px;">
-                                    <div id="id_number_help" class="form-text small">Enter your 11-digit National Identity Number.</div>
+
+                                <div class="d-flex align-items-center justify-content-between pt-3 border-top flex-wrap gap-2">
+                                    <button type="button" class="btn btn-outline-secondary px-3" onclick="wizardPrevStep(3)">
+                                        &larr; Back to Phone
+                                    </button>
+                                    <button type="button" class="btn btn-vng-primary px-4 fw-semibold" onclick="wizardNextStep(3)">
+                                        Continue to Document Type &rarr;
+                                    </button>
                                 </div>
                             </div>
 
-                            {# Dropzone Box #}
-                            <div class="mb-3">
-                                <label class="form-label small fw-semibold d-flex justify-content-between align-items-center">
-                                    <span>Upload Identification Document Proof <span class="text-danger">*</span></span>
-                                    <span class="badge bg-light text-secondary border fw-normal">PDF, JPG, PNG &bull; Max 5MB</span>
-                                </label>
+                            {# ══════════════════════════════════════════════════════════════ #}
+                            {# STEP 4: Select type of accepted government document           #}
+                            {# ══════════════════════════════════════════════════════════════ #}
+                            <div class="vng-wizard-step-pane d-none" id="vngStepPane4">
+                                <div class="d-flex align-items-start gap-3 mb-3">
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 text-primary"
+                                         style="width: 44px; height: 44px; background: #EFF6FF;">
+                                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <rect x="3" y="4" width="18" height="16" rx="3"/>
+                                            <circle cx="9" cy="10" r="2"/>
+                                            <line x1="15" y1="8" x2="17" y2="8"/><line x1="15" y1="12" x2="17" y2="12"/><line x1="7" y1="16" x2="17" y2="16"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h3 class="h5 fw-bold text-dark mb-1" style="font-size:18px;">4. Select Accepted Document Type</h3>
+                                        <p class="text-muted small mb-0" style="font-size:13.5px; line-height: 1.5;">
+                                            Choose your qualifying official credential and enter the document identification number.
+                                        </p>
+                                    </div>
+                                </div>
 
-                                <div id="idDropzone" class="vng-dropzone" tabindex="0" role="button" aria-label="Upload identification document">
-                                    <input type="file" name="id_document" id="idDocumentInput" accept=".pdf,.png,.jpg,.jpeg" class="d-none">
+                                {# Dynamic document selector pills #}
+                                <div class="mb-3">
+                                    <label class="form-label small fw-semibold text-dark">Accepted Credentials for <span id="selectedCountryNameLabel">Nigeria</span> <span class="text-danger">*</span></label>
+                                    <div class="row g-2" id="docTypeTileContainer">
+                                        {# Populated via JavaScript based on chosen country #}
+                                    </div>
+                                    <select name="id_type_fallback" id="id_type_select" class="d-none"></select>
+                                </div>
 
-                                    {# Idle state #}
-                                    <div id="idDropzoneIdle">
-                                        <div class="vng-dropzone-icon mb-2">
-                                            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="1.8">
-                                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                                                <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                                {# BVN Exclusion Warning Banner #}
+                                <div class="p-3 rounded-3 mb-3 d-flex align-items-start gap-2" style="background:#FFFBEB;border:1px solid #FDE68A;">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" class="flex-shrink-0 mt-0.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                                    <div class="small text-dark" style="font-size:12.5px;line-height:1.45;">
+                                        <strong>Strict Compliance Policy:</strong> A Bank Verification Number (BVN) is a financial identifier, not an accepted photo ID document. You must provide a physical or digital photo credential (NIN Slip, Voter's Card, Passport, or Driver's License).
+                                    </div>
+                                </div>
+
+                                {# Document ID Number Input #}
+                                <div class="card border rounded-3 p-3.5 mb-3" style="background:#F8FAFC;">
+                                    <label class="form-label small fw-semibold text-dark" id="id_number_label">
+                                        Identification Number <span class="text-danger">*</span>
+                                    </label>
+                                    <div style="max-width: 420px;">
+                                        <input type="text" id="id_number_input" class="form-control font-monospace"
+                                               value="{{ user_profile.id_number }}" required placeholder="Enter 11-digit NIN" style="font-size:16px;">
+                                        <div id="id_number_help" class="form-text small mt-1 text-muted">Enter your official identification number.</div>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex align-items-center justify-content-between pt-3 border-top flex-wrap gap-2">
+                                    <button type="button" class="btn btn-outline-secondary px-3" onclick="wizardPrevStep(4)">
+                                        &larr; Back to Country
+                                    </button>
+                                    <button type="button" class="btn btn-vng-primary px-4 fw-semibold" onclick="wizardNextStep(4)">
+                                        Continue to Camera Capture &rarr;
+                                    </button>
+                                </div>
+                            </div>
+
+                            {# ══════════════════════════════════════════════════════════════ #}
+                            {# STEP 5: Capture document image with camera                    #}
+                            {# ══════════════════════════════════════════════════════════════ #}
+                            <div class="vng-wizard-step-pane d-none" id="vngStepPane5">
+                                <div class="d-flex align-items-start gap-3 mb-3">
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 text-primary"
+                                         style="width: 44px; height: 44px; background: #EFF6FF;">
+                                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                                            <circle cx="12" cy="13" r="4"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h3 class="h5 fw-bold text-dark mb-1" style="font-size:18px;">5. Capture Your Document with Camera</h3>
+                                        <p class="text-muted small mb-0" style="font-size:13.5px; line-height: 1.5;">
+                                            Use your camera to capture a sharp, uncropped photo of your physical ID card or digital slip.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {# Live Viewfinder / Capture Box #}
+                                <div class="card border rounded-3 p-3 p-sm-4 mb-3 text-center" style="background:#0F172A; color:#FFFFFF;">
+                                    {# Live video feed #}
+                                    <div id="idCameraViewWrap" class="position-relative mx-auto mb-3 overflow-hidden rounded-3" style="max-width: 520px; background:#000000; min-height: 240px;">
+                                        <video id="idCameraVideo" autoplay playsinline muted class="w-100 h-100 d-none" style="object-fit: cover; max-height: 320px;"></video>
+                                        <canvas id="idCaptureCanvas" class="d-none"></canvas>
+
+                                        {# Card Guide Overlay Lines #}
+                                        <div id="idCameraCardGuide" class="position-absolute top-50 start-50 translate-middle border border-2 border-primary rounded-3 d-none pointer-events-none"
+                                             style="width: 85%; height: 75%; border-style: dashed !important; box-shadow: 0 0 0 9999px rgba(0,0,0,0.5);">
+                                            <span class="badge bg-primary text-white position-absolute top-0 start-50 translate-middle-x mt-2" style="font-size:11px;">Align ID Card Within Frame</span>
+                                        </div>
+
+                                        {# Placeholder state when camera is idle #}
+                                        <div id="idCameraIdlePlaceholder" class="p-4 d-flex flex-column align-items-center justify-content-center" style="min-height: 240px;">
+                                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="1.6" class="mb-2">
+                                                <rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><line x1="15" y1="8" x2="17" y2="8"/><line x1="15" y1="12" x2="17" y2="12"/><line x1="7" y1="16" x2="17" y2="16"/>
                                             </svg>
+                                            <div class="fw-semibold text-white small mb-1">Live Camera Ready</div>
+                                            <div class="text-white-50" style="font-size:12px;">Click below to launch your camera and photograph your document.</div>
                                         </div>
-                                        <div class="fw-semibold text-dark small mb-1">
-                                            Drag &amp; drop your ID card or slip here, or <span class="text-primary text-decoration-underline">browse files</span>
-                                        </div>
-                                        <div class="text-muted" style="font-size:0.75rem;">
-                                            Attach a clear, uncropped photo or scan of your physical ID card or digital slip (PDF, JPG, PNG &bull; Max 5MB)
+
+                                        {# Photo snapped preview #}
+                                        <div id="idCameraCapturedPreview" class="d-none position-relative">
+                                            <img id="idCapturedImgEl" class="w-100 rounded-3" style="max-height: 320px; object-fit: contain;" alt="Captured Document">
                                         </div>
                                     </div>
 
-                                    {# Preview state #}
-                                    <div id="idDropzonePreview" class="d-none">
-                                        <div class="d-inline-flex align-items-center gap-3 p-3 bg-white border rounded-3 shadow-sm text-start" style="max-width:100%;">
-                                            <div id="idPreviewIconWrap" class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
-                                                 style="width:40px;height:40px;background:#EFF6FF;color:#2563EB;">
-                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                    {# Viewfinder control buttons #}
+                                    <div class="d-flex align-items-center justify-content-center gap-2 flex-wrap">
+                                        <button type="button" id="btnStartIdCamera" class="btn btn-primary fw-semibold px-4" onclick="startIdCamera()">
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                                            Launch Camera
+                                        </button>
+                                        <button type="button" id="btnTakeIdPhoto" class="btn btn-success fw-bold px-4 d-none" onclick="takeIdPhoto()">
+                                            📸 Snap Document
+                                        </button>
+                                        <button type="button" id="btnRetakeIdPhoto" class="btn btn-outline-light btn-sm d-none" onclick="retakeIdPhoto()">
+                                            Retake Photo
+                                        </button>
+                                        <button type="button" id="btnSwitchIdCamera" class="btn btn-outline-light btn-sm d-none" onclick="switchIdCamera()">
+                                            Switch Camera
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {# Fallback File Upload / Browse Dropzone #}
+                                <div class="card border rounded-3 p-3 mb-3" style="background:#F8FAFC;">
+                                    <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
+                                        <span class="small fw-semibold text-muted" style="font-size:12px;">ALTERNATIVE UPLOAD FALLBACK</span>
+                                        <span class="badge bg-light text-secondary border fw-normal" style="font-size:11px;">PDF, JPG, PNG &bull; Max 5MB</span>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('idDocumentFileInput').click()">
+                                            Upload File from Device
+                                        </button>
+                                        <span id="idFallbackFileName" class="small text-muted text-truncate" style="max-width:240px;">No file selected</span>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex align-items-center justify-content-between pt-3 border-top flex-wrap gap-2">
+                                    <button type="button" class="btn btn-outline-secondary px-3" onclick="wizardPrevStep(5)">
+                                        &larr; Back to Document Type
+                                    </button>
+                                    <button type="button" class="btn btn-vng-primary px-4 fw-semibold" onclick="wizardNextStep(5)">
+                                        Continue to Selfie Exercise &rarr;
+                                    </button>
+                                </div>
+                            </div>
+
+                            {# ══════════════════════════════════════════════════════════════ #}
+                            {# STEP 6: Complete selfie verification exercise                 #}
+                            {# ══════════════════════════════════════════════════════════════ #}
+                            <div class="vng-wizard-step-pane d-none" id="vngStepPane6">
+                                <div class="d-flex align-items-start gap-3 mb-3">
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 text-success"
+                                         style="width: 44px; height: 44px; background: #F0FDF4;">
+                                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h3 class="h5 fw-bold text-dark mb-1" style="font-size:18px;">6. Complete Selfie Verification Exercise</h3>
+                                        <p class="text-muted small mb-0" style="font-size:13.5px; line-height: 1.5;">
+                                            Take a live selfie to verify that your face matches the photograph on your government identity credential.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {# Selfie Viewfinder Card #}
+                                <div class="card border rounded-3 p-3 p-sm-4 mb-3 text-center" style="background:#0F172A; color:#FFFFFF;">
+                                    <div id="selfieCameraViewWrap" class="position-relative mx-auto mb-3 overflow-hidden rounded-3" style="max-width: 420px; background:#000000; min-height: 280px;">
+                                        <video id="selfieCameraVideo" autoplay playsinline muted class="w-100 h-100 d-none" style="object-fit: cover; max-height: 320px;"></video>
+                                        <canvas id="selfieCaptureCanvas" class="d-none"></canvas>
+
+                                        {# Oval Face Guide Overlay #}
+                                        <div id="selfieOvalGuide" class="position-absolute top-50 start-50 translate-middle border border-2 border-success d-none pointer-events-none"
+                                             style="width: 220px; height: 260px; border-radius: 50% !important; border-style: dashed !important; box-shadow: 0 0 0 9999px rgba(0,0,0,0.5);">
+                                            <span class="badge bg-success text-white position-absolute top-0 start-50 translate-middle-x mt-3" style="font-size:11px;">Center Face Inside Oval</span>
+                                        </div>
+
+                                        {# Idle State #}
+                                        <div id="selfieIdlePlaceholder" class="p-4 d-flex flex-column align-items-center justify-content-center" style="min-height: 280px;">
+                                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="1.6" class="mb-2">
+                                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                                            </svg>
+                                            <div class="fw-semibold text-white small mb-1">Front Selfie Camera</div>
+                                            <div class="text-white-50" style="font-size:12px;">Position face in good lighting. Please remove hats and sunglasses.</div>
+                                        </div>
+
+                                        {# Captured Snapshot Preview #}
+                                        <div id="selfieCapturedPreview" class="d-none position-relative">
+                                            <img id="selfieCapturedImgEl" class="w-100 rounded-3" style="max-height: 320px; object-fit: contain;" alt="Captured Selfie">
+                                        </div>
+                                    </div>
+
+                                    {# Selfie Viewfinder Controls #}
+                                    <div class="d-flex align-items-center justify-content-center gap-2 flex-wrap">
+                                        <button type="button" id="btnStartSelfieCamera" class="btn btn-primary fw-semibold px-4" onclick="startSelfieCamera()">
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                                            Launch Selfie Camera
+                                        </button>
+                                        <button type="button" id="btnTakeSelfiePhoto" class="btn btn-success fw-bold px-4 d-none" onclick="takeSelfiePhoto()">
+                                            🤳 Capture Selfie
+                                        </button>
+                                        <button type="button" id="btnRetakeSelfiePhoto" class="btn btn-outline-light btn-sm d-none" onclick="retakeSelfiePhoto()">
+                                            Retake Selfie
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {# Fallback Selfie Upload #}
+                                <div class="card border rounded-3 p-3 mb-3" style="background:#F8FAFC;">
+                                    <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
+                                        <span class="small fw-semibold text-muted" style="font-size:12px;">SELFIE UPLOAD FALLBACK</span>
+                                        <span class="badge bg-light text-secondary border fw-normal" style="font-size:11px;">JPG, PNG &bull; Max 5MB</span>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('idSelfieFileInput').click()">
+                                            Upload Selfie Photo
+                                        </button>
+                                        <span id="selfieFallbackFileName" class="small text-muted text-truncate" style="max-width:240px;">No selfie selected</span>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex align-items-center justify-content-between pt-3 border-top flex-wrap gap-2">
+                                    <button type="button" class="btn btn-outline-secondary px-3" onclick="wizardPrevStep(6)">
+                                        &larr; Back to Document Photo
+                                    </button>
+                                    <button type="button" class="btn btn-vng-primary px-4 fw-semibold" onclick="wizardNextStep(6)">
+                                        Review Details &rarr;
+                                    </button>
+                                </div>
+                            </div>
+
+                            {# ══════════════════════════════════════════════════════════════ #}
+                            {# STEP 7: Submit information for review (Review summary)        #}
+                            {# ══════════════════════════════════════════════════════════════ #}
+                            <div class="vng-wizard-step-pane d-none" id="vngStepPane7">
+                                <div class="d-flex align-items-start gap-3 mb-3">
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 text-primary"
+                                         style="width: 44px; height: 44px; background: #EFF6FF;">
+                                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                            <polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h3 class="h5 fw-bold text-dark mb-1" style="font-size:18px;">7. Review &amp; Submit for Verification</h3>
+                                        <p class="text-muted small mb-0" style="font-size:13.5px; line-height: 1.5;">
+                                            Please review your verified contact details, document credentials, and live selfie before submitting for official compliance review.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {# Comprehensive Review Summary Table / Card #}
+                                <div class="card border rounded-3 p-3 p-sm-4 mb-3" style="background:#F8FAFC;">
+                                    <div class="row g-3">
+                                        {# Item 1: Email #}
+                                        <div class="col-sm-6 border-bottom pb-2">
+                                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                                <span class="small text-muted fw-semibold" style="font-size:11px;">1. EMAIL ADDRESS</span>
+                                                <button type="button" class="btn btn-link p-0 text-primary text-decoration-none small" style="font-size:12px;" onclick="wizardJumpToStep(1)">Edit</button>
                                             </div>
-                                            <div class="overflow-hidden">
-                                                <div id="idPreviewFileName" class="fw-semibold text-truncate small text-dark" style="max-width:240px;">id_document.pdf</div>
-                                                <div class="d-flex align-items-center gap-2">
-                                                    <span id="idPreviewFileSize" class="text-muted" style="font-size:0.75rem;">1.2 MB</span>
-                                                    <span class="badge bg-success-subtle text-success border border-success-subtle fw-normal" style="font-size:0.7rem;">Ready</span>
-                                                </div>
+                                            <div class="fw-bold text-dark small text-truncate" id="revEmailVal">{{ request.user.email }}</div>
+                                            <div class="small text-success mt-0.5" style="font-size:11.5px;">✓ Email Confirmed</div>
+                                        </div>
+
+                                        {# Item 2: Phone #}
+                                        <div class="col-sm-6 border-bottom pb-2">
+                                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                                <span class="small text-muted fw-semibold" style="font-size:11px;">2. PHONE NUMBER</span>
+                                                <button type="button" class="btn btn-link p-0 text-primary text-decoration-none small" style="font-size:12px;" onclick="wizardJumpToStep(2)">Edit</button>
                                             </div>
-                                            <div class="d-flex align-items-center gap-1 ms-2">
-                                                <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-2" id="btnChangeIdFile" title="Choose another file" style="font-size:0.75rem;">
-                                                    Change
-                                                </button>
-                                                <button type="button" class="btn btn-sm btn-outline-danger py-1 px-2" id="btnRemoveIdFile" title="Remove file" style="font-size:0.75rem;">
-                                                    &times;
-                                                </button>
+                                            <div class="fw-bold text-dark small" id="revPhoneVal">{{ user_phone|default:"Not supplied" }}</div>
+                                            <div class="small text-success mt-0.5" style="font-size:11.5px;">✓ Verified via WhatsApp OTP</div>
+                                        </div>
+
+                                        {# Item 3: Country #}
+                                        <div class="col-sm-6 border-bottom pb-2">
+                                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                                <span class="small text-muted fw-semibold" style="font-size:11px;">3. ISSUING COUNTRY</span>
+                                                <button type="button" class="btn btn-link p-0 text-primary text-decoration-none small" style="font-size:12px;" onclick="wizardJumpToStep(3)">Edit</button>
+                                            </div>
+                                            <div class="fw-bold text-dark small" id="revCountryVal">Nigeria (NG)</div>
+                                        </div>
+
+                                        {# Item 4: Document Type & Number #}
+                                        <div class="col-sm-6 border-bottom pb-2">
+                                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                                <span class="small text-muted fw-semibold" style="font-size:11px;">4. DOCUMENT &amp; ID NUMBER</span>
+                                                <button type="button" class="btn btn-link p-0 text-primary text-decoration-none small" style="font-size:12px;" onclick="wizardJumpToStep(4)">Edit</button>
+                                            </div>
+                                            <div class="fw-bold text-dark small" id="revDocTypeVal">National Identity Number (NIN)</div>
+                                            <div class="font-monospace text-muted small" id="revIdNumberVal">—</div>
+                                        </div>
+
+                                        {# Item 5: Document Proof Photo #}
+                                        <div class="col-sm-6">
+                                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                                <span class="small text-muted fw-semibold" style="font-size:11px;">5. DOCUMENT PHOTO</span>
+                                                <button type="button" class="btn btn-link p-0 text-primary text-decoration-none small" style="font-size:12px;" onclick="wizardJumpToStep(5)">Edit</button>
+                                            </div>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <img id="revDocImgPreview" src="" alt="Document Preview" class="rounded border shadow-sm d-none" style="width:54px;height:40px;object-fit:cover;">
+                                                <span id="revDocStatusText" class="small text-muted">Ready for review</span>
+                                            </div>
+                                        </div>
+
+                                        {# Item 6: Selfie Exercise Photo #}
+                                        <div class="col-sm-6">
+                                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                                <span class="small text-muted fw-semibold" style="font-size:11px;">6. SELFIE EXERCISE</span>
+                                                <button type="button" class="btn btn-link p-0 text-primary text-decoration-none small" style="font-size:12px;" onclick="wizardJumpToStep(6)">Edit</button>
+                                            </div>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <img id="revSelfieImgPreview" src="" alt="Selfie Preview" class="rounded border shadow-sm d-none" style="width:40px;height:40px;object-fit:cover;border-radius:50%!important;">
+                                                <span id="revSelfieStatusText" class="small text-muted">Ready for review</span>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div id="idDropzoneError" class="text-danger small mt-2 fw-semibold d-none"></div>
-                            </div>
+                                {# Truthfulness Certification Checkbox #}
+                                <div class="form-check p-3 bg-white border rounded-3 mb-3">
+                                    <input class="form-check-input ms-0 me-2" type="checkbox" id="wizardCertifyCheckbox" required onchange="toggleWizardSubmitBtn()">
+                                    <label class="form-check-label small text-dark fw-medium" for="wizardCertifyCheckbox" style="font-size:13px; line-height:1.45;">
+                                        I solemnly declare and certify that all identity details, document photographs, and live selfie exercise submitted belong to me and are authentic and accurate.
+                                    </label>
+                                </div>
 
-                            <div class="d-flex justify-content-between align-items-center pt-2">
-                                <span class="small text-muted" style="font-size:12px;">🔒 Regulated NDPR compliant identity handling.</span>
-                                <button type="button" id="openIdConfirmBtn" class="btn btn-vng-primary btn-vng-sm px-4">
-                                    Submit Identity for Verification
-                                </button>
+                                <div class="d-flex align-items-center justify-content-between pt-3 border-top flex-wrap gap-2">
+                                    <button type="button" class="btn btn-outline-secondary px-3" onclick="wizardPrevStep(7)">
+                                        &larr; Back to Selfie
+                                    </button>
+                                    <button type="submit" id="btnFinalWizardSubmit" class="btn btn-vng-primary px-4 py-2.5 fw-bold" disabled>
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1">
+                                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                                            <polyline points="9 12 11 14 15 10"/>
+                                        </svg>
+                                        Submit Information for Review
+                                    </button>
+                                </div>
                             </div>
                         </form>
                     </div>
@@ -612,92 +1192,133 @@
 </div>
 
 <style>
-.vng-method-card {
-    background: #ffffff;
-    border: 1.5px solid #E2E8F0;
-    border-radius: 16px;
-    padding: 1.5rem;
-    box-shadow: 0 2px 10px rgba(15,23,42,0.03);
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-    user-select: none;
+/* ── Stepper UI & Wizard Navigation ── */
+.vng-stepper-pills {
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    border-radius: 9999px;
+    padding: 6px 14px;
     position: relative;
+    user-select: none;
 }
-.vng-method-card:hover {
-    border-color: #94A3B8;
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(15,23,42,0.06);
+.vng-step-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 4px 8px;
+    border-radius: 9999px;
 }
-.vng-method-card.vng-method-active {
-    border-color: #2563EB !important;
-    background: #F8FAFC !important;
-    box-shadow: 0 0 0 3px rgba(37,99,235,0.15), 0 8px 24px rgba(37,99,235,0.08) !important;
-}
-.vng-radio-circle {
+.vng-pill-num {
     width: 22px;
     height: 22px;
     border-radius: 50%;
-    border: 2px solid #CBD5E1;
-    background: #FFFFFF;
+    background: #E2E8F0;
+    color: #64748B;
+    font-size: 11px;
+    font-weight: 700;
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: all 0.2s ease;
+}
+.vng-pill-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748B;
+    transition: all 0.2s ease;
+}
+.vng-step-pill.vng-step-active .vng-pill-num {
+    background: #2563EB;
+    color: #FFFFFF;
+}
+.vng-step-pill.vng-step-active .vng-pill-label {
+    color: #2563EB;
+}
+.vng-step-pill.vng-step-completed .vng-pill-num {
+    background: #059669;
+    color: #FFFFFF;
+}
+.vng-step-pill.vng-step-completed .vng-pill-label {
+    color: #059669;
+}
+.vng-step-connector {
+    flex-grow: 1;
+    height: 2px;
+    background: #E2E8F0;
+    margin: 0 4px;
+    transition: background 0.2s ease;
+}
+.vng-step-connector.vng-conn-completed {
+    background: #059669;
+}
+
+/* ── Country & Document Selection Tiles ── */
+.vng-country-tile, .vng-doc-tile {
+    background: #FFFFFF;
+    border: 1.5px solid #E2E8F0 !important;
+    border-radius: 12px !important;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    user-select: none;
+}
+.vng-country-tile:hover, .vng-doc-tile:hover {
+    border-color: #94A3B8 !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(15,23,42,0.04);
+}
+.vng-country-tile.vng-tile-active, .vng-doc-tile.vng-tile-active {
+    border-color: #2563EB !important;
+    background: #EFF6FF !important;
+    box-shadow: 0 0 0 2px rgba(37,99,235,0.18) !important;
+}
+.vng-tile-check {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 1.5px solid #CBD5E1;
+    color: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 800;
     transition: all 0.18s ease;
     flex-shrink: 0;
 }
-.vng-radio-circle .vng-radio-check {
-    display: none;
-}
-.vng-method-card.vng-method-active .vng-radio-circle {
+.vng-tile-active .vng-tile-check {
     border-color: #2563EB;
     background: #2563EB;
+    color: #FFFFFF;
 }
-.vng-method-card.vng-method-active .vng-radio-circle .vng-radio-check {
-    display: block;
+
+/* ── Camera Viewfinder Guides ── */
+.pointer-events-none {
+    pointer-events: none;
 }
-.vng-method-status-pill {
-    font-size: 12px;
-    font-weight: 600;
-    padding: 5px 14px;
-    border-radius: 9999px;
-    display: inline-flex;
-    align-items: center;
-    transition: all 0.15s ease;
+#idCameraCardGuide {
+    animation: pulseBorder 2s infinite ease-in-out;
 }
-.vng-status-active {
-    background: #2563EB;
-    color: #FFFFFF !important;
-    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+@keyframes pulseBorder {
+    0%, 100% { border-color: rgba(37,99,235,0.7); }
+    50% { border-color: rgba(37,99,235,1); }
 }
-.vng-status-idle {
-    background: #F8FAFC;
-    color: #64748B !important;
-    border: 1px solid #E2E8F0;
-}
-.vng-method-card:hover .vng-status-idle {
-    background: #E2E8F0;
-    color: #0F172A !important;
-}
-.vng-dropzone {
-    border: 2px dashed #CBD5E1;
-    border-radius: 10px;
-    padding: 24px 16px;
-    text-align: center;
-    background: #FAFAFA;
-    cursor: pointer;
-    transition: all 0.15s ease;
-}
-.vng-dropzone:hover, .vng-dropzone.dragover {
-    border-color: #2563EB;
-    background: #EFF6FF;
-}
-.dot {
-    width: 6px; height: 6px;
-    display: inline-block;
-    border-radius: 50%;
-    background: currentColor;
-    margin-right: 5px;
-    vertical-align: middle;
+
+/* ── Mobile Layout Optimization ── */
+@media (max-width: 576px) {
+    .vng-wizard-step-pane h3 {
+        font-size: 16px !important;
+    }
+    .vng-wizard-step-pane p {
+        font-size: 12.5px !important;
+    }
+    .vng-country-tile {
+        padding: 10px 12px !important;
+    }
+    #idCameraViewWrap, #selfieCameraViewWrap {
+        min-height: 220px !important;
+    }
 }
 </style>
 
@@ -756,186 +1377,771 @@ function toggleIdResubmitForm() {
     }
 }
 
+/* ══════════════════════════════════════════════════════════════════════════ */
+/* 7-STEP QUESTION WIZARD STATE & CONTROLS                                    */
+/* ══════════════════════════════════════════════════════════════════════════ */
+
+let currentWizardStep = 1;
+const totalWizardSteps = 7;
+const stepTitles = {
+    1: 'Email Verification',
+    2: 'Phone Verification',
+    3: 'Select Country',
+    4: 'Document Type',
+    5: 'Camera Capture',
+    6: 'Selfie Exercise',
+    7: 'Review & Submit'
+};
+
+let countryDocsMap = {};
+let selectedCountryCode = '{{ default_issuing_country|default:"NG" }}';
+let selectedCountryName = 'Nigeria';
+let selectedDocCode = '{{ user_profile.id_type|default:"nin" }}';
+let selectedDocName = 'National Identity Number (NIN)';
+
+let idCameraStream = null;
+let activeIdCameraFacing = 'environment';
+let capturedIdDataUrl = '';
+
+let selfieCameraStream = null;
+let capturedSelfieDataUrl = '';
+
+let isEmailVerified = {% if is_email_verified %}true{% else %}false{% endif %};
+let isPhoneVerified = {% if is_phone_verified %}true{% else %}false{% endif %};
+
+function getCsrfToken() {
+    const el = document.querySelector('[name=csrfmiddlewaretoken]');
+    return el ? el.value : '';
+}
+
+function wizardShowStep(stepNum) {
+    if (stepNum < 1 || stepNum > totalWizardSteps) return;
+
+    // Stop active camera streams if navigating away from camera steps
+    if (currentWizardStep === 5 && stepNum !== 5) {
+        stopIdCamera();
+    }
+    if (currentWizardStep === 6 && stepNum !== 6) {
+        stopSelfieCamera();
+    }
+
+    currentWizardStep = stepNum;
+
+    // Show/hide step panes
+    for (let i = 1; i <= totalWizardSteps; i++) {
+        const pane = document.getElementById(`vngStepPane${i}`);
+        if (pane) {
+            if (i === stepNum) {
+                pane.classList.remove('d-none');
+            } else {
+                pane.classList.add('d-none');
+            }
+        }
+    }
+
+    // Update progress bar & badge
+    const badge = document.getElementById('wizardStepBadge');
+    if (badge) {
+        badge.innerHTML = `Step ${stepNum} of ${totalWizardSteps} &bull; ${stepTitles[stepNum]}`;
+    }
+    const percentEl = document.getElementById('wizardStepPercent');
+    const pVal = Math.round((stepNum / totalWizardSteps) * 100);
+    if (percentEl) percentEl.textContent = `${pVal}% Completed`;
+    const bar = document.getElementById('wizardProgressBar');
+    if (bar) bar.style.width = `${pVal}%`;
+
+    // Update desktop stepper pills
+    for (let i = 1; i <= totalWizardSteps; i++) {
+        const pill = document.getElementById(`stepPill${i}`);
+        const conn = document.getElementById(`stepConn${i}`);
+        if (pill) {
+            pill.classList.remove('vng-step-active', 'vng-step-completed');
+            if (i === stepNum) {
+                pill.classList.add('vng-step-active');
+            } else if (i < stepNum) {
+                pill.classList.add('vng-step-completed');
+            }
+        }
+        if (conn) {
+            if (i < stepNum) {
+                conn.classList.add('vng-conn-completed');
+            } else {
+                conn.classList.remove('vng-conn-completed');
+            }
+        }
+    }
+
+    // If entering review step, compile review card
+    if (stepNum === 7) {
+        updateReviewSummary();
+    }
+
+    // Smooth scroll to wizard top on mobile
+    const wrap = document.getElementById('idVerificationFormWrap');
+    if (wrap && window.innerWidth < 768) {
+        wrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+
+function wizardJumpToStep(targetStep) {
+    wizardShowStep(targetStep);
+}
+
+function wizardPrevStep(current) {
+    if (current > 1) {
+        wizardShowStep(current - 1);
+    }
+}
+
+function wizardNextStep(current) {
+    // Step validation checks
+    if (current === 1) {
+        // Step 1: Email verified check
+        const hiddenEmailVerified = document.getElementById('wizard_email_verified');
+        if (hiddenEmailVerified && hiddenEmailVerified.value === 'true') {
+            isEmailVerified = true;
+        }
+    } else if (current === 2) {
+        // Step 2: Phone number check
+        const phoneInput = document.getElementById('wizardPhoneInput');
+        const phoneVal = phoneInput ? phoneInput.value.trim() : '';
+        if (!phoneVal) {
+            alert('Please enter your mobile phone number with international country code.');
+            phoneInput?.focus();
+            return;
+        }
+        const hiddenPhone = document.getElementById('wizard_phone_number');
+        if (hiddenPhone) hiddenPhone.value = phoneVal;
+    } else if (current === 3) {
+        // Step 3: Country selection
+        const hiddenCountry = document.getElementById('wizard_issuing_country');
+        if (hiddenCountry) hiddenCountry.value = selectedCountryCode;
+    } else if (current === 4) {
+        // Step 4: Document type and number check
+        const idNumInput = document.getElementById('id_number_input');
+        const idNumVal = idNumInput ? idNumInput.value.trim() : '';
+        if (!idNumVal) {
+            alert('Please enter your identification document number.');
+            idNumInput?.focus();
+            return;
+        }
+        const hiddenDoc = document.getElementById('wizard_id_type');
+        const hiddenNum = document.getElementById('wizard_id_number');
+        if (hiddenDoc) hiddenDoc.value = selectedDocCode;
+        if (hiddenNum) hiddenNum.value = idNumVal;
+    } else if (current === 5) {
+        // Step 5: Document photo check
+        const fileInput = document.getElementById('idDocumentFileInput');
+        const hasFile = fileInput && fileInput.files && fileInput.files.length > 0;
+        const hasCaptured = !!capturedIdDataUrl;
+        const hasExisting = {% if user_profile.has_id_document %}true{% else %}false{% endif %};
+
+        if (!hasFile && !hasCaptured && !hasExisting) {
+            alert('Please capture a clear photo of your ID document or upload a document file.');
+            return;
+        }
+    } else if (current === 6) {
+        // Step 6: Selfie photo check
+        const selfieFileInput = document.getElementById('idSelfieFileInput');
+        const hasSelfieFile = selfieFileInput && selfieFileInput.files && selfieFileInput.files.length > 0;
+        const hasCapturedSelfie = !!capturedSelfieDataUrl;
+        const hasExistingSelfie = {% if has_selfie %}true{% else %}false{% endif %};
+
+        if (!hasSelfieFile && !hasCapturedSelfie && !hasExistingSelfie) {
+            alert('Please complete the live selfie exercise or upload a selfie photograph.');
+            return;
+        }
+    }
+
+    wizardShowStep(current + 1);
+}
+
+/* ── Step 1: Email OTP ── */
+function sendEmailOtp() {
+    const btn = document.getElementById('btnSendEmailCode');
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Sending Code...';
+    }
+
+    fetch('{% url "users:send_email_otp" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken()
+        },
+        body: JSON.stringify({})
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'Resend Email Code';
+        }
+        const block = document.getElementById('emailOtpInputBlock');
+        if (block) block.classList.remove('d-none');
+        const msgEl = document.getElementById('emailOtpStatusMsg');
+        if (msgEl) {
+            msgEl.textContent = data.message || 'Confirmation code sent to your inbox.';
+            if (data.dev_code) {
+                msgEl.innerHTML = `${data.message} <span class="badge bg-light text-dark border">Test Code: <strong>${data.dev_code}</strong></span>`;
+            }
+        }
+    })
+    .catch(() => {
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'Send 6-Digit Email Code';
+        }
+        alert('Could not dispatch email verification code. Please try again.');
+    });
+}
+
+function verifyEmailOtp() {
+    const codeInput = document.getElementById('wizardEmailOtpCode');
+    const code = codeInput ? codeInput.value.trim() : '';
+    if (!code || code.length < 6) {
+        alert('Please enter the 6-digit confirmation code from your email.');
+        codeInput?.focus();
+        return;
+    }
+
+    fetch('{% url "users:verify_email_otp" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken()
+        },
+        body: JSON.stringify({ code: code })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            isEmailVerified = true;
+            const hiddenEmail = document.getElementById('wizard_email_verified');
+            if (hiddenEmail) hiddenEmail.value = 'true';
+            const wrap = document.getElementById('emailVerifiedBadgeWrap');
+            if (wrap) {
+                wrap.innerHTML = `<span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1.5 rounded-pill fw-semibold" style="font-size:12px;">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" class="me-1"><polyline points="20 6 9 17 4 12"/></svg>
+                    Email Address Confirmed
+                </span>`;
+            }
+            const block = document.getElementById('emailOtpInputBlock');
+            if (block) block.classList.add('d-none');
+            alert('Email verified successfully!');
+        } else {
+            alert(data.message || 'Invalid code. Please try again.');
+        }
+    })
+    .catch(() => {
+        alert('Verification request failed. Please check connection and try again.');
+    });
+}
+
+/* ── Step 2: Phone OTP (WhatsApp with SMS fallback) ── */
+function sendPhoneOtp(channel) {
+    const phoneInput = document.getElementById('wizardPhoneInput');
+    const phone = phoneInput ? phoneInput.value.trim() : '';
+    if (!phone || phone.length < 8) {
+        alert('Please enter a valid mobile number with country code (e.g. +234 801 234 5678).');
+        phoneInput?.focus();
+        return;
+    }
+
+    const waBtn = document.getElementById('btnSendWhatsAppOtp');
+    const smsBtn = document.getElementById('btnSendSmsOtp');
+    if (waBtn) waBtn.disabled = true;
+    if (smsBtn) smsBtn.disabled = true;
+
+    fetch('{% url "users:send_phone_otp" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken()
+        },
+        body: JSON.stringify({ phone: phone, channel: channel })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (waBtn) waBtn.disabled = false;
+        if (smsBtn) smsBtn.disabled = false;
+
+        const block = document.getElementById('phoneOtpInputBlock');
+        if (block) block.classList.remove('d-none');
+        const notice = document.getElementById('phoneOtpNotice');
+        if (notice) {
+            notice.textContent = data.message || 'Enter the 6-digit code sent to your phone:';
+            if (data.dev_code) {
+                notice.innerHTML = `${data.message} <span class="badge bg-light text-dark border">Test Code: <strong>${data.dev_code}</strong></span>`;
+            }
+        }
+        startPhoneResendTimer();
+    })
+    .catch(() => {
+        if (waBtn) waBtn.disabled = false;
+        if (smsBtn) smsBtn.disabled = false;
+        alert('Could not dispatch phone verification code. Please check number and try again.');
+    });
+}
+
+function startPhoneResendTimer() {
+    let secondsLeft = 45;
+    const timerText = document.getElementById('phoneOtpTimerText');
+    const interval = setInterval(() => {
+        secondsLeft--;
+        if (secondsLeft <= 0) {
+            clearInterval(interval);
+            if (timerText) timerText.textContent = 'Code expired or did not arrive? You can request a new code above.';
+        } else {
+            if (timerText) timerText.textContent = `You can request a new code in ${secondsLeft}s. Code valid for 10 minutes.`;
+        }
+    }, 1000);
+}
+
+function verifyPhoneOtp() {
+    const codeInput = document.getElementById('wizardPhoneOtpCode');
+    const code = codeInput ? codeInput.value.trim() : '';
+    const phoneInput = document.getElementById('wizardPhoneInput');
+    const phone = phoneInput ? phoneInput.value.trim() : '';
+
+    if (!code || code.length < 6) {
+        alert('Please enter the 6-digit verification code.');
+        codeInput?.focus();
+        return;
+    }
+
+    fetch('{% url "users:verify_phone_otp" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken()
+        },
+        body: JSON.stringify({ code: code, phone: phone })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            isPhoneVerified = true;
+            const hiddenPhone = document.getElementById('wizard_phone_number');
+            const hiddenPhoneVerified = document.getElementById('wizard_phone_verified');
+            if (hiddenPhone) hiddenPhone.value = phone;
+            if (hiddenPhoneVerified) hiddenPhoneVerified.value = 'true';
+
+            const badge = document.getElementById('phoneVerifiedStatusBadge');
+            if (badge) badge.classList.remove('d-none');
+            const block = document.getElementById('phoneOtpInputBlock');
+            if (block) block.classList.add('d-none');
+            alert(data.message || 'Phone verified successfully!');
+        } else {
+            alert(data.message || 'Invalid code. Please try again.');
+        }
+    })
+    .catch(() => {
+        alert('Verification request failed. Please check connection and try again.');
+    });
+}
+
+/* ── Step 3: Country Selection Tiles ── */
+function selectWizardCountry(code, name) {
+    selectedCountryCode = code;
+    selectedCountryName = name;
+
+    const hiddenCountry = document.getElementById('wizard_issuing_country');
+    if (hiddenCountry) hiddenCountry.value = code;
+
+    const selectEl = document.getElementById('issuing_country_select');
+    if (selectEl) selectEl.value = code;
+
+    // Highlight active tile
+    document.querySelectorAll('.vng-country-tile').forEach(t => t.classList.remove('vng-tile-active'));
+    event?.currentTarget?.classList.add('vng-tile-active');
+
+    // Update Step 4 document choices
+    populateDocTypesForCountry(code);
+}
+
+/* ── Step 4: Document Type Selection ── */
+function populateDocTypesForCountry(countryCode) {
+    const container = document.getElementById('docTypeTileContainer');
+    const label = document.getElementById('selectedCountryNameLabel');
+    if (label) label.textContent = selectedCountryName || countryCode;
+
+    if (!container || !countryDocsMap[countryCode]) return;
+
+    const docs = countryDocsMap[countryCode].documents;
+    container.innerHTML = '';
+
+    docs.forEach((doc, idx) => {
+        const col = document.createElement('div');
+        col.className = 'col-sm-6';
+        const isActive = (doc.code === selectedDocCode || (idx === 0 && !docs.some(d => d.code === selectedDocCode)));
+        if (isActive) {
+            selectedDocCode = doc.code;
+            selectedDocName = doc.name;
+        }
+
+        col.innerHTML = `
+            <div class="vng-doc-tile p-3 rounded-3 border d-flex align-items-center justify-content-between ${isActive ? 'vng-tile-active' : ''}"
+                 onclick="selectWizardDocType('${doc.code}', '${doc.name.replace(/'/g, "\\'")}', '${(doc.placeholder || '').replace(/'/g, "\\'")}', '${(doc.help_text || '').replace(/'/g, "\\'")}')">
+                <div class="d-flex align-items-center gap-2">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2">
+                        <rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><line x1="15" y1="8" x2="17" y2="8"/><line x1="15" y1="12" x2="17" y2="12"/><line x1="7" y1="16" x2="17" y2="16"/>
+                    </svg>
+                    <div>
+                        <div class="fw-bold text-dark small">${doc.name}</div>
+                        <div class="text-muted" style="font-size:11px;">${doc.help_text || 'Official credential'}</div>
+                    </div>
+                </div>
+                <div class="vng-tile-check">✓</div>
+            </div>
+        `;
+        container.appendChild(col);
+    });
+
+    updateWizardDocGuidance();
+}
+
+function selectWizardDocType(code, name, placeholder, helpText) {
+    selectedDocCode = code;
+    selectedDocName = name;
+
+    const hiddenDoc = document.getElementById('wizard_id_type');
+    if (hiddenDoc) hiddenDoc.value = code;
+
+    document.querySelectorAll('.vng-doc-tile').forEach(t => t.classList.remove('vng-tile-active'));
+    event?.currentTarget?.classList.add('vng-tile-active');
+
+    const idInput = document.getElementById('id_number_input');
+    const idHelp = document.getElementById('id_number_help');
+    const idLabel = document.getElementById('id_number_label');
+
+    if (idInput && placeholder) idInput.placeholder = placeholder;
+    if (idHelp && helpText) idHelp.textContent = helpText;
+    if (idLabel) idLabel.innerHTML = `${name} <span class="text-danger">*</span>`;
+}
+
+function updateWizardDocGuidance() {
+    const cCode = selectedCountryCode || 'NG';
+    if (countryDocsMap[cCode]) {
+        const doc = countryDocsMap[cCode].documents.find(d => d.code === selectedDocCode);
+        if (doc) {
+            const idInput = document.getElementById('id_number_input');
+            const idHelp = document.getElementById('id_number_help');
+            const idLabel = document.getElementById('id_number_label');
+            if (idInput) idInput.placeholder = doc.placeholder || 'Enter ID number';
+            if (idHelp) idHelp.textContent = doc.help_text || '';
+            if (idLabel) idLabel.innerHTML = `${doc.name} <span class="text-danger">*</span>`;
+        }
+    }
+}
+
+/* ── Step 5: Camera Document Capture ── */
+async function startIdCamera() {
+    try {
+        const video = document.getElementById('idCameraVideo');
+        const placeholder = document.getElementById('idCameraIdlePlaceholder');
+        const guide = document.getElementById('idCameraCardGuide');
+        const preview = document.getElementById('idCameraCapturedPreview');
+        const btnStart = document.getElementById('btnStartIdCamera');
+        const btnTake = document.getElementById('btnTakeIdPhoto');
+        const btnSwitch = document.getElementById('btnSwitchIdCamera');
+
+        if (idCameraStream) {
+            idCameraStream.getTracks().forEach(t => t.stop());
+        }
+
+        const constraints = {
+            video: {
+                facingMode: { ideal: activeIdCameraFacing },
+                width: { ideal: 1280 },
+                height: { ideal: 720 }
+            }
+        };
+
+        idCameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+        if (video) {
+            video.srcObject = idCameraStream;
+            video.classList.remove('d-none');
+        }
+        if (placeholder) placeholder.classList.add('d-none');
+        if (guide) guide.classList.remove('d-none');
+        if (preview) preview.classList.add('d-none');
+        if (btnStart) btnStart.classList.add('d-none');
+        if (btnTake) btnTake.classList.remove('d-none');
+        if (btnSwitch) btnSwitch.classList.remove('d-none');
+    } catch (err) {
+        alert('Could not open camera. Please ensure camera permissions are allowed, or use the file upload option below.');
+    }
+}
+
+function stopIdCamera() {
+    if (idCameraStream) {
+        idCameraStream.getTracks().forEach(t => t.stop());
+        idCameraStream = null;
+    }
+}
+
+function switchIdCamera() {
+    activeIdCameraFacing = (activeIdCameraFacing === 'environment') ? 'user' : 'environment';
+    startIdCamera();
+}
+
+function takeIdPhoto() {
+    const video = document.getElementById('idCameraVideo');
+    const canvas = document.getElementById('idCaptureCanvas');
+    const previewImg = document.getElementById('idCapturedImgEl');
+    const previewWrap = document.getElementById('idCameraCapturedPreview');
+    const guide = document.getElementById('idCameraCardGuide');
+    const btnTake = document.getElementById('btnTakeIdPhoto');
+    const btnRetake = document.getElementById('btnRetakeIdPhoto');
+    const btnSwitch = document.getElementById('btnSwitchIdCamera');
+
+    if (!video || !canvas) return;
+
+    canvas.width = video.videoWidth || 1280;
+    canvas.height = video.videoHeight || 720;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    capturedIdDataUrl = canvas.toDataURL('image/jpeg', 0.92);
+    const hiddenData = document.getElementById('wizard_id_document_data');
+    if (hiddenData) hiddenData.value = capturedIdDataUrl;
+
+    if (previewImg) previewImg.src = capturedIdDataUrl;
+    if (previewWrap) previewWrap.classList.remove('d-none');
+    video.classList.add('d-none');
+    if (guide) guide.classList.add('d-none');
+    if (btnTake) btnTake.classList.add('d-none');
+    if (btnSwitch) btnSwitch.classList.add('d-none');
+    if (btnRetake) btnRetake.classList.remove('d-none');
+
+    stopIdCamera();
+}
+
+function retakeIdPhoto() {
+    capturedIdDataUrl = '';
+    const hiddenData = document.getElementById('wizard_id_document_data');
+    if (hiddenData) hiddenData.value = '';
+
+    const btnRetake = document.getElementById('btnRetakeIdPhoto');
+    if (btnRetake) btnRetake.classList.add('d-none');
+
+    startIdCamera();
+}
+
+/* ── Step 6: Live Selfie Exercise ── */
+async function startSelfieCamera() {
+    try {
+        const video = document.getElementById('selfieCameraVideo');
+        const placeholder = document.getElementById('selfieIdlePlaceholder');
+        const guide = document.getElementById('selfieOvalGuide');
+        const preview = document.getElementById('selfieCapturedPreview');
+        const btnStart = document.getElementById('btnStartSelfieCamera');
+        const btnTake = document.getElementById('btnTakeSelfiePhoto');
+
+        if (selfieCameraStream) {
+            selfieCameraStream.getTracks().forEach(t => t.stop());
+        }
+
+        const constraints = {
+            video: {
+                facingMode: 'user',
+                width: { ideal: 1280 },
+                height: { ideal: 720 }
+            }
+        };
+
+        selfieCameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+        if (video) {
+            video.srcObject = selfieCameraStream;
+            video.classList.remove('d-none');
+        }
+        if (placeholder) placeholder.classList.add('d-none');
+        if (guide) guide.classList.remove('d-none');
+        if (preview) preview.classList.add('d-none');
+        if (btnStart) btnStart.classList.add('d-none');
+        if (btnTake) btnTake.classList.remove('d-none');
+    } catch (err) {
+        alert('Could not open front camera. Please ensure permissions are allowed or upload a selfie file.');
+    }
+}
+
+function stopSelfieCamera() {
+    if (selfieCameraStream) {
+        selfieCameraStream.getTracks().forEach(t => t.stop());
+        selfieCameraStream = null;
+    }
+}
+
+function takeSelfiePhoto() {
+    const video = document.getElementById('selfieCameraVideo');
+    const canvas = document.getElementById('selfieCaptureCanvas');
+    const previewImg = document.getElementById('selfieCapturedImgEl');
+    const previewWrap = document.getElementById('selfieCapturedPreview');
+    const guide = document.getElementById('selfieOvalGuide');
+    const btnTake = document.getElementById('btnTakeSelfiePhoto');
+    const btnRetake = document.getElementById('btnRetakeSelfiePhoto');
+
+    if (!video || !canvas) return;
+
+    canvas.width = video.videoWidth || 1280;
+    canvas.height = video.videoHeight || 720;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    capturedSelfieDataUrl = canvas.toDataURL('image/jpeg', 0.92);
+    const hiddenData = document.getElementById('wizard_id_selfie_data');
+    if (hiddenData) hiddenData.value = capturedSelfieDataUrl;
+
+    if (previewImg) previewImg.src = capturedSelfieDataUrl;
+    if (previewWrap) previewWrap.classList.remove('d-none');
+    video.classList.add('d-none');
+    if (guide) guide.classList.add('d-none');
+    if (btnTake) btnTake.classList.add('d-none');
+    if (btnRetake) btnRetake.classList.remove('d-none');
+
+    stopSelfieCamera();
+}
+
+function retakeSelfiePhoto() {
+    capturedSelfieDataUrl = '';
+    const hiddenData = document.getElementById('wizard_id_selfie_data');
+    if (hiddenData) hiddenData.value = '';
+
+    const btnRetake = document.getElementById('btnRetakeSelfiePhoto');
+    if (btnRetake) btnRetake.classList.add('d-none');
+
+    startSelfieCamera();
+}
+
+/* ── Step 7: Review Summary ── */
+function updateReviewSummary() {
+    const revEmail = document.getElementById('revEmailVal');
+    const revPhone = document.getElementById('revPhoneVal');
+    const revCountry = document.getElementById('revCountryVal');
+    const revDocType = document.getElementById('revDocTypeVal');
+    const revIdNum = document.getElementById('revIdNumberVal');
+
+    const phoneInput = document.getElementById('wizardPhoneInput');
+    const idNumInput = document.getElementById('id_number_input');
+
+    if (revPhone && phoneInput) revPhone.textContent = phoneInput.value.trim() || '—';
+    if (revCountry) revCountry.textContent = `${selectedCountryName} (${selectedCountryCode})`;
+    if (revDocType) revDocType.textContent = selectedDocName;
+    if (revIdNum && idNumInput) revIdNum.textContent = idNumInput.value.trim() || '—';
+
+    // Document image preview
+    const docImg = document.getElementById('revDocImgPreview');
+    const docStatus = document.getElementById('revDocStatusText');
+    const idFileInput = document.getElementById('idDocumentFileInput');
+
+    if (capturedIdDataUrl) {
+        if (docImg) {
+            docImg.src = capturedIdDataUrl;
+            docImg.classList.remove('d-none');
+        }
+        if (docStatus) docStatus.textContent = 'Camera snapshot ready';
+    } else if (idFileInput && idFileInput.files && idFileInput.files[0]) {
+        if (docStatus) docStatus.textContent = `Attached: ${idFileInput.files[0].name}`;
+    } else {
+        if (docStatus) docStatus.textContent = '{% if user_profile.has_id_document %}Existing on file{% else %}Document ready{% endif %}';
+    }
+
+    // Selfie image preview
+    const selfieImg = document.getElementById('revSelfieImgPreview');
+    const selfieStatus = document.getElementById('revSelfieStatusText');
+    const selfieFileInput = document.getElementById('idSelfieFileInput');
+
+    if (capturedSelfieDataUrl) {
+        if (selfieImg) {
+            selfieImg.src = capturedSelfieDataUrl;
+            selfieImg.classList.remove('d-none');
+        }
+        if (selfieStatus) selfieStatus.textContent = 'Live selfie ready';
+    } else if (selfieFileInput && selfieFileInput.files && selfieFileInput.files[0]) {
+        if (selfieStatus) selfieStatus.textContent = `Attached: ${selfieFileInput.files[0].name}`;
+    } else {
+        if (selfieStatus) selfieStatus.textContent = '{% if has_selfie %}Existing on file{% else %}Selfie ready{% endif %}';
+    }
+}
+
+function toggleWizardSubmitBtn() {
+    const chk = document.getElementById('wizardCertifyCheckbox');
+    const btn = document.getElementById('btnFinalWizardSubmit');
+    if (btn && chk) {
+        btn.disabled = !chk.checked;
+    }
+}
+
+/* ── DOM Initialization ── */
 document.addEventListener('DOMContentLoaded', function() {
-    // Dynamic country documents mapping
-    let countryDocsMap = {};
     try {
         countryDocsMap = JSON.parse('{{ country_documents_json|default:"{}"|escapejs }}');
     } catch (e) {
         countryDocsMap = {};
     }
 
+    // Populate dynamic doc types for default country
+    populateDocTypesForCountry(selectedCountryCode);
+
+    // Sync select dropdown if changed
     const countrySelect = document.getElementById('issuing_country_select');
-    const docSelect = document.getElementById('id_type_select');
-    const idInput = document.getElementById('id_number_input');
-    const idLabel = document.getElementById('id_number_label');
-    const idHelp = document.getElementById('id_number_help');
-
-    function updateDocumentsForCountry(countryCode, preserveSelectedVal) {
-        if (!docSelect || !countryDocsMap[countryCode]) return;
-        const docs = countryDocsMap[countryCode].documents;
-        const currentVal = preserveSelectedVal || docSelect.value;
-        docSelect.innerHTML = '';
-        docs.forEach(function (d) {
-            const opt = document.createElement('option');
-            opt.value = d.code;
-            opt.textContent = d.name;
-            if (d.code === currentVal) opt.selected = true;
-            docSelect.appendChild(opt);
-        });
-        updateInputGuidance();
-    }
-
-    function updateInputGuidance() {
-        if (!docSelect || !idInput) return;
-        const cCode = countrySelect ? (countrySelect.value || 'NG') : 'NG';
-        const docCode = docSelect.value;
-        if (countryDocsMap[cCode]) {
-            const doc = countryDocsMap[cCode].documents.find(function (d) { return d.code === docCode; });
-            if (doc) {
-                idInput.placeholder = doc.placeholder || 'Enter ID number';
-                if (idHelp) idHelp.textContent = doc.help_text || '';
-                if (idLabel) idLabel.innerHTML = doc.name + ' <span class="text-danger">*</span>';
-                return;
-            }
-        }
-        idInput.placeholder = 'Enter ID number';
-        if (idHelp) idHelp.textContent = '';
-        if (idLabel) idLabel.innerHTML = 'Identification Number <span class="text-danger">*</span>';
-    }
-
     if (countrySelect) {
-        countrySelect.addEventListener('change', function () {
-            updateDocumentsForCountry(countrySelect.value);
-        });
-        if (countryDocsMap[countrySelect.value]) {
-            updateDocumentsForCountry(countrySelect.value, '{{ user_profile.id_type|default:"" }}');
-        }
-    }
-    if (docSelect) {
-        docSelect.addEventListener('change', updateInputGuidance);
-    }
-    // Dropzone logic
-    const dropzone = document.getElementById('idDropzone');
-    const fileInput = document.getElementById('idDocumentInput');
-    const idleState = document.getElementById('idDropzoneIdle');
-    const previewState = document.getElementById('idDropzonePreview');
-    const fileNameEl = document.getElementById('idPreviewFileName');
-    const fileSizeEl = document.getElementById('idPreviewFileSize');
-    const errorEl = document.getElementById('idDropzoneError');
-    const btnChange = document.getElementById('btnChangeIdFile');
-    const btnRemove = document.getElementById('btnRemoveIdFile');
-
-    if (dropzone && fileInput) {
-        dropzone.addEventListener('click', function(e) {
-            if (e.target !== btnChange && e.target !== btnRemove && !btnChange?.contains(e.target) && !btnRemove?.contains(e.target)) {
-                fileInput.click();
-            }
-        });
-
-        dropzone.addEventListener('dragover', function(e) {
-            e.preventDefault();
-            dropzone.classList.add('dragover');
-        });
-        dropzone.addEventListener('dragleave', function(e) {
-            e.preventDefault();
-            dropzone.classList.remove('dragover');
-        });
-        dropzone.addEventListener('drop', function(e) {
-            e.preventDefault();
-            dropzone.classList.remove('dragover');
-            if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-                handleFileSelect(e.dataTransfer.files[0]);
-            }
-        });
-
-        fileInput.addEventListener('change', function() {
-            if (fileInput.files && fileInput.files[0]) {
-                handleFileSelect(fileInput.files[0]);
-            }
-        });
-
-        btnChange?.addEventListener('click', function(e) {
-            e.stopPropagation();
-            fileInput.click();
-        });
-
-        btnRemove?.addEventListener('click', function(e) {
-            e.stopPropagation();
-            fileInput.value = '';
-            idleState?.classList.remove('d-none');
-            previewState?.classList.add('d-none');
-            errorEl?.classList.add('d-none');
+        countrySelect.addEventListener('change', function() {
+            const opt = countrySelect.options[countrySelect.selectedIndex];
+            selectWizardCountry(countrySelect.value, opt ? opt.text.split('(')[0].trim() : countrySelect.value);
         });
     }
 
-    function handleFileSelect(file) {
-        const allowedExts = ['.pdf', '.jpg', '.jpeg', '.png'];
-        const ext = '.' + file.name.split('.').pop().toLowerCase();
-        if (!allowedExts.includes(ext)) {
-            if (errorEl) {
-                errorEl.textContent = 'Invalid file type. Please upload a PDF, JPG, or PNG document.';
-                errorEl.classList.remove('d-none');
+    // Fallback file input listeners
+    const idFileInput = document.getElementById('idDocumentFileInput');
+    const idFileName = document.getElementById('idFallbackFileName');
+    if (idFileInput) {
+        idFileInput.addEventListener('change', function() {
+            if (idFileInput.files && idFileInput.files[0]) {
+                const f = idFileInput.files[0];
+                if (idFileName) idFileName.textContent = `${f.name} (${(f.size / (1024 * 1024)).toFixed(2)} MB)`;
+                // Preview if image
+                if (f.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        capturedIdDataUrl = e.target.result;
+                        const previewImg = document.getElementById('idCapturedImgEl');
+                        const previewWrap = document.getElementById('idCameraCapturedPreview');
+                        if (previewImg) previewImg.src = capturedIdDataUrl;
+                        if (previewWrap) previewWrap.classList.remove('d-none');
+                    };
+                    reader.readAsDataURL(f);
+                }
             }
-            return;
-        }
-        if (file.size > 5 * 1024 * 1024) {
-            if (errorEl) {
-                errorEl.textContent = 'File exceeds the 5MB size limit. Please upload a smaller file.';
-                errorEl.classList.remove('d-none');
-            }
-            return;
-        }
-        if (errorEl) errorEl.classList.add('d-none');
-        if (fileNameEl) fileNameEl.textContent = file.name;
-        if (fileSizeEl) fileSizeEl.textContent = (file.size / (1024 * 1024)).toFixed(1) + ' MB';
-        idleState?.classList.add('d-none');
-        previewState?.classList.remove('d-none');
+        });
     }
 
-    // Modal Confirmation logic
-    const openConfirmBtn = document.getElementById('openIdConfirmBtn');
-    const certifyCheckbox = document.getElementById('modalConfirmCertify');
-    const confirmSubmitBtn = document.getElementById('confirmSubmitBtn');
-    const form = document.getElementById('identityVerificationForm');
+    const selfieFileInput = document.getElementById('idSelfieFileInput');
+    const selfieFileName = document.getElementById('selfieFallbackFileName');
+    if (selfieFileInput) {
+        selfieFileInput.addEventListener('change', function() {
+            if (selfieFileInput.files && selfieFileInput.files[0]) {
+                const f = selfieFileInput.files[0];
+                if (selfieFileName) selfieFileName.textContent = `${f.name} (${(f.size / (1024 * 1024)).toFixed(2)} MB)`;
+                if (f.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        capturedSelfieDataUrl = e.target.result;
+                        const previewImg = document.getElementById('selfieCapturedImgEl');
+                        const previewWrap = document.getElementById('selfieCapturedPreview');
+                        if (previewImg) previewImg.src = capturedSelfieDataUrl;
+                        if (previewWrap) previewWrap.classList.remove('d-none');
+                    };
+                    reader.readAsDataURL(f);
+                }
+            }
+        });
+    }
 
-    openConfirmBtn?.addEventListener('click', function() {
-        const countrySelect = document.getElementById('issuing_country_select');
-        const docSelect = document.getElementById('id_type_select');
-        const idInput = document.getElementById('id_number_input');
-
-        if (!idInput || !idInput.value.trim()) {
-            alert('Please enter your identification number.');
-            idInput?.focus();
-            return;
-        }
-
-        const countryText = countrySelect ? countrySelect.options[countrySelect.selectedIndex].text : '—';
-        const docText = docSelect ? docSelect.options[docSelect.selectedIndex].text : '—';
-        const fileText = (fileInput && fileInput.files[0]) ? fileInput.files[0].name : '{% if user_profile.has_id_document %}Existing uploaded document{% else %}No file selected{% endif %}';
-
-        document.getElementById('modalConfirmCountry').textContent = countryText;
-        document.getElementById('modalConfirmDocType').textContent = docText;
-        document.getElementById('modalConfirmNumber').textContent = idInput.value.trim();
-        document.getElementById('modalConfirmFile').textContent = fileText;
-
-        if (certifyCheckbox) certifyCheckbox.checked = false;
-        if (confirmSubmitBtn) confirmSubmitBtn.disabled = true;
-
-        const modalEl = document.getElementById('idConfirmModal');
-        if (modalEl && window.bootstrap) {
-            const modal = new bootstrap.Modal(modalEl);
-            modal.show();
-        }
-    });
-
-    certifyCheckbox?.addEventListener('change', function() {
-        if (confirmSubmitBtn) confirmSubmitBtn.disabled = !this.checked;
-    });
-
-    confirmSubmitBtn?.addEventListener('click', function() {
-        if (form) form.submit();
-    });
+    // Initialize first step
+    wizardShowStep(1);
 });
 </script>
 {% endblock %}

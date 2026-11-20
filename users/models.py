@@ -83,6 +83,26 @@ class User(AbstractUser):
         null=True,
         help_text="Uploaded scan/photo of government ID"
     )
+    id_selfie_image = models.FileField(
+        upload_to='identity_selfies/%Y/%m/',
+        blank=True,
+        null=True,
+        help_text="Live camera selfie photo captured for government ID face matching"
+    )
+    phone_number = models.CharField(
+        max_length=30,
+        blank=True,
+        default='',
+        help_text="User phone number (E.164 international format)"
+    )
+    phone_verified = models.BooleanField(
+        default=False,
+        help_text="Designates whether the user's phone number has been verified via OTP."
+    )
+    email_verified = models.BooleanField(
+        default=False,
+        help_text="Designates whether the user's email address has been verified."
+    )
     id_verification_status = models.CharField(
         max_length=20,
         choices=ID_STATUS_CHOICES,
@@ -139,6 +159,20 @@ class User(AbstractUser):
         help_text="Designates whether compliance has approved this user to publish community reports."
     )
     @property
+    def has_selfie(self):
+        return bool(self.id_selfie_image and hasattr(self.id_selfie_image, 'name') and self.id_selfie_image.name)
+
+    @property
+    def is_email_verified(self):
+        if self.email_verified:
+            return True
+        try:
+            from allauth.account.models import EmailAddress
+            return EmailAddress.objects.filter(user=self, verified=True).exists()
+        except Exception:
+            return False
+
+    @property
     def has_id_document(self):
         return bool(self.id_document and hasattr(self.id_document, 'name') and self.id_document.name)
 
@@ -192,6 +226,10 @@ class User(AbstractUser):
             self.is_billing_exempt = False
         if not isinstance(self.is_active, bool):
             self.is_active = bool(self.is_active)
+        if not isinstance(self.phone_verified, bool):
+            self.phone_verified = False
+        if not isinstance(self.email_verified, bool):
+            self.email_verified = False
         if self.role in ('moderator', 'officer'):
             self.is_staff = True
         super().save(*args, **kwargs)

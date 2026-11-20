@@ -147,5 +147,99 @@ class VerifyAccountViewTestCase(TestCase):
         self.assertEqual(response_alt.status_code, 200)
         self.assertEqual(response_alt.context['selected_method'], 'alternative')
 
+    def test_government_id_wizard_renders_all_seven_steps(self):
+        """Verifies that all 7 question steps and camera/selfie elements are rendered."""
+        self.client.login(username=self.username, password=self.password)
+        url = reverse('users:verify_account') + '?method=government_id'
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        # Step 1: Email
+        self.assertContains(response, 'Verify Your Email Address')
+        # Step 2: Phone with WhatsApp
+        self.assertContains(response, 'Verify Your Phone Number')
+        self.assertContains(response, 'Send Code via WhatsApp')
+        # Step 3: Country
+        self.assertContains(response, 'Select Document-Issuing Country')
+        # Step 4: Document Type
+        self.assertContains(response, 'Select Accepted Document Type')
+        # Step 5: Camera ID Capture
+        self.assertContains(response, 'Capture Your Document with Camera')
+        # Step 6: Live Selfie
+        self.assertContains(response, 'Complete Selfie Verification Exercise')
+        # Step 7: Review & Submit
+        self.assertContains(response, 'Review &amp; Submit for Verification')
+
+    def test_phone_otp_send_and_verify_flow(self):
+        """Tests sending phone OTP and verifying it successfully updates user.phone_verified."""
+        self.client.login(username=self.username, password=self.password)
+        # 1. Send OTP
+        send_url = reverse('users:send_phone_otp')
+        send_resp = self.client.post(send_url, data={'phone': '+2348012345678', 'channel': 'whatsapp'})
+        self.assertEqual(send_resp.status_code, 200)
+        data = send_resp.json()
+        self.assertTrue(data['success'])
+        otp_code = self.client.session.get('vng_phone_otp', {}).get('code')
+        self.assertTrue(bool(otp_code))
+
+        # 2. Verify OTP
+        verify_url = reverse('users:verify_phone_otp')
+        verify_resp = self.client.post(verify_url, data={'phone': '+2348012345678', 'code': otp_code})
+        self.assertEqual(verify_resp.status_code, 200)
+        self.assertTrue(verify_resp.json()['success'])
+
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.phone_verified)
+        self.assertEqual(self.user.phone_number, '+2348012345678')
+
+    def test_email_otp_send_and_verify_flow(self):
+        """Tests sending email OTP and verifying it successfully updates user.email_verified."""
+        self.client.login(username=self.username, password=self.password)
+        # 1. Send OTP
+        send_url = reverse('users:send_email_otp')
+        send_resp = self.client.post(send_url)
+        self.assertEqual(send_resp.status_code, 200)
+        data = send_resp.json()
+        self.assertTrue(data['success'])
+        otp_code = self.client.session.get('vng_email_otp', {}).get('code')
+        self.assertTrue(bool(otp_code))
+
+        # 2. Verify OTP
+        verify_url = reverse('users:verify_email_otp')
+        verify_resp = self.client.post(verify_url, data={'code': otp_code})
+        self.assertEqual(verify_resp.status_code, 200)
+        self.assertTrue(verify_resp.json()['success'])
+
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.email_verified)
+
+    def test_identity_verification_submission_with_selfie_and_camera_data(self):
+        """Tests end-to-end submission with base64 camera image data and phone verification."""
+        self.client.login(username=self.username, password=self.password)
+        submit_url = reverse('users:verify_identity_submit')
+
+        # 1x1 transparent PNG data URL
+        fake_data_url = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+
+        response = self.client.post(submit_url, {
+            'issuing_country': 'NG',
+            'id_type': 'nin',
+            'id_number': '12345678901',
+            'id_document_data': fake_data_url,
+            'id_selfie_data': fake_data_url,
+            'phone_number': '+2348012345678',
+            'phone_verified': 'true',
+            'email_verified': 'true',
+        })
+        self.assertEqual(response.status_code, 302)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.id_type, 'nin')
+        self.assertEqual(self.user.id_number, '12345678901')
+        self.assertEqual(self.user.id_verification_status, 'pending')
+        self.assertTrue(self.user.has_id_document)
+        self.assertTrue(self.user.has_selfie)
+        self.assertTrue(self.user.phone_verified)
+        self.assertEqual(self.user.phone_number, '+2348012345678')
+
+
 
         
