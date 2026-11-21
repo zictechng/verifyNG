@@ -478,16 +478,16 @@
                                     </div>
 
                                     {# OTP input field container #}
-                                    <div id="phoneOtpInputBlock" class="d-none p-3 bg-white border rounded-3 mt-3" style="max-width: 440px;">
+                                    <div id="phoneOtpInputBlock" class="d-none p-3 bg-white border rounded-3 mt-3" style="max-width: 100%;">
                                         <div class="small fw-semibold text-dark mb-1" id="phoneOtpNotice">Enter the 6-digit code sent to your phone:</div>
 
                                         {# Deep Link Action Button for Telegram #}
-                                        <div id="telegramActionWrap" class="d-none mb-3 p-2.5 rounded-3" style="background:#F0F9FF;border:1px solid #BAE6FD;">
-                                            <div class="small text-dark mb-2" style="font-size:12.5px;">
+                                        <div id="telegramActionWrap" class="d-none my-3 p-3 rounded-3" style="background:#F0F9FF;border:1px solid #BAE6FD;padding:18px 20px !important;">
+                                            <div class="small fw-medium mb-2.5" style="font-size:13.5px;color:#0369A1;line-height:1.45;">
                                                 Tap below to open <strong>@verifyNG_Bot</strong> on Telegram and click <strong>START</strong>:
                                             </div>
-                                            <a id="btnOpenTelegramBot" href="#" target="_blank" class="btn btn-sm btn-primary fw-semibold d-inline-flex align-items-center gap-1.5 px-3 py-1.5" style="background:#0088cc;border-color:#0088cc;">
-                                                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                                            <a id="btnOpenTelegramBot" href="#" target="_blank" class="btn btn-sm btn-primary fw-semibold d-inline-flex align-items-center px-3.5 py-2 shadow-sm" style="background:#0088cc;border-color:#0088cc;border-radius:8px;font-size:13.5px;">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" class="me-2" style="flex-shrink:0;">
                                                     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.75-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/>
                                                 </svg>
                                                 Open @verifyNG_Bot to Get Code &rarr;
@@ -496,7 +496,7 @@
 
                                         <div class="d-flex align-items-center gap-2 mb-2">
                                             <input type="text" id="wizardPhoneOtpCode" maxlength="6" class="form-control font-monospace text-center fw-bold fs-5"
-                                                   placeholder="123456" style="letter-spacing: 6px; max-width: 170px;">
+                                                   placeholder="Enter Code" style="letter-spacing: 6px; max-width: 170px;">
                                             <button type="button" class="btn btn-primary fw-semibold px-3" onclick="verifyPhoneOtp()">
                                                 Verify Code
                                             </button>
