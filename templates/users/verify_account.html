@@ -714,75 +714,57 @@
                                 </div>
 
                                 <div class="vng-wizard-card mb-3" style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:24px 20px !important;">
-                                    {# Dual Choice Option Cards: Side-by-side on wide screens, stacked on small mobile #}
-                                    <div class="row g-3 mb-3" id="docProvideMethodWrap" style="max-width: 680px;">
+                                    {# Dual Choice Option Cards: Full width 100%, stacked with clean spacing #}
+                                    <div class="d-flex flex-column gap-3 mb-3 w-100" id="docProvideMethodWrap">
                                         {# Option A: Camera Capture #}
-                                        <div class="col-12 col-md-6">
-                                            <div id="btnChooseDocCamera"
-                                                 class="p-3 rounded-3 bg-white border border-2 border-primary shadow-xs h-100 d-flex flex-column justify-content-between position-relative"
-                                                 onclick="selectDocProvideMode('camera')"
-                                                 style="cursor: pointer; transition: all 0.2s ease;">
-                                                <div>
-                                                    <div class="d-flex align-items-center justify-content-between mb-2">
-                                                        <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 text-primary"
-                                                             style="width: 40px; height: 40px; background: #EFF6FF;">
-                                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-                                                                <circle cx="12" cy="13" r="4"/>
-                                                            </svg>
-                                                        </div>
-                                                        <div class="d-flex align-items-center gap-2">
-                                                            <span class="badge rounded-pill fw-bold" style="background: #DCFCE7; color: #15803D; font-size: 11.5px; padding: 4px 10px; border: 1px solid #BBF7D0;">Recommended</span>
-                                                            <div class="form-check m-0 pointer-events-none">
-                                                                <input class="form-check-input" type="radio" name="docProvideModeRadio" id="radioDocCamera" checked style="cursor: pointer;">
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="fw-bold text-dark mb-1" style="font-size: 15px;">Capture document with camera</div>
-                                                    <div class="text-muted small" style="font-size: 12.5px; line-height: 1.45;">
-                                                        Use your phone or webcam to take a clear photograph of your identity document.
-                                                    </div>
+                                        <div id="btnChooseDocCamera"
+                                             class="w-100 p-3 px-sm-4 py-sm-3.5 rounded-3 bg-white border border-2 border-primary shadow-xs"
+                                             onclick="selectDocProvideMode('camera')"
+                                             style="cursor: pointer; transition: all 0.15s ease;">
+                                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0F172A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0">
+                                                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                                                        <circle cx="12" cy="13" r="4"/>
+                                                    </svg>
+                                                    <span class="fw-bold text-dark" style="font-size: 16px;">Capture document with camera</span>
                                                 </div>
+                                                <span class="badge rounded-pill fw-medium" style="background: #E8F8F0; color: #16A34A; font-size: 13px; padding: 4px 12px; border: 1px solid #C6F0D6;">Recommended</span>
+                                            </div>
+                                            <div class="text-muted" style="font-size: 14px; line-height: 1.45; color: #4B5563 !important;">
+                                                Use your phone or webcam to take a clear photograph of your identity document.
                                             </div>
                                         </div>
 
                                         {# Option B: File Upload #}
-                                        <div class="col-12 col-md-6">
-                                            <div id="btnChooseDocUpload"
-                                                 class="p-3 rounded-3 bg-white border shadow-xs h-100 d-flex flex-column justify-content-between position-relative"
-                                                 onclick="selectDocProvideMode('upload')"
-                                                 style="cursor: pointer; transition: all 0.2s ease; border-color: #E2E8F0;">
-                                                <div>
-                                                    <div class="d-flex align-items-center justify-content-between mb-2">
-                                                        <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 text-secondary"
-                                                             style="width: 40px; height: 40px; background: #F1F5F9;">
-                                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                                                                <polyline points="17 8 12 3 7 8"/>
-                                                                <line x1="12" y1="3" x2="12" y2="15"/>
-                                                            </svg>
-                                                        </div>
-                                                        <div class="form-check m-0 pointer-events-none">
-                                                            <input class="form-check-input" type="radio" name="docProvideModeRadio" id="radioDocUpload" style="cursor: pointer;">
-                                                        </div>
-                                                    </div>
-                                                    <div class="fw-bold text-dark mb-1" style="font-size: 15px;">Upload an existing document</div>
-                                                    <div class="text-muted small" style="font-size: 12.5px; line-height: 1.45;">
-                                                        Choose an existing photograph or scanned document from your device.
-                                                    </div>
+                                        <div id="btnChooseDocUpload"
+                                             class="w-100 p-3 px-sm-4 py-sm-3.5 rounded-3 bg-white border shadow-xs"
+                                             onclick="selectDocProvideMode('upload')"
+                                             style="cursor: pointer; transition: all 0.15s ease; border-color: #E2E8F0;">
+                                            <div class="d-flex align-items-center mb-1">
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0F172A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0">
+                                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                                        <polyline points="17 8 12 3 7 8"/>
+                                                        <line x1="12" y1="3" x2="12" y2="15"/>
+                                                    </svg>
+                                                    <span class="fw-bold text-dark" style="font-size: 16px;">Upload an existing document</span>
                                                 </div>
+                                            </div>
+                                            <div class="text-muted" style="font-size: 14px; line-height: 1.45; color: #4B5563 !important;">
+                                                Choose an existing photograph or scanned document from your device.
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div class="small text-muted mb-3" style="font-size: 12px;">
-                                        Accepted formats: JPG, JPEG and PNG. PDF can also be supported where appropriate (Max 5MB).
+                                    <div class="text-muted mb-3" style="font-size: 13px; color: #6B7280 !important;">
+                                        Accepted formats: JPG, JPEG and PNG. PDF can also be supported where appropriate.
                                     </div>
 
                                     {# Mode A: Compact Camera Viewfinder Panel #}
-                                    <div id="docCameraPanel" class="text-center" style="max-width: 520px;">
+                                    <div id="docCameraPanel" class="text-center w-100">
                                         <div class="rounded-3 p-3 mb-2" style="background:#0F172A;color:#FFFFFF;border:1px solid #1E293B;">
-                                            <div id="idCameraViewWrap" class="position-relative mx-auto mb-2.5 overflow-hidden rounded-3" style="max-width: 440px; background:#000000; min-height: 200px;">
+                                            <div id="idCameraViewWrap" class="position-relative mx-auto mb-2.5 overflow-hidden rounded-3" style="max-width: 480px; background:#000000; min-height: 200px;">
                                                 <video id="idCameraVideo" autoplay playsinline muted class="w-100 h-100 d-none" style="object-fit: cover; max-height: 260px;"></video>
                                                 <canvas id="idCaptureCanvas" class="d-none"></canvas>
 
@@ -827,7 +809,7 @@
                                     </div>
 
                                     {# Mode B: Compact File Upload Dropzone Panel #}
-                                    <div id="docUploadPanel" class="d-none" style="max-width: 520px;">
+                                    <div id="docUploadPanel" class="d-none w-100">
                                         <div id="docUploadDropzone"
                                              class="rounded-3 p-4 text-center bg-white mb-2"
                                              onclick="document.getElementById('idDocumentFileInput').click()"
@@ -843,7 +825,7 @@
                                     </div>
 
                                     {# Document Ready Status & Preview Card #}
-                                    <div id="docReadyPreviewCard" class="d-none p-3 bg-white border border-success-subtle rounded-3 mb-2 shadow-xs" style="max-width: 520px;">
+                                    <div id="docReadyPreviewCard" class="d-none p-3 bg-white border border-success-subtle rounded-3 mb-2 shadow-xs w-100">
                                         <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
                                             <div class="d-flex align-items-center gap-2.5">
                                                 <img id="docPreviewThumbnail" src="" class="rounded border" style="width: 48px; height: 48px; object-fit: cover; display: none;" alt="Preview">
@@ -2137,11 +2119,12 @@ function updateWizardDocGuidance() {
 }
 
 /* ── Step 5: Document Submission (Camera & Upload) ── */
+let currentDocProvideMode = 'camera';
+
 function selectDocProvideMode(mode) {
+    currentDocProvideMode = mode;
     const cardCam = document.getElementById('btnChooseDocCamera');
     const cardUp = document.getElementById('btnChooseDocUpload');
-    const radioCam = document.getElementById('radioDocCamera');
-    const radioUp = document.getElementById('radioDocUpload');
     const panelCam = document.getElementById('docCameraPanel');
     const panelUp = document.getElementById('docUploadPanel');
 
@@ -2154,8 +2137,6 @@ function selectDocProvideMode(mode) {
             cardUp.classList.remove('border-primary', 'border-2');
             cardUp.style.borderColor = '#E2E8F0';
         }
-        if (radioCam) radioCam.checked = true;
-        if (radioUp) radioUp.checked = false;
         if (panelCam) panelCam.classList.remove('d-none');
         if (panelUp) panelUp.classList.add('d-none');
     } else {
@@ -2168,8 +2149,6 @@ function selectDocProvideMode(mode) {
             cardCam.classList.remove('border-primary', 'border-2');
             cardCam.style.borderColor = '#E2E8F0';
         }
-        if (radioUp) radioUp.checked = true;
-        if (radioCam) radioCam.checked = false;
         if (panelUp) panelUp.classList.remove('d-none');
         if (panelCam) panelCam.classList.add('d-none');
     }
@@ -2186,8 +2165,7 @@ function resetDocumentChoice() {
     const previewCard = document.getElementById('docReadyPreviewCard');
     if (previewCard) previewCard.classList.add('d-none');
 
-    const radioCam = document.getElementById('radioDocCamera');
-    if (radioCam && radioCam.checked) {
+    if (currentDocProvideMode === 'camera') {
         retakeIdPhoto();
     } else {
         selectDocProvideMode('upload');
