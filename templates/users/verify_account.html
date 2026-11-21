@@ -664,9 +664,6 @@
                                             <select name="id_type" id="id_type_select" class="form-select" style="font-size: 15px;" onchange="onDocTypeSelectChange()">
                                                 {# Populated dynamically by JS based on selected country #}
                                             </select>
-                                            <div id="selectedDocHelpText" class="form-text small mt-1 text-muted">
-                                                Select your qualifying official government-issued identity credential.
-                                            </div>
                                         </div>
                                     </div>
 
@@ -697,7 +694,7 @@
                             </div>
 
                             {# ══════════════════════════════════════════════════════════════ #}
-                            {# STEP 5: Capture document image with camera                    #}
+                            {# STEP 5: Submit your government-issued ID (Camera or Upload)   #}
                             {# ══════════════════════════════════════════════════════════════ #}
                             <div class="vng-wizard-step-pane d-none" id="vngStepPane5">
                                 <div class="d-flex align-items-start gap-3 mb-3">
@@ -709,74 +706,164 @@
                                         </svg>
                                     </div>
                                     <div>
-                                        <h3 class="h5 fw-bold text-dark mb-1" style="font-size:18px;">5. Capture Your Document with Camera</h3>
+                                        <h3 class="h5 fw-bold text-dark mb-1" style="font-size:18px;">5. Capture Your Document with Camera or Upload</h3>
                                         <p class="text-muted small mb-0" style="font-size:13.5px; line-height: 1.5;">
-                                            Use your camera to capture a sharp, uncropped photo of your physical ID card or digital slip.
+                                            Choose how you want to provide your government document.
                                         </p>
                                     </div>
                                 </div>
 
-                                {# Live Viewfinder / Capture Box #}
-                                <div class="vng-camera-card mb-3 text-center" style="background:#0F172A;color:#FFFFFF;border:1px solid #1E293B;border-radius:12px;padding:24px 20px !important;">
-                                    {# Live video feed #}
-                                    <div id="idCameraViewWrap" class="position-relative mx-auto mb-3 overflow-hidden rounded-3" style="max-width: 520px; background:#000000; min-height: 240px;">
-                                        <video id="idCameraVideo" autoplay playsinline muted class="w-100 h-100 d-none" style="object-fit: cover; max-height: 320px;"></video>
-                                        <canvas id="idCaptureCanvas" class="d-none"></canvas>
-
-                                        {# Card Guide Overlay Lines #}
-                                        <div id="idCameraCardGuide" class="position-absolute top-50 start-50 translate-middle border border-2 border-primary rounded-3 d-none pointer-events-none"
-                                             style="width: 85%; height: 75%; border-style: dashed !important; box-shadow: 0 0 0 9999px rgba(0,0,0,0.5);">
-                                            <span class="badge bg-primary text-white position-absolute top-0 start-50 translate-middle-x mt-2" style="font-size:11px;">Align ID Card Within Frame</span>
+                                <div class="vng-wizard-card mb-3" style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:24px 20px !important;">
+                                    {# Dual Choice Option Cards #}
+                                    <div class="d-flex flex-column gap-2.5 mb-3" id="docProvideMethodWrap" style="max-width: 520px;">
+                                        {# Option A: Camera Capture #}
+                                        <div id="btnChooseDocCamera"
+                                             class="d-flex align-items-center justify-content-between p-3 rounded-3 bg-white border border-2 border-primary shadow-xs"
+                                             onclick="selectDocProvideMode('camera')"
+                                             style="cursor: pointer; transition: all 0.15s ease;">
+                                            <div class="d-flex align-items-start gap-3">
+                                                <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 text-primary mt-0.5"
+                                                     style="width: 38px; height: 38px; background: #EFF6FF;">
+                                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                                                        <circle cx="12" cy="13" r="4"/>
+                                                    </svg>
+                                                </div>
+                                                <div>
+                                                    <div class="d-flex align-items-center gap-2 flex-wrap mb-0.5">
+                                                        <span class="fw-bold text-dark" style="font-size: 15px;">Capture document with camera</span>
+                                                        <span class="badge rounded-pill fw-semibold" style="background: #DCFCE7; color: #15803D; font-size: 11px; padding: 3px 8px;">Recommended</span>
+                                                    </div>
+                                                    <div class="text-muted small" style="font-size: 12.5px; line-height: 1.4;">
+                                                        Use your phone or webcam to take a clear photograph of your identity document.
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="form-check m-0 ms-2 pointer-events-none">
+                                                <input class="form-check-input" type="radio" name="docProvideModeRadio" id="radioDocCamera" checked>
+                                            </div>
                                         </div>
 
-                                        {# Placeholder state when camera is idle #}
-                                        <div id="idCameraIdlePlaceholder" class="p-4 d-flex flex-column align-items-center justify-content-center" style="min-height: 240px;">
-                                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="1.6" class="mb-2">
-                                                <rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><line x1="15" y1="8" x2="17" y2="8"/><line x1="15" y1="12" x2="17" y2="12"/><line x1="7" y1="16" x2="17" y2="16"/>
+                                        {# Option B: File Upload #}
+                                        <div id="btnChooseDocUpload"
+                                             class="d-flex align-items-center justify-content-between p-3 rounded-3 bg-white border shadow-xs"
+                                             onclick="selectDocProvideMode('upload')"
+                                             style="cursor: pointer; transition: all 0.15s ease; border-color: #E2E8F0;">
+                                            <div class="d-flex align-items-start gap-3">
+                                                <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 text-secondary mt-0.5"
+                                                     style="width: 38px; height: 38px; background: #F1F5F9;">
+                                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                                        <polyline points="17 8 12 3 7 8"/>
+                                                        <line x1="12" y1="3" x2="12" y2="15"/>
+                                                    </svg>
+                                                </div>
+                                                <div>
+                                                    <div class="fw-bold text-dark mb-0.5" style="font-size: 15px;">Upload an existing document</div>
+                                                    <div class="text-muted small" style="font-size: 12.5px; line-height: 1.4;">
+                                                        Choose an existing photograph or scanned document from your device.
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="form-check m-0 ms-2 pointer-events-none">
+                                                <input class="form-check-input" type="radio" name="docProvideModeRadio" id="radioDocUpload">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="small text-muted mb-3" style="font-size: 12px;">
+                                        Accepted formats: JPG, JPEG and PNG. PDF can also be supported where appropriate (Max 5MB).
+                                    </div>
+
+                                    {# Mode A: Compact Camera Viewfinder Panel #}
+                                    <div id="docCameraPanel" class="text-center" style="max-width: 520px;">
+                                        <div class="rounded-3 p-3 mb-2" style="background:#0F172A;color:#FFFFFF;border:1px solid #1E293B;">
+                                            <div id="idCameraViewWrap" class="position-relative mx-auto mb-2.5 overflow-hidden rounded-3" style="max-width: 440px; background:#000000; min-height: 200px;">
+                                                <video id="idCameraVideo" autoplay playsinline muted class="w-100 h-100 d-none" style="object-fit: cover; max-height: 260px;"></video>
+                                                <canvas id="idCaptureCanvas" class="d-none"></canvas>
+
+                                                {# Card Guide Overlay Lines #}
+                                                <div id="idCameraCardGuide" class="position-absolute top-50 start-50 translate-middle border border-2 border-primary rounded-3 d-none pointer-events-none"
+                                                     style="width: 85%; height: 75%; border-style: dashed !important; box-shadow: 0 0 0 9999px rgba(0,0,0,0.5);">
+                                                    <span class="badge bg-primary text-white position-absolute top-0 start-50 translate-middle-x mt-1.5" style="font-size:10.5px;">Align ID Card Within Frame</span>
+                                                </div>
+
+                                                {# Placeholder state when camera is idle #}
+                                                <div id="idCameraIdlePlaceholder" class="p-3 d-flex flex-column align-items-center justify-content-center" style="min-height: 200px;">
+                                                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="1.6" class="mb-2">
+                                                        <rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><line x1="15" y1="8" x2="17" y2="8"/><line x1="15" y1="12" x2="17" y2="12"/><line x1="7" y1="16" x2="17" y2="16"/>
+                                                    </svg>
+                                                    <div class="fw-semibold text-white small mb-1">Live Camera Ready</div>
+                                                    <div class="text-white-50" style="font-size:11.5px;">Click below to launch your camera and photograph your document.</div>
+                                                </div>
+
+                                                {# Photo snapped preview inside camera wrap #}
+                                                <div id="idCameraCapturedPreview" class="d-none position-relative">
+                                                    <img id="idCapturedImgEl" class="w-100 rounded-3" style="max-height: 260px; object-fit: contain;" alt="Captured Document">
+                                                </div>
+                                            </div>
+
+                                            {# Viewfinder control buttons #}
+                                            <div class="d-flex align-items-center justify-content-center gap-2 flex-wrap">
+                                                <button type="button" id="btnStartIdCamera" class="btn btn-primary fw-semibold px-3 py-1.5" style="font-size: 13.5px;" onclick="startIdCamera()">
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                                                    Launch Camera
+                                                </button>
+                                                <button type="button" id="btnTakeIdPhoto" class="btn btn-success fw-bold px-3 py-1.5 d-none" style="font-size: 13.5px;" onclick="takeIdPhoto()">
+                                                    📸 Snap Document
+                                                </button>
+                                                <button type="button" id="btnRetakeIdPhoto" class="btn btn-outline-light btn-sm d-none" onclick="retakeIdPhoto()">
+                                                    Retake Photo
+                                                </button>
+                                                <button type="button" id="btnSwitchIdCamera" class="btn btn-outline-light btn-sm d-none" onclick="switchIdCamera()">
+                                                    Switch Camera
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {# Mode B: Compact File Upload Dropzone Panel #}
+                                    <div id="docUploadPanel" class="d-none" style="max-width: 520px;">
+                                        <div id="docUploadDropzone"
+                                             class="rounded-3 p-4 text-center bg-white mb-2"
+                                             onclick="document.getElementById('idDocumentFileInput').click()"
+                                             style="border: 2px dashed #CBD5E1; cursor: pointer; transition: all 0.2s ease;">
+                                            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="1.8" class="mb-2">
+                                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                                <polyline points="17 8 12 3 7 8"/>
+                                                <line x1="12" y1="3" x2="12" y2="15"/>
                                             </svg>
-                                            <div class="fw-semibold text-white small mb-1">Live Camera Ready</div>
-                                            <div class="text-white-50" style="font-size:12px;">Click below to launch your camera and photograph your document.</div>
-                                        </div>
-
-                                        {# Photo snapped preview #}
-                                        <div id="idCameraCapturedPreview" class="d-none position-relative">
-                                            <img id="idCapturedImgEl" class="w-100 rounded-3" style="max-height: 320px; object-fit: contain;" alt="Captured Document">
+                                            <div class="fw-semibold text-dark small mb-1">Click to select document or drag &amp; drop here</div>
+                                            <div class="text-muted" style="font-size: 12px;">Browse from your photo gallery or files (JPG, PNG, PDF up to 5MB)</div>
                                         </div>
                                     </div>
 
-                                    {# Viewfinder control buttons #}
-                                    <div class="d-flex align-items-center justify-content-center gap-2 flex-wrap">
-                                        <button type="button" id="btnStartIdCamera" class="btn btn-primary fw-semibold px-4" onclick="startIdCamera()">
-                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-                                            Launch Camera
-                                        </button>
-                                        <button type="button" id="btnTakeIdPhoto" class="btn btn-success fw-bold px-4 d-none" onclick="takeIdPhoto()">
-                                            📸 Snap Document
-                                        </button>
-                                        <button type="button" id="btnRetakeIdPhoto" class="btn btn-outline-light btn-sm d-none" onclick="retakeIdPhoto()">
-                                            Retake Photo
-                                        </button>
-                                        <button type="button" id="btnSwitchIdCamera" class="btn btn-outline-light btn-sm d-none" onclick="switchIdCamera()">
-                                            Switch Camera
-                                        </button>
+                                    {# Document Ready Status & Preview Card #}
+                                    <div id="docReadyPreviewCard" class="d-none p-3 bg-white border border-success-subtle rounded-3 mb-2 shadow-xs" style="max-width: 520px;">
+                                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                            <div class="d-flex align-items-center gap-2.5">
+                                                <img id="docPreviewThumbnail" src="" class="rounded border" style="width: 48px; height: 48px; object-fit: cover; display: none;" alt="Preview">
+                                                <div id="docPdfIcon" class="rounded border d-flex align-items-center justify-content-center bg-light text-danger" style="width: 48px; height: 48px; display: none;">
+                                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                                </div>
+                                                <div>
+                                                    <div class="d-flex align-items-center gap-1.5">
+                                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-0.5 rounded-pill fw-semibold" style="font-size: 11px;">✓ Document Attached</span>
+                                                    </div>
+                                                    <div class="fw-semibold text-dark small mt-0.5 text-truncate" id="docReadyFileName" style="max-width: 220px;">Captured Document</div>
+                                                </div>
+                                            </div>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary fw-medium px-2.5 py-1" style="font-size: 12.5px;" onclick="resetDocumentChoice()">
+                                                Replace / Retake
+                                            </button>
+                                        </div>
                                     </div>
+
+                                    {# Hidden File Input #}
+                                    <input type="file" id="idDocumentFileInput" name="id_document" accept="image/jpeg,image/png,image/jpg,application/pdf" class="d-none">
 
                                     {# Inline feedback container for Step 5 #}
                                     <div id="idCameraAlert" class="alert d-none py-2 px-3 small rounded-3 mt-3 mb-0" role="alert"></div>
-                                </div>
-
-                                {# Fallback File Upload / Browse Dropzone #}
-                                <div class="card border rounded-3 p-3 mb-3" style="background:#F8FAFC;">
-                                    <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
-                                        <span class="small fw-semibold text-muted" style="font-size:12px;">ALTERNATIVE UPLOAD FALLBACK</span>
-                                        <span class="badge bg-light text-secondary border fw-normal" style="font-size:11px;">PDF, JPG, PNG &bull; Max 5MB</span>
-                                    </div>
-                                    <div class="d-flex align-items-center gap-2 flex-wrap">
-                                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('idDocumentFileInput').click()">
-                                            Upload File from Device
-                                        </button>
-                                        <span id="idFallbackFileName" class="small text-muted text-truncate" style="max-width:240px;">No file selected</span>
-                                    </div>
                                 </div>
 
                                 <div class="d-flex align-items-center justify-content-between pt-3 border-top flex-wrap gap-2">
@@ -2025,12 +2112,10 @@ function onDocTypeSelectChange() {
     const idInput = document.getElementById('id_number_input');
     const idHelp = document.getElementById('id_number_help');
     const idLabel = document.getElementById('id_number_label');
-    const docHelp = document.getElementById('selectedDocHelpText');
 
     if (idInput && placeholder) idInput.placeholder = placeholder;
     if (idHelp && helpText) idHelp.textContent = helpText;
     if (idLabel) idLabel.innerHTML = `${selectedDocName} Number <span class="text-danger">*</span>`;
-    if (docHelp) docHelp.textContent = helpText || 'Official government-issued identity credential.';
 }
 
 function selectWizardDocType(code, name, placeholder, helpText) {
@@ -2047,7 +2132,62 @@ function updateWizardDocGuidance() {
     onDocTypeSelectChange();
 }
 
-/* ── Step 5: Camera Document Capture ── */
+/* ── Step 5: Document Submission (Camera & Upload) ── */
+function selectDocProvideMode(mode) {
+    const cardCam = document.getElementById('btnChooseDocCamera');
+    const cardUp = document.getElementById('btnChooseDocUpload');
+    const radioCam = document.getElementById('radioDocCamera');
+    const radioUp = document.getElementById('radioDocUpload');
+    const panelCam = document.getElementById('docCameraPanel');
+    const panelUp = document.getElementById('docUploadPanel');
+
+    if (mode === 'camera') {
+        if (cardCam) {
+            cardCam.className = 'd-flex align-items-center justify-content-between p-3 rounded-3 bg-white border border-2 border-primary shadow-xs';
+        }
+        if (cardUp) {
+            cardUp.className = 'd-flex align-items-center justify-content-between p-3 rounded-3 bg-white border shadow-xs';
+            cardUp.style.borderColor = '#E2E8F0';
+        }
+        if (radioCam) radioCam.checked = true;
+        if (radioUp) radioUp.checked = false;
+        if (panelCam) panelCam.classList.remove('d-none');
+        if (panelUp) panelUp.classList.add('d-none');
+    } else {
+        stopIdCamera();
+        if (cardUp) {
+            cardUp.className = 'd-flex align-items-center justify-content-between p-3 rounded-3 bg-white border border-2 border-primary shadow-xs';
+        }
+        if (cardCam) {
+            cardCam.className = 'd-flex align-items-center justify-content-between p-3 rounded-3 bg-white border shadow-xs';
+            cardCam.style.borderColor = '#E2E8F0';
+        }
+        if (radioUp) radioUp.checked = true;
+        if (radioCam) radioCam.checked = false;
+        if (panelUp) panelUp.classList.remove('d-none');
+        if (panelCam) panelCam.classList.add('d-none');
+    }
+}
+
+function resetDocumentChoice() {
+    capturedIdDataUrl = '';
+    const hiddenData = document.getElementById('wizard_id_document_data');
+    if (hiddenData) hiddenData.value = '';
+
+    const fileInput = document.getElementById('idDocumentFileInput');
+    if (fileInput) fileInput.value = '';
+
+    const previewCard = document.getElementById('docReadyPreviewCard');
+    if (previewCard) previewCard.classList.add('d-none');
+
+    const radioCam = document.getElementById('radioDocCamera');
+    if (radioCam && radioCam.checked) {
+        retakeIdPhoto();
+    } else {
+        selectDocProvideMode('upload');
+    }
+}
+
 async function startIdCamera() {
     try {
         const video = document.getElementById('idCameraVideo');
@@ -2127,6 +2267,19 @@ function takeIdPhoto() {
     if (btnSwitch) btnSwitch.classList.add('d-none');
     if (btnRetake) btnRetake.classList.remove('d-none');
 
+    // Display document ready preview card
+    const readyCard = document.getElementById('docReadyPreviewCard');
+    const thumb = document.getElementById('docPreviewThumbnail');
+    const pdfIcon = document.getElementById('docPdfIcon');
+    const fileNameEl = document.getElementById('docReadyFileName');
+    if (thumb) {
+        thumb.src = capturedIdDataUrl;
+        thumb.style.display = 'block';
+    }
+    if (pdfIcon) pdfIcon.style.display = 'none';
+    if (fileNameEl) fileNameEl.textContent = 'Camera Document Photo';
+    if (readyCard) readyCard.classList.remove('d-none');
+
     stopIdCamera();
 }
 
@@ -2137,6 +2290,9 @@ function retakeIdPhoto() {
 
     const btnRetake = document.getElementById('btnRetakeIdPhoto');
     if (btnRetake) btnRetake.classList.add('d-none');
+
+    const readyCard = document.getElementById('docReadyPreviewCard');
+    if (readyCard) readyCard.classList.add('d-none');
 
     startIdCamera();
 }
@@ -2312,25 +2468,35 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Fallback file input listeners
+    // File input listener for Step 5
     const idFileInput = document.getElementById('idDocumentFileInput');
-    const idFileName = document.getElementById('idFallbackFileName');
     if (idFileInput) {
         idFileInput.addEventListener('change', function() {
             if (idFileInput.files && idFileInput.files[0]) {
                 const f = idFileInput.files[0];
-                if (idFileName) idFileName.textContent = `${f.name} (${(f.size / (1024 * 1024)).toFixed(2)} MB)`;
-                // Preview if image
+                const readyCard = document.getElementById('docReadyPreviewCard');
+                const thumb = document.getElementById('docPreviewThumbnail');
+                const pdfIcon = document.getElementById('docPdfIcon');
+                const fileNameEl = document.getElementById('docReadyFileName');
+
+                if (fileNameEl) fileNameEl.textContent = `${f.name} (${(f.size / (1024 * 1024)).toFixed(2)} MB)`;
+                if (readyCard) readyCard.classList.remove('d-none');
+
                 if (f.type.startsWith('image/')) {
                     const reader = new FileReader();
                     reader.onload = function(e) {
                         capturedIdDataUrl = e.target.result;
-                        const previewImg = document.getElementById('idCapturedImgEl');
-                        const previewWrap = document.getElementById('idCameraCapturedPreview');
-                        if (previewImg) previewImg.src = capturedIdDataUrl;
-                        if (previewWrap) previewWrap.classList.remove('d-none');
+                        if (thumb) {
+                            thumb.src = capturedIdDataUrl;
+                            thumb.style.display = 'block';
+                        }
+                        if (pdfIcon) pdfIcon.style.display = 'none';
                     };
                     reader.readAsDataURL(f);
+                } else {
+                    capturedIdDataUrl = '';
+                    if (thumb) thumb.style.display = 'none';
+                    if (pdfIcon) pdfIcon.style.display = 'flex';
                 }
             }
         });
