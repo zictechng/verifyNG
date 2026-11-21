@@ -883,7 +883,7 @@
 
                                 <div class="vng-wizard-card mb-3" style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:24px 20px !important;">
                                     {# Selfie Viewfinder Card #}
-                                    <div class="vng-camera-card mb-3 text-center w-100" style="background:#0F172A;color:#FFFFFF;border:1px solid #1E293B;border-radius:12px;padding:20px !important;">
+                                    <div class="vng-camera-card mb-3 text-center w-100 position-relative" id="selfieCardContainer" style="background:#0F172A;color:#FFFFFF;border:1px solid #1E293B;border-radius:12px;padding:20px !important;transition:all 0.35s ease;">
                                         {# Step progress badges #}
                                         <div id="selfieLivenessSteps" class="d-flex align-items-center justify-content-center gap-2 mb-2.5 d-none flex-wrap">
                                             <span id="livenessStep1" class="badge rounded-pill px-2.5 py-1 text-white border border-light-subtle" style="font-size: 11.5px; background: rgba(255,255,255,0.1);">
@@ -2382,46 +2382,79 @@ function computeEAR(eyeIndices, landmarks) {
     return (v1 + v2) / (2.0 * (h || 0.001));
 }
 
-function analyzeFaceLighting(video, faceBounds = null) {
-    if (!video || video.readyState < 2) return { pass: true, luminance: 128 };
+function analyzeFaceQuality(video, faceBounds = null) {
+    if (!video || video.readyState < 2) return { pass: true, luminance: 128, sharpness: 25 };
     try {
         if (!livenessSampleCanvas) livenessSampleCanvas = document.createElement('canvas');
-        livenessSampleCanvas.width = 120;
-        livenessSampleCanvas.height = 90;
+        const aspect = (video.videoWidth && video.videoHeight) ? (video.videoWidth / video.videoHeight) : (16 / 9);
+        const sampleW = 160;
+        const sampleH = Math.round(160 / aspect);
+        livenessSampleCanvas.width = sampleW;
+        livenessSampleCanvas.height = sampleH;
         const ctx = livenessSampleCanvas.getContext('2d', { willReadFrequently: true });
-        ctx.drawImage(video, 0, 0, 120, 90);
+        ctx.drawImage(video, 0, 0, sampleW, sampleH);
 
         // Sample exclusively within the detected face bounding box or center oval
-        let sx = Math.floor((faceBounds ? faceBounds.minX : 0.35) * 120);
-        let ex = Math.ceil((faceBounds ? faceBounds.maxX : 0.65) * 120);
-        let sy = Math.floor((faceBounds ? faceBounds.minY : 0.25) * 90);
-        let ey = Math.ceil((faceBounds ? faceBounds.maxY : 0.75) * 90);
+        let sx = Math.floor((faceBounds ? faceBounds.minX : 0.32) * sampleW);
+        let ex = Math.ceil((faceBounds ? faceBounds.maxX : 0.68) * sampleW);
+        let sy = Math.floor((faceBounds ? faceBounds.minY : 0.22) * sampleH);
+        let ey = Math.ceil((faceBounds ? faceBounds.maxY : 0.78) * sampleH);
 
-        sx = Math.max(0, Math.min(118, sx));
-        ex = Math.max(sx + 2, Math.min(120, ex));
-        sy = Math.max(0, Math.min(88, sy));
-        ey = Math.max(sy + 2, Math.min(90, ey));
+        sx = Math.max(0, Math.min(sampleW - 12, sx));
+        ex = Math.max(sx + 10, Math.min(sampleW, ex));
+        sy = Math.max(0, Math.min(sampleH - 12, sy));
+        ey = Math.max(sy + 10, Math.min(sampleH, ey));
 
         const sw = ex - sx;
         const sh = ey - sy;
         const imgData = ctx.getImageData(sx, sy, sw, sh);
         const data = imgData.data;
-        let totalLum = 0;
-        const count = data.length / 4;
-        for (let i = 0; i < data.length; i += 4) {
-            totalLum += (0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
-        }
-        const faceLum = totalLum / count;
 
-        if (faceLum < 50) {
-            return { pass: false, error: 'Face area is too dark — please face a light source', icon: '💡' };
+        // 1. Grayscale conversion & mean face luminance
+        let totalLum = 0;
+        const numPixels = sw * sh;
+        const gray = new Float32Array(numPixels);
+        for (let i = 0, p = 0; i < data.length; i += 4, p++) {
+            const lum = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+            gray[p] = lum;
+            totalLum += lum;
+        }
+        const faceLum = totalLum / numPixels;
+
+        // Strict Studio Quality Gate: Reject dark/dim faces below 75 (out of 255)
+        if (faceLum < 75) {
+            return { pass: false, error: 'Lighting too dim — please face a light source or lamp', icon: '💡' };
         }
         if (faceLum > 235) {
-            return { pass: false, error: 'Face area is overexposed — reduce harsh glare', icon: '☀️' };
+            return { pass: false, error: 'Lighting overexposed — reduce harsh glare', icon: '☀️' };
         }
-        return { pass: true, luminance: faceLum };
+
+        // 2. Real-Time Laplacian Variance Focus / Blur Detection
+        // 3x3 Laplacian kernel: [0, 1, 0; 1, -4, 1; 0, 1, 0]
+        let sumL = 0;
+        let sumL2 = 0;
+        let countL = 0;
+        for (let y = 1; y < sh - 1; y++) {
+            const rowOffset = y * sw;
+            for (let x = 1; x < sw - 1; x++) {
+                const idx = rowOffset + x;
+                const lap = gray[idx - sw] + gray[idx - 1] + gray[idx + 1] + gray[idx + sw] - (4.0 * gray[idx]);
+                sumL += lap;
+                sumL2 += lap * lap;
+                countL++;
+            }
+        }
+        const meanL = sumL / (countL || 1);
+        const lapVariance = (sumL2 / (countL || 1)) - (meanL * meanL);
+
+        // Reject blurry or low-detail frames (below 10.0 variance)
+        if (lapVariance < 10.0) {
+            return { pass: false, error: 'Image is blurry — please hold steady in good lighting', icon: '🔍' };
+        }
+
+        return { pass: true, luminance: faceLum, sharpness: lapVariance };
     } catch (e) {
-        return { pass: true, luminance: 128 };
+        return { pass: true, luminance: 128, sharpness: 25 };
     }
 }
 
@@ -2502,13 +2535,13 @@ function onFaceMeshResults(results) {
     }
     const faceBounds = { minX, maxX, minY, maxY };
 
-    // Quality Gate 2: Real-time Facial Lighting & Exposure (sampled on face region)
+    // Quality Gate 2: Real-time Facial Lighting & Sharpness (Blur Detection)
     const video = document.getElementById('selfieCameraVideo');
-    const lighting = analyzeFaceLighting(video, faceBounds);
-    if (!lighting.pass) {
+    const quality = analyzeFaceQuality(video, faceBounds);
+    if (!quality.pass) {
         consecutiveCenteredFrames = 0;
         captureReadyFrames = 0;
-        updateLivenessUI(lighting.error, lighting.icon, 'warning');
+        updateLivenessUI(quality.error, quality.icon, 'warning');
         return;
     }
 
@@ -2778,16 +2811,19 @@ async function startSelfieCamera() {
         const preview = document.getElementById('selfieCapturedPreview');
         const btnStart = document.getElementById('btnStartSelfieCamera');
         const btnTake = document.getElementById('btnTakeSelfiePhoto');
+        const card = document.getElementById('selfieCardContainer');
 
         if (selfieCameraStream) {
             selfieCameraStream.getTracks().forEach(t => t.stop());
         }
 
+        // High-Definition constraints: Request Full HD 1080p / 720p with 30fps
         const constraints = {
             video: {
                 facingMode: 'user',
-                width: { ideal: 1280 },
-                height: { ideal: 720 }
+                width: { ideal: 1920, min: 1280 },
+                height: { ideal: 1080, min: 720 },
+                frameRate: { ideal: 30, min: 24 }
             }
         };
 
@@ -2802,6 +2838,14 @@ async function startSelfieCamera() {
         if (btnStart) btnStart.classList.add('d-none');
         if (btnTake) btnTake.classList.add('d-none');
 
+        // Activate Virtual Screen Ring Light: floods surrounding card area with clean, diffuse white light
+        if (card) {
+            card.style.background = '#FFFFFF';
+            card.style.color = '#0F172A';
+            card.style.boxShadow = '0 0 100px 50px rgba(255, 255, 255, 0.98), 0 20px 40px rgba(0, 0, 0, 0.15)';
+            card.style.borderColor = '#CBD5E1';
+        }
+
         // Start automated real-time biometric liveness engine
         startLivenessProcessing();
     } catch (err) {
@@ -2811,6 +2855,13 @@ async function startSelfieCamera() {
 
 function stopSelfieCamera() {
     stopLivenessProcessing();
+    const card = document.getElementById('selfieCardContainer');
+    if (card) {
+        card.style.background = '#0F172A';
+        card.style.color = '#FFFFFF';
+        card.style.boxShadow = '';
+        card.style.borderColor = '#1E293B';
+    }
     if (selfieCameraStream) {
         selfieCameraStream.getTracks().forEach(t => t.stop());
         selfieCameraStream = null;
@@ -2826,15 +2877,20 @@ function takeSelfiePhoto() {
     const guide = document.getElementById('selfieOvalGuide');
     const btnTake = document.getElementById('btnTakeSelfiePhoto');
     const btnRetake = document.getElementById('btnRetakeSelfiePhoto');
+    const card = document.getElementById('selfieCardContainer');
 
     if (!video || !canvas) return;
 
-    canvas.width = video.videoWidth || 1280;
-    canvas.height = video.videoHeight || 720;
-    const ctx = canvas.getContext('2d');
+    // Use full native high resolution from the camera stream
+    canvas.width = video.videoWidth || 1920;
+    canvas.height = video.videoHeight || 1080;
+    const ctx = canvas.getContext('2d', { alpha: false });
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    capturedSelfieDataUrl = canvas.toDataURL('image/jpeg', 0.92);
+    // Export ultra-clear uncompressed JPEG at 0.96 quality
+    capturedSelfieDataUrl = canvas.toDataURL('image/jpeg', 0.96);
     const hiddenData = document.getElementById('wizard_id_selfie_data');
     if (hiddenData) hiddenData.value = capturedSelfieDataUrl;
 
@@ -2844,6 +2900,14 @@ function takeSelfiePhoto() {
     if (guide) guide.classList.add('d-none');
     if (btnTake) btnTake.classList.add('d-none');
     if (btnRetake) btnRetake.classList.remove('d-none');
+
+    // Reset card illumination background after snapshot
+    if (card) {
+        card.style.background = '#0F172A';
+        card.style.color = '#FFFFFF';
+        card.style.boxShadow = '';
+        card.style.borderColor = '#1E293B';
+    }
 
     // Display selfie ready preview card
     const readyCard = document.getElementById('selfieReadyPreviewCard');

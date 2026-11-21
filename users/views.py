@@ -668,7 +668,9 @@ def audit_selfie_quality(file_obj):
         if ('test' in sys.argv or getattr(settings, 'TESTING', False)) and (width == 1 and height == 1):
             return True, ""
 
-        # 1. Minimum Resolution
+        # 1. Format & Minimum Resolution Gate
+        if img.format not in ('JPEG', 'PNG', 'WEBP', 'MPO'):
+            return False, "Invalid image format. Please submit a clear photograph in JPEG or PNG format."
         if width < 200 or height < 200:
             return False, "The captured selfie resolution is too low. Please ensure your camera is positioned correctly."
 
@@ -680,7 +682,7 @@ def audit_selfie_quality(file_obj):
         mean_brightness = stat.mean[0]
         if mean_brightness < 45.0:
             return False, "The captured selfie is too dark for identity verification. Please move to a well-lit area and face the light source."
-        if mean_brightness > 230.0:
+        if mean_brightness > 235.0:
             return False, "The captured selfie is overexposed or has excessive glare. Please adjust your lighting."
 
         # 3. Facial Center Region Exposure & Backlighting Gate
@@ -695,7 +697,7 @@ def audit_selfie_quality(file_obj):
         center_stat = ImageStat.Stat(center_gray)
         center_brightness = center_stat.mean[0]
 
-        if center_brightness < 45.0:
+        if center_brightness < 48.0:
             return False, "The face region in your selfie is too dark or in shadow. Please face a light source directly and avoid bright backgrounds or windows behind you."
         if center_brightness > 235.0:
             return False, "The face region in your selfie is overexposed or has excessive glare. Please adjust your lighting."
@@ -710,12 +712,14 @@ def audit_selfie_quality(file_obj):
         if std_dev < 16.0 or center_std_dev < 15.0:
             return False, "The captured selfie lacks contrast or is washed out. Please ensure your face is clearly illuminated."
 
-        # 5. Sharpness / Blur Detection (Edge variance on center face crop)
-        center_edges = center_gray.filter(ImageFilter.FIND_EDGES)
-        edge_stat = ImageStat.Stat(center_edges)
-        edge_var = edge_stat.var[0]
-        if edge_var < 10.0:
-            return False, "The captured selfie is too blurry or out of focus. Please hold steady and retake."
+        # 5. True Laplacian Focus / Blur Detection (variance of Laplacian operator)
+        # 3x3 Laplacian kernel: [0, 1, 0, 1, -4, 1, 0, 1, 0]
+        lap_filter = ImageFilter.Kernel((3, 3), [0, 1, 0, 1, -4, 1, 0, 1, 0], scale=1, offset=0)
+        center_lap = center_gray.filter(lap_filter)
+        lap_stat = ImageStat.Stat(center_lap)
+        lap_var = lap_stat.var[0]
+        if lap_var < 10.0:
+            return False, "The captured selfie is too blurry or out of focus. Please hold steady in good lighting and retake."
 
         return True, ""
     except Exception as exc:
