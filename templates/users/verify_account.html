@@ -536,13 +536,13 @@
                                     <div>
                                         <h3 class="h5 fw-bold text-dark mb-1" style="font-size:18px;">3. Select Document-Issuing Country</h3>
                                         <p class="text-muted small mb-0" style="font-size:13.5px; line-height: 1.5;">
-                                            Select the sovereign African nation that issued your official government identity credential.
+                                            Select the sovereign African country that issued your government document.
                                         </p>
                                     </div>
                                 </div>
 
                                 <div class="mb-3">
-                                    <label class="form-label small text-muted">Select from all supported sovereign nations:</label>
+                                    <label class="form-label small text-muted">Select Country:</label>
                                     <select id="issuing_country_select" class="form-select" style="max-width:320px;">
                                         {% for c_code, c_name in supported_countries %}
                                             <option value="{{ c_code }}" {% if default_issuing_country == c_code %}selected{% endif %}>{{ c_name }} ({{ c_code }})</option>
