@@ -496,7 +496,7 @@
 
                                         <div class="d-flex align-items-center gap-2 mb-2">
                                             <input type="text" id="wizardPhoneOtpCode" maxlength="6" class="form-control font-monospace text-center fw-bold fs-5"
-                                                   placeholder="Enter Code" style="letter-spacing: 6px; max-width: 170px;">
+                                                   placeholder="Enter Code" style="letter-spacing: 6px; max-width: 200px;">
                                             <button type="button" class="btn btn-primary fw-semibold px-3" onclick="verifyPhoneOtp()">
                                                 Verify Code
                                             </button>
@@ -1744,7 +1744,10 @@ function sendPhoneOtp(channel) {
             tgWrap.classList.add('d-none');
         }
 
-        showWizardNotice(data.message || 'Verification code dispatched.', 'success', 'phoneOtpAlert');
+        // Hide any previously displayed alert so redundant success banner is not shown
+        const alertEl = document.getElementById('phoneOtpAlert');
+        if (alertEl) alertEl.classList.add('d-none');
+
         startPhoneResendTimer();
     })
     .catch(() => {
