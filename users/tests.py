@@ -162,8 +162,8 @@ class VerifyAccountViewTestCase(TestCase):
         self.assertContains(response, 'Select Document-Issuing Country')
         # Step 4: Document Type
         self.assertContains(response, 'Select Accepted Document Type')
-        # Step 5: Camera ID Capture
-        self.assertContains(response, 'Capture Your Document with Camera')
+        # Step 5: Government ID Document (Camera or Upload)
+        self.assertContains(response, 'Submit Your Government-issued ID')
         # Step 6: Live Selfie
         self.assertContains(response, 'Complete Selfie Verification Exercise')
         # Step 7: Review & Submit
