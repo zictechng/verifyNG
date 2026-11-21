@@ -375,7 +375,7 @@
                                     <div>
                                         <h3 class="h5 fw-bold text-dark mb-1" style="font-size:18px;">1. Verify Your Email Address</h3>
                                         <p class="text-muted small mb-0" style="font-size:13.5px; line-height: 1.5;">
-                                            We use your registered email for official regulatory correspondence, compliance review notifications, and TrustPass security clearance.
+                                            We will send 6 digit One-Time (OTP) code to your registered email, enter the code to verify email address! Ensure to check your inbox/spam for the code.
                                         </p>
                                     </div>
                                 </div>
@@ -442,7 +442,7 @@
                                     <div>
                                         <h3 class="h5 fw-bold text-dark mb-1" style="font-size:18px;">2. Verify Your Phone Number</h3>
                                         <p class="text-muted small mb-0" style="font-size:13.5px; line-height: 1.5;">
-                                            We will send a 6-digit One-Time Password (OTP) to your WhatsApp. Automatic SMS fallback is provided if WhatsApp is not available.
+                                            We will send a 6-digit One-Time (OTP) to your WhatsApp. Telegram fallback is provided if WhatsApp is not available.
                                         </p>
                                     </div>
                                 </div>
@@ -467,7 +467,7 @@
                                             Send Code via WhatsApp
                                         </button>
                                         <button type="button" id="btnSendSmsOtp" class="btn btn-sm btn-outline-secondary fw-semibold px-3" onclick="sendPhoneOtp('sms')">
-                                            Send via SMS
+                                            Send via Telegram
                                         </button>
                                         <span id="phoneVerifiedStatusBadge" class="{% if not is_phone_verified %}d-none{% endif %} badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 rounded-pill">
                                             ✓ Phone Number Verified
