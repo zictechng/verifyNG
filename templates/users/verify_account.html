@@ -2354,13 +2354,14 @@ function retakeIdPhoto() {
 /* ── Step 6: Live Selfie & Biometric Liveness Engine ── */
 let faceMeshDetector = null;
 let isFaceMeshActive = false;
-let livenessStage = 'idle'; // 'idle', 'aligning', 'challenge', 'verified'
+let livenessStage = 'idle'; // 'idle', 'aligning', 'challenge', 'ready_to_capture', 'verified'
 let currentChallenge = 'blink'; // 'blink', 'turn_left', 'turn_right'
 let blinkState = 'open'; // 'open', 'closing', 'closed'
 let blinkPassed = false;
 let turnPassed = false;
 let livenessStartTime = 0;
 let consecutiveCenteredFrames = 0;
+let captureReadyFrames = 0;
 let livenessAnimFrameId = null;
 let livenessSampleCanvas = null;
 
@@ -2381,7 +2382,7 @@ function computeEAR(eyeIndices, landmarks) {
     return (v1 + v2) / (2.0 * (h || 0.001));
 }
 
-function analyzeFrameLighting(video) {
+function analyzeFaceLighting(video, faceBounds = null) {
     if (!video || video.readyState < 2) return { pass: true, luminance: 128 };
     try {
         if (!livenessSampleCanvas) livenessSampleCanvas = document.createElement('canvas');
@@ -2389,21 +2390,36 @@ function analyzeFrameLighting(video) {
         livenessSampleCanvas.height = 90;
         const ctx = livenessSampleCanvas.getContext('2d', { willReadFrequently: true });
         ctx.drawImage(video, 0, 0, 120, 90);
-        const imgData = ctx.getImageData(0, 0, 120, 90);
+
+        // Sample exclusively within the detected face bounding box or center oval
+        let sx = Math.floor((faceBounds ? faceBounds.minX : 0.35) * 120);
+        let ex = Math.ceil((faceBounds ? faceBounds.maxX : 0.65) * 120);
+        let sy = Math.floor((faceBounds ? faceBounds.minY : 0.25) * 90);
+        let ey = Math.ceil((faceBounds ? faceBounds.maxY : 0.75) * 90);
+
+        sx = Math.max(0, Math.min(118, sx));
+        ex = Math.max(sx + 2, Math.min(120, ex));
+        sy = Math.max(0, Math.min(88, sy));
+        ey = Math.max(sy + 2, Math.min(90, ey));
+
+        const sw = ex - sx;
+        const sh = ey - sy;
+        const imgData = ctx.getImageData(sx, sy, sw, sh);
         const data = imgData.data;
-        let totalLuminance = 0;
-        const pixelCount = data.length / 4;
+        let totalLum = 0;
+        const count = data.length / 4;
         for (let i = 0; i < data.length; i += 4) {
-            totalLuminance += (0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
+            totalLum += (0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
         }
-        const avgLum = totalLuminance / pixelCount;
-        if (avgLum < 55) {
-            return { pass: false, error: 'Lighting too dark — please face a light source', icon: '💡' };
+        const faceLum = totalLum / count;
+
+        if (faceLum < 50) {
+            return { pass: false, error: 'Face area is too dark — please face a light source', icon: '💡' };
         }
-        if (avgLum > 230) {
-            return { pass: false, error: 'Lighting overexposed — adjust lighting', icon: '☀️' };
+        if (faceLum > 235) {
+            return { pass: false, error: 'Face area is overexposed — reduce harsh glare', icon: '☀️' };
         }
-        return { pass: true, luminance: avgLum };
+        return { pass: true, luminance: faceLum };
     } catch (e) {
         return { pass: true, luminance: 128 };
     }
@@ -2451,25 +2467,18 @@ function updateLivenessStepBadge(stepNum) {
 function onFaceMeshResults(results) {
     if (livenessStage === 'verified' || !selfieCameraStream) return;
 
-    // Quality Gate 1: Real-time Lighting & Exposure
-    const video = document.getElementById('selfieCameraVideo');
-    const lighting = analyzeFrameLighting(video);
-    if (!lighting.pass) {
-        consecutiveCenteredFrames = 0;
-        updateLivenessUI(lighting.error, lighting.icon, 'warning');
-        return;
-    }
-
-    // Quality Gate 2: Exactly 1 Human Face in Frame
+    // Quality Gate 1: Exactly 1 Human Face in Frame (High sensitivity to reject background people)
     if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
         consecutiveCenteredFrames = 0;
+        captureReadyFrames = 0;
         updateLivenessUI('No face detected — position face inside oval', '⚠️', 'warning');
         return;
     }
 
     if (results.multiFaceLandmarks.length > 1) {
         consecutiveCenteredFrames = 0;
-        updateLivenessUI('Multiple faces detected — only 1 person allowed', '⚠️', 'danger');
+        captureReadyFrames = 0;
+        updateLivenessUI('Multiple people detected — please ensure you are alone', '👥', 'danger');
         return;
     }
 
@@ -2482,41 +2491,98 @@ function onFaceMeshResults(results) {
     const leftCheek = landmarks[234];
     const rightCheek = landmarks[454];
 
+    // Compute Face Bounding Box
+    let minX = 1, maxX = 0, minY = 1, maxY = 0;
+    for (let i = 0; i < landmarks.length; i++) {
+        const lm = landmarks[i];
+        if (lm.x < minX) minX = lm.x;
+        if (lm.x > maxX) maxX = lm.x;
+        if (lm.y < minY) minY = lm.y;
+        if (lm.y > maxY) maxY = lm.y;
+    }
+    const faceBounds = { minX, maxX, minY, maxY };
+
+    // Quality Gate 2: Real-time Facial Lighting & Exposure (sampled on face region)
+    const video = document.getElementById('selfieCameraVideo');
+    const lighting = analyzeFaceLighting(video, faceBounds);
+    if (!lighting.pass) {
+        consecutiveCenteredFrames = 0;
+        captureReadyFrames = 0;
+        updateLivenessUI(lighting.error, lighting.icon, 'warning');
+        return;
+    }
+
     // Quality Gate 3: Upright Head Posture (Roll Angle / Sideways Tilt Detection)
-    // Rejects users lying down on beds/pillows or tilting head > 14 degrees
+    // Rejects users lying down on beds/pillows or tilting head > 12 degrees
     const deltaX = rightEye.x - leftEye.x;
     const deltaY = rightEye.y - leftEye.y;
     const rollAngle = Math.abs(Math.atan2(deltaY, deltaX) * (180 / Math.PI));
-    if (rollAngle > 14) {
+    if (rollAngle > 12) {
         consecutiveCenteredFrames = 0;
+        captureReadyFrames = 0;
         updateLivenessUI('Please sit upright and keep head level', '👤', 'warning');
         return;
     }
 
-    // Quality Gate 4: Face Scale & Distance (Oval Fill Ratio)
+    // Quality Gate 4: Head Pitch (Detects looking down at phone/floor or chin tucked down)
+    const faceSpanY = Math.abs(chin.y - forehead.y) || 0.001;
+    const pitchRatio = (nose.y - forehead.y) / faceSpanY;
+    if (pitchRatio > 0.62) {
+        consecutiveCenteredFrames = 0;
+        captureReadyFrames = 0;
+        updateLivenessUI('Please lift your head and look straight at camera', '👤', 'warning');
+        return;
+    }
+    if (pitchRatio < 0.38) {
+        consecutiveCenteredFrames = 0;
+        captureReadyFrames = 0;
+        updateLivenessUI('Please lower your chin and look straight at camera', '👤', 'warning');
+        return;
+    }
+
+    // Quality Gate 5: Face Scale & Distance (Oval Fill Ratio)
     // Rejects faces that are too small/far away (must fill 35% - 72% of view height)
     const faceHeight = Math.hypot(forehead.x - chin.x, forehead.y - chin.y);
     if (faceHeight < 0.35) {
         consecutiveCenteredFrames = 0;
+        captureReadyFrames = 0;
         updateLivenessUI('Move closer to fill the oval guide', '🔍', 'warning');
         return;
     }
     if (faceHeight > 0.72) {
         consecutiveCenteredFrames = 0;
+        captureReadyFrames = 0;
         updateLivenessUI('Move back slightly', '🔍', 'warning');
         return;
     }
 
-    // Quality Gate 5: Strict Centering Inside Oval Guide
+    // Quality Gate 6: Strict Centering Inside Oval Guide
     const isCentered = (nose.x >= 0.38 && nose.x <= 0.62) && (nose.y >= 0.36 && nose.y <= 0.64);
     if (!isCentered) {
         consecutiveCenteredFrames = 0;
+        captureReadyFrames = 0;
         updateLivenessUI('Center face directly inside oval', '🎯', 'warning');
         return;
     }
 
-    // Stage 1: Face Alignment Stability (Hold steady for 6 consecutive quality-assured frames)
+    // Calculate Eye Aspect Ratio (EAR) and Yaw (Nose Ratio)
+    const leftEyeIndices = [33, 160, 158, 133, 153, 144];
+    const rightEyeIndices = [362, 385, 387, 263, 373, 380];
+    const leftEAR = computeEAR(leftEyeIndices, landmarks);
+    const rightEAR = computeEAR(rightEyeIndices, landmarks);
+    const avgEAR = (leftEAR + rightEAR) / 2.0;
+
+    const faceWidth = Math.abs(rightCheek.x - leftCheek.x) || 1;
+    const noseRatio = (nose.x - leftCheek.x) / faceWidth;
+
+    // Stage 1: Face Alignment Stability (Hold steady with eyes open for 6 consecutive quality-assured frames)
     if (livenessStage === 'aligning') {
+        if (avgEAR < 0.20) {
+            consecutiveCenteredFrames = 0;
+            updateLivenessUI('Please open your eyes and look at the camera', '👁️', 'warning');
+            return;
+        }
+
         consecutiveCenteredFrames++;
         if (consecutiveCenteredFrames >= 6) {
             livenessStage = 'challenge';
@@ -2538,37 +2604,37 @@ function onFaceMeshResults(results) {
 
     // Stage 2: Active Liveness Challenge Evaluation
     if (livenessStage === 'challenge') {
-        const leftEyeIndices = [33, 160, 158, 133, 153, 144];
-        const rightEyeIndices = [362, 385, 387, 263, 373, 380];
-        const leftEAR = computeEAR(leftEyeIndices, landmarks);
-        const rightEAR = computeEAR(rightEyeIndices, landmarks);
-        const avgEAR = (leftEAR + rightEAR) / 2.0;
-
-        const faceWidth = Math.abs(rightCheek.x - leftCheek.x) || 1;
-        const noseRatio = (nose.x - leftCheek.x) / faceWidth;
-
         if (currentChallenge === 'blink') {
-            if (avgEAR < 0.18) {
+            if (avgEAR < 0.17) {
                 blinkState = 'closed';
-            } else if (blinkState === 'closed' && avgEAR > 0.24) {
+            } else if (blinkState === 'closed' && avgEAR > 0.22) {
                 blinkPassed = true;
             }
             if (blinkPassed) {
-                triggerLivenessVerified();
+                livenessStage = 'ready_to_capture';
+                captureReadyFrames = 0;
+                updateLivenessStepBadge(3);
+                updateLivenessUI('Look straight into the camera lens... 📸', '📸', 'success');
             }
         } else if (currentChallenge === 'turn_left') {
-            if (noseRatio < 0.36 || noseRatio > 0.64) {
+            if (noseRatio < 0.35) {
                 turnPassed = true;
             }
             if (turnPassed) {
-                triggerLivenessVerified();
+                livenessStage = 'ready_to_capture';
+                captureReadyFrames = 0;
+                updateLivenessStepBadge(3);
+                updateLivenessUI('Turn back and look straight into camera... 📸', '📸', 'success');
             }
         } else if (currentChallenge === 'turn_right') {
-            if (noseRatio > 0.64 || noseRatio < 0.36) {
+            if (noseRatio > 0.65) {
                 turnPassed = true;
             }
             if (turnPassed) {
-                triggerLivenessVerified();
+                livenessStage = 'ready_to_capture';
+                captureReadyFrames = 0;
+                updateLivenessStepBadge(3);
+                updateLivenessUI('Turn back and look straight into camera... 📸', '📸', 'success');
             }
         }
 
@@ -2576,6 +2642,44 @@ function onFaceMeshResults(results) {
         if (Date.now() - livenessStartTime > 12000) {
             const btnTake = document.getElementById('btnTakeSelfiePhoto');
             if (btnTake) btnTake.classList.remove('d-none');
+        }
+        return;
+    }
+
+    // Stage 3: Ready to Capture Gate — Enforce Straight Gaze & Eyes Open Invariant
+    if (livenessStage === 'ready_to_capture') {
+        // Must face straight forward (not turned away from previous turn challenge)
+        if (noseRatio < 0.40 || noseRatio > 0.60) {
+            captureReadyFrames = 0;
+            updateLivenessUI('Please look straight into camera lens', '👤', 'warning');
+            return;
+        }
+
+        // Must keep head upright (not pitched down)
+        if (pitchRatio > 0.60) {
+            captureReadyFrames = 0;
+            updateLivenessUI('Please lift your head and look into lens', '👤', 'warning');
+            return;
+        }
+        if (pitchRatio < 0.40) {
+            captureReadyFrames = 0;
+            updateLivenessUI('Please lower your chin and look into lens', '👤', 'warning');
+            return;
+        }
+
+        // Mandatory Biometric Invariant: Both eyes MUST be open
+        if (avgEAR < 0.22 || leftEAR < 0.19 || rightEAR < 0.19) {
+            captureReadyFrames = 0;
+            updateLivenessUI('Please open your eyes and look at camera', '👁️', 'warning');
+            return;
+        }
+
+        captureReadyFrames++;
+        updateLivenessUI(`Holding steady... (${captureReadyFrames}/4)`, '📸', 'success');
+
+        // Once 4 consecutive stable frames confirm eyes open & straight gaze, fire capture immediately
+        if (captureReadyFrames >= 4) {
+            triggerLivenessVerified();
         }
     }
 }
@@ -2591,10 +2695,9 @@ function triggerLivenessVerified() {
         ovalGuide.style.boxShadow = '0 0 0 9999px rgba(0,0,0,0.4), 0 0 25px rgba(16, 185, 129, 0.8)';
     }
 
-    setTimeout(() => {
-        takeSelfiePhoto();
-        stopLivenessProcessing();
-    }, 600);
+    // Capture immediately while eyes are confirmed open
+    takeSelfiePhoto();
+    stopLivenessProcessing();
 }
 
 function startLivenessProcessing() {
@@ -2603,6 +2706,7 @@ function startLivenessProcessing() {
     blinkPassed = false;
     turnPassed = false;
     consecutiveCenteredFrames = 0;
+    captureReadyFrames = 0;
 
     // Pick random challenge
     const challenges = ['blink', 'turn_left', 'turn_right'];
@@ -2622,10 +2726,10 @@ function startLivenessProcessing() {
                     locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4/${file}`
                 });
                 faceMeshDetector.setOptions({
-                    maxNumFaces: 2,
+                    maxNumFaces: 4,
                     refineLandmarks: true,
-                    minDetectionConfidence: 0.5,
-                    minTrackingConfidence: 0.5
+                    minDetectionConfidence: 0.35,
+                    minTrackingConfidence: 0.35
                 });
                 faceMeshDetector.onResults(onFaceMeshResults);
             } catch (e) {

@@ -641,6 +641,8 @@ def audit_selfie_quality(file_obj):
     Audits a captured selfie image using Python / Pillow for KYC compliance:
     - Minimum dimensions (at least 200x200)
     - Exposure / Luminance (mean brightness must be between 45 and 230 out of 255)
+    - Face Region Exposure (checks center crop to catch backlit images where face is dark despite bright background)
+    - Backlighting Detection (checks discrepancy between background brightness and facial brightness)
     - Dynamic Contrast / Standard Deviation (detects flat, washed out, or solid black images)
     - Sharpness / Detail (edge detail detection to prevent blurry or grain-distorted images)
     Returns: (is_valid: bool, error_message: str)
@@ -674,21 +676,43 @@ def audit_selfie_quality(file_obj):
         gray = img.convert('L')
         stat = ImageStat.Stat(gray)
 
-        # 2. Brightness / Luminance Gate (0 to 255)
+        # 2. Overall Brightness / Luminance Gate (0 to 255)
         mean_brightness = stat.mean[0]
         if mean_brightness < 45.0:
             return False, "The captured selfie is too dark for identity verification. Please move to a well-lit area and face the light source."
         if mean_brightness > 230.0:
             return False, "The captured selfie is overexposed or has excessive glare. Please adjust your lighting."
 
-        # 3. Dynamic Contrast / Standard Deviation Gate
+        # 3. Facial Center Region Exposure & Backlighting Gate
+        # Crop approximate face area (central 50% width x 60% height)
+        crop_box = (
+            int(width * 0.25),
+            int(height * 0.20),
+            int(width * 0.75),
+            int(height * 0.80)
+        )
+        center_gray = gray.crop(crop_box)
+        center_stat = ImageStat.Stat(center_gray)
+        center_brightness = center_stat.mean[0]
+
+        if center_brightness < 45.0:
+            return False, "The face region in your selfie is too dark or in shadow. Please face a light source directly and avoid bright backgrounds or windows behind you."
+        if center_brightness > 235.0:
+            return False, "The face region in your selfie is overexposed or has excessive glare. Please adjust your lighting."
+
+        # Severe backlighting check (bright background/window but face is shadowed)
+        if mean_brightness > 115.0 and center_brightness < 55.0:
+            return False, "Severe backlighting detected (light source is behind you). Please turn around so light illuminates your face."
+
+        # 4. Dynamic Contrast / Standard Deviation Gate
         std_dev = stat.stddev[0]
-        if std_dev < 16.0:
+        center_std_dev = center_stat.stddev[0]
+        if std_dev < 16.0 or center_std_dev < 15.0:
             return False, "The captured selfie lacks contrast or is washed out. Please ensure your face is clearly illuminated."
 
-        # 4. Sharpness / Blur Detection (Edge variance)
-        edges = gray.filter(ImageFilter.FIND_EDGES)
-        edge_stat = ImageStat.Stat(edges)
+        # 5. Sharpness / Blur Detection (Edge variance on center face crop)
+        center_edges = center_gray.filter(ImageFilter.FIND_EDGES)
+        edge_stat = ImageStat.Stat(center_edges)
         edge_var = edge_stat.var[0]
         if edge_var < 10.0:
             return False, "The captured selfie is too blurry or out of focus. Please hold steady and retake."
