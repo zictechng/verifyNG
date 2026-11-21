@@ -536,80 +536,69 @@
                                     <div>
                                         <h3 class="h5 fw-bold text-dark mb-1" style="font-size:18px;">3. Select Document-Issuing Country</h3>
                                         <p class="text-muted small mb-0" style="font-size:13.5px; line-height: 1.5;">
-                                            Select the sovereign African country that issued your government document.
+                                            Select your country that issued your government document.
                                         </p>
                                     </div>
                                 </div>
 
                                 <div class="vng-wizard-card mb-3" style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:24px 20px !important;">
-                                    {# Active Selected Country Banner #}
-                                    <div id="vngActiveCountryCard" class="d-flex align-items-center justify-content-between p-3 bg-white border border-secondary-subtle rounded-3 mb-3 shadow-sm">
-                                        <div class="d-flex align-items-center gap-3">
-                                            <span id="vngActiveCountryFlag" style="font-size: 28px; line-height: 1;">🌍</span>
-                                            <div>
-                                                <div class="small text-muted fw-semibold" style="font-size:11px; letter-spacing:0.5px; text-transform:uppercase;">Document-Issuing Country</div>
-                                                <div class="fw-bold text-dark fs-6" id="vngActiveCountryName">{% if default_issuing_country %}{{ default_issuing_country }}{% else %}No Country Selected{% endif %}</div>
+                                    <label class="form-label small fw-semibold text-dark mb-2" for="vngCountryDropdownBtn">
+                                        Select Your Country <span class="text-danger">*</span>
+                                    </label>
+
+                                    {# Custom Searchable Select Dropdown #}
+                                    <div class="position-relative" id="vngSearchableDropdownWrap" style="max-width: 460px;">
+                                        {# Dropdown Trigger Box #}
+                                        <button type="button"
+                                                id="vngCountryDropdownBtn"
+                                                class="form-select text-start d-flex align-items-center justify-content-between bg-white w-100"
+                                                style="height: 48px; font-size: 15px; border-color: #CBD5E1; cursor: pointer;"
+                                                onclick="toggleCountryDropdown()">
+                                            <span id="vngCountrySelectedText" class="text-muted">Select your document-issuing country...</span>
+                                        </button>
+
+                                        {# Dropdown Menu List Panel #}
+                                        <div id="vngCountryDropdownMenu"
+                                             class="d-none position-absolute w-100 bg-white border rounded-3 shadow-lg p-2"
+                                             style="top: calc(100% + 4px); left: 0; z-index: 1050; border-color: #CBD5E1;">
+
+                                            {# Search Input inside Dropdown #}
+                                            <div class="p-1 mb-2">
+                                                <div class="input-group">
+                                                    <span class="input-group-text bg-light border-end-0 text-muted py-2">
+                                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                            <circle cx="11" cy="11" r="8"></circle>
+                                                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                                        </svg>
+                                                    </span>
+                                                    <input type="text"
+                                                           id="vngCountrySearchInput"
+                                                           class="form-control bg-light border-start-0 py-2"
+                                                           placeholder="Type to search country..."
+                                                           oninput="filterWizardCountries(this.value)"
+                                                           style="font-size: 14px;">
+                                                </div>
                                             </div>
-                                        </div>
-                                        <span id="vngActiveCountryBadge" class="badge {% if default_issuing_country %}bg-primary-subtle text-primary border-primary-subtle{% else %}bg-secondary-subtle text-secondary border-secondary-subtle{% endif %} border px-2.5 py-1.5 rounded-pill fw-semibold small">
-                                            {% if default_issuing_country %}✓ Selected{% else %}Choose Below{% endif %}
-                                        </span>
-                                    </div>
 
-                                    {# Quick-Selection Popular African Country Chips #}
-                                    <div class="mb-3">
-                                        <div class="small fw-semibold text-muted mb-2" style="font-size:11.5px; text-transform:uppercase; letter-spacing:0.5px;">Quick Selection (African Countries):</div>
-                                        <div class="d-flex flex-wrap gap-2" id="vngQuickCountryChips">
-                                            <button type="button" class="btn btn-sm btn-white border fw-medium px-2.5 py-1.5 rounded-pill shadow-xs" onclick="selectWizardCountry('NG', 'Nigeria')">🇳🇬 Nigeria</button>
-                                            <button type="button" class="btn btn-sm btn-white border fw-medium px-2.5 py-1.5 rounded-pill shadow-xs" onclick="selectWizardCountry('GH', 'Ghana')">🇬🇭 Ghana</button>
-                                            <button type="button" class="btn btn-sm btn-white border fw-medium px-2.5 py-1.5 rounded-pill shadow-xs" onclick="selectWizardCountry('KE', 'Kenya')">🇰🇪 Kenya</button>
-                                            <button type="button" class="btn btn-sm btn-white border fw-medium px-2.5 py-1.5 rounded-pill shadow-xs" onclick="selectWizardCountry('ZA', 'South Africa')">🇿🇦 South Africa</button>
-                                            <button type="button" class="btn btn-sm btn-white border fw-medium px-2.5 py-1.5 rounded-pill shadow-xs" onclick="selectWizardCountry('RW', 'Rwanda')">🇷🇼 Rwanda</button>
-                                            <button type="button" class="btn btn-sm btn-white border fw-medium px-2.5 py-1.5 rounded-pill shadow-xs" onclick="selectWizardCountry('CM', 'Cameroon')">🇨🇲 Cameroon</button>
-                                            <button type="button" class="btn btn-sm btn-white border fw-medium px-2.5 py-1.5 rounded-pill shadow-xs" onclick="selectWizardCountry('EG', 'Egypt')">🇪🇬 Egypt</button>
-                                        </div>
-                                    </div>
-
-                                    {# Real-Time African Country Search Box #}
-                                    <div class="mb-2">
-                                        <label class="form-label small fw-semibold text-dark" for="vngCountrySearchInput">Search African Countries:</label>
-                                        <div class="input-group">
-                                            <span class="input-group-text bg-white border-end-0 text-muted">
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                    <circle cx="11" cy="11" r="8"></circle>
-                                                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                                                </svg>
-                                            </span>
-                                            <input type="text" id="vngCountrySearchInput" class="form-control border-start-0 ps-1"
-                                                   placeholder="Type to filter African country (e.g. Ghana, Rwanda, Kenya, Egypt, Cameroon)..."
-                                                   oninput="filterWizardCountries(this.value)"
-                                                   style="font-size:14.5px; height: 44px;">
-                                            <button type="button" class="btn btn-outline-secondary border-start-0 bg-white text-muted d-none" id="vngBtnClearCountrySearch" onclick="clearCountrySearch()" style="font-size:14px;">✕</button>
-                                        </div>
-                                    </div>
-
-                                    {# Scrollable Touch-Friendly African Country List #}
-                                    <div id="vngCountryListScroll" class="bg-white border rounded-3 p-1.5 mb-2" style="max-height: 240px; overflow-y: auto; -webkit-overflow-scrolling: touch;">
-                                        <div class="d-flex flex-column gap-1" id="vngCountryListContainer">
-                                            {% for c_code, c_name in supported_countries %}
-                                            <button type="button"
-                                                    class="vng-country-item btn btn-light text-start d-flex align-items-center justify-content-between px-3 py-2 border-0 rounded-2 w-100 {% if default_issuing_country == c_code %}bg-primary-subtle fw-semibold{% endif %}"
-                                                    data-code="{{ c_code }}"
-                                                    data-name="{{ c_name }}"
-                                                    onclick="selectWizardCountry('{{ c_code }}', '{{ c_name }}')"
-                                                    style="min-height: 44px; font-size: 14px; background: transparent;">
-                                                <span class="d-flex align-items-center gap-2.5">
-                                                    <span class="vng-flag-emoji" data-code="{{ c_code }}" style="font-size: 20px; line-height: 1;"></span>
-                                                    <span class="text-dark vng-country-label">{{ c_name }}</span>
-                                                    <span class="text-muted small" style="font-size: 12px;">({{ c_code }})</span>
-                                                </span>
-                                                <span class="vng-country-check small fw-bold text-primary {% if default_issuing_country != c_code %}d-none{% endif %}">✓</span>
-                                            </button>
-                                            {% endfor %}
-                                        </div>
-                                        <div id="vngCountryEmptyState" class="d-none text-center py-4 px-2 text-muted small">
-                                            <div>No African country found matching "<span id="vngCountrySearchTerm"></span>".</div>
-                                            <div class="mt-1 text-muted">Please check the spelling or pick from the list above.</div>
+                                            {# Scrollable Country List - Clean Names Only #}
+                                            <div id="vngCountryListScroll" style="max-height: 230px; overflow-y: auto; -webkit-overflow-scrolling: touch;">
+                                                <div class="d-flex flex-column gap-0.5" id="vngCountryListContainer">
+                                                    {% for c_code, c_name in supported_countries %}
+                                                    <button type="button"
+                                                            class="vng-country-item btn btn-sm btn-light text-start d-flex align-items-center justify-content-between px-3 py-2.5 border-0 rounded-2 w-100"
+                                                            data-code="{{ c_code }}"
+                                                            data-name="{{ c_name }}"
+                                                            onclick="selectWizardCountry('{{ c_code }}', '{{ c_name }}')"
+                                                            style="min-height: 42px; font-size: 14.5px; background: transparent;">
+                                                        <span class="text-dark fw-medium vng-country-label">{{ c_name }}</span>
+                                                        <span class="vng-country-check small fw-bold text-primary d-none">✓</span>
+                                                    </button>
+                                                    {% endfor %}
+                                                </div>
+                                                <div id="vngCountryEmptyState" class="d-none text-center py-4 px-2 text-muted small">
+                                                    <div>No African country found matching "<span id="vngCountrySearchTerm"></span>".</div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
 
@@ -620,7 +609,7 @@
                                     <select id="issuing_country_select" class="d-none">
                                         <option value="">-- Select Country --</option>
                                         {% for c_code, c_name in supported_countries %}
-                                            <option value="{{ c_code }}" {% if default_issuing_country == c_code %}selected{% endif %}>{{ c_name }} ({{ c_code }})</option>
+                                            <option value="{{ c_code }}" {% if default_issuing_country == c_code %}selected{% endif %}>{{ c_name }}</option>
                                         {% endfor %}
                                     </select>
                                 </div>
@@ -651,7 +640,7 @@
                                     <div>
                                         <h3 class="h5 fw-bold text-dark mb-1" style="font-size:18px;">4. Select Accepted Document Type</h3>
                                         <p class="text-muted small mb-0" style="font-size:13.5px; line-height: 1.5;">
-                                            Choose your qualifying official credential and enter your document identification number.
+                                            Choose your qualifying official document and enter the document identification number.
                                         </p>
                                     </div>
                                 </div>
@@ -1893,14 +1882,32 @@ function verifyPhoneOtp() {
     });
 }
 
-/* ── Step 3: Country Selection Engine ── */
-function getFlagEmoji(countryCode) {
-    if (!countryCode || countryCode === 'XX') return '🌐';
-    const code = countryCode.toUpperCase();
-    if (code.length !== 2) return '🌐';
-    const offset = 127397;
-    return String.fromCodePoint(...[...code].map(c => offset + c.charCodeAt(0)));
+/* ── Step 3: Searchable Country Dropdown Engine ── */
+function toggleCountryDropdown() {
+    const menu = document.getElementById('vngCountryDropdownMenu');
+    if (!menu) return;
+    const isClosed = menu.classList.contains('d-none');
+    if (isClosed) {
+        menu.classList.remove('d-none');
+        const input = document.getElementById('vngCountrySearchInput');
+        if (input) {
+            input.value = '';
+            filterWizardCountries('');
+            setTimeout(() => input.focus(), 60);
+        }
+    } else {
+        menu.classList.add('d-none');
+    }
 }
+
+// Close dropdown on outside click
+document.addEventListener('click', function(e) {
+    const wrap = document.getElementById('vngSearchableDropdownWrap');
+    const menu = document.getElementById('vngCountryDropdownMenu');
+    if (wrap && menu && !wrap.contains(e.target)) {
+        menu.classList.add('d-none');
+    }
+});
 
 function selectWizardCountry(code, name) {
     selectedCountryCode = code;
@@ -1912,22 +1919,20 @@ function selectWizardCountry(code, name) {
     const selectEl = document.getElementById('issuing_country_select');
     if (selectEl) selectEl.value = code;
 
-    // Update active country banner
-    const flagEl = document.getElementById('vngActiveCountryFlag');
-    const nameEl = document.getElementById('vngActiveCountryName');
-    const badgeEl = document.getElementById('vngActiveCountryBadge');
-    const cardEl = document.getElementById('vngActiveCountryCard');
-    const alertEl = document.getElementById('countrySelectAlert');
+    // Update trigger button text with clean country name
+    const textEl = document.getElementById('vngCountrySelectedText');
+    if (textEl) {
+        textEl.textContent = name;
+        textEl.classList.remove('text-muted');
+        textEl.classList.add('text-dark', 'fw-semibold');
+    }
 
-    if (flagEl) flagEl.textContent = getFlagEmoji(code);
-    if (nameEl) nameEl.textContent = `${name} (${code})`;
-    if (badgeEl) {
-        badgeEl.textContent = '✓ Selected';
-        badgeEl.className = 'badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1.5 rounded-pill fw-semibold small';
-    }
-    if (cardEl) {
-        cardEl.className = 'd-flex align-items-center justify-content-between p-3 bg-white border border-primary-subtle rounded-3 mb-3 shadow-sm';
-    }
+    // Close dropdown menu
+    const menu = document.getElementById('vngCountryDropdownMenu');
+    if (menu) menu.classList.add('d-none');
+
+    // Hide any previous alert
+    const alertEl = document.getElementById('countrySelectAlert');
     if (alertEl) alertEl.classList.add('d-none');
 
     // Highlight active row in scrollable list
@@ -1949,15 +1954,11 @@ function selectWizardCountry(code, name) {
 
 function filterWizardCountries(query) {
     const q = (query || '').toLowerCase().trim();
-    const clearBtn = document.getElementById('vngBtnClearCountrySearch');
-    if (clearBtn) clearBtn.classList.toggle('d-none', !q);
-
     let matchCount = 0;
     const items = document.querySelectorAll('.vng-country-item');
     items.forEach(item => {
         const name = (item.getAttribute('data-name') || '').toLowerCase();
-        const code = (item.getAttribute('data-code') || '').toLowerCase();
-        const matches = !q || name.includes(q) || code.includes(q);
+        const matches = !q || name.includes(q);
         item.classList.toggle('d-none', !matches);
         if (matches) matchCount++;
     });
@@ -1967,15 +1968,6 @@ function filterWizardCountries(query) {
     if (empty) {
         empty.classList.toggle('d-none', matchCount > 0);
         if (term) term.textContent = query;
-    }
-}
-
-function clearCountrySearch() {
-    const input = document.getElementById('vngCountrySearchInput');
-    if (input) {
-        input.value = '';
-        filterWizardCountries('');
-        input.focus();
     }
 }
 
@@ -2304,17 +2296,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // Populate dynamic doc types for default country
     populateDocTypesForCountry(selectedCountryCode);
 
-    // Initialize all flag emojis in country list
-    document.querySelectorAll('.vng-flag-emoji').forEach(function(el) {
-        const code = el.getAttribute('data-code');
-        el.textContent = getFlagEmoji(code);
-    });
-
     // Sync active country display only if a country was previously chosen
     const countrySelect = document.getElementById('issuing_country_select');
     if (selectedCountryCode) {
         const initialOpt = countrySelect ? countrySelect.querySelector(`option[value="${selectedCountryCode}"]`) : null;
-        const initialName = initialOpt ? initialOpt.text.split('(')[0].trim() : selectedCountryCode;
+        const initialName = initialOpt ? initialOpt.text.trim() : selectedCountryCode;
         selectWizardCountry(selectedCountryCode, initialName);
     }
 
