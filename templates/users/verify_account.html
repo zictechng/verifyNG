@@ -876,67 +876,90 @@
                                     <div>
                                         <h3 class="h5 fw-bold text-dark mb-1" style="font-size:18px;">6. Complete Selfie Verification Exercise</h3>
                                         <p class="text-muted small mb-0" style="font-size:13.5px; line-height: 1.5;">
-                                            Take a live selfie to verify that your face matches the photograph on your government identity document.
+                                            Take a live biometric selfie to confirm your identity matches your government document.
                                         </p>
                                     </div>
                                 </div>
 
-                                {# Selfie Viewfinder Card #}
-                                <div class="vng-camera-card mb-3 text-center" style="background:#0F172A;color:#FFFFFF;border:1px solid #1E293B;border-radius:12px;padding:24px 20px !important;">
-                                    <div id="selfieCameraViewWrap" class="position-relative mx-auto mb-3 overflow-hidden rounded-3" style="max-width: 420px; background:#000000; min-height: 280px;">
-                                        <video id="selfieCameraVideo" autoplay playsinline muted class="w-100 h-100 d-none" style="object-fit: cover; max-height: 320px;"></video>
-                                        <canvas id="selfieCaptureCanvas" class="d-none"></canvas>
-
-                                        {# Oval Face Guide Overlay #}
-                                        <div id="selfieOvalGuide" class="position-absolute top-50 start-50 translate-middle border border-2 border-success d-none pointer-events-none"
-                                             style="width: 220px; height: 260px; border-radius: 50% !important; border-style: dashed !important; box-shadow: 0 0 0 9999px rgba(0,0,0,0.5);">
-                                            <span class="badge bg-success text-white position-absolute top-0 start-50 translate-middle-x mt-3" style="font-size:11px;">Center Face Inside Oval</span>
+                                <div class="vng-wizard-card mb-3" style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:24px 20px !important;">
+                                    {# Live Selfie Required Info Card (styled like Step 5) #}
+                                    <div class="w-100 p-3 px-sm-4 py-sm-3.5 rounded-3 bg-white border border-2 border-primary shadow-xs mb-3">
+                                        <div class="d-flex align-items-center justify-content-between mb-1">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0F172A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0">
+                                                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                                                    <circle cx="12" cy="13" r="4"/>
+                                                </svg>
+                                                <span class="fw-bold text-dark" style="font-size: 16px;">Live Camera Biometric Selfie</span>
+                                            </div>
+                                            <span class="badge rounded-pill fw-medium" style="background: #E8F8F0; color: #16A34A; font-size: 13px; padding: 4px 12px; border: 1px solid #C6F0D6;">Required</span>
                                         </div>
-
-                                        {# Idle State #}
-                                        <div id="selfieIdlePlaceholder" class="p-4 d-flex flex-column align-items-center justify-content-center" style="min-height: 280px;">
-                                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="1.6" class="mb-2">
-                                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-                                            </svg>
-                                            <div class="fw-semibold text-white small mb-1">Front Selfie Camera</div>
-                                            <div class="text-white-50" style="font-size:12px;">Position face in good lighting. Please remove hats and sunglasses.</div>
-                                        </div>
-
-                                        {# Captured Snapshot Preview #}
-                                        <div id="selfieCapturedPreview" class="d-none position-relative">
-                                            <img id="selfieCapturedImgEl" class="w-100 rounded-3" style="max-height: 320px; object-fit: contain;" alt="Captured Selfie">
+                                        <div class="text-muted" style="font-size: 14px; line-height: 1.45; color: #4B5563 !important;">
+                                            Position your face directly inside the oval guide in good lighting. Please remove hats, sunglasses, or face coverings.
                                         </div>
                                     </div>
 
-                                    {# Selfie Viewfinder Controls #}
-                                    <div class="d-flex align-items-center justify-content-center gap-2 flex-wrap">
-                                        <button type="button" id="btnStartSelfieCamera" class="btn btn-primary fw-semibold px-4" onclick="startSelfieCamera()">
-                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-                                            Launch Selfie Camera
-                                        </button>
-                                        <button type="button" id="btnTakeSelfiePhoto" class="btn btn-success fw-bold px-4 d-none" onclick="takeSelfiePhoto()">
-                                            🤳 Capture Selfie
-                                        </button>
-                                        <button type="button" id="btnRetakeSelfiePhoto" class="btn btn-outline-light btn-sm d-none" onclick="retakeSelfiePhoto()">
-                                            Retake Selfie
-                                        </button>
+                                    {# Selfie Viewfinder Card #}
+                                    <div class="vng-camera-card mb-3 text-center w-100" style="background:#0F172A;color:#FFFFFF;border:1px solid #1E293B;border-radius:12px;padding:20px !important;">
+                                        <div id="selfieCameraViewWrap" class="position-relative mx-auto mb-3 overflow-hidden rounded-3" style="max-width: 440px; background:#000000; min-height: 280px;">
+                                            <video id="selfieCameraVideo" autoplay playsinline muted class="w-100 h-100 d-none" style="object-fit: cover; max-height: 320px;"></video>
+                                            <canvas id="selfieCaptureCanvas" class="d-none"></canvas>
+
+                                            {# Oval Face Guide Overlay #}
+                                            <div id="selfieOvalGuide" class="position-absolute top-50 start-50 translate-middle border border-2 border-success d-none pointer-events-none"
+                                                 style="width: 220px; height: 260px; border-radius: 50% !important; border-style: dashed !important; box-shadow: 0 0 0 9999px rgba(0,0,0,0.5);">
+                                                <span class="badge bg-success text-white position-absolute top-0 start-50 translate-middle-x mt-3" style="font-size:11px;">Center Face Inside Oval</span>
+                                            </div>
+
+                                            {# Idle State #}
+                                            <div id="selfieIdlePlaceholder" class="p-4 d-flex flex-column align-items-center justify-content-center" style="min-height: 280px;">
+                                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="1.6" class="mb-2">
+                                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                                                </svg>
+                                                <div class="fw-semibold text-white small mb-1">Front Selfie Camera Ready</div>
+                                                <div class="text-white-50" style="font-size:12px;">Position face in good lighting. Click below to start camera.</div>
+                                            </div>
+
+                                            {# Captured Snapshot Preview #}
+                                            <div id="selfieCapturedPreview" class="d-none position-relative">
+                                                <img id="selfieCapturedImgEl" class="w-100 rounded-3" style="max-height: 320px; object-fit: contain;" alt="Captured Selfie">
+                                            </div>
+                                        </div>
+
+                                        {# Selfie Viewfinder Controls #}
+                                        <div class="d-flex align-items-center justify-content-center gap-2 flex-wrap">
+                                            <button type="button" id="btnStartSelfieCamera" class="btn btn-primary fw-semibold px-4 py-2" onclick="startSelfieCamera()">
+                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                                                Launch Selfie Camera
+                                            </button>
+                                            <button type="button" id="btnTakeSelfiePhoto" class="btn btn-success fw-bold px-4 py-2 d-none" onclick="takeSelfiePhoto()">
+                                                🤳 Capture Selfie
+                                            </button>
+                                            <button type="button" id="btnRetakeSelfiePhoto" class="btn btn-outline-light btn-sm d-none" onclick="retakeSelfiePhoto()">
+                                                Retake Selfie
+                                            </button>
+                                        </div>
+
+                                        {# Inline feedback container for Step 6 #}
+                                        <div id="selfieCameraAlert" class="alert d-none py-2 px-3 small rounded-3 mt-3 mb-0" role="alert"></div>
                                     </div>
 
-                                    {# Inline feedback container for Step 6 #}
-                                    <div id="selfieCameraAlert" class="alert d-none py-2 px-3 small rounded-3 mt-3 mb-0" role="alert"></div>
-                                </div>
-
-                                {# Fallback Selfie Upload #}
-                                <div class="card border rounded-3 p-3 mb-3" style="background:#F8FAFC;">
-                                    <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
-                                        <span class="small fw-semibold text-muted" style="font-size:12px;">SELFIE UPLOAD FALLBACK</span>
-                                        <span class="badge bg-light text-secondary border fw-normal" style="font-size:11px;">JPG, PNG &bull; Max 5MB</span>
-                                    </div>
-                                    <div class="d-flex align-items-center gap-2 flex-wrap">
-                                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('idSelfieFileInput').click()">
-                                            Upload Selfie Photo
-                                        </button>
-                                        <span id="selfieFallbackFileName" class="small text-muted text-truncate" style="max-width:240px;">No selfie selected</span>
+                                    {# Selfie Ready Status & Preview Card #}
+                                    <div id="selfieReadyPreviewCard" class="d-none p-3 bg-white border border-success-subtle rounded-3 mb-2 shadow-xs w-100">
+                                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                            <div class="d-flex align-items-center gap-2.5">
+                                                <img id="selfiePreviewThumbnail" src="" class="rounded border" style="width: 48px; height: 48px; object-fit: cover; display: none;" alt="Selfie Preview">
+                                                <div>
+                                                    <div class="d-flex align-items-center gap-1.5">
+                                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-0.5 rounded-pill fw-semibold" style="font-size: 11px;">✓ Selfie Captured</span>
+                                                    </div>
+                                                    <div class="fw-semibold text-dark small mt-0.5" id="selfieReadyFileName">Live Biometric Snapshot</div>
+                                                </div>
+                                            </div>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary fw-medium px-2.5 py-1" style="font-size: 12.5px;" onclick="retakeSelfiePhoto()">
+                                                Retake Selfie
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -1746,7 +1769,7 @@ function wizardNextStep(current) {
         const hasExistingSelfie = {% if has_selfie %}true{% else %}false{% endif %};
 
         if (!hasSelfieFile && !hasCapturedSelfie && !hasExistingSelfie) {
-            showWizardNotice('Please complete the live selfie exercise or upload a selfie photograph.', 'danger', 'selfieCameraAlert');
+            showWizardNotice('Please capture your live selfie to proceed.', 'danger', 'selfieCameraAlert');
             return;
         }
     }
@@ -2353,7 +2376,7 @@ async function startSelfieCamera() {
         if (btnStart) btnStart.classList.add('d-none');
         if (btnTake) btnTake.classList.remove('d-none');
     } catch (err) {
-        showWizardNotice('Could not open front camera. Please ensure permissions are allowed or upload a selfie file.', 'danger', 'selfieCameraAlert');
+        showWizardNotice('Could not open front camera. Please ensure camera permissions are allowed in your browser settings.', 'danger', 'selfieCameraAlert');
     }
 }
 
@@ -2391,6 +2414,15 @@ function takeSelfiePhoto() {
     if (btnTake) btnTake.classList.add('d-none');
     if (btnRetake) btnRetake.classList.remove('d-none');
 
+    // Display selfie ready preview card
+    const readyCard = document.getElementById('selfieReadyPreviewCard');
+    const thumb = document.getElementById('selfiePreviewThumbnail');
+    if (thumb) {
+        thumb.src = capturedSelfieDataUrl;
+        thumb.style.display = 'block';
+    }
+    if (readyCard) readyCard.classList.remove('d-none');
+
     stopSelfieCamera();
 }
 
@@ -2401,6 +2433,9 @@ function retakeSelfiePhoto() {
 
     const btnRetake = document.getElementById('btnRetakeSelfiePhoto');
     if (btnRetake) btnRetake.classList.add('d-none');
+
+    const readyCard = document.getElementById('selfieReadyPreviewCard');
+    if (readyCard) readyCard.classList.add('d-none');
 
     startSelfieCamera();
 }
