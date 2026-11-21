@@ -41,6 +41,16 @@ ACCEPTED_DOCUMENTS = {
         "clean_function": lambda n: re.sub(r"[\s\-]", "", n).upper(),
         "error_message": "A Ghanaian Driver's License number must contain 8 to 12 alphanumeric characters.",
     },
+    "national_id": {
+        "code": "national_id",
+        "name": "Ghana Card (National ID)",
+        "authority": "National Identification Authority (NIA)",
+        "placeholder": "e.g. GHA-123456789-0",
+        "help_text": "Enter your Ghana Card PIN in the format GHA-XXXXXXXXX-X.",
+        "regex": r"^GHA-\d{9,10}-\d$",
+        "clean_function": lambda n: n.strip().upper(),
+        "error_message": "A Ghana Card PIN must be in the format GHA-XXXXXXXXX-X (e.g. GHA-712345678-1).",
+    },
 }
 
 # ─────────────────────────────────────────────────────────────────────────────

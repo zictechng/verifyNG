@@ -49,6 +49,16 @@ ACCEPTED_DOCUMENTS = {
         "clean_function": lambda n: re.sub(r"[\s\-]", "", n).upper(),
         "error_message": "A South African passport number must consist of 1 letter followed by 8 digits.",
     },
+    "drivers_license": {
+        "code": "drivers_license",
+        "name": "South African Driver's Licence",
+        "authority": "Driving Licence Card Account (DLCA) / RTMC",
+        "placeholder": "e.g. 12345678 or alphanum ID",
+        "help_text": "Enter your South African Driver's Licence card number.",
+        "regex": r"^[A-Za-z0-9]{6,16}$",
+        "clean_function": lambda n: re.sub(r"[\s\-]", "", n).upper(),
+        "error_message": "Please enter a valid South African driver's licence number.",
+    },
 }
 
 # ─────────────────────────────────────────────────────────────────────────────

@@ -26,6 +26,143 @@ from .country_documents import (
 
 DEFAULT_COUNTRY = "NG"
 
+
+class StandardCountryDocConfig:
+    """
+    Standardized identity & business configuration for Pan-African and international countries.
+    Aligned with Smile ID core Document Verification (DocV) specifications:
+    - International Passport (ICAO Doc 9303 / MRZ compatible)
+    - National Identity Card (Government citizen biometric card)
+    - Driver's License (Government motor vehicle / licensing authority)
+    """
+    def __init__(self, code: str, name: str, authority: str = "National Civil Identity Authority"):
+        self.COUNTRY_CODE = code
+        self.COUNTRY_NAME = name
+        self.ACCEPTED_DOCUMENTS = {
+            "passport": {
+                "code": "passport",
+                "name": "International Passport",
+                "authority": f"{name} Immigration & Passport Authority",
+                "placeholder": "e.g. A12345678",
+                "help_text": "Enter your official international passport number as printed on your booklet.",
+                "regex": r"^[A-Za-z0-9]{5,20}$",
+                "clean_function": lambda n: re.sub(r"[\s\-]", "", str(n or "")).upper(),
+                "error_message": f"A valid passport number must contain 5 to 20 alphanumeric characters.",
+            },
+            "national_id": {
+                "code": "national_id",
+                "name": "National Identity Card",
+                "authority": authority,
+                "placeholder": "Enter National ID Number",
+                "help_text": f"Enter your official {name} National ID / Citizen card number.",
+                "regex": r"^[A-Za-z0-9\-\/\s]{4,30}$",
+                "clean_function": lambda n: re.sub(r"[\s\-]", "", str(n or "")).upper(),
+                "error_message": f"Please enter a valid National Identity Card number (4 to 30 characters).",
+            },
+            "drivers_license": {
+                "code": "drivers_license",
+                "name": "Driver's License",
+                "authority": f"{name} Driver & Vehicle Licensing Authority",
+                "placeholder": "Enter Driver's License Number",
+                "help_text": f"Enter your official {name} Driver's License number.",
+                "regex": r"^[A-Za-z0-9\-\/\s]{4,25}$",
+                "clean_function": lambda n: re.sub(r"[\s\-]", "", str(n or "")).upper(),
+                "error_message": f"Please enter a valid Driver's License number (4 to 25 characters).",
+            },
+        }
+        self.BUSINESS_REGISTRATION_AUTHORITY = f"{name} Commercial / Company Registry"
+        self.BUSINESS_REGISTRATION_TYPES = {
+            "commercial_reg": {
+                "code": "commercial_reg",
+                "name": "Business / Company Registration Number",
+                "authority": f"{name} Commercial / Company Registry",
+                "placeholder": "Enter official company registration number",
+                "help_text": "Enter your official business incorporation or commercial register number.",
+                "regex": r"^[A-Za-z0-9\-\/\s]{3,30}$",
+                "clean_function": lambda n: re.sub(r"[\s\-]", "", str(n or "")).upper(),
+                "error_message": "Please enter a valid business registration number.",
+                "accepted_entities": [
+                    ("ltd", "Limited Liability Company / Corp"),
+                    ("sole", "Sole Proprietorship / Enterprise"),
+                    ("partnership", "Partnership / Joint Venture"),
+                ],
+            }
+        }
+
+
+# Comprehensive Pan-African & Key Global Country List
+EXPANDED_COUNTRIES = [
+    # Top West Africa
+    ("NG", "Nigeria"),
+    ("GH", "Ghana"),
+    ("BJ", "Benin"),
+    ("CI", "Côte d'Ivoire"),
+    ("SN", "Senegal"),
+    ("BF", "Burkina Faso"),
+    ("CV", "Cabo Verde"),
+    ("GM", "Gambia"),
+    ("GN", "Guinea"),
+    ("GW", "Guinea-Bissau"),
+    ("LR", "Liberia"),
+    ("ML", "Mali"),
+    ("MR", "Mauritania"),
+    ("NE", "Niger"),
+    ("SL", "Sierra Leone"),
+    ("TG", "Togo"),
+    # East Africa
+    ("KE", "Kenya"),
+    ("RW", "Rwanda"),
+    ("UG", "Uganda"),
+    ("TZ", "Tanzania"),
+    ("ET", "Ethiopia"),
+    ("BI", "Burundi"),
+    ("DJ", "Djibouti"),
+    ("ER", "Eritrea"),
+    ("SO", "Somalia"),
+    ("SS", "South Sudan"),
+    ("SD", "Sudan"),
+    ("SC", "Seychelles"),
+    ("MU", "Mauritius"),
+    ("KM", "Comoros"),
+    ("MG", "Madagascar"),
+    # Central Africa
+    ("CM", "Cameroon"),
+    ("CF", "Central African Republic"),
+    ("TD", "Chad"),
+    ("CG", "Congo (Brazzaville)"),
+    ("CD", "Congo (DRC)"),
+    ("GQ", "Equatorial Guinea"),
+    ("GA", "Gabon"),
+    ("ST", "São Tomé and Príncipe"),
+    # Southern Africa
+    ("ZA", "South Africa"),
+    ("AO", "Angola"),
+    ("BW", "Botswana"),
+    ("SZ", "Eswatini"),
+    ("LS", "Lesotho"),
+    ("MW", "Malawi"),
+    ("MZ", "Mozambique"),
+    ("NA", "Namibia"),
+    ("ZM", "Zambia"),
+    ("ZW", "Zimbabwe"),
+    # North Africa
+    ("DZ", "Algeria"),
+    ("EG", "Egypt"),
+    ("LY", "Libya"),
+    ("MA", "Morocco"),
+    ("TN", "Tunisia"),
+    # Global Diaspora & International
+    ("GB", "United Kingdom"),
+    ("US", "United States"),
+    ("CA", "Canada"),
+    ("AE", "United Arab Emirates"),
+    ("FR", "France"),
+    ("DE", "Germany"),
+    ("CN", "China"),
+    ("IN", "India"),
+    ("XX", "Other Country (International)"),
+]
+
 # Central registry of supported document-issuing countries
 _REGISTRY: Dict[str, Any] = {
     "NG": nigeria,
@@ -36,6 +173,11 @@ _REGISTRY: Dict[str, Any] = {
     "CI": cote_divoire,
     "SN": senegal,
 }
+
+# Populate standard configurations for all other supported countries
+for code, name in EXPANDED_COUNTRIES:
+    if code not in _REGISTRY:
+        _REGISTRY[code] = StandardCountryDocConfig(code, name)
 
 
 def is_country_supported(country_code: Optional[str]) -> bool:
@@ -48,15 +190,23 @@ def is_country_supported(country_code: Optional[str]) -> bool:
 def get_supported_countries() -> List[Tuple[str, str]]:
     """
     Returns list of supported (code, name) tuples for UI dropdowns.
-    Nigeria is prioritized first, followed alphabetically by other African nations.
+    Nigeria is prioritized first, followed alphabetically by other nations, with 'Other Country' last.
     """
     priority = ["NG"]
     items = []
+    other_item = None
     for code, mod in _REGISTRY.items():
-        if code not in priority:
+        if code in priority:
+            continue
+        if code == "XX":
+            other_item = (code, mod.COUNTRY_NAME)
+        else:
             items.append((code, mod.COUNTRY_NAME))
     items.sort(key=lambda x: x[1])
-    return [("NG", _REGISTRY["NG"].COUNTRY_NAME)] + items
+    result = [("NG", _REGISTRY["NG"].COUNTRY_NAME)] + items
+    if other_item:
+        result.append(other_item)
+    return result
 
 
 def get_country_config(country_code: Optional[str] = None) -> Optional[Dict[str, Any]]:

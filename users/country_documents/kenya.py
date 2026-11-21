@@ -40,6 +40,16 @@ ACCEPTED_DOCUMENTS = {
         "clean_function": lambda n: re.sub(r"[\s\-]", "", n).upper(),
         "error_message": "A Kenyan Alien Card number must contain 6 to 10 alphanumeric characters.",
     },
+    "drivers_license": {
+        "code": "drivers_license",
+        "name": "Kenyan Driving Licence (NTSA)",
+        "authority": "National Transport and Safety Authority (NTSA)",
+        "placeholder": "Enter Driving Licence number",
+        "help_text": "Enter your official NTSA driving licence number.",
+        "regex": r"^[A-Za-z0-9]{6,16}$",
+        "clean_function": lambda n: re.sub(r"[\s\-]", "", n).upper(),
+        "error_message": "Please enter a valid Kenyan driving licence number.",
+    },
 }
 
 # ─────────────────────────────────────────────────────────────────────────────

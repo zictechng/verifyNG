@@ -30,6 +30,26 @@ ACCEPTED_DOCUMENTS = {
         "clean_function": lambda n: re.sub(r"[\s\-]", "", n).upper(),
         "error_message": "A Senegalese passport number must contain 7 to 9 alphanumeric characters.",
     },
+    "national_id": {
+        "code": "national_id",
+        "name": "Carte Nationale d'Identité (National ID)",
+        "authority": "Direction de l'Automatisation des Fichiers (DAF)",
+        "placeholder": "Enter National ID number",
+        "help_text": "Enter your Senegalese National Identity Card number.",
+        "regex": r"^[A-Za-z0-9]{10,18}$",
+        "clean_function": lambda n: re.sub(r"[\s\-]", "", n).upper(),
+        "error_message": "Please enter a valid Senegalese CNI number.",
+    },
+    "drivers_license": {
+        "code": "drivers_license",
+        "name": "Permis de Conduire (Driver's License)",
+        "authority": "Direction des Transports Terrestres",
+        "placeholder": "Enter Permis number",
+        "help_text": "Enter your official Senegalese driver's license number.",
+        "regex": r"^[A-Za-z0-9]{6,16}$",
+        "clean_function": lambda n: re.sub(r"[\s\-]", "", n).upper(),
+        "error_message": "Please enter a valid driver's license number.",
+    },
 }
 
 # ─────────────────────────────────────────────────────────────────────────────

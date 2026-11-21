@@ -30,6 +30,26 @@ ACCEPTED_DOCUMENTS = {
         "clean_function": lambda n: re.sub(r"[\s\-]", "", n).upper(),
         "error_message": "An Ivorian passport number must contain 8 to 9 alphanumeric characters.",
     },
+    "national_id": {
+        "code": "national_id",
+        "name": "Carte Nationale d'Identité (National ID)",
+        "authority": "Office National de l'État Civil et de l'Identification (ONECI)",
+        "placeholder": "Enter NNI number",
+        "help_text": "Enter your Numéro National d'Identification (NNI) on your CNI.",
+        "regex": r"^[A-Za-z0-9]{10,12}$",
+        "clean_function": lambda n: re.sub(r"[\s\-]", "", n).upper(),
+        "error_message": "Please enter a valid Ivorian CNI number.",
+    },
+    "drivers_license": {
+        "code": "drivers_license",
+        "name": "Permis de Conduire (Driver's License)",
+        "authority": "Ministère des Transports / Quipux",
+        "placeholder": "Enter Permis number",
+        "help_text": "Enter your official Ivorian driver's license number.",
+        "regex": r"^[A-Za-z0-9]{6,16}$",
+        "clean_function": lambda n: re.sub(r"[\s\-]", "", n).upper(),
+        "error_message": "Please enter a valid driver's license number.",
+    },
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
