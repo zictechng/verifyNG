@@ -2172,6 +2172,36 @@ function resetDocumentChoice() {
     }
 }
 
+function isMobileOrTabletDevice() {
+    const ua = (navigator.userAgent || navigator.vendor || window.opera || '').toLowerCase();
+    const isMobileUA = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua);
+    const isIPadOS = (navigator.platform === 'MacIntel' || /macintosh/i.test(ua)) && navigator.maxTouchPoints > 1;
+    const isCoarsePointer = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+    return isMobileUA || isIPadOS || (isCoarsePointer && navigator.maxTouchPoints > 0);
+}
+
+async function hasMultipleCameras() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+        return false;
+    }
+    try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoInputs = devices.filter(d => d.kind === 'videoinput');
+        return videoInputs.length > 1;
+    } catch (e) {
+        return false;
+    }
+}
+
+async function shouldShowCameraSwitch() {
+    // Never show switch camera on laptop or desktop computers
+    if (!isMobileOrTabletDevice()) {
+        return false;
+    }
+    // On mobile phone or tablet, only show if multiple cameras are physically detected
+    return await hasMultipleCameras();
+}
+
 async function startIdCamera() {
     try {
         const video = document.getElementById('idCameraVideo');
@@ -2204,7 +2234,16 @@ async function startIdCamera() {
         if (preview) preview.classList.add('d-none');
         if (btnStart) btnStart.classList.add('d-none');
         if (btnTake) btnTake.classList.remove('d-none');
-        if (btnSwitch) btnSwitch.classList.remove('d-none');
+
+        // Only display 'Switch Camera' if running on a mobile phone or tablet with multiple cameras
+        if (btnSwitch) {
+            const canSwitch = await shouldShowCameraSwitch();
+            if (canSwitch) {
+                btnSwitch.classList.remove('d-none');
+            } else {
+                btnSwitch.classList.add('d-none');
+            }
+        }
     } catch (err) {
         showWizardNotice('Could not open camera. Please ensure camera permissions are allowed, or use the file upload option below.', 'danger', 'idCameraAlert');
     }
