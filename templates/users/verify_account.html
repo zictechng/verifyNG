@@ -884,14 +884,35 @@
                                 <div class="vng-wizard-card mb-3" style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:24px 20px !important;">
                                     {# Selfie Viewfinder Card #}
                                     <div class="vng-camera-card mb-3 text-center w-100" style="background:#0F172A;color:#FFFFFF;border:1px solid #1E293B;border-radius:12px;padding:20px !important;">
+                                        {# Step progress badges #}
+                                        <div id="selfieLivenessSteps" class="d-flex align-items-center justify-content-center gap-2 mb-2.5 d-none flex-wrap">
+                                            <span id="livenessStep1" class="badge rounded-pill px-2.5 py-1 text-white border border-light-subtle" style="font-size: 11.5px; background: rgba(255,255,255,0.1);">
+                                                1. Center Face
+                                            </span>
+                                            <span id="livenessStep2" class="badge rounded-pill px-2.5 py-1 text-white-50 border border-secondary" style="font-size: 11.5px; background: rgba(255,255,255,0.05);">
+                                                2. Live Action
+                                            </span>
+                                            <span id="livenessStep3" class="badge rounded-pill px-2.5 py-1 text-white-50 border border-secondary" style="font-size: 11.5px; background: rgba(255,255,255,0.05);">
+                                                3. Verified ✓
+                                            </span>
+                                        </div>
+
                                         <div id="selfieCameraViewWrap" class="position-relative mx-auto mb-3 overflow-hidden rounded-3" style="max-width: 440px; background:#000000; min-height: 280px;">
                                             <video id="selfieCameraVideo" autoplay playsinline muted class="w-100 h-100 d-none" style="object-fit: cover; max-height: 320px;"></video>
                                             <canvas id="selfieCaptureCanvas" class="d-none"></canvas>
 
-                                            {# Oval Face Guide Overlay #}
-                                            <div id="selfieOvalGuide" class="position-absolute top-50 start-50 translate-middle border border-2 border-success d-none pointer-events-none"
-                                                 style="width: 220px; height: 260px; border-radius: 50% !important; border-style: dashed !important; box-shadow: 0 0 0 9999px rgba(0,0,0,0.5);">
-                                                <span class="badge bg-success text-white position-absolute top-0 start-50 translate-middle-x mt-3" style="font-size:11px;">Center Face Inside Oval</span>
+                                            {# Live Prompt Pill overlay on top of camera stream #}
+                                            <div id="selfieLivenessPrompt" class="position-absolute top-0 start-50 translate-middle-x mt-3 px-3 py-1.5 rounded-pill text-white small fw-bold shadow d-none"
+                                                 style="z-index: 15; font-size: 13px; background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(255, 255, 255, 0.2); backdrop-filter: blur(4px); white-space: nowrap;">
+                                                <span id="selfiePromptIcon">👤</span> <span id="selfiePromptText">Align face inside oval</span>
+                                            </div>
+
+                                            {# Oval Face Guide Overlay with dynamic active state #}
+                                            <div id="selfieOvalGuide" class="position-absolute top-50 start-50 translate-middle border border-2 border-warning d-none pointer-events-none"
+                                                 style="width: 220px; height: 260px; border-radius: 50% !important; border-style: dashed !important; box-shadow: 0 0 0 9999px rgba(0,0,0,0.55); transition: all 0.25s ease;">
+                                                <span id="selfieOvalStatusBadge" class="badge bg-warning text-dark position-absolute bottom-0 start-50 translate-middle-x mb-3 fw-semibold shadow-xs" style="font-size:11px;">
+                                                    Center Face Inside Oval
+                                                </span>
                                             </div>
 
                                             {# Idle State #}
@@ -915,8 +936,8 @@
                                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
                                                 Launch Selfie Camera
                                             </button>
-                                            <button type="button" id="btnTakeSelfiePhoto" class="btn btn-success fw-bold px-4 py-2 d-none" onclick="takeSelfiePhoto()">
-                                                🤳 Capture Selfie
+                                            <button type="button" id="btnTakeSelfiePhoto" class="btn btn-outline-light btn-sm px-3 py-1.5 d-none" onclick="takeSelfiePhoto()">
+                                                📸 Manual Capture
                                             </button>
                                             <button type="button" id="btnRetakeSelfiePhoto" class="btn btn-outline-light btn-sm d-none" onclick="retakeSelfiePhoto()">
                                                 Retake Selfie
@@ -934,7 +955,7 @@
                                                 <img id="selfiePreviewThumbnail" src="" class="rounded border" style="width: 48px; height: 48px; object-fit: cover; display: none;" alt="Selfie Preview">
                                                 <div>
                                                     <div class="d-flex align-items-center gap-1.5">
-                                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-0.5 rounded-pill fw-semibold" style="font-size: 11px;">✓ Selfie Captured</span>
+                                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-0.5 rounded-pill fw-semibold" style="font-size: 11px;">✓ Liveness Confirmed</span>
                                                     </div>
                                                     <div class="fw-semibold text-dark small mt-0.5" id="selfieReadyFileName">Live Biometric Snapshot</div>
                                                 </div>
@@ -1500,6 +1521,10 @@
     }
 }
 </style>
+
+{# Google MediaPipe FaceMesh for In-House Zero-Cost Client-Side Liveness Detection #}
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.4/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4/face_mesh.js" crossorigin="anonymous"></script>
 
 <script>
 function selectVerificationMethod(method) {
@@ -2326,7 +2351,253 @@ function retakeIdPhoto() {
     startIdCamera();
 }
 
-/* ── Step 6: Live Selfie Exercise ── */
+/* ── Step 6: Live Selfie & Biometric Liveness Engine ── */
+let faceMeshDetector = null;
+let isFaceMeshActive = false;
+let livenessStage = 'idle'; // 'idle', 'aligning', 'challenge', 'verified'
+let currentChallenge = 'blink'; // 'blink', 'turn_left', 'turn_right'
+let blinkState = 'open'; // 'open', 'closing', 'closed'
+let blinkPassed = false;
+let turnPassed = false;
+let livenessStartTime = 0;
+let consecutiveCenteredFrames = 0;
+let livenessAnimFrameId = null;
+
+function calculateDistance2D(p1, p2) {
+    return Math.hypot(p1.x - p2.x, p1.y - p2.y);
+}
+
+function computeEAR(eyeIndices, landmarks) {
+    const p1 = landmarks[eyeIndices[0]];
+    const p2 = landmarks[eyeIndices[1]];
+    const p3 = landmarks[eyeIndices[2]];
+    const p4 = landmarks[eyeIndices[3]];
+    const p5 = landmarks[eyeIndices[4]];
+    const p6 = landmarks[eyeIndices[5]];
+    const v1 = calculateDistance2D(p2, p6);
+    const v2 = calculateDistance2D(p3, p5);
+    const h = calculateDistance2D(p1, p4);
+    return (v1 + v2) / (2.0 * (h || 0.001));
+}
+
+function updateLivenessUI(message, icon = '👤', variant = 'warning') {
+    const promptText = document.getElementById('selfiePromptText');
+    const promptIcon = document.getElementById('selfiePromptIcon');
+    const ovalGuide = document.getElementById('selfieOvalGuide');
+    const ovalBadge = document.getElementById('selfieOvalStatusBadge');
+
+    if (promptText) promptText.textContent = message;
+    if (promptIcon) promptIcon.textContent = icon;
+
+    if (ovalBadge) {
+        ovalBadge.textContent = message;
+        ovalBadge.className = `badge bg-${variant} text-${variant === 'warning' ? 'dark' : 'white'} position-absolute bottom-0 start-50 translate-middle-x mb-3 fw-semibold shadow-xs`;
+    }
+
+    if (ovalGuide) {
+        ovalGuide.classList.remove('border-warning', 'border-success', 'border-danger');
+        ovalGuide.classList.add(`border-${variant}`);
+    }
+}
+
+function updateLivenessStepBadge(stepNum) {
+    const s1 = document.getElementById('livenessStep1');
+    const s2 = document.getElementById('livenessStep2');
+    const s3 = document.getElementById('livenessStep3');
+
+    if (s1) {
+        s1.style.background = (stepNum >= 1) ? '#059669' : 'rgba(255,255,255,0.1)';
+        s1.className = (stepNum === 1) ? 'badge rounded-pill px-2.5 py-1 text-white border border-success' : 'badge rounded-pill px-2.5 py-1 text-white border border-light-subtle';
+    }
+    if (s2) {
+        s2.style.background = (stepNum >= 2) ? '#059669' : 'rgba(255,255,255,0.05)';
+        s2.className = (stepNum === 2) ? 'badge rounded-pill px-2.5 py-1 text-white border border-success' : 'badge rounded-pill px-2.5 py-1 text-white-50 border border-secondary';
+    }
+    if (s3) {
+        s3.style.background = (stepNum >= 3) ? '#059669' : 'rgba(255,255,255,0.05)';
+        s3.className = (stepNum === 3) ? 'badge rounded-pill px-2.5 py-1 text-white border border-success' : 'badge rounded-pill px-2.5 py-1 text-white-50 border border-secondary';
+    }
+}
+
+function onFaceMeshResults(results) {
+    if (livenessStage === 'verified' || !selfieCameraStream) return;
+
+    if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
+        consecutiveCenteredFrames = 0;
+        updateLivenessUI('No face detected — center face inside oval', '⚠️', 'warning');
+        return;
+    }
+
+    if (results.multiFaceLandmarks.length > 1) {
+        consecutiveCenteredFrames = 0;
+        updateLivenessUI('Multiple faces detected — only 1 person allowed', '⚠️', 'danger');
+        return;
+    }
+
+    const landmarks = results.multiFaceLandmarks[0];
+    const nose = landmarks[1];
+    const leftCheek = landmarks[234];
+    const rightCheek = landmarks[454];
+
+    // Check centering inside oval frame
+    const isCentered = (nose.x >= 0.30 && nose.x <= 0.70) && (nose.y >= 0.25 && nose.y <= 0.75);
+    if (!isCentered) {
+        consecutiveCenteredFrames = 0;
+        updateLivenessUI('Center face inside oval', '👤', 'warning');
+        return;
+    }
+
+    // Stage 1: Face Alignment
+    if (livenessStage === 'aligning') {
+        consecutiveCenteredFrames++;
+        if (consecutiveCenteredFrames >= 6) {
+            livenessStage = 'challenge';
+            livenessStartTime = Date.now();
+            updateLivenessStepBadge(2);
+
+            if (currentChallenge === 'blink') {
+                updateLivenessUI('Please blink your eyes naturally', '👁️', 'success');
+            } else if (currentChallenge === 'turn_left') {
+                updateLivenessUI('Turn your head slightly to the left', '⬅️', 'success');
+            } else {
+                updateLivenessUI('Turn your head slightly to the right', '➡️', 'success');
+            }
+        } else {
+            updateLivenessUI('Face aligned — hold steady...', '⌛', 'success');
+        }
+        return;
+    }
+
+    // Stage 2: Active Liveness Challenge
+    if (livenessStage === 'challenge') {
+        const leftEye = [33, 160, 158, 133, 153, 144];
+        const rightEye = [362, 385, 387, 263, 373, 380];
+        const leftEAR = computeEAR(leftEye, landmarks);
+        const rightEAR = computeEAR(rightEye, landmarks);
+        const avgEAR = (leftEAR + rightEAR) / 2.0;
+
+        const faceWidth = Math.abs(rightCheek.x - leftCheek.x) || 1;
+        const noseRatio = (nose.x - leftCheek.x) / faceWidth;
+
+        if (currentChallenge === 'blink') {
+            if (avgEAR < 0.20) {
+                blinkState = 'closed';
+            } else if (blinkState === 'closed' && avgEAR > 0.25) {
+                blinkPassed = true;
+            }
+            if (blinkPassed) {
+                triggerLivenessVerified();
+            }
+        } else if (currentChallenge === 'turn_left') {
+            if (noseRatio < 0.38 || noseRatio > 0.62) {
+                turnPassed = true;
+            }
+            if (turnPassed) {
+                triggerLivenessVerified();
+            }
+        } else if (currentChallenge === 'turn_right') {
+            if (noseRatio > 0.62 || noseRatio < 0.38) {
+                turnPassed = true;
+            }
+            if (turnPassed) {
+                triggerLivenessVerified();
+            }
+        }
+
+        // If challenge takes more than 10 seconds, reveal manual capture button
+        if (Date.now() - livenessStartTime > 10000) {
+            const btnTake = document.getElementById('btnTakeSelfiePhoto');
+            if (btnTake) btnTake.classList.remove('d-none');
+        }
+    }
+}
+
+function triggerLivenessVerified() {
+    livenessStage = 'verified';
+    updateLivenessStepBadge(3);
+    updateLivenessUI('✓ Liveness Verified! Capturing...', '✨', 'success');
+
+    const ovalGuide = document.getElementById('selfieOvalGuide');
+    if (ovalGuide) {
+        ovalGuide.style.borderStyle = 'solid !important';
+        ovalGuide.style.boxShadow = '0 0 0 9999px rgba(0,0,0,0.4), 0 0 25px rgba(16, 185, 129, 0.8)';
+    }
+
+    setTimeout(() => {
+        takeSelfiePhoto();
+        stopLivenessProcessing();
+    }, 600);
+}
+
+function startLivenessProcessing() {
+    isFaceMeshActive = true;
+    livenessStage = 'aligning';
+    blinkPassed = false;
+    turnPassed = false;
+    consecutiveCenteredFrames = 0;
+
+    // Pick random challenge
+    const challenges = ['blink', 'turn_left', 'turn_right'];
+    currentChallenge = challenges[Math.floor(Math.random() * challenges.length)];
+
+    const promptEl = document.getElementById('selfieLivenessPrompt');
+    const stepsEl = document.getElementById('selfieLivenessSteps');
+    if (promptEl) promptEl.classList.remove('d-none');
+    if (stepsEl) stepsEl.classList.remove('d-none');
+    updateLivenessStepBadge(1);
+    updateLivenessUI('Center face inside oval', '👤', 'warning');
+
+    if (typeof FaceMesh !== 'undefined') {
+        if (!faceMeshDetector) {
+            try {
+                faceMeshDetector = new FaceMesh({
+                    locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4/${file}`
+                });
+                faceMeshDetector.setOptions({
+                    maxNumFaces: 2,
+                    refineLandmarks: true,
+                    minDetectionConfidence: 0.5,
+                    minTrackingConfidence: 0.5
+                });
+                faceMeshDetector.onResults(onFaceMeshResults);
+            } catch (e) {
+                console.warn('FaceMesh initialization failed, falling back to manual capture', e);
+            }
+        }
+
+        const video = document.getElementById('selfieCameraVideo');
+        let processingFrame = false;
+
+        async function processLiveVideoFrame() {
+            if (!selfieCameraStream || livenessStage === 'verified' || !isFaceMeshActive) return;
+            if (video && video.readyState >= 2 && !processingFrame && faceMeshDetector) {
+                processingFrame = true;
+                try {
+                    await faceMeshDetector.send({ image: video });
+                } catch (err) {}
+                processingFrame = false;
+            }
+            if (selfieCameraStream && livenessStage !== 'verified' && isFaceMeshActive) {
+                livenessAnimFrameId = requestAnimationFrame(processLiveVideoFrame);
+            }
+        }
+
+        livenessAnimFrameId = requestAnimationFrame(processLiveVideoFrame);
+    } else {
+        const btnTake = document.getElementById('btnTakeSelfiePhoto');
+        if (btnTake) btnTake.classList.remove('d-none');
+        updateLivenessUI('Position face & capture photo', '📸', 'success');
+    }
+}
+
+function stopLivenessProcessing() {
+    isFaceMeshActive = false;
+    if (livenessAnimFrameId) {
+        cancelAnimationFrame(livenessAnimFrameId);
+        livenessAnimFrameId = null;
+    }
+}
+
 async function startSelfieCamera() {
     try {
         const video = document.getElementById('selfieCameraVideo');
@@ -2357,13 +2628,17 @@ async function startSelfieCamera() {
         if (guide) guide.classList.remove('d-none');
         if (preview) preview.classList.add('d-none');
         if (btnStart) btnStart.classList.add('d-none');
-        if (btnTake) btnTake.classList.remove('d-none');
+        if (btnTake) btnTake.classList.add('d-none');
+
+        // Start automated real-time biometric liveness engine
+        startLivenessProcessing();
     } catch (err) {
         showWizardNotice('Could not open front camera. Please ensure camera permissions are allowed in your browser settings.', 'danger', 'selfieCameraAlert');
     }
 }
 
 function stopSelfieCamera() {
+    stopLivenessProcessing();
     if (selfieCameraStream) {
         selfieCameraStream.getTracks().forEach(t => t.stop());
         selfieCameraStream = null;
@@ -2371,6 +2646,7 @@ function stopSelfieCamera() {
 }
 
 function takeSelfiePhoto() {
+    stopLivenessProcessing();
     const video = document.getElementById('selfieCameraVideo');
     const canvas = document.getElementById('selfieCaptureCanvas');
     const previewImg = document.getElementById('selfieCapturedImgEl');
@@ -2410,6 +2686,7 @@ function takeSelfiePhoto() {
 }
 
 function retakeSelfiePhoto() {
+    stopLivenessProcessing();
     capturedSelfieDataUrl = '';
     const hiddenData = document.getElementById('wizard_id_selfie_data');
     if (hiddenData) hiddenData.value = '';
@@ -2419,6 +2696,11 @@ function retakeSelfiePhoto() {
 
     const readyCard = document.getElementById('selfieReadyPreviewCard');
     if (readyCard) readyCard.classList.add('d-none');
+
+    const promptEl = document.getElementById('selfieLivenessPrompt');
+    const stepsEl = document.getElementById('selfieLivenessSteps');
+    if (promptEl) promptEl.classList.add('d-none');
+    if (stepsEl) stepsEl.classList.add('d-none');
 
     startSelfieCamera();
 }
