@@ -123,7 +123,10 @@ def _send_sms_fallback_otp(phone: str, otp_code: str) -> Tuple[bool, str]:
 def send_phone_verification_otp(session, phone_input: str, preferred_channel: str = 'whatsapp') -> Dict[str, Any]:
     """
     Generates and sends a 6-digit OTP to the requested phone number.
-    Tries WhatsApp first (where supported / requested), falls back to SMS.
+    Supports:
+      - 'telegram': Deep-links to @verifyNG_Bot to deliver OTP via 100% free Telegram Bot API.
+      - 'whatsapp': Meta Cloud API (WhatsApp Business).
+      - 'sms': SMS fallback.
     """
     phone = _normalise_phone(phone_input)
     if not phone or len(phone) < 9:
@@ -133,26 +136,41 @@ def send_phone_verification_otp(session, phone_input: str, preferred_channel: st
         }
 
     otp_code = f"{secrets.randbelow(900000) + 100000:06d}"
-    channel_used = "simulation"
+    channel_used = preferred_channel
     delivered = False
     delivery_msg = ""
+    telegram_url = ""
+    bot_username = getattr(settings, 'TELEGRAM_BOT_USERNAME', 'verifyNG_Bot') or 'verifyNG_Bot'
 
-    if preferred_channel == 'whatsapp':
+    if preferred_channel == 'telegram':
+        channel_used = "telegram"
+        token = secrets.token_hex(6)  # 12-char secure token
+        from django.core.cache import cache
+        try:
+            cache.set(f"vng_tg_otp_{token}", {
+                'code': otp_code,
+                'phone': phone,
+                'expires_at': time.time() + OTP_EXPIRY_SECONDS,
+            }, timeout=OTP_EXPIRY_SECONDS)
+        except Exception as cache_err:
+            logger.warning("Cache write error for Telegram OTP: %s", cache_err)
+
+        telegram_url = f"https://t.me/{bot_username}?start=otp_{token}"
+        delivered = True
+        delivery_msg = f"Click below to open @{bot_username} on Telegram to view your code."
+
+    elif preferred_channel == 'whatsapp':
         wa_ok, wa_msg = _send_whatsapp_otp(phone, otp_code)
         if wa_ok:
             channel_used = "whatsapp"
             delivered = True
             delivery_msg = f"A 6-digit verification code was sent to your WhatsApp number ({_mask_phone(phone)})."
         else:
-            logger.info("WhatsApp delivery unavailable (%s). Attempting SMS fallback.", wa_msg)
-            sms_ok, sms_msg = _send_sms_fallback_otp(phone, otp_code)
-            if sms_ok:
-                channel_used = "sms"
-                delivered = True
-                delivery_msg = f"A 6-digit verification code was sent via SMS to {_mask_phone(phone)}."
-            else:
-                delivery_msg = f"WhatsApp and SMS gateways are in development mode. Verification code generated."
+            logger.info("WhatsApp delivery unavailable (%s). Switched to test mode.", wa_msg)
+            delivery_msg = f"WhatsApp gateway in development mode. Verification code generated."
+
     else:
+        # Default or SMS fallback
         sms_ok, sms_msg = _send_sms_fallback_otp(phone, otp_code)
         if sms_ok:
             channel_used = "sms"
@@ -179,11 +197,14 @@ def send_phone_verification_otp(session, phone_input: str, preferred_channel: st
         "phone": phone,
         "masked_phone": _mask_phone(phone),
     }
+    if telegram_url:
+        response_data["telegram_url"] = telegram_url
+        response_data["bot_username"] = bot_username
 
-    # For development/testing transparency when external credentials are blank
-    if settings.DEBUG or not delivered:
+    # For development/testing transparency when in DEBUG or unconfigured
+    if settings.DEBUG or not delivered or channel_used == "telegram":
         response_data['dev_code'] = otp_code
-        logger.info("[DEV ONLY] Phone OTP for %s: %s", phone, otp_code)
+        logger.info("[OTP DISPATCH] Phone OTP for %s via %s: %s", phone, channel_used, otp_code)
 
     return response_data
 

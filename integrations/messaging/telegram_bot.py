@@ -969,6 +969,38 @@ def handle_telegram_update(update: Dict[str, Any]) -> None:
     lower_text = raw_text.lower()
 
     if lower_text.startswith("/start"):
+        # Check for deep-link OTP payload: /start otp_<token>
+        parts = raw_text.split(maxsplit=1)
+        if len(parts) > 1 and parts[1].startswith("otp_"):
+            token = parts[1].replace("otp_", "").strip()
+            from django.core.cache import cache
+            otp_data = cache.get(f"vng_tg_otp_{token}")
+            if otp_data:
+                code = otp_data.get('code')
+                phone = otp_data.get('phone', '')
+                text = (
+                    "🔐 <b>VerifyNG Security Verification</b>\n"
+                    "━━━━━━━━━━━━━━━━━━━━━\n"
+                    "Your 6-digit verification code is:\n\n"
+                    f"<code>{code}</code>\n"
+                    "<i>(Tap the code above to copy)</i>\n\n"
+                    f"This code will expire in 10 minutes. Return to the VerifyNG website and enter this code to verify your phone number (<b>{phone}</b>)."
+                )
+                keyboard = {
+                    "inline_keyboard": [
+                        [{"text": "🌐 Return to VerifyNG", "url": f"{site_url}/users/verify-account/?method=government_id"}]
+                    ]
+                }
+                send_telegram_message(chat_id, text, reply_markup=keyboard, reply_to_message_id=message_id)
+                return
+            else:
+                text = (
+                    "⚠️ <b>Verification Code Expired</b>\n\n"
+                    "This verification link has expired or has already been used. Please return to the VerifyNG website and request a new code."
+                )
+                send_telegram_message(chat_id, text, reply_to_message_id=message_id)
+                return
+
         _send_start_welcome(chat_id, message.get("from", {}), site_url)
         return
 

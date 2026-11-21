@@ -466,7 +466,10 @@
                                             </svg>
                                             Send Code via WhatsApp
                                         </button>
-                                        <button type="button" id="btnSendSmsOtp" class="btn btn-sm btn-outline-secondary fw-semibold px-3" onclick="sendPhoneOtp('sms')">
+                                        <button type="button" id="btnSendTelegramOtp" class="btn btn-sm btn-outline-primary fw-semibold d-inline-flex align-items-center gap-1.5 px-3" onclick="sendPhoneOtp('telegram')">
+                                            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.75-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/>
+                                            </svg>
                                             Send via Telegram
                                         </button>
                                         <span id="phoneVerifiedStatusBadge" class="{% if not is_phone_verified %}d-none{% endif %} badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 rounded-pill">
@@ -477,6 +480,20 @@
                                     {# OTP input field container #}
                                     <div id="phoneOtpInputBlock" class="d-none p-3 bg-white border rounded-3 mt-3" style="max-width: 440px;">
                                         <div class="small fw-semibold text-dark mb-1" id="phoneOtpNotice">Enter the 6-digit code sent to your phone:</div>
+
+                                        {# Deep Link Action Button for Telegram #}
+                                        <div id="telegramActionWrap" class="d-none mb-3 p-2.5 rounded-3" style="background:#F0F9FF;border:1px solid #BAE6FD;">
+                                            <div class="small text-dark mb-2" style="font-size:12.5px;">
+                                                Tap below to open <strong>@verifyNG_Bot</strong> on Telegram and click <strong>START</strong>:
+                                            </div>
+                                            <a id="btnOpenTelegramBot" href="#" target="_blank" class="btn btn-sm btn-primary fw-semibold d-inline-flex align-items-center gap-1.5 px-3 py-1.5" style="background:#0088cc;border-color:#0088cc;">
+                                                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.75-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/>
+                                                </svg>
+                                                Open @verifyNG_Bot to Get Code &rarr;
+                                            </a>
+                                        </div>
+
                                         <div class="d-flex align-items-center gap-2 mb-2">
                                             <input type="text" id="wizardPhoneOtpCode" maxlength="6" class="form-control font-monospace text-center fw-bold fs-5"
                                                    placeholder="123456" style="letter-spacing: 6px; max-width: 170px;">
@@ -1680,7 +1697,7 @@ function verifyEmailOtp() {
     });
 }
 
-/* ── Step 2: Phone OTP (WhatsApp with SMS fallback) ── */
+/* ── Step 2: Phone OTP (WhatsApp & Telegram) ── */
 function sendPhoneOtp(channel) {
     const phoneInput = document.getElementById('wizardPhoneInput');
     const phone = phoneInput ? phoneInput.value.trim() : '';
@@ -1691,9 +1708,9 @@ function sendPhoneOtp(channel) {
     }
 
     const waBtn = document.getElementById('btnSendWhatsAppOtp');
-    const smsBtn = document.getElementById('btnSendSmsOtp');
+    const tgBtn = document.getElementById('btnSendTelegramOtp') || document.getElementById('btnSendSmsOtp');
     if (waBtn) waBtn.disabled = true;
-    if (smsBtn) smsBtn.disabled = true;
+    if (tgBtn) tgBtn.disabled = true;
 
     fetch('{% url "users:send_phone_otp" %}', {
         method: 'POST',
@@ -1706,7 +1723,7 @@ function sendPhoneOtp(channel) {
     .then(r => r.json())
     .then(data => {
         if (waBtn) waBtn.disabled = false;
-        if (smsBtn) smsBtn.disabled = false;
+        if (tgBtn) tgBtn.disabled = false;
 
         const block = document.getElementById('phoneOtpInputBlock');
         if (block) block.classList.remove('d-none');
@@ -1717,12 +1734,22 @@ function sendPhoneOtp(channel) {
                 notice.innerHTML = `${data.message} <span class="badge bg-light text-dark border">Test Code: <strong>${data.dev_code}</strong></span>`;
             }
         }
-        showWizardNotice(data.message || 'Verification code dispatched to your phone.', 'success', 'phoneOtpAlert');
+
+        const tgWrap = document.getElementById('telegramActionWrap');
+        const tgLink = document.getElementById('btnOpenTelegramBot');
+        if (data.telegram_url && tgWrap && tgLink) {
+            tgLink.href = data.telegram_url;
+            tgWrap.classList.remove('d-none');
+        } else if (tgWrap) {
+            tgWrap.classList.add('d-none');
+        }
+
+        showWizardNotice(data.message || 'Verification code dispatched.', 'success', 'phoneOtpAlert');
         startPhoneResendTimer();
     })
     .catch(() => {
         if (waBtn) waBtn.disabled = false;
-        if (smsBtn) smsBtn.disabled = false;
+        if (tgBtn) tgBtn.disabled = false;
         showWizardNotice('Could not dispatch phone verification code. Please check number and try again.', 'danger', 'phoneOtpAlert');
     });
 }
