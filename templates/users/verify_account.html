@@ -888,17 +888,16 @@
                                             <video id="selfieCameraVideo" autoplay playsinline muted class="w-100 h-100 d-none" style="object-fit: cover; max-height: 320px;"></video>
                                             <canvas id="selfieCaptureCanvas" class="d-none"></canvas>
 
-                                            {# Live Prompt Pill overlay on top of camera stream #}
-                                            <div id="selfieLivenessPrompt" class="position-absolute top-0 start-50 translate-middle-x mt-3 px-3 py-1.5 rounded-pill text-white small fw-bold shadow d-none"
-                                                 style="z-index: 15; font-size: 13px; background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(255, 255, 255, 0.2); backdrop-filter: blur(4px); white-space: nowrap;">
-                                                <span id="selfiePromptIcon">👤</span> <span id="selfiePromptText">Align face inside oval</span>
-                                            </div>
-
                                             {# Oval Face Guide Overlay with dynamic active state #}
                                             <div id="selfieOvalGuide" class="position-absolute top-50 start-50 translate-middle border border-2 border-warning d-none pointer-events-none"
                                                  style="width: 220px; height: 260px; border-radius: 50% !important; border-style: dashed !important; box-shadow: 0 0 0 9999px rgba(0,0,0,0.55); transition: all 0.25s ease;">
-                                                <span id="selfieOvalStatusBadge" class="badge bg-warning text-dark position-absolute bottom-0 start-50 translate-middle-x mb-3 fw-semibold shadow-xs" style="font-size:11px;">
-                                                    Center Face Inside Oval
+                                            </div>
+
+                                            {# High-Visibility Responsive Status Badge: Centered, readable, and cleanly styled across all mobile & desktop screens #}
+                                            <div id="selfieStatusBadgeWrap" class="position-absolute bottom-0 start-50 translate-middle-x mb-3 w-100 text-center px-2 d-none pointer-events-none" style="z-index: 25;">
+                                                <span id="selfieOvalStatusBadge" class="d-inline-flex align-items-center justify-content-center gap-2 px-3 py-2 rounded-pill fw-bold shadow"
+                                                      style="font-size: 13.5px; line-height: 1.35; max-width: 95%; background: #FEF08A; color: #854D0E; border: 1.5px solid #FACC15; backdrop-filter: blur(8px); word-break: break-word;">
+                                                    <span id="selfieStatusIcon" style="font-size: 15px;">👤</span> <span id="selfieStatusMsg">Center face inside oval</span>
                                                 </span>
                                             </div>
 
@@ -2486,17 +2485,30 @@ function analyzeFaceQuality(video, faceBounds = null) {
 }
 
 function updateLivenessUI(message, icon = '👤', variant = 'warning') {
-    const promptText = document.getElementById('selfiePromptText');
-    const promptIcon = document.getElementById('selfiePromptIcon');
+    const badgeWrap = document.getElementById('selfieStatusBadgeWrap');
+    const badgeEl = document.getElementById('selfieOvalStatusBadge');
+    const iconEl = document.getElementById('selfieStatusIcon');
+    const msgEl = document.getElementById('selfieStatusMsg');
     const ovalGuide = document.getElementById('selfieOvalGuide');
-    const ovalBadge = document.getElementById('selfieOvalStatusBadge');
 
-    if (promptText) promptText.textContent = message;
-    if (promptIcon) promptIcon.textContent = icon;
+    if (badgeWrap) badgeWrap.classList.remove('d-none');
+    if (iconEl) iconEl.textContent = icon;
+    if (msgEl) msgEl.textContent = message;
 
-    if (ovalBadge) {
-        ovalBadge.textContent = message;
-        ovalBadge.className = `badge bg-${variant} text-${variant === 'warning' ? 'dark' : 'white'} position-absolute bottom-0 start-50 translate-middle-x mb-3 fw-semibold shadow-xs`;
+    if (badgeEl) {
+        if (variant === 'danger') {
+            badgeEl.style.background = '#FEE2E2';
+            badgeEl.style.color = '#991B1B';
+            badgeEl.style.borderColor = '#F87171';
+        } else if (variant === 'success') {
+            badgeEl.style.background = '#059669';
+            badgeEl.style.color = '#FFFFFF';
+            badgeEl.style.borderColor = '#10B981';
+        } else { // warning
+            badgeEl.style.background = '#FEF08A';
+            badgeEl.style.color = '#854D0E';
+            badgeEl.style.borderColor = '#FACC15';
+        }
     }
 
     if (ovalGuide) {
@@ -2772,10 +2784,8 @@ function startLivenessProcessing() {
     const challenges = ['blink', 'turn_left', 'turn_right'];
     currentChallenge = challenges[Math.floor(Math.random() * challenges.length)];
 
-    const promptEl = document.getElementById('selfieLivenessPrompt');
-    const stepsEl = document.getElementById('selfieLivenessSteps');
-    if (promptEl) promptEl.classList.remove('d-none');
-    if (stepsEl) stepsEl.classList.remove('d-none');
+    const badgeWrap = document.getElementById('selfieStatusBadgeWrap');
+    if (badgeWrap) badgeWrap.classList.remove('d-none');
     updateLivenessStepBadge(1);
     updateLivenessUI('Center face inside oval', '👤', 'warning');
 
@@ -2824,6 +2834,8 @@ function startLivenessProcessing() {
 
 function stopLivenessProcessing() {
     isFaceMeshActive = false;
+    const badgeWrap = document.getElementById('selfieStatusBadgeWrap');
+    if (badgeWrap) badgeWrap.classList.add('d-none');
     if (livenessAnimFrameId) {
         cancelAnimationFrame(livenessAnimFrameId);
         livenessAnimFrameId = null;
