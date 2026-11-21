@@ -151,16 +151,6 @@ EXPANDED_COUNTRIES = [
     ("LY", "Libya"),
     ("MA", "Morocco"),
     ("TN", "Tunisia"),
-    # Global Diaspora & International
-    ("GB", "United Kingdom"),
-    ("US", "United States"),
-    ("CA", "Canada"),
-    ("AE", "United Arab Emirates"),
-    ("FR", "France"),
-    ("DE", "Germany"),
-    ("CN", "China"),
-    ("IN", "India"),
-    ("XX", "Other Country (International)"),
 ]
 
 # Central registry of supported document-issuing countries
@@ -189,24 +179,12 @@ def is_country_supported(country_code: Optional[str]) -> bool:
 
 def get_supported_countries() -> List[Tuple[str, str]]:
     """
-    Returns list of supported (code, name) tuples for UI dropdowns.
-    Nigeria is prioritized first, followed alphabetically by other nations, with 'Other Country' last.
+    Returns list of supported (code, name) tuples for all 54 African nations.
+    Sorted alphabetically by country name.
     """
-    priority = ["NG"]
-    items = []
-    other_item = None
-    for code, mod in _REGISTRY.items():
-        if code in priority:
-            continue
-        if code == "XX":
-            other_item = (code, mod.COUNTRY_NAME)
-        else:
-            items.append((code, mod.COUNTRY_NAME))
+    items = [(code, mod.COUNTRY_NAME) for code, mod in _REGISTRY.items()]
     items.sort(key=lambda x: x[1])
-    result = [("NG", _REGISTRY["NG"].COUNTRY_NAME)] + items
-    if other_item:
-        result.append(other_item)
-    return result
+    return items
 
 
 def get_country_config(country_code: Optional[str] = None) -> Optional[Dict[str, Any]]:

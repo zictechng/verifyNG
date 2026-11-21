@@ -157,7 +157,7 @@ class UserProfileView(LoginRequiredMixin, DetailView):
         import json
         from users.country_config import get_supported_countries, _REGISTRY, DEFAULT_COUNTRY
         context['supported_countries'] = get_supported_countries()
-        user_country = getattr(self.request.user, 'country', None) or DEFAULT_COUNTRY
+        user_country = getattr(self.request.user, 'country', None) or ""
         context['default_issuing_country'] = user_country
 
         country_docs = {}
@@ -379,7 +379,7 @@ class VerifyAccountView(LoginRequiredMixin, View):
         from users.country_config import get_supported_countries, _REGISTRY, DEFAULT_COUNTRY
 
         supported_countries = get_supported_countries()
-        default_issuing_country = getattr(user, 'country', None) or DEFAULT_COUNTRY
+        default_issuing_country = getattr(user, 'country', None) or ""
 
         country_docs = {}
         for code, mod in _REGISTRY.items():
