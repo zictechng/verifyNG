@@ -709,16 +709,17 @@ def audit_selfie_quality(file_obj):
         # 4. Dynamic Contrast / Standard Deviation Gate
         std_dev = stat.stddev[0]
         center_std_dev = center_stat.stddev[0]
-        if std_dev < 16.0 or center_std_dev < 15.0:
-            return False, "The captured selfie lacks contrast or is washed out. Please ensure your face is clearly illuminated."
+        if std_dev < 16.0 or center_std_dev < 18.0:
+            return False, "The captured selfie lacks contrast or is too grainy. Please ensure your face is clearly and directly illuminated."
 
-        # 5. True Laplacian Focus / Blur Detection (variance of Laplacian operator)
-        # 3x3 Laplacian kernel: [0, 1, 0, 1, -4, 1, 0, 1, 0]
+        # 5. Denoised Laplacian Focus / Blur Detection
+        # Apply subtle Gaussian smoothing first to eliminate camera sensor ISO grain before measuring edge focus
+        denoised_center = center_gray.filter(ImageFilter.GaussianBlur(radius=1.0))
         lap_filter = ImageFilter.Kernel((3, 3), [0, 1, 0, 1, -4, 1, 0, 1, 0], scale=1, offset=0)
-        center_lap = center_gray.filter(lap_filter)
+        center_lap = denoised_center.filter(lap_filter)
         lap_stat = ImageStat.Stat(center_lap)
         lap_var = lap_stat.var[0]
-        if lap_var < 10.0:
+        if lap_var < 8.0:
             return False, "The captured selfie is too blurry or out of focus. Please hold steady in good lighting and retake."
 
         return True, ""

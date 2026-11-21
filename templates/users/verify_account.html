@@ -895,6 +895,9 @@
                                             <span id="livenessStep3" class="badge rounded-pill px-2.5 py-1 text-white-50 border border-secondary" style="font-size: 11.5px; background: rgba(255,255,255,0.05);">
                                                 3. Verified ✓
                                             </span>
+                                            <span id="selfieLightingBadge" class="badge rounded-pill px-2.5 py-1 text-white-50 border border-secondary" style="font-size: 11.5px; background: rgba(255,255,255,0.05);">
+                                                💡 Light: --%
+                                            </span>
                                         </div>
 
                                         <div id="selfieCameraViewWrap" class="position-relative mx-auto mb-3 overflow-hidden rounded-3" style="max-width: 440px; background:#000000; min-height: 280px;">
@@ -2410,7 +2413,7 @@ function analyzeFaceQuality(video, faceBounds = null) {
         const imgData = ctx.getImageData(sx, sy, sw, sh);
         const data = imgData.data;
 
-        // 1. Grayscale conversion & mean face luminance
+        // 1. Grayscale conversion & facial illumination analysis
         let totalLum = 0;
         const numPixels = sw * sh;
         const gray = new Float32Array(numPixels);
@@ -2420,39 +2423,79 @@ function analyzeFaceQuality(video, faceBounds = null) {
             totalLum += lum;
         }
         const faceLum = totalLum / numPixels;
+        const lumPercent = Math.round((faceLum / 255) * 100);
 
-        // Strict Studio Quality Gate: Reject dark/dim faces below 75 (out of 255)
-        if (faceLum < 75) {
-            return { pass: false, error: 'Lighting too dim — please face a light source or lamp', icon: '💡' };
+        // Live Real-Time Lighting Meter in UI
+        const lightBadge = document.getElementById('selfieLightingBadge');
+        if (lightBadge) {
+            if (faceLum < 105) {
+                lightBadge.textContent = `💡 Light: ${lumPercent}% (Too Dim)`;
+                lightBadge.className = 'badge rounded-pill px-2.5 py-1 text-danger border border-danger-subtle';
+                lightBadge.style.background = 'rgba(239, 68, 68, 0.15)';
+            } else {
+                lightBadge.textContent = `💡 Light: ${lumPercent}% (Good)`;
+                lightBadge.className = 'badge rounded-pill px-2.5 py-1 text-success border border-success-subtle';
+                lightBadge.style.background = 'rgba(16, 185, 129, 0.15)';
+            }
+        }
+
+        // Strict Studio Quality Gate: Reject dark/dim faces below 105 (~42% brightness)
+        if (faceLum < 105) {
+            return { pass: false, error: `Lighting is too dim (${lumPercent}%) — please turn on room light or face a lamp`, icon: '💡' };
         }
         if (faceLum > 235) {
             return { pass: false, error: 'Lighting overexposed — reduce harsh glare', icon: '☀️' };
         }
 
-        // 2. Real-Time Laplacian Variance Focus / Blur Detection
-        // 3x3 Laplacian kernel: [0, 1, 0; 1, -4, 1; 0, 1, 0]
-        let sumL = 0;
-        let sumL2 = 0;
-        let countL = 0;
+        // 2. Facial Contrast & Dynamic Range Gate (Reject flat, washed out, or sensor-shadowed faces)
+        let sumSqDiff = 0;
+        for (let p = 0; p < numPixels; p++) {
+            const diff = gray[p] - faceLum;
+            sumSqDiff += diff * diff;
+        }
+        const faceContrast = Math.sqrt(sumSqDiff / numPixels);
+        if (faceContrast < 25.0) {
+            return { pass: false, error: 'Face lacks contrast / too grainy — illuminate face directly', icon: '💡' };
+        }
+
+        // 3. Denoised Laplacian Variance Focus & Blur Detection
+        // Apply 3x3 low-pass smoothing before computing second derivative to suppress ISO camera sensor grain
+        const smoothed = new Float32Array(numPixels);
         for (let y = 1; y < sh - 1; y++) {
             const rowOffset = y * sw;
             for (let x = 1; x < sw - 1; x++) {
                 const idx = rowOffset + x;
-                const lap = gray[idx - sw] + gray[idx - 1] + gray[idx + 1] + gray[idx + sw] - (4.0 * gray[idx]);
+                smoothed[idx] = (
+                    gray[idx - sw - 1] + gray[idx - sw] + gray[idx - sw + 1] +
+                    gray[idx - 1]      + gray[idx]      + gray[idx + 1] +
+                    gray[idx + sw - 1] + gray[idx + sw] + gray[idx + sw + 1]
+                ) / 9.0;
+            }
+        }
+
+        // Calculate Laplacian variance on denoised buffer
+        let sumL = 0;
+        let sumL2 = 0;
+        let countL = 0;
+        for (let y = 2; y < sh - 2; y++) {
+            const rowOffset = y * sw;
+            for (let x = 2; x < sw - 2; x++) {
+                const idx = rowOffset + x;
+                const lap = smoothed[idx - sw] + smoothed[idx - 1] + smoothed[idx + 1] + smoothed[idx + sw] - (4.0 * smoothed[idx]);
                 sumL += lap;
                 sumL2 += lap * lap;
                 countL++;
             }
         }
         const meanL = sumL / (countL || 1);
-        const lapVariance = (sumL2 / (countL || 1)) - (meanL * meanL);
+        const smoothedLapVar = (sumL2 / (countL || 1)) - (meanL * meanL);
 
-        // Reject blurry or low-detail frames (below 10.0 variance)
-        if (lapVariance < 10.0) {
+        // Reject blurry or out-of-focus frames (threshold adjusted for smoothed buffer)
+        if (smoothedLapVar < 11.5) {
             return { pass: false, error: 'Image is blurry — please hold steady in good lighting', icon: '🔍' };
         }
 
-        return { pass: true, luminance: faceLum, sharpness: lapVariance };
+        return { pass: true, luminance: faceLum, contrast: faceContrast, sharpness: smoothedLapVar };
     } catch (e) {
         return { pass: true, luminance: 128, sharpness: 25 };
     }
