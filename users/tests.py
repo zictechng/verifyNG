@@ -240,6 +240,45 @@ class VerifyAccountViewTestCase(TestCase):
         self.assertTrue(self.user.phone_verified)
         self.assertEqual(self.user.phone_number, '+2348012345678')
 
+    def test_all_54_african_countries_regional_dropdowns(self):
+        """Validates that all 54 African countries have 100% verified cascading dropdowns across both levels."""
+        from users.african_regions import get_all_african_regions_catalog
+        catalog = get_all_african_regions_catalog()
+        self.assertEqual(len(catalog), 54, "Catalog must contain exactly 54 African countries.")
+
+        for country_code, data in catalog.items():
+            self.assertEqual(data.get('lga_mode'), 'dropdown', f"{country_code} must have lga_mode='dropdown'")
+            states = data.get('states', [])
+            self.assertGreater(len(states), 0, f"{country_code} must have non-empty states list")
+            lgas = data.get('lgas', {})
+            for state in states:
+                self.assertIn(state, lgas, f"{country_code} state '{state}' must exist in lgas dict")
+                self.assertGreater(len(lgas[state]), 0, f"{country_code} state '{state}' must have non-empty list of subdivisions")
+
+    def test_identity_verification_submission_with_state_and_lga(self):
+        """Tests that optional state and LGA fields are saved to User model upon submission."""
+        self.client.login(username=self.username, password=self.password)
+        submit_url = reverse('users:verify_identity_submit')
+        fake_data_url = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+
+        response = self.client.post(submit_url, {
+            'issuing_country': 'NG',
+            'id_type': 'nin',
+            'id_number': '12345678902',
+            'id_document_data': fake_data_url,
+            'id_selfie_data': fake_data_url,
+            'state': 'Lagos',
+            'lga': 'Ikeja',
+            'phone_number': '+2348012345679',
+            'phone_verified': 'true',
+            'email_verified': 'true',
+        })
+        self.assertEqual(response.status_code, 302)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.state, 'Lagos')
+        self.assertEqual(self.user.lga, 'Ikeja')
+
+
 
 
         
