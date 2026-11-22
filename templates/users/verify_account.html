@@ -658,7 +658,7 @@
                                     {# Document Type Select Dropdown #}
                                     <div class="mb-3">
                                         <label class="form-label small fw-semibold text-dark" for="id_type_select">
-                                            Government Document Type (<span id="selectedCountryNameLabel">Nigeria</span>) <span class="text-danger">*</span>
+                                            Government Document Type (<span id="selectedCountryNameLabel">African Country</span>) <span class="text-danger">*</span>
                                         </label>
                                         <div style="max-width: 440px;">
                                             <select name="id_type" id="id_type_select" class="form-select" style="font-size: 15px;" onchange="onDocTypeSelectChange()">
@@ -674,7 +674,7 @@
                                         </label>
                                         <div style="max-width: 440px;">
                                             <input type="text" id="id_number_input" class="form-control font-monospace"
-                                                   value="{{ user_profile.id_number }}" required placeholder="Enter 11-digit NIN" style="font-size:16px;">
+                                                   value="{{ user_profile.id_number }}" required placeholder="Enter ID number" style="font-size:16px;">
                                             <div id="id_number_help" class="form-text small mt-1 text-muted">Enter your official identification number.</div>
                                         </div>
                                     </div>
@@ -993,7 +993,13 @@
                                                 <button type="button" class="btn btn-link p-0 text-primary text-decoration-none small" style="font-size:12px;" onclick="wizardJumpToStep(1)">Edit</button>
                                             </div>
                                             <div class="fw-bold text-dark small text-truncate" id="revEmailVal">{{ request.user.email }}</div>
-                                            <div class="small text-success mt-0.5" style="font-size:11.5px;">✓ Email Confirmed</div>
+                                            <div id="revEmailStatus" class="small mt-0.5" style="font-size:11.5px;">
+                                                {% if is_email_verified %}
+                                                    <span class="text-success">✓ Email Confirmed</span>
+                                                {% else %}
+                                                    <span class="text-warning">⚠ Email not verified</span>
+                                                {% endif %}
+                                            </div>
                                         </div>
 
                                         {# Item 2: Phone #}
@@ -1002,8 +1008,16 @@
                                                 <span class="small text-muted fw-semibold" style="font-size:11px;">2. PHONE NUMBER</span>
                                                 <button type="button" class="btn btn-link p-0 text-primary text-decoration-none small" style="font-size:12px;" onclick="wizardJumpToStep(2)">Edit</button>
                                             </div>
-                                            <div class="fw-bold text-dark small" id="revPhoneVal">{{ user_phone|default:"Not supplied" }}</div>
-                                            <div class="small text-success mt-0.5" style="font-size:11.5px;">✓ Verified via WhatsApp OTP</div>
+                                            <div class="fw-bold text-dark small" id="revPhoneVal">{{ user_phone|default:"—" }}</div>
+                                            <div id="revPhoneStatus" class="small mt-0.5" style="font-size:11.5px;">
+                                                {% if is_phone_verified %}
+                                                    <span class="text-success">✓ Verified via WhatsApp OTP</span>
+                                                {% elif user_phone %}
+                                                    <span class="text-warning">⚠ Phone not verified</span>
+                                                {% else %}
+                                                    <span class="text-muted">Not supplied</span>
+                                                {% endif %}
+                                            </div>
                                         </div>
 
                                         {# Item 3: Country #}
@@ -1012,7 +1026,7 @@
                                                 <span class="small text-muted fw-semibold" style="font-size:11px;">3. ISSUING COUNTRY</span>
                                                 <button type="button" class="btn btn-link p-0 text-primary text-decoration-none small" style="font-size:12px;" onclick="wizardJumpToStep(3)">Edit</button>
                                             </div>
-                                            <div class="fw-bold text-dark small" id="revCountryVal">Nigeria (NG)</div>
+                                            <div class="fw-bold text-dark small" id="revCountryVal">Not selected</div>
                                         </div>
 
                                         {# Item 4: Document Type & Number #}
@@ -1021,7 +1035,7 @@
                                                 <span class="small text-muted fw-semibold" style="font-size:11px;">4. DOCUMENT &amp; ID NUMBER</span>
                                                 <button type="button" class="btn btn-link p-0 text-primary text-decoration-none small" style="font-size:12px;" onclick="wizardJumpToStep(4)">Edit</button>
                                             </div>
-                                            <div class="fw-bold text-dark small" id="revDocTypeVal">National Identity Number (NIN)</div>
+                                            <div class="fw-bold text-dark small" id="revDocTypeVal">Not selected</div>
                                             <div class="font-monospace text-muted small" id="revIdNumberVal">—</div>
                                         </div>
 
@@ -1033,7 +1047,9 @@
                                             </div>
                                             <div class="d-flex align-items-center gap-2">
                                                 <img id="revDocImgPreview" src="" alt="Document Preview" class="rounded border shadow-sm d-none" style="width:54px;height:40px;object-fit:cover;">
-                                                <span id="revDocStatusText" class="small text-muted">Ready for review</span>
+                                                <span id="revDocStatusText" class="small {% if user_profile.has_id_document %}text-success{% else %}text-danger{% endif %} fw-medium">
+                                                    {% if user_profile.has_id_document %}✓ Existing document on file{% else %}⚠ No document attached{% endif %}
+                                                </span>
                                             </div>
                                         </div>
 
@@ -1045,7 +1061,9 @@
                                             </div>
                                             <div class="d-flex align-items-center gap-2">
                                                 <img id="revSelfieImgPreview" src="" alt="Selfie Preview" class="rounded border shadow-sm d-none" style="width:40px;height:40px;object-fit:cover;border-radius:50%!important;">
-                                                <span id="revSelfieStatusText" class="small text-muted">Ready for review</span>
+                                                <span id="revSelfieStatusText" class="small {% if has_selfie %}text-success{% else %}text-danger{% endif %} fw-medium">
+                                                    {% if has_selfie %}✓ Existing selfie on file{% else %}⚠ Selfie not taken{% endif %}
+                                                </span>
                                             </div>
                                         </div>
                                     </div>
@@ -1587,7 +1605,7 @@ let countryDocsMap = {};
 let selectedCountryCode = '{{ default_issuing_country|default:"" }}';
 let selectedCountryName = '';
 let selectedDocCode = '{{ user_profile.id_type|default:"" }}';
-let selectedDocName = 'National Identity Number (NIN)';
+let selectedDocName = '';
 
 let idCameraStream = null;
 let activeIdCameraFacing = 'environment';
@@ -2065,9 +2083,15 @@ function filterWizardCountries(query) {
 function populateDocTypesForCountry(countryCode) {
     const selectEl = document.getElementById('id_type_select');
     const label = document.getElementById('selectedCountryNameLabel');
-    if (label) label.textContent = selectedCountryName || countryCode;
+    if (label) label.textContent = selectedCountryName || countryCode || 'Selected Country';
 
-    if (!selectEl || !countryDocsMap[countryCode]) return;
+    if (!selectEl) return;
+    if (!countryCode || !countryDocsMap[countryCode]) {
+        selectEl.innerHTML = '<option value="">-- Please Select Country First (Step 3) --</option>';
+        selectedDocCode = '';
+        selectedDocName = '';
+        return;
+    }
 
     const docs = countryDocsMap[countryCode].documents;
     selectEl.innerHTML = '';
@@ -2983,7 +3007,9 @@ function retakeSelfiePhoto() {
 /* ── Step 7: Review Summary ── */
 function updateReviewSummary() {
     const revEmail = document.getElementById('revEmailVal');
+    const revEmailStatus = document.getElementById('revEmailStatus');
     const revPhone = document.getElementById('revPhoneVal');
+    const revPhoneStatus = document.getElementById('revPhoneStatus');
     const revCountry = document.getElementById('revCountryVal');
     const revDocType = document.getElementById('revDocTypeVal');
     const revIdNum = document.getElementById('revIdNumberVal');
@@ -2991,12 +3017,50 @@ function updateReviewSummary() {
     const phoneInput = document.getElementById('wizardPhoneInput');
     const idNumInput = document.getElementById('id_number_input');
 
-    if (revPhone && phoneInput) revPhone.textContent = phoneInput.value.trim() || '—';
-    if (revCountry) revCountry.textContent = `${selectedCountryName} (${selectedCountryCode})`;
-    if (revDocType) revDocType.textContent = selectedDocName;
-    if (revIdNum && idNumInput) revIdNum.textContent = idNumInput.value.trim() || '—';
+    // 1. Email Status
+    const emailVerified = isEmailVerified || (document.getElementById('wizard_email_verified')?.value === 'true');
+    if (revEmailStatus) {
+        if (emailVerified) {
+            revEmailStatus.innerHTML = '<span class="text-success fw-medium">✓ Email Confirmed</span>';
+        } else {
+            revEmailStatus.innerHTML = '<span class="text-warning fw-medium">⚠ Email not verified</span>';
+        }
+    }
 
-    // Document image preview
+    // 2. Phone Status
+    const phoneVal = phoneInput ? phoneInput.value.trim() : '';
+    if (revPhone) revPhone.textContent = phoneVal || '—';
+    const phoneVerified = isPhoneVerified || (document.getElementById('wizard_phone_verified')?.value === 'true');
+    if (revPhoneStatus) {
+        if (phoneVerified && phoneVal) {
+            revPhoneStatus.innerHTML = '<span class="text-success fw-medium">✓ Verified via WhatsApp OTP</span>';
+        } else if (phoneVal) {
+            revPhoneStatus.innerHTML = '<span class="text-warning fw-medium">⚠ Phone not verified</span>';
+        } else {
+            revPhoneStatus.innerHTML = '<span class="text-muted">Not supplied</span>';
+        }
+    }
+
+    // 3. Country Status
+    if (revCountry) {
+        if (selectedCountryName && selectedCountryCode) {
+            revCountry.textContent = `${selectedCountryName} (${selectedCountryCode})`;
+        } else if (selectedCountryCode) {
+            revCountry.textContent = selectedCountryCode;
+        } else {
+            revCountry.textContent = 'Not selected';
+        }
+    }
+
+    // 4. Document Type & ID Number
+    if (revDocType) {
+        revDocType.textContent = selectedDocName || 'Not selected';
+    }
+    if (revIdNum) {
+        revIdNum.textContent = (idNumInput && idNumInput.value.trim()) ? idNumInput.value.trim() : '—';
+    }
+
+    // 5. Document Image Preview
     const docImg = document.getElementById('revDocImgPreview');
     const docStatus = document.getElementById('revDocStatusText');
     const idFileInput = document.getElementById('idDocumentFileInput');
@@ -3006,14 +3070,31 @@ function updateReviewSummary() {
             docImg.src = capturedIdDataUrl;
             docImg.classList.remove('d-none');
         }
-        if (docStatus) docStatus.textContent = 'Camera snapshot ready';
+        if (docStatus) {
+            docStatus.className = 'small text-success fw-medium';
+            docStatus.textContent = '✓ Camera snapshot ready';
+        }
     } else if (idFileInput && idFileInput.files && idFileInput.files[0]) {
-        if (docStatus) docStatus.textContent = `Attached: ${idFileInput.files[0].name}`;
+        if (docImg) docImg.classList.add('d-none');
+        if (docStatus) {
+            docStatus.className = 'small text-success fw-medium';
+            docStatus.textContent = `✓ Attached: ${idFileInput.files[0].name}`;
+        }
     } else {
-        if (docStatus) docStatus.textContent = '{% if user_profile.has_id_document %}Existing on file{% else %}Document ready{% endif %}';
+        if (docImg) docImg.classList.add('d-none');
+        if (docStatus) {
+            const hasExistingDoc = {% if user_profile.has_id_document %}true{% else %}false{% endif %};
+            if (hasExistingDoc) {
+                docStatus.className = 'small text-success fw-medium';
+                docStatus.textContent = '✓ Existing document on file';
+            } else {
+                docStatus.className = 'small text-danger fw-medium';
+                docStatus.textContent = '⚠ No document attached';
+            }
+        }
     }
 
-    // Selfie image preview
+    // 6. Selfie Image Preview
     const selfieImg = document.getElementById('revSelfieImgPreview');
     const selfieStatus = document.getElementById('revSelfieStatusText');
     const selfieFileInput = document.getElementById('idSelfieFileInput');
@@ -3023,11 +3104,28 @@ function updateReviewSummary() {
             selfieImg.src = capturedSelfieDataUrl;
             selfieImg.classList.remove('d-none');
         }
-        if (selfieStatus) selfieStatus.textContent = 'Live selfie ready';
+        if (selfieStatus) {
+            selfieStatus.className = 'small text-success fw-medium';
+            selfieStatus.textContent = '✓ Live selfie ready';
+        }
     } else if (selfieFileInput && selfieFileInput.files && selfieFileInput.files[0]) {
-        if (selfieStatus) selfieStatus.textContent = `Attached: ${selfieFileInput.files[0].name}`;
+        if (selfieImg) selfieImg.classList.add('d-none');
+        if (selfieStatus) {
+            selfieStatus.className = 'small text-success fw-medium';
+            selfieStatus.textContent = `✓ Attached: ${selfieFileInput.files[0].name}`;
+        }
     } else {
-        if (selfieStatus) selfieStatus.textContent = '{% if has_selfie %}Existing on file{% else %}Selfie ready{% endif %}';
+        if (selfieImg) selfieImg.classList.add('d-none');
+        if (selfieStatus) {
+            const hasExistingSelfie = {% if has_selfie %}true{% else %}false{% endif %};
+            if (hasExistingSelfie) {
+                selfieStatus.className = 'small text-success fw-medium';
+                selfieStatus.textContent = '✓ Existing selfie on file';
+            } else {
+                selfieStatus.className = 'small text-danger fw-medium';
+                selfieStatus.textContent = '⚠ Selfie not taken';
+            }
+        }
     }
 }
 
@@ -3118,6 +3216,63 @@ document.addEventListener('DOMContentLoaded', function() {
                     };
                     reader.readAsDataURL(f);
                 }
+            }
+        });
+    }
+
+    // Form Submission Gatekeeper & Full Validation
+    const wizardForm = document.getElementById('identityVerificationForm');
+    if (wizardForm) {
+        wizardForm.addEventListener('submit', function(e) {
+            // 1. Country Selection Gate
+            if (!selectedCountryCode) {
+                e.preventDefault();
+                wizardShowStep(3);
+                showWizardNotice('Please select your document-issuing African country before submitting.', 'danger', 'countrySelectAlert');
+                return;
+            }
+
+            // 2. Document Selection & Number Gate
+            const idNumInput = document.getElementById('id_number_input');
+            const idNumVal = idNumInput ? idNumInput.value.trim() : '';
+            if (!selectedDocCode || !idNumVal) {
+                e.preventDefault();
+                wizardShowStep(4);
+                showWizardNotice('Please select your document type and enter your identification number.', 'danger', 'docValidationAlert');
+                idNumInput?.focus();
+                return;
+            }
+
+            // 3. Document Proof Gate
+            const idFileInput = document.getElementById('idDocumentFileInput');
+            const hasDocFile = idFileInput && idFileInput.files && idFileInput.files.length > 0;
+            const hasCapturedDoc = !!capturedIdDataUrl;
+            const hasExistingDoc = {% if user_profile.has_id_document %}true{% else %}false{% endif %};
+            if (!hasDocFile && !hasCapturedDoc && !hasExistingDoc) {
+                e.preventDefault();
+                wizardShowStep(5);
+                showWizardNotice('Please capture or upload a clear photo of your identity document before submitting.', 'danger', 'idCameraAlert');
+                return;
+            }
+
+            // 4. Live Selfie Gate
+            const selfieFileInput = document.getElementById('idSelfieFileInput');
+            const hasSelfieFile = selfieFileInput && selfieFileInput.files && selfieFileInput.files.length > 0;
+            const hasCapturedSelfie = !!capturedSelfieDataUrl;
+            const hasExistingSelfie = {% if has_selfie %}true{% else %}false{% endif %};
+            if (!hasSelfieFile && !hasCapturedSelfie && !hasExistingSelfie) {
+                e.preventDefault();
+                wizardShowStep(6);
+                showWizardNotice('Please complete the live selfie verification before submitting.', 'danger', 'selfieCameraAlert');
+                return;
+            }
+
+            // 5. Declaration Certification Gate
+            const certifyCheckbox = document.getElementById('wizardCertifyCheckbox');
+            if (!certifyCheckbox || !certifyCheckbox.checked) {
+                e.preventDefault();
+                showWizardNotice('Please certify the declaration checkbox to confirm your details are accurate.', 'danger');
+                return;
             }
         });
     }
