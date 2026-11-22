@@ -406,12 +406,32 @@ class VerifyAccountView(LoginRequiredMixin, View):
         path_b_submissions = user.alternative_verification_submissions.all()
         has_approved_path_b = path_b_submissions.filter(status='approved').exists()
         has_pending_path_b = path_b_submissions.filter(status='pending').exists()
+        has_declined_path_b = path_b_submissions.filter(status='rejected').exists() and not has_pending_path_b and not has_approved_path_b
+
+        has_pending_gov_id = (user.id_verification_status == 'pending') or (
+            bool(user.id_document and hasattr(user.id_document, 'name') and user.id_document.name)
+            and user.id_verification_status not in ('rejected', 'verified')
+        )
+        has_declined_gov_id = (user.id_verification_status == 'rejected')
+        is_account_verified = bool(user.id_verification_status == 'verified' or has_approved_path_b)
+
         from users.forms import PathBAlternativeVerificationForm
         path_b_form = PathBAlternativeVerificationForm()
 
         selected_method = request.GET.get('method', '').strip().lower()
-        if selected_method not in ('government_id', 'alternative'):
-            selected_method = ''
+        if has_pending_gov_id:
+            # Locked to government_id while pending compliance review; cannot switch to alternative
+            selected_method = 'government_id'
+        elif has_pending_path_b:
+            # Locked to alternative while pending compliance review; cannot switch to government_id
+            selected_method = 'alternative'
+        elif selected_method not in ('government_id', 'alternative'):
+            if has_declined_gov_id:
+                selected_method = 'government_id'
+            elif has_declined_path_b:
+                selected_method = 'alternative'
+            else:
+                selected_method = ''
 
         is_email_verified = bool(getattr(user, 'email_verified', False)) or (bool(request.session.get('vng_verified_email')) and request.session.get('vng_verified_email') == getattr(user, 'email', None))
         is_phone_verified = getattr(user, 'phone_verified', False) or bool(request.session.get('vng_verified_phone'))
@@ -427,6 +447,10 @@ class VerifyAccountView(LoginRequiredMixin, View):
             'latest_path_b': path_b_submissions.first(),
             'has_approved_path_b': has_approved_path_b,
             'has_pending_path_b': has_pending_path_b,
+            'has_declined_path_b': has_declined_path_b,
+            'has_pending_gov_id': has_pending_gov_id,
+            'has_declined_gov_id': has_declined_gov_id,
+            'is_account_verified': is_account_verified,
             'path_b_form': path_b_form,
             'selected_method': selected_method,
             'is_email_verified': is_email_verified,
@@ -491,7 +515,7 @@ class UserProfileUpdateView(LoginRequiredMixin, View):
 
     def post(self, request):
         user = request.user
-        is_verified = bool(user.identity_verified or user.id_verification_status == 'verified')
+        is_verified = bool(user.id_verification_status == 'verified' or (hasattr(user, 'alternative_verification_submissions') and user.alternative_verification_submissions.filter(status='approved').exists()))
 
         # If identity is verified, profile details (first name, last name) are strictly locked to prevent fraud
         if is_verified:
@@ -736,6 +760,16 @@ class UserIdentityVerificationSubmitView(LoginRequiredMixin, View):
     def post(self, request):
         user = request.user
         redirect_url = reverse('users:verify_account') + '?method=government_id'
+
+        # Guard: Cannot submit Government ID if an Alternative Verification is pending review
+        if user.alternative_verification_submissions.filter(status='pending').exists():
+            messages.warning(
+                request,
+                "You already have an Alternative Personhood Verification request pending compliance review. "
+                "You cannot submit a Government ID verification while another request is pending."
+            )
+            return redirect(reverse('users:verify_account') + '?method=alternative')
+
         id_type = request.POST.get('id_type', '').strip().lower()
         id_number = request.POST.get('id_number', '').strip()
         issuing_country = request.POST.get('issuing_country', '').strip().upper()
@@ -985,6 +1019,19 @@ class PathBVerificationSubmitView(LoginRequiredMixin, View):
                 "Please wait for an officer to review your submission."
             )
             return redirect(redirect_url)
+
+        # 2b. Block submissions if there is a Government ID verification pending compliance review
+        has_pending_gov_id = (user.id_verification_status == 'pending') or (
+            bool(user.id_document and hasattr(user.id_document, 'name') and user.id_document.name)
+            and user.id_verification_status not in ('rejected', 'verified')
+        )
+        if has_pending_gov_id:
+            messages.warning(
+                request,
+                "You already have a Government ID verification application pending compliance review. "
+                "You cannot submit an Alternative Verification request while another request is pending."
+            )
+            return redirect(reverse('users:verify_account') + '?method=government_id')
 
         # 3. Validate form
         from users.forms import PathBAlternativeVerificationForm

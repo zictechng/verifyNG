@@ -27,28 +27,130 @@
                 <p class="small text-muted mb-0">Select your preferred verification method to activate your profile and unlock platform services.</p>
             </div>
 
-            {# ── Overall Account Status Overview Banner ── #}
-            {% if user_profile.identity_verified or user_profile.id_verification_status == 'verified' or has_approved_path_b %}
-            <div class="alert d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4 p-3 p-sm-4"
-                 style="background:#ECFDF5;border:1px solid #A7F3D0;border-radius:12px;">
-                <div class="d-flex align-items-center gap-3">
-                    <div class="rounded-circle p-2 d-inline-flex align-items-center justify-content-center flex-shrink-0" style="background:#D1FAE5;color:#059669;width:38px;height:38px;">
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            {% if is_account_verified %}
+            {# ══════════════════════════════════════════════════════════════════════ #}
+            {# ACTIVE & FULLY VERIFIED ACCOUNT STANDING                             #}
+            {# ══════════════════════════════════════════════════════════════════════ #}
+            <div class="vng-card p-4 p-md-5 mb-4 shadow-sm" style="border-radius:16px;border:1px solid #BBF7D0;background:#FFFFFF;">
+                <div class="d-flex align-items-center justify-content-between pb-4 border-bottom flex-wrap gap-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="rounded-circle d-inline-flex align-items-center justify-content-center flex-shrink-0"
+                             style="width:58px;height:58px;background:#ECFDF5;border:2px solid #A7F3D0;color:#16A34A;">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                                <polyline points="9 12 11 14 15 10"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <h2 class="h5 fw-bold text-dark mb-0" style="font-size:20px;">Account Active &amp; Verified</h2>
+                                <span class="badge rounded-pill fw-semibold" style="background:#E8F8F0;color:#16A34A;border:1px solid #C6F0D6;font-size:12.5px;padding:5px 12px;">
+                                    ✓ Verified Standing
+                                </span>
+                            </div>
+                            <p class="text-muted small mb-0 mt-1" style="font-size:13.5px;">
+                                Your legal identity has been authenticated and approved under VerifyNG National Trust &amp; Compliance Standards.
+                            </p>
+                        </div>
                     </div>
-                    <div>
-                        <div class="fw-bold text-success" style="font-size:14.5px;">Account Verified &bull; Active Access</div>
-                        <div class="small text-muted" style="font-size:13px;">
-                            {% if user_profile.identity_verified or user_profile.id_verification_status == 'verified' %}
-                                Official Government Identity verified ({{ user_profile.get_id_type_display|default:"National ID" }}). Community reporting and official credentials unlocked.
-                            {% elif has_approved_path_b %}
-                                Alternative Personhood verified. Community scam and fraud reporting unlocked.
-                            {% endif %}
+                    <div class="d-flex align-items-center gap-2">
+                        <a href="{% url 'dashboard:index' %}" class="btn btn-vng-primary px-3.5 py-2 fw-semibold" style="font-size:13.5px;">
+                            Go to Dashboard &rarr;
+                        </a>
+                    </div>
+                </div>
+
+                {# ── Credentials Summary Table ── #}
+                <div class="row g-3 py-4 border-bottom">
+                    <div class="col-sm-6 col-lg-3">
+                        <div class="p-3 rounded-3" style="background:#F8FAFC;border:1px solid #E2E8F0;">
+                            <div class="text-muted small text-uppercase letter-spacing-1 fw-bold" style="font-size:11px;">Verified Legal Name</div>
+                            <div class="fw-bold text-dark mt-1 text-truncate" style="font-size:15px;">{{ user_profile.get_full_name|default:user_profile.username }}</div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-lg-3">
+                        <div class="p-3 rounded-3" style="background:#F8FAFC;border:1px solid #E2E8F0;">
+                            <div class="text-muted small text-uppercase letter-spacing-1 fw-bold" style="font-size:11px;">Verification Method</div>
+                            <div class="fw-bold text-dark mt-1 text-truncate" style="font-size:15px;">
+                                {% if user_profile.identity_verified or user_profile.id_verification_status == 'verified' %}
+                                    {{ user_profile.get_id_type_display|default:"Government Identity Document" }}
+                                {% else %}
+                                    Alternative Personhood Verification
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-lg-3">
+                        <div class="p-3 rounded-3" style="background:#F8FAFC;border:1px solid #E2E8F0;">
+                            <div class="text-muted small text-uppercase letter-spacing-1 fw-bold" style="font-size:11px;">Issuing Country</div>
+                            <div class="fw-bold text-dark mt-1 text-truncate" style="font-size:15px;">
+                                {{ user_profile.country_name|default:"Nigeria" }}
+                                {% if user_profile.country %}<span class="text-muted fw-normal">({{ user_profile.country }})</span>{% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-lg-3">
+                        <div class="p-3 rounded-3" style="background:#F8FAFC;border:1px solid #E2E8F0;">
+                            <div class="text-muted small text-uppercase letter-spacing-1 fw-bold" style="font-size:11px;">
+                                {% if user_profile.state %}State &bull; LGA{% else %}Verified Date{% endif %}
+                            </div>
+                            <div class="fw-bold text-dark mt-1 text-truncate" style="font-size:15px;">
+                                {% if user_profile.state %}
+                                    {{ user_profile.state }}{% if user_profile.lga %}, {{ user_profile.lga }}{% endif %}
+                                {% else %}
+                                    {{ user_profile.id_verified_at|date:"d M Y"|default:"Active" }}
+                                {% endif %}
+                            </div>
                         </div>
                     </div>
                 </div>
-                <span class="badge bg-success text-white px-3 py-1.5 rounded-pill" style="font-size:12px;">Active &amp; Verified</span>
+
+                {# ── Unlocked Privileges Grid ── #}
+                <div class="pt-4">
+                    <div class="small fw-bold text-uppercase text-muted letter-spacing-1 mb-3" style="font-size:11.5px;">Unlocked Platform Privileges</div>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="d-flex align-items-start gap-2.5 p-3 rounded-3" style="background:#F0FDF4;border:1px solid #DCFCE7;">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.2" class="flex-shrink-0 mt-0.5"><polyline points="20 6 9 17 4 12"/></svg>
+                                <div>
+                                    <div class="fw-bold text-dark" style="font-size:14px;">Public Trust Standing</div>
+                                    <div class="text-muted small" style="font-size:12.5px;">Verified badge active across public trust directory &amp; merchant searches.</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="d-flex align-items-start gap-2.5 p-3 rounded-3" style="background:#F0FDF4;border:1px solid #DCFCE7;">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.2" class="flex-shrink-0 mt-0.5"><polyline points="20 6 9 17 4 12"/></svg>
+                                <div>
+                                    <div class="fw-bold text-dark" style="font-size:14px;">Scam &amp; Fraud Incident Filing</div>
+                                    <div class="text-muted small" style="font-size:12.5px;">Priority reporting access with expedited compliance desk moderation.</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="d-flex align-items-start gap-2.5 p-3 rounded-3" style="background:#F0FDF4;border:1px solid #DCFCE7;">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.2" class="flex-shrink-0 mt-0.5"><polyline points="20 6 9 17 4 12"/></svg>
+                                <div>
+                                    <div class="fw-bold text-dark" style="font-size:14px;">Clearance Standing</div>
+                                    <div class="text-muted small" style="font-size:12.5px;">Officially authenticated identity credentials recorded in compliance registry.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {# ── Security & Compliance Footer ── #}
+                <div class="mt-4 pt-3 border-top d-flex align-items-center justify-content-between flex-wrap gap-2 text-muted small" style="font-size:12.5px;">
+                    <div class="d-flex align-items-center gap-2">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        <span>🔒 In compliance with NDPR data regulations, verified credentials are locked. If you need to update legal credentials due to a legal name change, contact compliance support.</span>
+                    </div>
+                </div>
             </div>
-            {% elif user_profile.id_verification_status == 'pending' or has_pending_path_b %}
+            {% else %}
+
+            {# ── Overall Account Status Overview Banner When Not Yet Verified ── #}
+            {% if has_pending_gov_id or has_pending_path_b %}
             <div class="alert d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4 p-3 p-sm-4"
                  style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:12px;">
                 <div class="d-flex align-items-center gap-3">
@@ -57,12 +159,18 @@
                     </div>
                     <div>
                         <div class="fw-bold text-primary" style="font-size:14.5px;">Verification Under Compliance Review</div>
-                        <div class="small text-muted" style="font-size:13px;">Your submitted credentials are currently undergoing compliance vetting. Platform services will activate upon approval.</div>
+                        <div class="small text-muted" style="font-size:13px;">
+                            {% if has_pending_gov_id %}
+                                Your Government Identity Document credentials have been submitted and are currently undergoing compliance review.
+                            {% else %}
+                                Your Alternative Personhood submission is currently undergoing compliance vetting.
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
                 <span class="badge bg-primary text-white px-3 py-1.5 rounded-pill" style="font-size:12px;">Under Review</span>
             </div>
-            {% elif user_profile.id_verification_status == 'rejected' and not has_approved_path_b %}
+            {% elif has_declined_gov_id or has_declined_path_b %}
             <div class="alert d-flex align-items-start gap-3 mb-4 p-3 p-sm-4"
                  style="background:#FEF2F2;border:1px solid #FECACA;border-radius:12px;">
                 <div class="rounded-circle p-2 d-inline-flex align-items-center justify-content-center flex-shrink-0 mt-0.5" style="background:#FEE2E2;color:#DC2626;width:36px;height:36px;">
@@ -71,9 +179,13 @@
                 <div>
                     <div class="fw-bold text-danger" style="font-size:14.5px;">Previous Verification Declined</div>
                     <div class="small text-danger mt-0.5" style="font-size:13px;">
-                        Reason: {{ user_profile.id_rejection_reason|default:"Your credentials could not be authenticated against compliance standards." }}
+                        {% if has_declined_gov_id %}
+                            Reason: {{ user_profile.id_rejection_reason|default:"Your government identity credentials could not be authenticated against compliance standards." }}
+                        {% else %}
+                            Reason: Your alternative personhood proof could not be verified.
+                        {% endif %}
                     </div>
-                    <div class="small text-muted mt-1" style="font-size:12.5px;">Please review the guidance below, upload a clear document, or choose the Alternative Personhood option.</div>
+                    <div class="small text-muted mt-1" style="font-size:12.5px;">You can now update and re-submit your proof, or switch to the alternative verification method below.</div>
                 </div>
             </div>
             {% endif %}
@@ -89,9 +201,15 @@
 
                 <div class="d-flex flex-column gap-3 mb-3 w-100" id="verificationMethodWrap">
                     {# Option 1: Government Identity Document #}
-                    <div class="vng-method-card w-100 p-3 px-sm-4 py-sm-3.5 rounded-3 bg-white border {% if selected_method == 'government_id' %}vng-method-active{% endif %} shadow-xs"
-                         id="methodCardGovId" onclick="selectVerificationMethod('government_id')"
-                         style="cursor: pointer; transition: all 0.15s ease; {% if selected_method != 'government_id' %}border-color: #E2E8F0;{% endif %}">
+                    <div class="vng-method-card w-100 p-3 px-sm-4 py-sm-3.5 rounded-3 bg-white border {% if selected_method == 'government_id' %}vng-method-active{% endif %} {% if has_pending_path_b %}vng-method-locked{% endif %} shadow-xs"
+                         id="methodCardGovId"
+                         {% if has_pending_path_b %}
+                         style="opacity: 0.6; cursor: not-allowed; border-color: #E2E8F0;"
+                         onclick="alertLockedMethod('government_id')"
+                         {% else %}
+                         onclick="selectVerificationMethod('government_id')"
+                         style="cursor: pointer; transition: all 0.15s ease; {% if selected_method != 'government_id' %}border-color: #E2E8F0;{% endif %}"
+                         {% endif %}>
                         <div class="d-flex align-items-center justify-content-between mb-1 gap-2 flex-wrap">
                             <div class="d-flex align-items-center gap-2">
                                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0F172A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0">
@@ -104,10 +222,12 @@
                                 <span class="fw-bold text-dark" style="font-size: 16px;">Government Identity Document</span>
                             </div>
                             <div>
-                                {% if user_profile.identity_verified or user_profile.id_verification_status == 'verified' %}
-                                    <span class="badge rounded-pill fw-medium" style="background: #E8F8F0; color: #16A34A; font-size: 13px; padding: 4px 12px; border: 1px solid #C6F0D6;">✓ Verified</span>
-                                {% elif user_profile.id_verification_status == 'pending' or user_profile.has_id_document and user_profile.id_verification_status != 'rejected' %}
+                                {% if has_pending_path_b %}
+                                    <span class="badge rounded-pill fw-medium" style="background: #F1F5F9; border: 1px solid #CBD5E1; color: #64748B; font-size: 13px; padding: 4px 12px;">🔒 Locked</span>
+                                {% elif has_pending_gov_id %}
                                     <span class="badge rounded-pill fw-medium" style="background: #EFF6FF; color: #2563EB; font-size: 13px; padding: 4px 12px; border: 1px solid #BFDBFE;">Under Review</span>
+                                {% elif has_declined_gov_id %}
+                                    <span class="badge rounded-pill fw-medium" style="background: #FEF2F2; color: #DC2626; font-size: 13px; padding: 4px 12px; border: 1px solid #FCA5A5;">Declined &bull; Re-submit Available</span>
                                 {% else %}
                                     <span class="badge rounded-pill fw-medium" style="background: #E8F8F0; color: #16A34A; font-size: 13px; padding: 4px 12px; border: 1px solid #C6F0D6;">Recommended</span>
                                 {% endif %}
@@ -116,12 +236,23 @@
                         <div class="text-muted" style="font-size: 14px; line-height: 1.45; color: #4B5563 !important;">
                             Verify your account using an official government ID of your country (NIN Slip, Voter's Card, Passport, or Driver's License).
                         </div>
+                        {% if has_pending_path_b %}
+                        <div class="small text-danger mt-2 pt-1 border-top" style="font-size: 12px;">
+                            🔒 An Alternative Personhood request is currently pending review. You cannot switch to Government ID while that request is pending.
+                        </div>
+                        {% endif %}
                     </div>
 
                     {# Option 2: Alternative Personhood Verification #}
-                    <div class="vng-method-card w-100 p-3 px-sm-4 py-sm-3.5 rounded-3 bg-white border {% if selected_method == 'alternative' %}vng-method-active{% endif %} shadow-xs"
-                         id="methodCardAlternative" onclick="selectVerificationMethod('alternative')"
-                         style="cursor: pointer; transition: all 0.15s ease; {% if selected_method != 'alternative' %}border-color: #E2E8F0;{% endif %}">
+                    <div class="vng-method-card w-100 p-3 px-sm-4 py-sm-3.5 rounded-3 bg-white border {% if selected_method == 'alternative' %}vng-method-active{% endif %} {% if has_pending_gov_id %}vng-method-locked{% endif %} shadow-xs"
+                         id="methodCardAlternative"
+                         {% if has_pending_gov_id %}
+                         style="opacity: 0.6; cursor: not-allowed; border-color: #E2E8F0;"
+                         onclick="alertLockedMethod('alternative')"
+                         {% else %}
+                         onclick="selectVerificationMethod('alternative')"
+                         style="cursor: pointer; transition: all 0.15s ease; {% if selected_method != 'alternative' %}border-color: #E2E8F0;{% endif %}"
+                         {% endif %}>
                         <div class="d-flex align-items-center justify-content-between mb-1 gap-2 flex-wrap">
                             <div class="d-flex align-items-center gap-2">
                                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0F172A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0">
@@ -130,10 +261,12 @@
                                 <span class="fw-bold text-dark" style="font-size: 16px;">Alternative Person Verification</span>
                             </div>
                             <div>
-                                {% if has_approved_path_b %}
-                                    <span class="badge rounded-pill fw-medium" style="background: #E8F8F0; color: #16A34A; font-size: 13px; padding: 4px 12px; border: 1px solid #C6F0D6;">✓ Community Approved</span>
+                                {% if has_pending_gov_id %}
+                                    <span class="badge rounded-pill fw-medium" style="background: #F1F5F9; border: 1px solid #CBD5E1; color: #64748B; font-size: 13px; padding: 4px 12px;">🔒 Locked</span>
                                 {% elif has_pending_path_b %}
                                     <span class="badge rounded-pill fw-medium" style="background: #EFF6FF; color: #2563EB; font-size: 13px; padding: 4px 12px; border: 1px solid #BFDBFE;">Under Review</span>
+                                {% elif has_declined_path_b %}
+                                    <span class="badge rounded-pill fw-medium" style="background: #FEF2F2; color: #DC2626; font-size: 13px; padding: 4px 12px; border: 1px solid #FCA5A5;">Declined &bull; Re-submit Available</span>
                                 {% else %}
                                     <span class="badge rounded-pill fw-medium" style="background: #F8FAFC; border: 1px solid #E2E8F0; color: #64748B; font-size: 13px; padding: 4px 12px;">No ID Required</span>
                                 {% endif %}
@@ -142,6 +275,11 @@
                         <div class="text-muted" style="font-size: 14px; line-height: 1.45; color: #4B5563 !important;">
                             Establish genuine personhood to verify your account without an official government ID card to unlock the platform services .
                         </div>
+                        {% if has_pending_gov_id %}
+                        <div class="small text-danger mt-2 pt-1 border-top" style="font-size: 12px;">
+                            🔒 A Government ID verification request is currently pending review. You cannot switch to Alternative Verification while that request is pending.
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -267,9 +405,6 @@
                                     <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1 rounded-pill fw-semibold" id="wizardStepBadge" style="font-size:11.5px;">
                                         Step 1 of 7 &bull; Email Verification
                                     </span>
-                                </div>
-                                <div class="small text-muted fw-medium" id="wizardStepPercent" style="font-size:12px;">
-                                    14% Completed
                                 </div>
                             </div>
                             <div class="progress" style="height: 6px; border-radius: 9999px; background: #E2E8F0;">
@@ -1249,6 +1384,7 @@
                     {% endif %}
                 </div>
             </div>
+            {% endif %}
 
         </div>
     </div>
@@ -1530,7 +1666,27 @@
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4/face_mesh.js" crossorigin="anonymous"></script>
 
 <script>
+const hasPendingGovId = {% if has_pending_gov_id %}true{% else %}false{% endif %};
+const hasPendingPathB = {% if has_pending_path_b %}true{% else %}false{% endif %};
+
+function alertLockedMethod(method) {
+    if (method === 'alternative') {
+        alert("You currently have a Government Identity Document verification pending review. You cannot switch to Alternative Verification while a request is pending.");
+    } else {
+        alert("You currently have an Alternative Personhood Verification request pending review. You cannot switch to Government ID while a request is pending.");
+    }
+}
+
 function selectVerificationMethod(method) {
+    if (method === 'alternative' && hasPendingGovId) {
+        alertLockedMethod('alternative');
+        return;
+    }
+    if (method === 'government_id' && hasPendingPathB) {
+        alertLockedMethod('government_id');
+        return;
+    }
+
     const cardGov = document.getElementById('methodCardGovId');
     const cardAlt = document.getElementById('methodCardAlternative');
     const containerGov = document.getElementById('methodGovIdContainer');
@@ -1687,10 +1843,8 @@ function wizardShowStep(stepNum) {
     if (badge) {
         badge.innerHTML = `Step ${stepNum} of ${totalWizardSteps} &bull; ${stepTitles[stepNum]}`;
     }
-    const percentEl = document.getElementById('wizardStepPercent');
-    const pVal = Math.round((stepNum / totalWizardSteps) * 100);
-    if (percentEl) percentEl.textContent = `${pVal}% Completed`;
     const bar = document.getElementById('wizardProgressBar');
+    const pVal = Math.round((stepNum / totalWizardSteps) * 100);
     if (bar) bar.style.width = `${pVal}%`;
 
     // Update desktop stepper pills
