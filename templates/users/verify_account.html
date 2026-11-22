@@ -2424,7 +2424,7 @@ function analyzeFaceQuality(video, faceBounds = null) {
 
         // Strict Studio Quality Gate: Reject dark/dim faces below 105 (~42% brightness)
         if (faceLum < 105) {
-            return { pass: false, error: `Lighting is too dim (${lumPercent}%) — please turn on room light or face a lamp`, icon: '💡' };
+            return { pass: false, error: `Lighting too low (${lumPercent}%) — please ensure your face is clearly lit`, icon: '💡' };
         }
         if (faceLum > 235) {
             return { pass: false, error: 'Lighting overexposed — reduce harsh glare', icon: '☀️' };
