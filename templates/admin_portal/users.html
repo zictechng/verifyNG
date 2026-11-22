@@ -103,6 +103,12 @@
                                 {% if u.is_superuser %}
                                     <span class="adm-badge red ms-1">Superuser</span>
                                 {% endif %}
+                                {% if u.country or u.state %}
+                                    <div class="small text-muted" style="font-size:0.72rem;margin-top:2px;">
+                                        {% if u.country %}<span class="badge bg-light text-dark border py-0 px-1 me-1" style="font-size:0.65rem;">{{ u.country }}</span>{% endif %}
+                                        {% if u.state %}{{ u.state }}{% if u.lga %}, {{ u.lga }}{% endif %}{% endif %}
+                                    </div>
+                                {% endif %}
                             </div>
                         </div>
                     </td>

@@ -122,6 +122,18 @@
               <th style="color:var(--adm-muted);font-weight:500;">ID Number</th>
               <td class="font-monospace fw-semibold">{{ target_user.masked_id_number|default:"—" }}</td>
             </tr>
+            {% if target_user.country %}
+            <tr>
+              <th style="color:var(--adm-muted);font-weight:500;">Issuing Country</th>
+              <td class="fw-semibold">{{ target_user.country }}</td>
+            </tr>
+            {% endif %}
+            {% if target_user.state or target_user.lga %}
+            <tr>
+              <th style="color:var(--adm-muted);font-weight:500;">State / LGA</th>
+              <td>{{ target_user.state }}{% if target_user.lga %} &bull; {{ target_user.lga }}{% endif %}</td>
+            </tr>
+            {% endif %}
             {% if target_user.id_submitted_at %}
             <tr>
               <th style="color:var(--adm-muted);font-weight:500;">Submitted At</th>
@@ -1048,6 +1060,17 @@
                       {% endif %}
                     </td>
                   </tr>
+                  {% if target_user.state or target_user.lga %}
+                  <tr>
+                    <td class="text-muted ps-0 py-1">State / Region:</td>
+                    <td class="fw-semibold text-dark py-1">
+                      {{ target_user.state|default:"—" }}
+                      {% if target_user.lga %}
+                        <span class="text-muted fw-normal">({{ target_user.lga }})</span>
+                      {% endif %}
+                    </td>
+                  </tr>
+                  {% endif %}
                   <tr>
                     <td class="text-muted ps-0 py-1">Issuing Authority:</td>
                     <td class="fw-semibold text-dark py-1">{{ id_issuing_authority|default:"Not configured" }}</td>

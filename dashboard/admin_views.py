@@ -265,7 +265,17 @@ class AdminUserListView(SuperAdminRequiredMixin, TemplateView):
         users = User.objects.all().order_by('-date_joined')
 
         if query:
-            users = users.filter(username__icontains=query) | users.filter(email__icontains=query)
+            from django.db.models import Q
+            users = users.filter(
+                Q(username__icontains=query) |
+                Q(email__icontains=query) |
+                Q(first_name__icontains=query) |
+                Q(last_name__icontains=query) |
+                Q(country__iexact=query) |
+                Q(state__icontains=query) |
+                Q(lga__icontains=query) |
+                Q(id_number__icontains=query)
+            )
         if role_filter:
             users = users.filter(role=role_filter)
         if status_filter == 'active':
@@ -274,6 +284,10 @@ class AdminUserListView(SuperAdminRequiredMixin, TemplateView):
             users = users.filter(is_suspended=True, is_active=True)
         elif status_filter == 'blocked':
             users = users.filter(is_active=False)
+        elif status_filter == 'verified':
+            users = users.filter(id_verification_status='verified')
+        elif status_filter == 'pending_verification':
+            users = users.filter(id_verification_status='pending')
 
         try:
             per_page = int(self.request.GET.get('per_page', 15))
