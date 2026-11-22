@@ -56,6 +56,20 @@ class User(AbstractUser):
         db_index=True,
         help_text="ISO-2 country code of citizenship or residence (e.g. NG, GH, BJ, SN, KE)"
     )
+    state = models.CharField(
+        max_length=100,
+        blank=True,
+        default='',
+        db_index=True,
+        help_text="State, Province, or Region of residence"
+    )
+    lga = models.CharField(
+        max_length=100,
+        blank=True,
+        default='',
+        db_index=True,
+        help_text="Local Government Area, County, or District of residence"
+    )
     assurance_level = models.CharField(
         max_length=25,
         choices=ASSURANCE_LEVEL_CHOICES,

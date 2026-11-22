@@ -350,6 +350,8 @@
                             {% csrf_token %}
                             {# Hidden Form Inputs Synced Across Wizard Steps #}
                             <input type="hidden" name="issuing_country" id="wizard_issuing_country" value="{{ default_issuing_country }}">
+                            <input type="hidden" name="state" id="wizard_state" value="{{ user_profile.state|default:'' }}">
+                            <input type="hidden" name="lga" id="wizard_lga" value="{{ user_profile.lga|default:'' }}">
                             <input type="hidden" name="id_type" id="wizard_id_type" value="{{ user_profile.id_type|default:'nin' }}">
                             <input type="hidden" name="id_number" id="wizard_id_number" value="{{ user_profile.id_number|default:'' }}">
                             <input type="hidden" name="phone_number" id="wizard_phone_number" value="{{ user_phone }}">
@@ -604,6 +606,42 @@
 
                                     {# Inline feedback alert for country selection #}
                                     <div id="countrySelectAlert" class="alert d-none py-2 px-3 small rounded-3 mt-3 mb-0" role="alert"></div>
+
+                                    {# Regional & Administrative Details Card (Optional) #}
+                                    <div id="vngRegionalDetailsWrap" class="mt-4 pt-3 border-top d-none">
+                                        <div class="d-flex align-items-center justify-content-between mb-2">
+                                            <label class="form-label small fw-semibold text-dark mb-0 d-flex align-items-center gap-1.5" id="vngStateLabel">
+                                                <span id="vngStateLabelText">State</span>
+                                                <span class="badge bg-light text-secondary border fw-normal py-0.5 px-1.5" style="font-size:10.5px;">Optional</span>
+                                            </label>
+                                            <span class="text-muted small" style="font-size:11px;">For regional scam mapping</span>
+                                        </div>
+
+                                        <div class="row g-2 mb-2">
+                                            {# State / Region / Province Select / Input #}
+                                            <div class="col-sm-6">
+                                                <select id="vng_state_select" class="form-select bg-white" style="height: 46px; font-size: 14.5px; border-color: #CBD5E1;" onchange="onStateSelectChange()">
+                                                    <option value="">-- Select State --</option>
+                                                </select>
+                                                <input type="text" id="vng_state_input" class="form-control bg-white d-none" style="height: 46px; font-size: 14.5px; border-color: #CBD5E1;" placeholder="Enter state or region..." oninput="onStateInputChange()">
+                                            </div>
+
+                                            {# LGA / District / City Select / Input #}
+                                            <div class="col-sm-6">
+                                                <label class="form-label small fw-semibold text-dark mb-1 d-sm-none" id="vngLgaLabelMobile">
+                                                    <span id="vngLgaLabelMobileText">Local Government Area</span>
+                                                    <span class="badge bg-light text-secondary border fw-normal py-0.5 px-1.5" style="font-size:10.5px;">Optional</span>
+                                                </label>
+                                                <select id="vng_lga_select" class="form-select bg-white" style="height: 46px; font-size: 14.5px; border-color: #CBD5E1;" onchange="onLgaSelectChange()">
+                                                    <option value="">-- Select State First --</option>
+                                                </select>
+                                                <input type="text" id="vng_lga_input" class="form-control bg-white d-none" style="height: 46px; font-size: 14.5px; border-color: #CBD5E1;" placeholder="Enter city, district or area..." oninput="onLgaInputChange()">
+                                            </div>
+                                        </div>
+                                        <div class="form-text small text-muted" id="vngRegionHelpText" style="font-size:12px; line-height: 1.4;">
+                                            Selecting your state and local area helps filter community scam alerts near you. You can skip this or update it anytime.
+                                        </div>
+                                    </div>
 
                                     {# Hidden Native Select (For Form Synchronization & Backward Compatibility) #}
                                     <select id="issuing_country_select" class="d-none">
@@ -1020,13 +1058,14 @@
                                             </div>
                                         </div>
 
-                                        {# Item 3: Country #}
+                                        {# Item 3: Country & Region #}
                                         <div class="col-sm-6 border-bottom pb-2">
                                             <div class="d-flex align-items-center justify-content-between mb-1">
-                                                <span class="small text-muted fw-semibold" style="font-size:11px;">3. ISSUING COUNTRY</span>
+                                                <span class="small text-muted fw-semibold" style="font-size:11px;">3. ISSUING COUNTRY &amp; REGION</span>
                                                 <button type="button" class="btn btn-link p-0 text-primary text-decoration-none small" style="font-size:12px;" onclick="wizardJumpToStep(3)">Edit</button>
                                             </div>
                                             <div class="fw-bold text-dark small" id="revCountryVal">Not selected</div>
+                                            <div class="text-muted small mt-0.5" id="revRegionVal" style="font-size:11.5px;">Region not specified (Optional)</div>
                                         </div>
 
                                         {# Item 4: Document Type & Number #}
@@ -1602,8 +1641,11 @@ const stepTitles = {
 };
 
 let countryDocsMap = {};
+let africanRegionsCatalog = {};
 let selectedCountryCode = '{{ default_issuing_country|default:"" }}';
 let selectedCountryName = '';
+let selectedState = '{{ user_profile.state|default:"" }}';
+let selectedLga = '{{ user_profile.lga|default:"" }}';
 let selectedDocCode = '{{ user_profile.id_type|default:"" }}';
 let selectedDocName = '';
 
@@ -2058,6 +2100,9 @@ function selectWizardCountry(code, name) {
 
     // Update Step 4 document choices
     populateDocTypesForCountry(code);
+
+    // Update optional regional divisions (State/Region & LGA)
+    populateRegionsForCountry(code);
 }
 
 function filterWizardCountries(query) {
@@ -2077,6 +2122,154 @@ function filterWizardCountries(query) {
         empty.classList.toggle('d-none', matchCount > 0);
         if (term) term.textContent = query;
     }
+}
+
+/* ── Step 3: Optional Regional Division Population ── */
+function populateRegionsForCountry(countryCode) {
+    const wrap = document.getElementById('vngRegionalDetailsWrap');
+    if (!wrap) return;
+
+    if (!countryCode) {
+        wrap.classList.add('d-none');
+        return;
+    }
+
+    wrap.classList.remove('d-none');
+
+    const config = africanRegionsCatalog[countryCode] || {
+        state_label: 'State / Province / Region',
+        lga_label: 'City / District / Area',
+        lga_mode: 'input',
+        states: [],
+        lgas: {}
+    };
+
+    // Update dynamic label text
+    const stateLabelEl = document.getElementById('vngStateLabelText');
+    if (stateLabelEl) stateLabelEl.textContent = config.state_label || 'State';
+    const lgaMobileEl = document.getElementById('vngLgaLabelMobileText');
+    if (lgaMobileEl) lgaMobileEl.textContent = config.lga_label || 'Local Area';
+
+    const stateSelect = document.getElementById('vng_state_select');
+    const stateInput = document.getElementById('vng_state_input');
+    const lgaSelect = document.getElementById('vng_lga_select');
+    const lgaInput = document.getElementById('vng_lga_input');
+
+    // 1. Populate State / Province / Region
+    if (config.states && config.states.length > 0) {
+        if (stateSelect) {
+            stateSelect.classList.remove('d-none');
+            stateSelect.innerHTML = `<option value="">-- Select ${config.state_label} (Optional) --</option>`;
+            config.states.forEach(st => {
+                const opt = document.createElement('option');
+                opt.value = st;
+                opt.textContent = st;
+                if (selectedState && st.toLowerCase() === selectedState.toLowerCase()) {
+                    opt.selected = true;
+                }
+                stateSelect.appendChild(opt);
+            });
+            if (stateSelect.value) {
+                selectedState = stateSelect.value;
+            }
+        }
+        if (stateInput) stateInput.classList.add('d-none');
+    } else {
+        if (stateSelect) stateSelect.classList.add('d-none');
+        if (stateInput) {
+            stateInput.classList.remove('d-none');
+            stateInput.placeholder = `Enter ${config.state_label.toLowerCase()} (optional)...`;
+            stateInput.value = selectedState || '';
+        }
+    }
+
+    // 2. Populate LGA / District / City
+    if (config.lga_mode === 'dropdown') {
+        if (lgaSelect) {
+            lgaSelect.classList.remove('d-none');
+            populateLgasForState(countryCode, selectedState);
+        }
+        if (lgaInput) lgaInput.classList.add('d-none');
+    } else {
+        if (lgaSelect) lgaSelect.classList.add('d-none');
+        if (lgaInput) {
+            lgaInput.classList.remove('d-none');
+            lgaInput.placeholder = `Enter ${config.lga_label.toLowerCase()} (optional)...`;
+            lgaInput.value = selectedLga || '';
+        }
+    }
+}
+
+function populateLgasForState(countryCode, stateName) {
+    const lgaSelect = document.getElementById('vng_lga_select');
+    if (!lgaSelect) return;
+
+    const config = africanRegionsCatalog[countryCode];
+    if (!config || !config.lgas) {
+        lgaSelect.innerHTML = '<option value="">-- Select State First --</option>';
+        return;
+    }
+
+    const lgaList = config.lgas[stateName] || [];
+    lgaSelect.innerHTML = '';
+
+    if (!stateName) {
+        lgaSelect.innerHTML = `<option value="">-- Select ${config.state_label || 'State'} First --</option>`;
+        return;
+    }
+
+    const defaultOpt = document.createElement('option');
+    defaultOpt.value = '';
+    defaultOpt.textContent = `-- Select ${config.lga_label || 'LGA'} (Optional) --`;
+    lgaSelect.appendChild(defaultOpt);
+
+    lgaList.forEach(lg => {
+        const opt = document.createElement('option');
+        opt.value = lg;
+        opt.textContent = lg;
+        if (selectedLga && lg.toLowerCase() === selectedLga.toLowerCase()) {
+            opt.selected = true;
+        }
+        lgaSelect.appendChild(opt);
+    });
+}
+
+function onStateSelectChange() {
+    const select = document.getElementById('vng_state_select');
+    selectedState = select ? select.value.trim() : '';
+    const hiddenState = document.getElementById('wizard_state');
+    if (hiddenState) hiddenState.value = selectedState;
+
+    // Reset LGA when state changes
+    selectedLga = '';
+    const hiddenLga = document.getElementById('wizard_lga');
+    if (hiddenLga) hiddenLga.value = '';
+
+    const config = africanRegionsCatalog[selectedCountryCode];
+    if (config && config.lga_mode === 'dropdown') {
+        populateLgasForState(selectedCountryCode, selectedState);
+    }
+}
+
+function onStateInputChange() {
+    const input = document.getElementById('vng_state_input');
+    selectedState = input ? input.value.trim() : '';
+    const hiddenState = document.getElementById('wizard_state');
+    if (hiddenState) hiddenState.value = selectedState;
+}
+
+function onLgaSelectChange() {
+    const select = document.getElementById('vng_lga_select');
+    selectedLga = select ? select.value.trim() : '';
+    const hiddenLga = document.getElementById('wizard_lga');
+    if (hiddenLga) hiddenLga.value = selectedLga;
+}
+
+function onLgaInputChange() {
+    const input = document.getElementById('vng_lga_input');
+    selectedLga = input ? input.value.trim() : '';
+    const hiddenLga = document.getElementById('wizard_lga');
+    if (hiddenLga) hiddenLga.value = selectedLga;
 }
 
 /* ── Step 4: Document Type Dropdown Selection ── */
@@ -3041,7 +3234,7 @@ function updateReviewSummary() {
         }
     }
 
-    // 3. Country Status
+    // 3. Country & Region Status
     if (revCountry) {
         if (selectedCountryName && selectedCountryCode) {
             revCountry.textContent = `${selectedCountryName} (${selectedCountryCode})`;
@@ -3049,6 +3242,19 @@ function updateReviewSummary() {
             revCountry.textContent = selectedCountryCode;
         } else {
             revCountry.textContent = 'Not selected';
+        }
+    }
+    const revRegion = document.getElementById('revRegionVal');
+    if (revRegion) {
+        if (selectedState && selectedLga) {
+            revRegion.textContent = `${selectedState}, ${selectedLga}`;
+            revRegion.className = 'text-dark small mt-0.5 fw-medium';
+        } else if (selectedState) {
+            revRegion.textContent = selectedState;
+            revRegion.className = 'text-dark small mt-0.5 fw-medium';
+        } else {
+            revRegion.textContent = 'Region not specified (Optional)';
+            revRegion.className = 'text-muted small mt-0.5';
         }
     }
 
@@ -3145,8 +3351,15 @@ document.addEventListener('DOMContentLoaded', function() {
         countryDocsMap = {};
     }
 
+    try {
+        africanRegionsCatalog = JSON.parse('{{ african_regions_json|default:"{}"|escapejs }}');
+    } catch (e) {
+        africanRegionsCatalog = {};
+    }
+
     // Populate dynamic doc types for default country
     populateDocTypesForCountry(selectedCountryCode);
+    populateRegionsForCountry(selectedCountryCode);
 
     // Sync active country display only if a country was previously chosen
     const countrySelect = document.getElementById('issuing_country_select');

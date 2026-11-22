@@ -381,9 +381,11 @@ class VerifyAccountView(LoginRequiredMixin, View):
         user = request.user
         import json
         from users.country_config import get_supported_countries, _REGISTRY, DEFAULT_COUNTRY
+        from users.african_regions import get_all_african_regions_catalog
 
         supported_countries = get_supported_countries()
         default_issuing_country = getattr(user, 'country', None) or ""
+        african_regions_json = json.dumps(get_all_african_regions_catalog())
 
         country_docs = {}
         for code, mod in _REGISTRY.items():
@@ -420,6 +422,7 @@ class VerifyAccountView(LoginRequiredMixin, View):
             'supported_countries': supported_countries,
             'default_issuing_country': default_issuing_country,
             'country_documents_json': country_documents_json,
+            'african_regions_json': african_regions_json,
             'path_b_submissions': path_b_submissions,
             'latest_path_b': path_b_submissions.first(),
             'has_approved_path_b': has_approved_path_b,
@@ -805,6 +808,15 @@ class UserIdentityVerificationSubmitView(LoginRequiredMixin, View):
         if request.session.get('vng_verified_email') or request.POST.get('email_verified') == 'true':
             user.email_verified = True
 
+        # Optional State / Region and LGA / District
+        state = request.POST.get('state', '').strip()
+        lga = request.POST.get('lga', '').strip()
+        if hasattr(user, 'state'):
+            user.state = state
+        if hasattr(user, 'lga'):
+            user.lga = lga
+        user.country = issuing_country
+
         user.id_type = id_type
         user.id_number = id_number
         user.id_verification_status = 'pending'
@@ -819,6 +831,8 @@ class UserIdentityVerificationSubmitView(LoginRequiredMixin, View):
             details={
                 "id_type": id_type,
                 "issuing_country": issuing_country,
+                "state": state,
+                "lga": lga,
                 "has_new_document": file_uploaded,
                 "has_selfie": bool(getattr(user, 'id_selfie_image', None)),
                 "phone_verified": getattr(user, 'phone_verified', False),
