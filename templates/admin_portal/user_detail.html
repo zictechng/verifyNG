@@ -15,6 +15,12 @@
         View ID Document
       </button>
     {% endif %}
+    {% if target_user.has_selfie %}
+      <button type="button" class="btn-adm-primary" data-bs-toggle="modal" data-bs-target="#viewUserSelfieModal">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        View Live Selfie
+      </button>
+    {% endif %}
 
     {% if not target_user.identity_verified %}
       {% if target_user.has_id_document or target_user.id_verification_status == 'pending' %}
@@ -125,7 +131,7 @@
             {% if target_user.country %}
             <tr>
               <th style="color:var(--adm-muted);font-weight:500;">Issuing Country</th>
-              <td class="fw-semibold">{{ target_user.country }}</td>
+              <td class="fw-semibold">{{ target_user.country_name|default:target_user.country }} <span class="text-muted fw-normal">({{ target_user.country }})</span></td>
             </tr>
             {% endif %}
             {% if target_user.state or target_user.lga %}
@@ -1167,6 +1173,12 @@
                   Download
                 </a>
               {% endif %}
+              {% if target_user.has_selfie %}
+                <button type="button" class="btn btn-adm-primary" data-bs-toggle="modal" data-bs-target="#viewUserSelfieModal">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                  Inspect Live Selfie
+                </button>
+              {% endif %}
             </div>
 
             <div class="d-flex align-items-center gap-2 flex-wrap">
@@ -1657,7 +1669,48 @@
 </div>
 {% endif %}
 
-{# ── Decline ID Proof Modal with Quick Reasons & Unified Styling ── #}
+{% if target_user.has_selfie %}
+{# ── View Live Selfie Modal ── #}
+<div class="modal fade" id="viewUserSelfieModal" tabindex="-1" aria-labelledby="viewUserSelfieModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content shadow-lg border-0" style="border-radius:14px; overflow:hidden;">
+      <div class="modal-header border-bottom py-2.5 px-3" style="background:#F8FCFE;">
+        <div class="d-flex align-items-center gap-2">
+          <div class="d-inline-flex align-items-center justify-content-center rounded-2" style="width:30px;height:30px;background:#EBF5FB;border:1px solid #BCDFF4;color:#011B33;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          </div>
+          <div>
+            <h5 class="modal-title fw-bold mb-0" id="viewUserSelfieModalLabel" style="color:#011B33; font-size:1.05rem;">
+              Live Verification Selfie &mdash; Biometric Inspection
+            </h5>
+            <span class="small text-muted" style="font-size:0.75rem;">Account: @{{ target_user.username }} ({{ target_user.email }})</span>
+          </div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <div class="modal-body p-2 p-md-3 bg-light text-center">
+        <img src="{% url 'admin_portal:user_id_selfie' target_user.public_id %}" alt="Live Verification Selfie" class="img-fluid rounded border shadow-sm" style="max-height:75vh;object-fit:contain;">
+      </div>
+
+      <div class="modal-footer border-top py-2 d-flex justify-content-between flex-wrap gap-2">
+        <div class="small text-muted">
+          Captured via Web Camera &bull; Compare facial features directly with ID Document photo
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+          <a href="{% url 'admin_portal:user_id_selfie' target_user.public_id %}" target="_blank" rel="noopener noreferrer" class="btn btn-adm-primary">
+            Open in Full Tab
+          </a>
+          <a href="{% url 'admin_portal:user_id_selfie' target_user.public_id %}?download=1" class="btn btn-adm-primary" title="Download selfie image">
+            Download
+          </a>
+          <button type="button" class="btn btn-adm-primary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
 <div class="modal fade" id="rejectUserIdModal" tabindex="-1" aria-labelledby="rejectUserIdModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content shadow-lg border-0" style="border-radius:14px;">

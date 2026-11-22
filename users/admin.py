@@ -19,6 +19,15 @@ class UserAdmin(BaseUserAdmin):
         'country', 'state', 'lga', 'id_number'
     )
 
+    def get_search_results(self, request, queryset, search_term):
+        queryset, use_distinct = super().get_search_results(request, queryset, search_term)
+        if search_term:
+            from users.country_config import get_country_codes_for_query
+            matching_codes = get_country_codes_for_query(search_term)
+            if matching_codes:
+                queryset |= self.model.objects.filter(country__in=matching_codes)
+        return queryset, use_distinct
+
     fieldsets = BaseUserAdmin.fieldsets + (
         ('VerifyNG RBAC & Verification Standing', {
             'fields': ('role', 'identity_verified', 'assurance_level')

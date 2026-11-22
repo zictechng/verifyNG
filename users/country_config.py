@@ -187,6 +187,35 @@ def get_supported_countries() -> List[Tuple[str, str]]:
     return items
 
 
+def get_country_codes_for_query(query: Optional[str]) -> List[str]:
+    """
+    Given a search query string (e.g. 'Nigeria', 'Ghana', 'Kenya', 'South Africa', or 'NG'),
+    returns all matching ISO-2 country codes.
+    """
+    if not query:
+        return []
+    clean = str(query).strip().lower()
+    if not clean:
+        return []
+
+    supported = get_supported_countries()
+
+    # If the user typed an exact 2-letter ISO code (e.g. 'ng', 'gh', 'ke', 'za'), return that exact code
+    if len(clean) == 2:
+        exact_code = [code for code, _ in supported if clean == code.lower()]
+        if exact_code:
+            return exact_code
+
+    # Search by country name (full name, starts with, or contains)
+    matches = []
+    for code, name in supported:
+        name_lower = name.lower()
+        if clean == name_lower or clean in name_lower.split() or name_lower.startswith(clean) or clean in name_lower:
+            if code not in matches:
+                matches.append(code)
+    return matches
+
+
 def get_country_config(country_code: Optional[str] = None) -> Optional[Dict[str, Any]]:
     """
     Returns configuration dict for the given country code.

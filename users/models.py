@@ -173,6 +173,20 @@ class User(AbstractUser):
         help_text="Designates whether compliance has approved this user to publish community reports."
     )
     @property
+    def country_name(self) -> str:
+        """Returns the full human-readable country name for the user's ISO-2 country code."""
+        if not self.country:
+            return ""
+        try:
+            from users.country_config import get_country_config
+            cfg = get_country_config(self.country)
+            if cfg and 'name' in cfg:
+                return cfg['name']
+        except Exception:
+            pass
+        return self.country
+
+    @property
     def has_selfie(self):
         return bool(self.id_selfie_image and hasattr(self.id_selfie_image, 'name') and self.id_selfie_image.name)
 

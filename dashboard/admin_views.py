@@ -266,12 +266,19 @@ class AdminUserListView(SuperAdminRequiredMixin, TemplateView):
 
         if query:
             from django.db.models import Q
+            from users.country_config import get_country_codes_for_query
+            matching_country_codes = get_country_codes_for_query(query)
+
+            country_q = Q(country__iexact=query)
+            if matching_country_codes:
+                country_q |= Q(country__in=matching_country_codes)
+
             users = users.filter(
                 Q(username__icontains=query) |
                 Q(email__icontains=query) |
                 Q(first_name__icontains=query) |
                 Q(last_name__icontains=query) |
-                Q(country__iexact=query) |
+                country_q |
                 Q(state__icontains=query) |
                 Q(lga__icontains=query) |
                 Q(id_number__icontains=query)
@@ -612,6 +619,57 @@ class AdminUserIdentityDocumentView(SuperAdminRequiredMixin, View):
 
         AuditLog.objects.create(
             action="ADMIN_VIEW_USER_IDENTITY_DOCUMENT",
+            performed_by=request.user,
+            details={"target_user_id": target_user.id, "target_username": target_user.username}
+        )
+        return response
+
+
+class AdminUserSelfieDocumentView(SuperAdminRequiredMixin, View):
+    section_name = "User Management"
+    required_permission = "users.view_user"
+    """
+    Secure in-browser streaming proxy for compliance officers to view the applicant's
+    live camera verification selfie directly from storage, with audit logging.
+    """
+    def get(self, request, public_id):
+        target_user = get_object_or_404(User, public_id=public_id)
+        if not target_user.has_selfie:
+            raise Http404("No verification selfie uploaded for this user.")
+
+        url = getattr(target_user.id_selfie_image, 'url', '')
+        as_download = request.GET.get('download') == '1'
+
+        if not as_download and url and url.startswith(('http://', 'https://')):
+            AuditLog.objects.create(
+                action="ADMIN_VIEW_USER_SELFIE",
+                performed_by=request.user,
+                details={"target_user_id": target_user.id, "target_username": target_user.username}
+            )
+            return HttpResponseRedirect(url)
+
+        try:
+            selfie_file = target_user.id_selfie_image.open('rb')
+        except Exception:
+            if url and url.startswith(('http://', 'https://')):
+                return HttpResponseRedirect(url)
+            raise Http404("Could not access the selfie image.")
+
+        ext = target_user.id_selfie_image.name.split('.')[-1].lower() if '.' in target_user.id_selfie_image.name else 'jpg'
+        content_type, _ = mimetypes.guess_type(target_user.id_selfie_image.name)
+        if not content_type:
+            content_type = 'image/jpeg'
+
+        disposition = 'attachment' if as_download else 'inline'
+        safe_name = f"Selfie_{slugify(target_user.username) or 'proof'}.{ext}"
+
+        response = HttpResponse(selfie_file.read(), content_type=content_type)
+        response['Content-Disposition'] = f'{disposition}; filename="{safe_name}"'
+        response['X-Frame-Options'] = 'SAMEORIGIN'
+        selfie_file.close()
+
+        AuditLog.objects.create(
+            action="ADMIN_VIEW_USER_SELFIE",
             performed_by=request.user,
             details={"target_user_id": target_user.id, "target_username": target_user.username}
         )
@@ -1171,9 +1229,22 @@ class AdminReportsView(SuperAdminRequiredMixin, TemplateView):
         if state_filter:
             reports = reports.filter(state=state_filter)
         if q:
-            reports = reports.filter(reference_number__icontains=q) | \
-                      reports.filter(title__icontains=q) | \
-                      reports.filter(reporter__username__icontains=q)
+            from django.db.models import Q
+            from users.country_config import get_country_codes_for_query
+            matching_codes = get_country_codes_for_query(q)
+
+            q_filter = (
+                Q(reference_number__icontains=q) |
+                Q(title__icontains=q) |
+                Q(reporter__username__icontains=q) |
+                Q(reporter__country__iexact=q) |
+                Q(reporter__state__icontains=q) |
+                Q(reporter__lga__icontains=q)
+            )
+            if matching_codes:
+                q_filter |= Q(reporter__country__in=matching_codes)
+
+            reports = reports.filter(q_filter)
 
         counts = {s[0]: FraudReport.objects.filter(state=s[0]).count() for s in FraudReport.STATES}
         try:
