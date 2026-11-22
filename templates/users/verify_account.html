@@ -87,90 +87,60 @@
                     </div>
                 </div>
 
-                <div class="row g-3">
+                <div class="d-flex flex-column gap-3 mb-3 w-100" id="verificationMethodWrap">
                     {# Option 1: Government Identity Document #}
-                    <div class="col-md-6">
-                        <div class="vng-method-card h-100 d-flex flex-column justify-content-between {% if selected_method == 'government_id' %}vng-method-active{% endif %}"
-                             id="methodCardGovId" onclick="selectVerificationMethod('government_id')">
+                    <div class="vng-method-card w-100 p-3 px-sm-4 py-sm-3.5 rounded-3 bg-white border {% if selected_method == 'government_id' %}vng-method-active{% endif %} shadow-xs"
+                         id="methodCardGovId" onclick="selectVerificationMethod('government_id')"
+                         style="cursor: pointer; transition: all 0.15s ease; {% if selected_method != 'government_id' %}border-color: #E2E8F0;{% endif %}">
+                        <div class="d-flex align-items-center justify-content-between mb-1 gap-2 flex-wrap">
+                            <div class="d-flex align-items-center gap-2">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0F172A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0">
+                                    <rect x="3" y="4" width="18" height="16" rx="3"/>
+                                    <circle cx="9" cy="10" r="2"/>
+                                    <line x1="15" y1="8" x2="17" y2="8"/>
+                                    <line x1="15" y1="12" x2="17" y2="12"/>
+                                    <line x1="7" y1="16" x2="17" y2="16"/>
+                                </svg>
+                                <span class="fw-bold text-dark" style="font-size: 16px;">Government Identity Document</span>
+                            </div>
                             <div>
-                                <div class="d-flex align-items-center justify-content-between mb-3">
-                                    <div class="vng-method-icon rounded-3 d-inline-flex align-items-center justify-content-center flex-shrink-0"
-                                         style="width:42px;height:42px;background:#EFF6FF;color:#2563EB;">
-                                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <rect x="3" y="4" width="18" height="16" rx="3"/>
-                                            <circle cx="9" cy="10" r="2"/>
-                                            <line x1="15" y1="8" x2="17" y2="8"/><line x1="15" y1="12" x2="17" y2="12"/><line x1="7" y1="16" x2="17" y2="16"/>
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        {% if user_profile.identity_verified or user_profile.id_verification_status == 'verified' %}
-                                            <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 rounded-pill fw-semibold" style="font-size:12px;">✓ Verified</span>
-                                        {% elif user_profile.id_verification_status == 'pending' or user_profile.has_id_document and user_profile.id_verification_status != 'rejected' %}
-                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1 rounded-pill fw-semibold" style="font-size:12px;">Under Review</span>
-                                        {% else %}
-                                            <span class="badge rounded-pill fw-semibold" style="background:#0D6EFD;color:#ffffff;font-size:12px;padding:5px 14px;">Recommended</span>
-                                        {% endif %}
-                                    </div>
-                                </div>
-
-                                <h3 class="h6 fw-bold mb-2 text-dark" style="font-size:16px;">Government Identity Document</h3>
-                                <p class="text-muted small mb-0" style="font-size:13.5px;line-height:1.55;color:#475569;">
-                                    Verify your account using an official government ID of your country (NIN Slip, Voter's Card, Passport, or Driver's License).
-                                </p>
+                                {% if user_profile.identity_verified or user_profile.id_verification_status == 'verified' %}
+                                    <span class="badge rounded-pill fw-medium" style="background: #E8F8F0; color: #16A34A; font-size: 13px; padding: 4px 12px; border: 1px solid #C6F0D6;">✓ Verified</span>
+                                {% elif user_profile.id_verification_status == 'pending' or user_profile.has_id_document and user_profile.id_verification_status != 'rejected' %}
+                                    <span class="badge rounded-pill fw-medium" style="background: #EFF6FF; color: #2563EB; font-size: 13px; padding: 4px 12px; border: 1px solid #BFDBFE;">Under Review</span>
+                                {% else %}
+                                    <span class="badge rounded-pill fw-medium" style="background: #E8F8F0; color: #16A34A; font-size: 13px; padding: 4px 12px; border: 1px solid #C6F0D6;">Recommended</span>
+                                {% endif %}
                             </div>
-
-                            <div class="pt-3 mt-4 d-flex align-items-center justify-content-between">
-                                <span class="small fw-medium" style="font-size:13px;color:#334155;">Physical Government Proof</span>
-                                <span class="vng-method-status-pill {% if selected_method == 'government_id' %}vng-status-active{% else %}vng-status-idle{% endif %}">
-                                    {% if selected_method == 'government_id' %}
-                                        ✓ Selected
-                                    {% else %}
-                                        Select Method &rarr;
-                                    {% endif %}
-                                </span>
-                            </div>
+                        </div>
+                        <div class="text-muted" style="font-size: 14px; line-height: 1.45; color: #4B5563 !important;">
+                            Verify your account using an official government ID of your country (NIN Slip, Voter's Card, Passport, or Driver's License).
                         </div>
                     </div>
 
                     {# Option 2: Alternative Personhood Verification #}
-                    <div class="col-md-6">
-                        <div class="vng-method-card h-100 d-flex flex-column justify-content-between {% if selected_method == 'alternative' %}vng-method-active{% endif %}"
-                             id="methodCardAlternative" onclick="selectVerificationMethod('alternative')">
+                    <div class="vng-method-card w-100 p-3 px-sm-4 py-sm-3.5 rounded-3 bg-white border {% if selected_method == 'alternative' %}vng-method-active{% endif %} shadow-xs"
+                         id="methodCardAlternative" onclick="selectVerificationMethod('alternative')"
+                         style="cursor: pointer; transition: all 0.15s ease; {% if selected_method != 'alternative' %}border-color: #E2E8F0;{% endif %}">
+                        <div class="d-flex align-items-center justify-content-between mb-1 gap-2 flex-wrap">
+                            <div class="d-flex align-items-center gap-2">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0F172A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0">
+                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                                </svg>
+                                <span class="fw-bold text-dark" style="font-size: 16px;">Alternative Person Verification</span>
+                            </div>
                             <div>
-                                <div class="d-flex align-items-center justify-content-between mb-3">
-                                    <div class="vng-method-icon rounded-3 d-inline-flex align-items-center justify-content-center flex-shrink-0"
-                                         style="width:42px;height:42px;background:#F0FDF4;color:#16A34A;border:1px solid #DCFCE7;">
-                                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        {% if has_approved_path_b %}
-                                            <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 rounded-pill fw-semibold" style="font-size:12px;">✓ Community Approved</span>
-                                        {% elif has_pending_path_b %}
-                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1 rounded-pill fw-semibold" style="font-size:12px;">Under Review</span>
-                                        {% else %}
-                                            <span class="badge rounded-pill fw-medium" style="background:#F8FAFC;border:1px solid #E2E8F0;color:#64748B;font-size:12px;padding:5px 12px;">No ID Required</span>
-                                        {% endif %}
-                                    </div>
-                                </div>
-
-                                <h3 class="h6 fw-bold mb-2 text-dark" style="font-size:16px;">Alternative Person Verification</h3>
-                                <p class="text-muted small mb-0" style="font-size:13.5px;line-height:1.55;color:#475569;">
-                                    Establish genuine personhood to verify your account without an official government ID card to unlock the platform services .
-                                </p>
+                                {% if has_approved_path_b %}
+                                    <span class="badge rounded-pill fw-medium" style="background: #E8F8F0; color: #16A34A; font-size: 13px; padding: 4px 12px; border: 1px solid #C6F0D6;">✓ Community Approved</span>
+                                {% elif has_pending_path_b %}
+                                    <span class="badge rounded-pill fw-medium" style="background: #EFF6FF; color: #2563EB; font-size: 13px; padding: 4px 12px; border: 1px solid #BFDBFE;">Under Review</span>
+                                {% else %}
+                                    <span class="badge rounded-pill fw-medium" style="background: #F8FAFC; border: 1px solid #E2E8F0; color: #64748B; font-size: 13px; padding: 4px 12px;">No ID Required</span>
+                                {% endif %}
                             </div>
-
-                            <div class="pt-3 mt-4 d-flex align-items-center justify-content-between">
-                                <span class="small fw-medium" style="font-size:13px;color:#334155;">Live Selfie &bull; Personhood</span>
-                                <span class="vng-method-status-pill {% if selected_method == 'alternative' %}vng-status-active{% else %}vng-status-idle{% endif %}">
-                                    {% if selected_method == 'alternative' %}
-                                        ✓ Selected
-                                    {% else %}
-                                        Select Method &rarr;
-                                    {% endif %}
-                                </span>
-                            </div>
+                        </div>
+                        <div class="text-muted" style="font-size: 14px; line-height: 1.45; color: #4B5563 !important;">
+                            Establish genuine personhood to verify your account without an official government ID card to unlock the platform services .
                         </div>
                     </div>
                 </div>
@@ -1357,27 +1327,25 @@
     padding: 1.25rem !important;
 }
 
-/* ── Method Selection Cards ── */
+/* ── Method Selection Cards (Matching v2b.png Style) ── */
 .vng-method-card {
     background: #ffffff;
-    border: 1.5px solid #E2E8F0;
-    border-radius: 14px;
-    padding: 1.5rem;
-    box-shadow: 0 1px 3px rgba(15,23,42,0.04);
+    border: 1px solid #E2E8F0;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(15,23,42,0.04);
     cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: all 0.15s ease;
     user-select: none;
     position: relative;
+    width: 100%;
 }
 .vng-method-card:hover {
     border-color: #94A3B8;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(15,23,42,0.06);
 }
 .vng-method-card.vng-method-active {
-    border-color: #2563EB !important;
+    border: 2px solid #2563EB !important;
     background: #FFFFFF !important;
-    box-shadow: 0 0 0 3px rgba(37,99,235,0.12), 0 4px 16px rgba(37,99,235,0.06) !important;
+    box-shadow: 0 1px 3px rgba(15,23,42,0.04) !important;
 }
 .vng-radio-empty-circle {
     display: inline-block;
@@ -1574,18 +1542,30 @@ function selectVerificationMethod(method) {
     }
 
     if (method === 'alternative') {
-        cardGov.classList.remove('vng-method-active');
-        cardAlt.classList.add('vng-method-active');
-        containerGov.classList.add('d-none');
-        containerAlt.classList.remove('d-none');
+        if (cardGov) {
+            cardGov.classList.remove('vng-method-active');
+            cardGov.style.borderColor = '#E2E8F0';
+        }
+        if (cardAlt) {
+            cardAlt.classList.add('vng-method-active');
+            cardAlt.style.borderColor = '';
+        }
+        if (containerGov) containerGov.classList.add('d-none');
+        if (containerAlt) containerAlt.classList.remove('d-none');
         updateMethodRadio(cardGov, false);
         updateMethodRadio(cardAlt, true);
         window.history.replaceState(null, '', '?method=alternative');
     } else {
-        cardAlt.classList.remove('vng-method-active');
-        cardGov.classList.add('vng-method-active');
-        containerAlt.classList.add('d-none');
-        containerGov.classList.remove('d-none');
+        if (cardAlt) {
+            cardAlt.classList.remove('vng-method-active');
+            cardAlt.style.borderColor = '#E2E8F0';
+        }
+        if (cardGov) {
+            cardGov.classList.add('vng-method-active');
+            cardGov.style.borderColor = '';
+        }
+        if (containerAlt) containerAlt.classList.add('d-none');
+        if (containerGov) containerGov.classList.remove('d-none');
         updateMethodRadio(cardGov, true);
         updateMethodRadio(cardAlt, false);
         window.history.replaceState(null, '', '?method=government_id');
