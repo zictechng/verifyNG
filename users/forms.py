@@ -365,12 +365,11 @@ class PathBAlternativeVerificationForm(forms.ModelForm):
         help_text="Country of current physical residence"
     )
     residential_address = forms.CharField(
-        widget=forms.Textarea(attrs={
+        widget=forms.TextInput(attrs={
             'class': 'form-control',
-            'rows': 2,
-            'placeholder': 'Enter your full street address, city, and state'
+            'placeholder': 'Street address, landmark, or neighborhood (optional)'
         }),
-        required=True
+        required=False
     )
     declaration_statement = forms.CharField(
         widget=forms.Textarea(attrs={
@@ -378,12 +377,7 @@ class PathBAlternativeVerificationForm(forms.ModelForm):
             'rows': 3,
             'placeholder': 'I solemnly confirm that my identity is truthful and accurate...'
         }),
-        required=True,
-        min_length=20,
-        error_messages={
-            'required': 'A declaration statement confirming your identity is required.',
-            'min_length': 'Declaration statement must be at least 20 characters long.'
-        }
+        required=False
     )
 
     class Meta:
@@ -400,12 +394,32 @@ class PathBAlternativeVerificationForm(forms.ModelForm):
             'evidence_type': forms.Select(attrs={'class': 'form-select'}),
         }
 
+    def clean_residential_address(self):
+        addr = (self.cleaned_data.get('residential_address') or '').strip()
+        state = (self.data.get('state') or '').strip()
+        lga = (self.data.get('lga') or '').strip()
+        if not addr:
+            if state and lga:
+                addr = f"{lga}, {state}"
+            elif state:
+                addr = state
+            else:
+                addr = "Jurisdiction confirmed"
+        return addr
+
     def clean_declaration_statement(self):
         stmt = (self.cleaned_data.get('declaration_statement') or '').strip()
         if not stmt or len(stmt) < 20:
-            raise forms.ValidationError(
-                "A declaration statement of at least 20 characters confirming your identity is required."
-            )
+            if self.data.get('declaration_certified') in ('1', 'true', 'on', True):
+                stmt = (
+                    "I solemnly declare and certify that my submitted information is truthful and accurate, "
+                    "I am the sole person operating this account, I take full responsibility for reports "
+                    "I publish on VerifyNG, and I understand that false or fabricated reports will result in penalties."
+                )
+            else:
+                raise forms.ValidationError(
+                    "A declaration statement of at least 20 characters confirming your identity is required."
+                )
         return stmt
 
     def clean_selfie_image(self):

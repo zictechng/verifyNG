@@ -1316,69 +1316,632 @@
                     {# ── Path B Submission Form ── #}
                     {% if not has_approved_path_b and not has_pending_path_b %}
                     <div class="pt-2">
-                        <div class="alert alert-light border d-flex align-items-start gap-3 p-3 rounded-3 mb-3">
-                            <span style="font-size:18px;">📝</span>
-                            <div class="small text-muted" style="font-size:13px;">
-                                <strong>Challenge Requirement:</strong> Take a clear photo of yourself holding a handwritten piece of paper with your <strong>Full Name, Today's Date, and the word "VerifyNG"</strong>. This confirms live personhood without requiring a national passport or ID card.
+                        {# ── Path B Stepper Header & Progress Bar ── #}
+                        <div class="vng-wizard-header mb-4">
+                            <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
+                                <div>
+                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1 rounded-pill fw-semibold" id="altWizardStepBadge" style="font-size:11.5px;">
+                                        Step 1 of 7 &bull; Email Verification
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="progress" style="height: 6px; border-radius: 9999px; background: #E2E8F0;">
+                                <div id="altWizardProgressBar" class="progress-bar bg-primary" role="progressbar" style="width: 14.3%; transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);"></div>
+                            </div>
+
+                            {# Desktop / Tablet Stepper Indicators #}
+                            <div class="vng-stepper-pills mt-3 d-none d-md-flex align-items-center justify-content-between">
+                                <div class="vng-step-pill vng-step-active" id="altStepPill1" onclick="altWizardJumpToStep(1)">
+                                    <div class="vng-pill-num">1</div>
+                                    <div class="vng-pill-label">Email</div>
+                                </div>
+                                <div class="vng-step-connector" id="altStepConn1"></div>
+                                <div class="vng-step-pill" id="altStepPill2" onclick="altWizardJumpToStep(2)">
+                                    <div class="vng-pill-num">2</div>
+                                    <div class="vng-pill-label">Phone</div>
+                                </div>
+                                <div class="vng-step-connector" id="altStepConn2"></div>
+                                <div class="vng-step-pill" id="altStepPill3" onclick="altWizardJumpToStep(3)">
+                                    <div class="vng-pill-num">3</div>
+                                    <div class="vng-pill-label">Location</div>
+                                </div>
+                                <div class="vng-step-connector" id="altStepConn3"></div>
+                                <div class="vng-step-pill" id="altStepPill4" onclick="altWizardJumpToStep(4)">
+                                    <div class="vng-pill-num">4</div>
+                                    <div class="vng-pill-label">Pose Photo</div>
+                                </div>
+                                <div class="vng-step-connector" id="altStepConn4"></div>
+                                <div class="vng-step-pill" id="altStepPill5" onclick="altWizardJumpToStep(5)">
+                                    <div class="vng-pill-num">5</div>
+                                    <div class="vng-pill-label">Live Selfie</div>
+                                </div>
+                                <div class="vng-step-connector" id="altStepConn5"></div>
+                                <div class="vng-step-pill" id="altStepPill6" onclick="altWizardJumpToStep(6)">
+                                    <div class="vng-pill-num">6</div>
+                                    <div class="vng-pill-label">Evidence</div>
+                                </div>
+                                <div class="vng-step-connector" id="altStepConn6"></div>
+                                <div class="vng-step-pill" id="altStepPill7" onclick="altWizardJumpToStep(7)">
+                                    <div class="vng-pill-num">7</div>
+                                    <div class="vng-pill-label">Declaration</div>
+                                </div>
                             </div>
                         </div>
 
-                        <form method="post" action="{% url 'users:verify_alternative_submit' %}" enctype="multipart/form-data" novalidate>
+                        {# Notice Area for Path B #}
+                        <div id="altWizardAlert" class="alert d-none mb-3 py-2 px-3 small rounded-3"></div>
+
+                        <form method="post" id="pathBVerificationForm" action="{% url 'users:verify_alternative_submit' %}" enctype="multipart/form-data" novalidate>
                             {% csrf_token %}
+                            <input type="hidden" name="evidence_type" value="selfie_card">
+                            <input type="hidden" name="email_verified" id="altHiddenEmailVerified" value="{% if is_email_verified %}true{% else %}false{% endif %}">
+                            <input type="hidden" name="phone_verified" id="altHiddenPhoneVerified" value="{% if is_phone_verified %}true{% else %}false{% endif %}">
 
-                            <div class="row g-3 mb-3">
-                                <div class="col-sm-6">
-                                    <label class="form-label small fw-semibold">Verification Challenge Format <span class="text-danger">*</span></label>
-                                    <select name="evidence_type" class="form-select" required style="font-size:15px;">
-                                        <option value="selfie_card" selected>Selfie with Handwritten Verification Card</option>
-                                    </select>
+                            {# ══════════════════════════════════════════════════════════════ #}
+                            {# STEP 1: Verify your email address                             #}
+                            {# ══════════════════════════════════════════════════════════════ #}
+                            <div class="vng-alt-step-pane" id="altStepPane1">
+                                <div class="d-flex align-items-start gap-3 mb-3">
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 text-primary"
+                                         style="width: 44px; height: 44px; background: #EFF6FF;">
+                                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                                            <polyline points="22,6 12,13 2,6"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h3 class="h5 fw-bold text-dark mb-1" style="font-size:18px;">1. Verify Your Email Address</h3>
+                                        <p class="text-muted small mb-0" style="font-size:13.5px; line-height: 1.5;">
+                                            We will send a 6-digit confirmation code (OTP) to your registered email address. Enter the code to verify your contact authenticity.
+                                        </p>
+                                    </div>
                                 </div>
-                                <div class="col-sm-6">
-                                    <label class="form-label small fw-semibold">Country of Physical Residence <span class="text-danger">*</span></label>
-                                    <select name="residential_country" class="form-select" required style="font-size:15px;">
-                                        {% for c_code, c_name in supported_countries %}
-                                            <option value="{{ c_code }}" {% if default_issuing_country == c_code or c_code == 'NG' %}selected{% endif %}>{{ c_name }} ({{ c_code }})</option>
-                                        {% endfor %}
-                                    </select>
+
+                                <div class="vng-wizard-card mb-3" style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:24px 20px !important;">
+                                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                        <div>
+                                            <div class="small text-muted fw-semibold mb-0.5" style="font-size:11.5px;">REGISTERED ACCOUNT EMAIL</div>
+                                            <div class="fw-bold text-dark" style="font-size:16px;">{{ request.user.email }}</div>
+                                        </div>
+                                        <div id="altEmailVerifiedBadgeWrap" class="d-flex align-items-center gap-2">
+                                            {% if is_email_verified %}
+                                                <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1.5 rounded-pill fw-semibold" style="font-size:12px;">
+                                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" class="me-1"><polyline points="20 6 9 17 4 12"/></svg>
+                                                    Email Address Confirmed
+                                                </span>
+                                                <button type="button" class="btn btn-sm btn-link text-muted text-decoration-none p-0 small" style="font-size:11.5px;" onclick="sendEmailOtp('alt')">
+                                                    (Re-verify)
+                                                </button>
+                                            {% else %}
+                                                <button type="button" id="btnSendAltEmailCode" class="btn btn-sm btn-primary fw-semibold px-3" onclick="sendEmailOtp('alt')">
+                                                    Send 6-Digit Email Code
+                                                </button>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+
+                                    <div id="altEmailOtpInputBlock" class="d-none mt-3 pt-3 border-top">
+                                        <div class="small text-muted mb-2" id="altEmailOtpStatusMsg">
+                                            A 6-digit confirmation code was sent to your inbox.
+                                        </div>
+                                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                                            <input type="text" id="altWizardEmailOtpCode" maxlength="6" class="form-control font-monospace text-center fw-bold"
+                                                   placeholder="Enter OTP Code" style="max-width: 260px; font-size: 16px; letter-spacing: 4px;">
+                                            <button type="button" id="btnVerifyAltEmailCode" class="btn btn-sm btn-success fw-semibold px-3" onclick="verifyEmailOtp('alt')">
+                                                Verify Email Code
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div id="altEmailOtpAlert" class="mt-2"></div>
+                                </div>
+
+                                <div class="d-flex justify-content-end pt-3 border-top">
+                                    <button type="button" class="btn btn-primary px-4 fw-semibold" onclick="altWizardNextStep()">
+                                        Continue to Phone Verification &rarr;
+                                    </button>
                                 </div>
                             </div>
 
-                            <div class="mb-3">
-                                <label class="form-label small fw-semibold">Physical Residential Address <span class="text-danger">*</span></label>
-                                <textarea name="residential_address" class="form-control" rows="2" placeholder="Enter your full street address, landmark, city, and state" required style="font-size:15px;"></textarea>
-                            </div>
-
-                            <div class="row g-3 mb-3">
-                                <div class="col-sm-6">
-                                    <label class="form-label small fw-semibold d-flex justify-content-between align-items-center">
-                                        <span>Upload Selfie Challenge Photo <span class="text-danger">*</span></span>
-                                        <span class="badge bg-light text-secondary border fw-normal">JPG, PNG &bull; Max 5MB</span>
-                                    </label>
-                                    <input type="file" name="selfie_image" accept=".jpg,.jpeg,.png,.webp" class="form-control" required>
-                                    <div class="form-text small">Your face and the handwritten card must both be sharp and clearly legible.</div>
+                            {# ══════════════════════════════════════════════════════════════ #}
+                            {# STEP 2: Verify your phone number                             #}
+                            {# ══════════════════════════════════════════════════════════════ #}
+                            <div class="vng-alt-step-pane d-none" id="altStepPane2">
+                                <div class="d-flex align-items-start gap-3 mb-3">
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 text-success"
+                                         style="width: 44px; height: 44px; background: #ECFDF5;">
+                                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h3 class="h5 fw-bold text-dark mb-1" style="font-size:18px;">2. Verify Your Phone Number</h3>
+                                        <p class="text-muted small mb-0" style="font-size:13.5px; line-height: 1.5;">
+                                            We will send a 6-digit WhatsApp OTP to your mobile number. If WhatsApp is unavailable, you can switch to SMS verification.
+                                        </p>
+                                    </div>
                                 </div>
-                                <div class="col-sm-6">
-                                    <label class="form-label small fw-semibold d-flex justify-content-between align-items-center">
-                                        <span>Supporting Document <span class="text-muted fw-normal">(Optional)</span></span>
-                                        <span class="badge bg-light text-secondary border fw-normal">PDF, JPG &bull; Max 5MB</span>
-                                    </label>
-                                    <input type="file" name="supporting_document" accept=".pdf,.jpg,.jpeg,.png" class="form-control">
-                                    <div class="form-text small">Utility bill, employment letter, or community reference proof (optional).</div>
+
+                                <div class="vng-wizard-card mb-3" style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:24px 20px !important;">
+                                    <div class="row g-3 align-items-center">
+                                        <div class="col-sm-7">
+                                            <label class="form-label small fw-semibold text-muted mb-1" style="font-size:11.5px;">MOBILE PHONE NUMBER (INTERNATIONAL FORMAT)</label>
+                                            <input type="tel" name="phone_number" id="altWizardPhoneInput" class="form-control"
+                                                   placeholder="+234 801 234 5678" value="{{ user_phone }}" style="font-size:15px;">
+                                        </div>
+                                        <div class="col-sm-5 d-flex align-items-end" id="altPhoneVerifiedBadgeWrap">
+                                            {% if is_phone_verified %}
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1.5 rounded-pill fw-semibold" style="font-size:12px;">
+                                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" class="me-1"><polyline points="20 6 9 17 4 12"/></svg>
+                                                        Phone Confirmed
+                                                    </span>
+                                                    <button type="button" class="btn btn-sm btn-link text-muted text-decoration-none p-0 small" style="font-size:11.5px;" onclick="sendPhoneOtp('whatsapp', 'alt')">
+                                                        (Change)
+                                                    </button>
+                                                </div>
+                                            {% else %}
+                                                <button type="button" id="btnSendAltPhoneOtp" class="btn btn-sm btn-success fw-semibold px-3 w-100" onclick="sendPhoneOtp('whatsapp', 'alt')">
+                                                    Send WhatsApp OTP
+                                                </button>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+
+                                    <div id="altPhoneOtpInputBlock" class="d-none mt-3 pt-3 border-top">
+                                        <div class="small text-muted mb-2" id="altPhoneOtpStatusMsg">
+                                            Enter the 6-digit verification code sent to your phone.
+                                        </div>
+                                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                                            <input type="text" id="altWizardPhoneOtpCode" maxlength="6" class="form-control font-monospace text-center fw-bold"
+                                                   placeholder="OTP Code" style="max-width: 220px; font-size: 16px; letter-spacing: 4px;">
+                                            <button type="button" id="btnVerifyAltPhoneOtp" class="btn btn-sm btn-success fw-semibold px-3" onclick="verifyPhoneOtp('alt')">
+                                                Verify Phone Code
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="sendPhoneOtp('sms', 'alt')" style="font-size:12px;">
+                                                Resend via SMS
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div id="altPhoneOtpAlert" class="mt-2"></div>
+                                </div>
+
+                                <div class="d-flex justify-content-between pt-3 border-top">
+                                    <button type="button" class="btn btn-outline-secondary px-3" onclick="altWizardPrevStep()">
+                                        &larr; Back
+                                    </button>
+                                    <button type="button" class="btn btn-primary px-4 fw-semibold" onclick="altWizardNextStep()">
+                                        Continue to Residential Info &rarr;
+                                    </button>
                                 </div>
                             </div>
 
-                            <div class="mb-3">
-                                <label class="form-label small fw-semibold">Personal Declaration Statement <span class="text-danger">*</span></label>
-                                <textarea name="declaration_statement" class="form-control" rows="3" placeholder="I solemnly declare that my identity, address, and personhood details submitted here are truthful and accurate. I understand that submitting false credentials will result in permanent account termination." required minlength="20" style="font-size:15px;"></textarea>
-                                <div class="form-text small">Minimum 20 characters required confirming the truthfulness of your submission.</div>
+                            {# ══════════════════════════════════════════════════════════════ #}
+                            {# STEP 3: Residential Information                               #}
+                            {# ══════════════════════════════════════════════════════════════ #}
+                            <div class="vng-alt-step-pane d-none" id="altStepPane3">
+                                <div class="d-flex align-items-start gap-3 mb-3">
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 text-primary"
+                                         style="width: 44px; height: 44px; background: #EFF6FF;">
+                                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                                            <circle cx="12" cy="10" r="3"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h3 class="h5 fw-bold text-dark mb-1" style="font-size:18px;">3. Provide Residential Information</h3>
+                                        <p class="text-muted small mb-0" style="font-size:13.5px; line-height: 1.5;">
+                                            Select your physical residence jurisdiction. This anchors community accountability under NDPA 2023 data minimization standards.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div class="vng-wizard-card mb-3" style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:24px 20px !important;">
+                                    <div class="row g-3 mb-3">
+                                        <div class="col-md-4">
+                                            <label class="form-label small fw-semibold text-muted mb-1" style="font-size:11.5px;">COUNTRY OF RESIDENCE <span class="text-danger">*</span></label>
+                                            <select name="residential_country" id="alt_residential_country" class="form-select" onchange="onAltCountryChange(this.value)" required style="font-size:14.5px;">
+                                                <option value="">-- Select Country --</option>
+                                                {% for c_code, c_name in supported_countries %}
+                                                    <option value="{{ c_code }}" {% if default_issuing_country == c_code or c_code == 'NG' %}selected{% endif %}>{{ c_name }} ({{ c_code }})</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label small fw-semibold text-muted mb-1" id="altStateLabel" style="font-size:11.5px;">STATE / REGION / PROVINCE <span class="text-danger">*</span></label>
+                                            <select name="state" id="alt_state_select" class="form-select" onchange="onAltStateChange(this.value)" required style="font-size:14.5px;">
+                                                <option value="">-- Select State/Region --</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label small fw-semibold text-muted mb-1" id="altLgaLabel" style="font-size:11.5px;">DISTRICT / MUNICIPALITY / LGA <span class="text-danger">*</span></label>
+                                            <select name="lga" id="alt_lga_select" class="form-select" style="font-size:14.5px;">
+                                                <option value="">-- Select LGA/District --</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-2">
+                                        <label class="form-label small fw-semibold text-muted mb-1" style="font-size:11.5px;">RESIDENTIAL LANDMARK OR NEIGHBORHOOD <span class="text-muted fw-normal">(Optional)</span></label>
+                                        <input type="text" name="residential_address" id="alt_residential_address" class="form-control"
+                                               placeholder="e.g. Near Community Center, Victoria Island, Ikeja (Optional street or landmark)" style="font-size:14.5px;">
+                                        <div class="form-text small mt-1 text-muted">
+                                            🔒 NDPA Data Minimization: We do not expose exact house numbers publicly. Your jurisdiction is anchored at the State &amp; LGA administrative level.
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex justify-content-between pt-3 border-top">
+                                    <button type="button" class="btn btn-outline-secondary px-3" onclick="altWizardPrevStep()">
+                                        &larr; Back
+                                    </button>
+                                    <button type="button" class="btn btn-primary px-4 fw-semibold" onclick="altWizardNextStep()">
+                                        Continue to Pose Challenge &rarr;
+                                    </button>
+                                </div>
                             </div>
 
-                            <div class="d-flex justify-content-between align-items-center pt-2">
-                                <span class="small text-muted" style="font-size:12px;">🔒 Stored in restricted private evidence vault with zero public access.</span>
-                                <button type="submit" class="btn btn-outline-dark btn-sm px-4 fw-semibold">
-                                    Submit Alternative Verification
-                                </button>
+                            {# ══════════════════════════════════════════════════════════════ #}
+                            {# STEP 4: Pose Challenge Photo (Step 5)                          #}
+                            {# ══════════════════════════════════════════════════════════════ #}
+                            <div class="vng-alt-step-pane d-none" id="altStepPane4">
+                                <div class="d-flex align-items-start gap-3 mb-3">
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 text-warning"
+                                         style="width: 44px; height: 44px; background: #FEF3C7;">
+                                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2">
+                                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                                            <circle cx="12" cy="13" r="4"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h3 class="h5 fw-bold text-dark mb-1" style="font-size:18px;">4. Pose Challenge Photo (Handwritten Verification Note)</h3>
+                                        <p class="text-muted small mb-0" style="font-size:13.5px; line-height: 1.5;">
+                                            Hold a handwritten note in front of you and capture a clear photograph. This establishes real-time live personhood without needing a government ID.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {# Visual Reference Box showing User's uploaded sample #}
+                                <div class="vng-wizard-card mb-3" style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:20px !important;">
+                                    <div class="row align-items-center g-3">
+                                        <div class="col-md-5 text-center">
+                                            <img src="{% static 'img/pose_challenge_sample.jpg' %}" alt="Pose Challenge Reference Sample" class="img-fluid rounded-3 border shadow-sm" style="max-height: 220px; object-fit: contain; width: 100%; background: #ffffff;">
+                                            <div class="small text-muted mt-1.5 fw-semibold" style="font-size:11.5px;">
+                                                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill me-1">Sample</span>
+                                                Hold handwritten note clearly beside or below your face
+                                            </div>
+                                        </div>
+                                        <div class="col-md-7">
+                                            <div class="p-3 rounded-3" style="background:#FFFFFF;border:1px solid #CBD5E1;">
+                                                <div class="text-uppercase fw-bold text-primary mb-2" style="font-size:12px;letter-spacing:0.5px;">Write these 4 items clearly on paper:</div>
+                                                <div class="bg-light p-2.5 rounded-2 font-monospace mb-2" style="font-size:14px;border-left:3px solid #2563EB;">
+                                                    <div class="fw-bold text-dark">1. VerifyNG</div>
+                                                    <div class="fw-bold text-primary">2. {{ request.user.get_full_name|default:request.user.username }}</div>
+                                                    <div class="fw-bold text-dark">3. {% now "d.m.Y" %} <span class="text-muted fw-normal" style="font-size:12px;">({% now "jS F Y" %})</span></div>
+                                                    <div class="fw-bold text-danger">4. {{ path_b_code|default:"VNG-582914" }}</div>
+                                                </div>
+                                                <ul class="small text-muted mb-0 ps-3" style="font-size:12.5px;line-height:1.6;">
+                                                    <li>Write with dark marker or pen on blank paper.</li>
+                                                    <li>Both your face and handwritten text must be sharp and legible.</li>
+                                                    <li>Do not wear dark sunglasses or heavy hats that obscure your face.</li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {# Photo Capture / Upload Card #}
+                                <div class="vng-wizard-card mb-3" style="background:#FFFFFF;border:1px solid #E2E8F0;border-radius:12px;padding:20px !important;">
+                                    <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+                                        <div class="fw-semibold text-dark small" style="font-size:14px;">Select Pose Photo Submission Method:</div>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <button type="button" class="btn btn-outline-primary active" id="btnAltPoseModeUpload" onclick="switchAltPoseMode('upload')">
+                                                📁 Upload File
+                                            </button>
+                                            <button type="button" class="btn btn-outline-primary" id="btnAltPoseModeCamera" onclick="switchAltPoseMode('camera')">
+                                                📷 Take Photo with Camera
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {# Mode A: File Upload #}
+                                    <div id="altPoseUploadWrap">
+                                        <label class="form-label small fw-semibold text-muted mb-1" style="font-size:11.5px;">UPLOAD POSE CHALLENGE PHOTO <span class="text-danger">*</span></label>
+                                        <input type="file" name="selfie_image" id="altPoseImageInput" accept=".jpg,.jpeg,.png,.webp" class="form-control" onchange="handleAltPoseFileChange(this)">
+                                        <div class="form-text small mt-1">Accepted formats: JPG, PNG, WEBP &bull; Maximum file size: 5MB</div>
+                                    </div>
+
+                                    {# Mode B: Camera Viewfinder #}
+                                    <div id="altPoseCameraWrap" class="d-none">
+                                        <div class="text-center p-3 rounded-3" style="background:#0F172A;color:#FFFFFF;">
+                                            <video id="altPoseCameraVideo" autoplay playsinline style="max-height:280px;width:100%;object-fit:cover;border-radius:8px;transform:scaleX(-1);"></video>
+                                            <canvas id="altPoseCameraCanvas" class="d-none"></canvas>
+                                            <div class="mt-2.5 d-flex align-items-center justify-content-center gap-2">
+                                                <button type="button" class="btn btn-sm btn-primary fw-semibold px-3" onclick="captureAltPoseFromCamera()">
+                                                    📸 Snap Photo
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-light" onclick="stopAltPoseCamera()">
+                                                    Cancel Camera
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <input type="hidden" name="selfie_image_data" id="altPoseImageData">
+
+                                    {# Preview of captured/selected image #}
+                                    <div id="altPosePreviewWrap" class="d-none mt-3 p-2.5 rounded-3 border bg-light text-center">
+                                        <div class="small fw-semibold text-success mb-1">✓ Pose Photo Ready</div>
+                                        <img id="altPosePreviewImg" src="" alt="Pose Photo Preview" class="rounded border" style="max-height: 180px; max-width: 100%;">
+                                        <div class="mt-1">
+                                            <button type="button" class="btn btn-sm btn-link text-danger text-decoration-none small" onclick="clearAltPosePhoto()">Remove &amp; Retake</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex justify-content-between pt-3 border-top">
+                                    <button type="button" class="btn btn-outline-secondary px-3" onclick="altWizardPrevStep()">
+                                        &larr; Back
+                                    </button>
+                                    <button type="button" class="btn btn-primary px-4 fw-semibold" onclick="altWizardNextStep()">
+                                        Continue to Live Selfie &rarr;
+                                    </button>
+                                </div>
                             </div>
+
+                            {# ══════════════════════════════════════════════════════════════ #}
+                            {# STEP 5: Live Selfie & Liveness Assessment (Step 5B)            #}
+                            {# ══════════════════════════════════════════════════════════════ #}
+                            <div class="vng-alt-step-pane d-none" id="altStepPane5">
+                                <div class="d-flex align-items-start gap-3 mb-3">
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 text-success"
+                                         style="width: 44px; height: 44px; background: #ECFDF5;">
+                                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2">
+                                            <circle cx="12" cy="12" r="10"/>
+                                            <circle cx="12" cy="10" r="3"/>
+                                            <path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h3 class="h5 fw-bold text-dark mb-1" style="font-size:18px;">5. Live Selfie &amp; Liveness Assessment</h3>
+                                        <p class="text-muted small mb-0" style="font-size:13.5px; line-height: 1.5;">
+                                            Perform a live front-camera selfie check. This biometric liveness assessment pairs directly with your pose challenge photo for anti-spoofing verification.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div class="vng-wizard-card mb-3" style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:20px !important;">
+                                    {# Live Camera Viewfinder #}
+                                    <div class="row g-3 align-items-center">
+                                        <div class="col-md-7 text-center">
+                                            <div class="p-3 rounded-3 position-relative" style="background:#0F172A;color:#FFFFFF;min-height:260px;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                                                <video id="altSelfieVideo" autoplay playsinline class="d-none" style="max-height:240px;width:100%;object-fit:cover;border-radius:8px;transform:scaleX(-1);"></video>
+                                                <canvas id="altSelfieCanvas" class="d-none"></canvas>
+
+                                                <div id="altSelfieIdleState" class="py-4">
+                                                    <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-2" style="width:64px;height:64px;background:rgba(255,255,255,0.1);color:#FFFFFF;">
+                                                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662"/></svg>
+                                                    </div>
+                                                    <div class="fw-semibold small">Front Camera Liveness Vetting</div>
+                                                    <div class="text-muted small mt-1" style="font-size:12px;">Click below to activate camera and assess live face positioning</div>
+                                                    <button type="button" class="btn btn-sm btn-primary fw-semibold px-3 mt-3" onclick="startAltSelfieCamera()">
+                                                        Activate Front Camera
+                                                    </button>
+                                                </div>
+
+                                                <div id="altSelfieActiveControls" class="d-none mt-2.5 d-flex align-items-center justify-content-center gap-2">
+                                                    <button type="button" class="btn btn-sm btn-success fw-semibold px-3" onclick="captureAltSelfie()">
+                                                        📸 Capture Live Selfie
+                                                    </button>
+                                                    <button type="button" class="btn btn-sm btn-light" onclick="stopAltSelfieCamera()">
+                                                        Cancel
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-md-5">
+                                            <div class="p-3 rounded-3 bg-white border">
+                                                <div class="fw-bold text-dark small mb-2" style="font-size:13px;">Liveness Guidance:</div>
+                                                <div class="d-flex align-items-center gap-2 small text-muted mb-2">
+                                                    <span class="badge bg-success-subtle text-success rounded-circle p-1">✓</span>
+                                                    <span>Position your head squarely in frame</span>
+                                                </div>
+                                                <div class="d-flex align-items-center gap-2 small text-muted mb-2">
+                                                    <span class="badge bg-success-subtle text-success rounded-circle p-1">✓</span>
+                                                    <span>Ensure balanced room lighting without glare</span>
+                                                </div>
+                                                <div class="d-flex align-items-center gap-2 small text-muted mb-2">
+                                                    <span class="badge bg-success-subtle text-success rounded-circle p-1">✓</span>
+                                                    <span>Blink or look directly into camera lens</span>
+                                                </div>
+
+                                                {# Fallback file upload if camera fails #}
+                                                <div class="mt-3 pt-3 border-top">
+                                                    <label class="form-label small fw-semibold text-muted mb-1" style="font-size:11.5px;">CAMERA UNAVAILABLE? UPLOAD DIRECTLY</label>
+                                                    <input type="file" name="id_selfie_image" id="altIdSelfieFileInput" accept=".jpg,.jpeg,.png,.webp" class="form-control form-control-sm" onchange="handleAltSelfieFileChange(this)">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <input type="hidden" name="id_selfie_data" id="altSelfieData">
+
+                                    {# Preview of captured live selfie #}
+                                    <div id="altSelfiePreviewWrap" class="d-none mt-3 p-2.5 rounded-3 border bg-light text-center">
+                                        <div class="small fw-semibold text-success mb-1">✓ Live Selfie Captured</div>
+                                        <img id="altSelfiePreviewImg" src="" alt="Live Selfie Preview" class="rounded-circle border" style="width: 120px; height: 120px; object-fit: cover;">
+                                        <div class="mt-1">
+                                            <button type="button" class="btn btn-sm btn-link text-danger text-decoration-none small" onclick="clearAltSelfiePhoto()">Retake Live Selfie</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex justify-content-between pt-3 border-top">
+                                    <button type="button" class="btn btn-outline-secondary px-3" onclick="altWizardPrevStep()">
+                                        &larr; Back
+                                    </button>
+                                    <button type="button" class="btn btn-primary px-4 fw-semibold" onclick="altWizardNextStep()">
+                                        Continue to Supporting Evidence &rarr;
+                                    </button>
+                                </div>
+                            </div>
+
+                            {# ══════════════════════════════════════════════════════════════ #}
+                            {# STEP 6: Supporting Evidence (Step 6 - Optional)                #}
+                            {# ══════════════════════════════════════════════════════════════ #}
+                            <div class="vng-alt-step-pane d-none" id="altStepPane6">
+                                <div class="d-flex align-items-start gap-3 mb-3">
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 text-secondary"
+                                         style="width: 44px; height: 44px; background: #F1F5F9;">
+                                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                            <polyline points="14 2 14 8 20 8"/>
+                                            <line x1="16" y1="13" x2="8" y2="13"/>
+                                            <line x1="16" y1="17" x2="8" y2="17"/>
+                                            <polyline points="10 9 9 9 8 9"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <h3 class="h5 fw-bold text-dark mb-0" style="font-size:18px;">6. Provide Optional Supporting Evidence</h3>
+                                            <span class="badge bg-light text-secondary border fw-normal" style="font-size:11.5px;">Strictly Optional</span>
+                                        </div>
+                                        <p class="text-muted small mb-0 mt-1" style="font-size:13.5px; line-height: 1.5;">
+                                            You may upload a non-ID supporting document to assist compliance officers. This does NOT require a government ID.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div class="vng-wizard-card mb-3" style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:24px 20px !important;">
+                                    <div class="row g-3 align-items-center">
+                                        <div class="col-md-7">
+                                            <label class="form-label small fw-semibold text-muted mb-1" style="font-size:11.5px;">SUPPORTING DOCUMENT <span class="text-muted fw-normal">(OPTIONAL)</span></label>
+                                            <input type="file" name="supporting_document" id="altSupportingDocInput" accept=".pdf,.jpg,.jpeg,.png" class="form-control" onchange="handleAltSupportingDocChange(this)">
+                                            <div class="form-text small mt-1">Accepted: PDF, JPG, PNG &bull; Max 5MB &bull; Examples: Utility bill, workplace letter, student ID, reference document.</div>
+                                        </div>
+                                        <div class="col-md-5">
+                                            <div class="p-3 rounded-3 bg-white border small text-muted" style="line-height:1.6;font-size:12.5px;">
+                                                <div class="fw-semibold text-dark mb-1">💡 No document on hand?</div>
+                                                You can skip this step and proceed immediately! Alternative Person Verification is designed so genuine reporters without documents can still publish.
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex justify-content-between pt-3 border-top">
+                                    <button type="button" class="btn btn-outline-secondary px-3" onclick="altWizardPrevStep()">
+                                        &larr; Back
+                                    </button>
+                                    <button type="button" class="btn btn-primary px-4 fw-semibold" onclick="altWizardNextStep()">
+                                        Continue to Declaration &amp; Review &rarr;
+                                    </button>
+                                </div>
+                            </div>
+
+                            {# ══════════════════════════════════════════════════════════════ #}
+                            {# STEP 7: Publisher Accountability Declaration & Review (Step 7/8) #}
+                            {# ══════════════════════════════════════════════════════════════ #}
+                            <div class="vng-alt-step-pane d-none" id="altStepPane7">
+                                <div class="d-flex align-items-start gap-3 mb-3">
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 text-primary"
+                                         style="width: 44px; height: 44px; background: #EFF6FF;">
+                                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                            <polyline points="14 2 14 8 20 8"/>
+                                            <path d="M9 15l2 2 4-4"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h3 class="h5 fw-bold text-dark mb-1" style="font-size:18px;">7. Review &amp; Publisher Accountability Declaration</h3>
+                                        <p class="text-muted small mb-0" style="font-size:13.5px; line-height: 1.5;">
+                                            Review your verification summary and affirm the Publisher Accountability Declaration before submitting for compliance review.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {# Review Summary Card #}
+                                <div class="vng-wizard-card mb-3" style="background:#FFFFFF;border:1px solid #E2E8F0;border-radius:12px;padding:20px !important;">
+                                    <div class="small fw-bold text-uppercase text-muted mb-2.5" style="font-size:11px;letter-spacing:0.5px;">Verification Summary</div>
+                                    <div class="row g-3 small">
+                                        <div class="col-sm-6">
+                                            <div class="p-2.5 rounded-2 bg-light border">
+                                                <div class="text-muted" style="font-size:11.5px;">Account Email</div>
+                                                <div class="fw-semibold text-dark mt-0.5">{{ request.user.email }} <span class="badge bg-success-subtle text-success py-0.5 px-1.5 ms-1">Verified</span></div>
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-6">
+                                            <div class="p-2.5 rounded-2 bg-light border">
+                                                <div class="text-muted" style="font-size:11.5px;">Verified Mobile</div>
+                                                <div class="fw-semibold text-dark mt-0.5" id="altReviewPhone">{{ user_phone|default:"Pending" }}</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-6">
+                                            <div class="p-2.5 rounded-2 bg-light border">
+                                                <div class="text-muted" style="font-size:11.5px;">Residential Jurisdiction</div>
+                                                <div class="fw-semibold text-dark mt-0.5" id="altReviewLocation">—</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-6">
+                                            <div class="p-2.5 rounded-2 bg-light border">
+                                                <div class="text-muted" style="font-size:11.5px;">Supporting Document</div>
+                                                <div class="fw-semibold text-dark mt-0.5" id="altReviewSupportDoc">None (Optional)</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-6">
+                                            <div class="p-2.5 rounded-2 bg-light border">
+                                                <div class="text-muted" style="font-size:11.5px;">Pose Challenge Photo</div>
+                                                <div class="fw-semibold text-success mt-0.5" id="altReviewPoseStatus">✓ Attached</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-6">
+                                            <div class="p-2.5 rounded-2 bg-light border">
+                                                <div class="text-muted" style="font-size:11.5px;">Live Selfie Liveness</div>
+                                                <div class="fw-semibold text-success mt-0.5" id="altReviewSelfieStatus">✓ Verified Live</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {# Publisher Accountability Declaration Box #}
+                                <div class="vng-wizard-card mb-3" style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:12px;padding:20px !important;">
+                                    <div class="d-flex align-items-center gap-2 mb-2">
+                                        <span style="font-size:18px;">⚖️</span>
+                                        <h6 class="fw-bold text-dark mb-0" style="font-size:14.5px;">Publisher Accountability Declaration</h6>
+                                    </div>
+                                    <p class="small text-muted mb-2.5" style="font-size:12.5px;">
+                                        By submitting this verification, you agree to uphold truth and accountability when publishing reports on VerifyNG:
+                                    </p>
+                                    <div class="bg-white p-3 rounded-3 border border-success-subtle mb-3 small" style="line-height:1.6;font-size:12.5px;">
+                                        <div class="mb-2"><strong>1. Truthfulness:</strong> All submitted details, location information, and photos belong to me and are authentic and truthful.</div>
+                                        <div class="mb-2"><strong>2. Sole Operation:</strong> I am the sole person operating this account and responsible for all actions taken through it.</div>
+                                        <div class="mb-2"><strong>3. Publisher Responsibility:</strong> I take personal responsibility for any scam, fraud, or misconduct incident reports I publish.</div>
+                                        <div><strong>4. Deterrence of Malice:</strong> I understand that publishing false, malicious, or fabricated reports is strictly prohibited and will result in permanent account termination and potential legal consequences.</div>
+                                    </div>
+
+                                    <div class="form-check p-3 bg-white border rounded-3 shadow-xs">
+                                        <input class="form-check-input ms-0 me-2" type="checkbox" name="declaration_certified" id="altDeclarationCertified" value="1" required checked onchange="toggleAltSubmitBtn()">
+                                        <label class="form-check-label small text-dark fw-semibold" for="altDeclarationCertified" style="font-size:13px; line-height:1.5;">
+                                            I accept and agree to the Publisher Accountability Declaration. All details provided are genuine and accurate.
+                                        </label>
+                                    </div>
+                                    <input type="hidden" name="declaration_statement" id="altDeclarationStatement" value="I solemnly declare and certify that my submitted information is truthful and accurate, I am the sole person operating this account, I take full responsibility for reports published, and understand consequences for false reports.">
+                                </div>
+
+                                <div class="d-flex justify-content-between align-items-center pt-3 border-top flex-wrap gap-2">
+                                    <button type="button" class="btn btn-outline-secondary px-3" onclick="altWizardPrevStep()">
+                                        &larr; Back
+                                    </button>
+                                    <div class="d-flex align-items-center gap-2 text-muted small" style="font-size:12.5px;">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.2" class="flex-shrink-0">
+                                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                                            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                                        </svg>
+                                        <span>🔒 Strictly Confidential: Stored in restricted private evidence vault with zero public access.</span>
+                                    </div>
+                                    <button type="submit" id="btnSubmitAltWizard" class="btn btn-vng-primary px-4 py-2 fw-semibold" style="font-size:13.5px;">
+                                        Submit for Compliance Review &rarr;
+                                    </button>
+                                </div>
+                            </div>
+
                         </form>
                     </div>
                     {% endif %}
@@ -1958,8 +2521,9 @@ function wizardNextStep(current) {
 }
 
 /* ── Step 1: Email OTP ── */
-function sendEmailOtp() {
-    const btn = document.getElementById('btnSendEmailCode');
+function sendEmailOtp(target = 'gov') {
+    const isAlt = target === 'alt';
+    const btn = document.getElementById(isAlt ? 'btnSendAltEmailCode' : 'btnSendEmailCode');
     if (btn) {
         btn.disabled = true;
         btn.textContent = 'Sending Code...';
@@ -1979,31 +2543,35 @@ function sendEmailOtp() {
             btn.disabled = false;
             btn.textContent = 'Resend Email Code';
         }
-        const block = document.getElementById('emailOtpInputBlock');
+        const block = document.getElementById(isAlt ? 'altEmailOtpInputBlock' : 'emailOtpInputBlock');
         if (block) block.classList.remove('d-none');
-        const msgEl = document.getElementById('emailOtpStatusMsg');
+        const msgEl = document.getElementById(isAlt ? 'altEmailOtpStatusMsg' : 'emailOtpStatusMsg');
         if (msgEl) {
             msgEl.textContent = data.message || 'Confirmation code sent to your inbox.';
             if (data.dev_code) {
                 msgEl.innerHTML = `${data.message}`;
             }
         }
-        showWizardNotice(data.message || 'Confirmation code sent to your inbox. Please check spam/promotions folder if not in inbox.', 'success', 'emailOtpAlert');
+        const alertId = isAlt ? 'altEmailOtpAlert' : 'emailOtpAlert';
+        showWizardNotice(data.message || 'Confirmation code sent to your inbox. Please check spam/promotions folder if not in inbox.', 'success', alertId);
     })
     .catch(() => {
         if (btn) {
             btn.disabled = false;
             btn.textContent = 'Send 6-Digit Email Code';
         }
-        showWizardNotice('Could not dispatch email verification code. Please try again.', 'danger', 'emailOtpAlert');
+        const alertId = isAlt ? 'altEmailOtpAlert' : 'emailOtpAlert';
+        showWizardNotice('Could not dispatch email verification code. Please try again.', 'danger', alertId);
     });
 }
 
-function verifyEmailOtp() {
-    const codeInput = document.getElementById('wizardEmailOtpCode');
+function verifyEmailOtp(target = 'gov') {
+    const isAlt = target === 'alt';
+    const codeInput = document.getElementById(isAlt ? 'altWizardEmailOtpCode' : 'wizardEmailOtpCode');
+    const alertId = isAlt ? 'altEmailOtpAlert' : 'emailOtpAlert';
     const code = codeInput ? codeInput.value.trim() : '';
     if (!code || code.length < 6) {
-        showWizardNotice('Please enter the 6-digit confirmation code from your email.', 'danger', 'emailOtpAlert');
+        showWizardNotice('Please enter the 6-digit confirmation code from your email.', 'danger', alertId);
         codeInput?.focus();
         return;
     }
@@ -2022,36 +2590,46 @@ function verifyEmailOtp() {
             isEmailVerified = true;
             const hiddenEmail = document.getElementById('wizard_email_verified');
             if (hiddenEmail) hiddenEmail.value = 'true';
+            const altHiddenEmail = document.getElementById('altHiddenEmailVerified');
+            if (altHiddenEmail) altHiddenEmail.value = 'true';
+
+            const badgeHtml = `<span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1.5 rounded-pill fw-semibold" style="font-size:12px;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" class="me-1"><polyline points="20 6 9 17 4 12"/></svg>
+                Email Address Confirmed
+            </span>`;
             const wrap = document.getElementById('emailVerifiedBadgeWrap');
-            if (wrap) {
-                wrap.innerHTML = `<span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1.5 rounded-pill fw-semibold" style="font-size:12px;">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" class="me-1"><polyline points="20 6 9 17 4 12"/></svg>
-                    Email Address Confirmed
-                </span>`;
-            }
+            if (wrap) wrap.innerHTML = badgeHtml;
+            const altWrap = document.getElementById('altEmailVerifiedBadgeWrap');
+            if (altWrap) altWrap.innerHTML = badgeHtml;
+
             const block = document.getElementById('emailOtpInputBlock');
             if (block) block.classList.add('d-none');
-            showWizardNotice('Email address verified successfully!', 'success', 'emailOtpAlert');
+            const altBlock = document.getElementById('altEmailOtpInputBlock');
+            if (altBlock) altBlock.classList.add('d-none');
+
+            showWizardNotice('Email address verified successfully!', 'success', alertId);
         } else {
-            showWizardNotice(data.message || 'Invalid code. Please check your inbox and try again.', 'danger', 'emailOtpAlert');
+            showWizardNotice(data.message || 'Invalid code. Please check your inbox and try again.', 'danger', alertId);
         }
     })
     .catch(() => {
-        showWizardNotice('Verification request failed. Please check connection and try again.', 'danger', 'emailOtpAlert');
+        showWizardNotice('Verification request failed. Please check connection and try again.', 'danger', alertId);
     });
 }
 
-/* ── Step 2: Phone OTP (WhatsApp & Telegram) ── */
-function sendPhoneOtp(channel) {
-    const phoneInput = document.getElementById('wizardPhoneInput');
+/* ── Step 2: Phone OTP (WhatsApp & SMS) ── */
+function sendPhoneOtp(channel, target = 'gov') {
+    const isAlt = target === 'alt';
+    const phoneInput = document.getElementById(isAlt ? 'altWizardPhoneInput' : 'wizardPhoneInput');
+    const alertId = isAlt ? 'altPhoneOtpAlert' : 'phoneOtpAlert';
     const phone = phoneInput ? phoneInput.value.trim() : '';
     if (!phone || phone.length < 8) {
-        showWizardNotice('Please enter a valid mobile number with country code (e.g. +234 801 234 5678).', 'danger', 'phoneOtpAlert');
+        showWizardNotice('Please enter a valid mobile number with country code (e.g. +234 801 234 5678).', 'danger', alertId);
         phoneInput?.focus();
         return;
     }
 
-    const waBtn = document.getElementById('btnSendWhatsAppOtp');
+    const waBtn = document.getElementById(isAlt ? 'btnSendAltPhoneOtp' : 'btnSendWhatsAppOtp');
     const tgBtn = document.getElementById('btnSendTelegramOtp') || document.getElementById('btnSendSmsOtp');
     if (waBtn) waBtn.disabled = true;
     if (tgBtn) tgBtn.disabled = true;
@@ -2069,9 +2647,9 @@ function sendPhoneOtp(channel) {
         if (waBtn) waBtn.disabled = false;
         if (tgBtn) tgBtn.disabled = false;
 
-        const block = document.getElementById('phoneOtpInputBlock');
+        const block = document.getElementById(isAlt ? 'altPhoneOtpInputBlock' : 'phoneOtpInputBlock');
         if (block) block.classList.remove('d-none');
-        const notice = document.getElementById('phoneOtpNotice');
+        const notice = document.getElementById(isAlt ? 'altPhoneOtpStatusMsg' : 'phoneOtpNotice');
         if (notice) {
             notice.textContent = data.message || 'Enter the 6-digit code sent to your phone:';
             if (data.dev_code) {
@@ -2088,8 +2666,7 @@ function sendPhoneOtp(channel) {
             tgWrap.classList.add('d-none');
         }
 
-        // Hide any previously displayed alert so redundant success banner is not shown
-        const alertEl = document.getElementById('phoneOtpAlert');
+        const alertEl = document.getElementById(alertId);
         if (alertEl) alertEl.classList.add('d-none');
 
         startPhoneResendTimer();
@@ -2097,7 +2674,7 @@ function sendPhoneOtp(channel) {
     .catch(() => {
         if (waBtn) waBtn.disabled = false;
         if (tgBtn) tgBtn.disabled = false;
-        showWizardNotice('Could not dispatch phone verification code. Please check number and try again.', 'danger', 'phoneOtpAlert');
+        showWizardNotice('Could not dispatch phone verification code. Please check number and try again.', 'danger', alertId);
     });
 }
 
@@ -2115,14 +2692,16 @@ function startPhoneResendTimer() {
     }, 1000);
 }
 
-function verifyPhoneOtp() {
-    const codeInput = document.getElementById('wizardPhoneOtpCode');
+function verifyPhoneOtp(target = 'gov') {
+    const isAlt = target === 'alt';
+    const codeInput = document.getElementById(isAlt ? 'altWizardPhoneOtpCode' : 'wizardPhoneOtpCode');
+    const phoneInput = document.getElementById(isAlt ? 'altWizardPhoneInput' : 'wizardPhoneInput');
+    const alertId = isAlt ? 'altPhoneOtpAlert' : 'phoneOtpAlert';
     const code = codeInput ? codeInput.value.trim() : '';
-    const phoneInput = document.getElementById('wizardPhoneInput');
     const phone = phoneInput ? phoneInput.value.trim() : '';
 
     if (!code || code.length < 6) {
-        showWizardNotice('Please enter the 6-digit verification code.', 'danger', 'phoneOtpAlert');
+        showWizardNotice('Please enter the 6-digit verification code.', 'danger', alertId);
         codeInput?.focus();
         return;
     }
@@ -2144,17 +2723,36 @@ function verifyPhoneOtp() {
             if (hiddenPhone) hiddenPhone.value = phone;
             if (hiddenPhoneVerified) hiddenPhoneVerified.value = 'true';
 
+            const altHiddenPhoneVerified = document.getElementById('altHiddenPhoneVerified');
+            if (altHiddenPhoneVerified) altHiddenPhoneVerified.value = 'true';
+
             const badge = document.getElementById('phoneVerifiedStatusBadge');
             if (badge) badge.classList.remove('d-none');
             const block = document.getElementById('phoneOtpInputBlock');
             if (block) block.classList.add('d-none');
-            showWizardNotice(data.message || 'Phone number verified successfully!', 'success', 'phoneOtpAlert');
+
+            const altBadgeWrap = document.getElementById('altPhoneVerifiedBadgeWrap');
+            if (altBadgeWrap) {
+                altBadgeWrap.innerHTML = `<div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1.5 rounded-pill fw-semibold" style="font-size:12px;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" class="me-1"><polyline points="20 6 9 17 4 12"/></svg>
+                        Phone Confirmed
+                    </span>
+                    <button type="button" class="btn btn-sm btn-link text-muted text-decoration-none p-0 small" style="font-size:11.5px;" onclick="sendPhoneOtp('whatsapp', 'alt')">
+                        (Change)
+                    </button>
+                </div>`;
+            }
+            const altBlock = document.getElementById('altPhoneOtpInputBlock');
+            if (altBlock) altBlock.classList.add('d-none');
+
+            showWizardNotice(data.message || 'Phone number verified successfully!', 'success', alertId);
         } else {
-            showWizardNotice(data.message || 'Invalid code. Please try again.', 'danger', 'phoneOtpAlert');
+            showWizardNotice(data.message || 'Invalid code. Please try again.', 'danger', alertId);
         }
     })
     .catch(() => {
-        showWizardNotice('Verification request failed. Please check connection and try again.', 'danger', 'phoneOtpAlert');
+        showWizardNotice('Verification request failed. Please check connection and try again.', 'danger', alertId);
     });
 }
 
@@ -3469,6 +4067,18 @@ function toggleWizardSubmitBtn() {
     }
 }
 
+function toggleAltSubmitBtn() {
+    const chk = document.getElementById('altCertifyCheckbox');
+    const btn = document.getElementById('btnSubmitAltVerification');
+    const hidden = document.getElementById('altDeclarationStatement');
+    if (btn && chk) {
+        btn.disabled = !chk.checked;
+        if (hidden) {
+            hidden.value = chk.checked ? "I solemnly declare and certify that my identity, residential address, and personhood challenge details submitted belong to me and are authentic and accurate. I understand that submitting false or misleading information will result in permanent account termination." : "";
+        }
+    }
+}
+
 /* ── DOM Initialization ── */
 document.addEventListener('DOMContentLoaded', function() {
     try {
@@ -3616,8 +4226,532 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Initialize first step
+    // Initialize first step for Government ID
     wizardShowStep(1);
+
+    // Initialize first step & location cascading for Alternative Person Verification (Path B)
+    initAltLocation(selectedCountryCode || 'NG', selectedState, selectedLga);
+    altWizardShowStep(1);
+});
+
+/* ══════════════════════════════════════════════════════════════════════════ */
+/* PATH B: ALTERNATIVE PERSON VERIFICATION WIZARD CONTROLLER                 */
+/* ══════════════════════════════════════════════════════════════════════════ */
+let altCurrentWizardStep = 1;
+const altTotalWizardSteps = 7;
+const altStepTitles = {
+    1: 'Email Verification',
+    2: 'Phone Verification',
+    3: 'Residential Information',
+    4: 'Pose Challenge Photo',
+    5: 'Live Selfie Liveness',
+    6: 'Supporting Evidence',
+    7: 'Declaration & Review'
+};
+
+let altPoseCameraStream = null;
+let altSelfieCameraStream = null;
+
+function altWizardShowStep(stepNum) {
+    if (stepNum < 1) stepNum = 1;
+    if (stepNum > altTotalWizardSteps) stepNum = altTotalWizardSteps;
+    altCurrentWizardStep = stepNum;
+
+    // Toggle step panes
+    for (let i = 1; i <= altTotalWizardSteps; i++) {
+        const pane = document.getElementById(`altStepPane${i}`);
+        if (pane) {
+            if (i === stepNum) {
+                pane.classList.remove('d-none');
+            } else {
+                pane.classList.add('d-none');
+            }
+        }
+    }
+
+    // Update progress bar & badge
+    const badge = document.getElementById('altWizardStepBadge');
+    if (badge) {
+        badge.innerHTML = `Step ${stepNum} of ${altTotalWizardSteps} &bull; ${altStepTitles[stepNum]}`;
+    }
+    const bar = document.getElementById('altWizardProgressBar');
+    const pVal = Math.round((stepNum / altTotalWizardSteps) * 100);
+    if (bar) bar.style.width = `${pVal}%`;
+
+    // Update stepper pills
+    for (let i = 1; i <= altTotalWizardSteps; i++) {
+        const pill = document.getElementById(`altStepPill${i}`);
+        const conn = document.getElementById(`altStepConn${i}`);
+        if (pill) {
+            pill.classList.remove('vng-step-active', 'vng-step-completed');
+            if (i === stepNum) {
+                pill.classList.add('vng-step-active');
+            } else if (i < stepNum) {
+                pill.classList.add('vng-step-completed');
+            }
+        }
+        if (conn) {
+            if (i < stepNum) {
+                conn.classList.add('vng-conn-completed');
+            } else {
+                conn.classList.remove('vng-conn-completed');
+            }
+        }
+    }
+
+    // Populate review summary when entering step 7
+    if (stepNum === 7) {
+        populateAltReviewSummary();
+    }
+
+    const container = document.getElementById('methodAlternativeContainer');
+    if (container && window.scrollY > container.offsetTop) {
+        container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+
+function altWizardNextStep() {
+    // Step validation
+    if (altCurrentWizardStep === 1) {
+        if (!isEmailVerified) {
+            showAltNotice('Please complete email verification before continuing.', 'danger');
+            return;
+        }
+    } else if (altCurrentWizardStep === 2) {
+        if (!isPhoneVerified) {
+            showAltNotice('Please complete mobile phone verification before continuing.', 'danger');
+            return;
+        }
+    } else if (altCurrentWizardStep === 3) {
+        const country = document.getElementById('alt_residential_country')?.value;
+        const state = document.getElementById('alt_state_select')?.value;
+        if (!country) {
+            showAltNotice('Please select your country of physical residence.', 'danger');
+            return;
+        }
+        if (!state) {
+            showAltNotice('Please select your state, region, or province.', 'danger');
+            return;
+        }
+    } else if (altCurrentWizardStep === 4) {
+        const fileInput = document.getElementById('altPoseImageInput');
+        const dataInput = document.getElementById('altPoseImageData');
+        const hasFile = fileInput && fileInput.files && fileInput.files.length > 0;
+        const hasData = dataInput && dataInput.value;
+        if (!hasFile && !hasData) {
+            showAltNotice('Please upload or snap your pose challenge photo holding the handwritten note.', 'danger');
+            return;
+        }
+    } else if (altCurrentWizardStep === 5) {
+        const selfieFileInput = document.getElementById('altIdSelfieFileInput');
+        const selfieDataInput = document.getElementById('altSelfieData');
+        const hasSelfie = selfieFileInput && selfieFileInput.files && selfieFileInput.files.length > 0;
+        const hasData = selfieDataInput && selfieDataInput.value;
+        if (!hasSelfie && !hasData) {
+            showAltNotice('Please complete live selfie capture or upload your clear facial photo.', 'danger');
+            return;
+        }
+    }
+
+    hideAltNotice();
+    altWizardShowStep(altCurrentWizardStep + 1);
+}
+
+function altWizardPrevStep() {
+    hideAltNotice();
+    altWizardShowStep(altCurrentWizardStep - 1);
+}
+
+function altWizardJumpToStep(stepNum) {
+    if (stepNum < altCurrentWizardStep) {
+        altWizardShowStep(stepNum);
+    } else if (stepNum === altCurrentWizardStep + 1) {
+        altWizardNextStep();
+    }
+}
+
+function showAltNotice(msg, type = 'danger') {
+    const el = document.getElementById('altWizardAlert');
+    if (el) {
+        el.className = `alert alert-${type} py-2 px-3 small rounded-3 mb-3 d-block`;
+        el.innerHTML = (type === 'success' ? '✓ ' : '⚠️ ') + msg;
+        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+}
+
+function hideAltNotice() {
+    const el = document.getElementById('altWizardAlert');
+    if (el) el.classList.add('d-none');
+}
+
+/* ── Path B Location Cascading Engine ── */
+function initAltLocation(countryCode, stateVal, lgaVal) {
+    const countrySelect = document.getElementById('alt_residential_country');
+    if (countrySelect && countryCode) {
+        countrySelect.value = countryCode;
+    }
+    onAltCountryChange(countryCode || 'NG', stateVal, lgaVal);
+}
+
+function onAltCountryChange(countryCode, preselectState = '', preselectLga = '') {
+    const stateSelect = document.getElementById('alt_state_select');
+    const lgaSelect = document.getElementById('alt_lga_select');
+    if (!stateSelect) return;
+
+    stateSelect.innerHTML = '<option value="">-- Select State/Region --</option>';
+    if (lgaSelect) {
+        lgaSelect.innerHTML = '<option value="">-- Select LGA/District --</option>';
+    }
+
+    if (!countryCode || !africanRegionsCatalog[countryCode]) {
+        return;
+    }
+
+    const regions = africanRegionsCatalog[countryCode].regions || {};
+    const regionNames = Object.keys(regions).sort();
+
+    regionNames.forEach(rName => {
+        const opt = document.createElement('option');
+        opt.value = rName;
+        opt.textContent = rName;
+        if (preselectState && rName.toLowerCase() === preselectState.toLowerCase()) {
+            opt.selected = true;
+        }
+        stateSelect.appendChild(opt);
+    });
+
+    if (stateSelect.value) {
+        onAltStateChange(stateSelect.value, preselectLga);
+    }
+}
+
+function onAltStateChange(stateName, preselectLga = '') {
+    const countryCode = document.getElementById('alt_residential_country')?.value || 'NG';
+    const lgaSelect = document.getElementById('alt_lga_select');
+    if (!lgaSelect) return;
+
+    lgaSelect.innerHTML = '<option value="">-- Select LGA/District --</option>';
+    if (!countryCode || !stateName || !africanRegionsCatalog[countryCode]) return;
+
+    const regions = africanRegionsCatalog[countryCode].regions || {};
+    const lgas = regions[stateName] || [];
+
+    lgas.forEach(lName => {
+        const opt = document.createElement('option');
+        opt.value = lName;
+        opt.textContent = lName;
+        if (preselectLga && lName.toLowerCase() === preselectLga.toLowerCase()) {
+            opt.selected = true;
+        }
+        lgaSelect.appendChild(opt);
+    });
+}
+
+/* ── Path B Pose Challenge Photo Camera & Upload Handlers ── */
+function switchAltPoseMode(mode) {
+    const btnUpload = document.getElementById('btnAltPoseModeUpload');
+    const btnCamera = document.getElementById('btnAltPoseModeCamera');
+    const wrapUpload = document.getElementById('altPoseUploadWrap');
+    const wrapCamera = document.getElementById('altPoseCameraWrap');
+
+    if (mode === 'camera') {
+        btnUpload?.classList.remove('active');
+        btnCamera?.classList.add('active');
+        wrapUpload?.classList.add('d-none');
+        wrapCamera?.classList.remove('d-none');
+        startAltPoseCamera();
+    } else {
+        btnCamera?.classList.remove('active');
+        btnUpload?.classList.add('active');
+        wrapCamera?.classList.add('d-none');
+        wrapUpload?.classList.remove('d-none');
+        stopAltPoseCamera();
+    }
+}
+
+function startAltPoseCamera() {
+    const video = document.getElementById('altPoseCameraVideo');
+    if (!video) return;
+
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }
+        })
+        .then(stream => {
+            altPoseCameraStream = stream;
+            video.srcObject = stream;
+            video.play();
+        })
+        .catch(err => {
+            showAltNotice('Could not access front camera. Please use file upload instead.', 'danger');
+            switchAltPoseMode('upload');
+        });
+    }
+}
+
+function stopAltPoseCamera() {
+    if (altPoseCameraStream) {
+        altPoseCameraStream.getTracks().forEach(t => t.stop());
+        altPoseCameraStream = null;
+    }
+}
+
+function captureAltPoseFromCamera() {
+    const video = document.getElementById('altPoseCameraVideo');
+    const canvas = document.getElementById('altPoseCameraCanvas');
+    if (!video || !canvas) return;
+
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+    document.getElementById('altPoseImageData').value = dataUrl;
+
+    const preview = document.getElementById('altPosePreviewImg');
+    const previewWrap = document.getElementById('altPosePreviewWrap');
+    if (preview && previewWrap) {
+        preview.src = dataUrl;
+        previewWrap.classList.remove('d-none');
+    }
+
+    stopAltPoseCamera();
+    const wrapCamera = document.getElementById('altPoseCameraWrap');
+    if (wrapCamera) wrapCamera.classList.add('d-none');
+    showAltNotice('Pose challenge photo captured successfully!', 'success');
+}
+
+function handleAltPoseFileChange(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const preview = document.getElementById('altPosePreviewImg');
+            const previewWrap = document.getElementById('altPosePreviewWrap');
+            if (preview && previewWrap) {
+                preview.src = e.target.result;
+                previewWrap.classList.remove('d-none');
+            }
+        };
+        reader.readAsDataURL(input.files[0]);
+        document.getElementById('altPoseImageData').value = '';
+    }
+}
+
+function clearAltPosePhoto() {
+    const fileInput = document.getElementById('altPoseImageInput');
+    if (fileInput) fileInput.value = '';
+    const dataInput = document.getElementById('altPoseImageData');
+    if (dataInput) dataInput.value = '';
+    const previewWrap = document.getElementById('altPosePreviewWrap');
+    if (previewWrap) previewWrap.classList.add('d-none');
+}
+
+/* ── Path B Live Selfie Camera Handlers ── */
+function startAltSelfieCamera() {
+    const video = document.getElementById('altSelfieVideo');
+    const idleState = document.getElementById('altSelfieIdleState');
+    const activeControls = document.getElementById('altSelfieActiveControls');
+    if (!video) return;
+
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
+        })
+        .then(stream => {
+            altSelfieCameraStream = stream;
+            video.srcObject = stream;
+            video.classList.remove('d-none');
+            if (idleState) idleState.classList.add('d-none');
+            if (activeControls) activeControls.classList.remove('d-none');
+            video.play();
+        })
+        .catch(err => {
+            showAltNotice('Could not access front camera. Please use file upload below.', 'danger');
+        });
+    }
+}
+
+function stopAltSelfieCamera() {
+    if (altSelfieCameraStream) {
+        altSelfieCameraStream.getTracks().forEach(t => t.stop());
+        altSelfieCameraStream = null;
+    }
+    const video = document.getElementById('altSelfieVideo');
+    const idleState = document.getElementById('altSelfieIdleState');
+    const activeControls = document.getElementById('altSelfieActiveControls');
+    if (video) video.classList.add('d-none');
+    if (idleState) idleState.classList.remove('d-none');
+    if (activeControls) activeControls.classList.add('d-none');
+}
+
+function captureAltSelfie() {
+    const video = document.getElementById('altSelfieVideo');
+    const canvas = document.getElementById('altSelfieCanvas');
+    if (!video || !canvas) return;
+
+    canvas.width = video.videoWidth || 480;
+    canvas.height = video.videoHeight || 480;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+    document.getElementById('altSelfieData').value = dataUrl;
+
+    const preview = document.getElementById('altSelfiePreviewImg');
+    const previewWrap = document.getElementById('altSelfiePreviewWrap');
+    if (preview && previewWrap) {
+        preview.src = dataUrl;
+        previewWrap.classList.remove('d-none');
+    }
+
+    stopAltSelfieCamera();
+    showAltNotice('Live selfie verified and captured!', 'success');
+}
+
+function handleAltSelfieFileChange(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const preview = document.getElementById('altSelfiePreviewImg');
+            const previewWrap = document.getElementById('altSelfiePreviewWrap');
+            if (preview && previewWrap) {
+                preview.src = e.target.result;
+                previewWrap.classList.remove('d-none');
+            }
+        };
+        reader.readAsDataURL(input.files[0]);
+        document.getElementById('altSelfieData').value = '';
+    }
+}
+
+function clearAltSelfiePhoto() {
+    const fileInput = document.getElementById('altIdSelfieFileInput');
+    if (fileInput) fileInput.value = '';
+    const dataInput = document.getElementById('altSelfieData');
+    if (dataInput) dataInput.value = '';
+    const previewWrap = document.getElementById('altSelfiePreviewWrap');
+    if (previewWrap) previewWrap.classList.add('d-none');
+}
+
+function handleAltSupportingDocChange(input) {
+    const el = document.getElementById('altReviewSupportDoc');
+    if (el) {
+        if (input.files && input.files[0]) {
+            el.textContent = input.files[0].name;
+        } else {
+            el.textContent = 'None (Optional)';
+        }
+    }
+}
+
+/* ── Path B Review Summary Population & Submission Gates ── */
+function populateAltReviewSummary() {
+    const phoneInput = document.getElementById('altWizardPhoneInput');
+    const reviewPhone = document.getElementById('altReviewPhone');
+    if (reviewPhone) {
+        const val = phoneInput ? phoneInput.value.trim() : '';
+        reviewPhone.innerHTML = val ? `${val} <span class="badge bg-success-subtle text-success py-0.5 px-1.5 ms-1">Verified</span>` : 'Pending';
+    }
+
+    const countrySelect = document.getElementById('alt_residential_country');
+    const stateSelect = document.getElementById('alt_state_select');
+    const lgaSelect = document.getElementById('alt_lga_select');
+    const reviewLocation = document.getElementById('altReviewLocation');
+    if (reviewLocation) {
+        const cName = countrySelect && countrySelect.selectedIndex >= 0 ? countrySelect.options[countrySelect.selectedIndex].text : '';
+        const sName = stateSelect ? stateSelect.value : '';
+        const lName = lgaSelect ? lgaSelect.value : '';
+        const locParts = [cName, sName, lName].filter(Boolean);
+        reviewLocation.textContent = locParts.length > 0 ? locParts.join(' • ') : '—';
+    }
+
+    const suppInput = document.getElementById('altSupportingDocInput');
+    const reviewSupp = document.getElementById('altReviewSupportDoc');
+    if (reviewSupp) {
+        if (suppInput && suppInput.files && suppInput.files.length > 0) {
+            reviewSupp.textContent = suppInput.files[0].name;
+        } else {
+            reviewSupp.textContent = 'None (Optional)';
+        }
+    }
+
+    const poseFile = document.getElementById('altPoseImageInput');
+    const poseData = document.getElementById('altPoseImageData');
+    const reviewPose = document.getElementById('altReviewPoseStatus');
+    if (reviewPose) {
+        const hasPose = (poseFile && poseFile.files && poseFile.files.length > 0) || (poseData && poseData.value);
+        reviewPose.textContent = hasPose ? '✓ Attached' : '⚠️ Missing';
+        reviewPose.className = hasPose ? 'fw-semibold text-success mt-0.5' : 'fw-semibold text-danger mt-0.5';
+    }
+
+    const selfieFile = document.getElementById('altIdSelfieFileInput');
+    const selfieData = document.getElementById('altSelfieData');
+    const reviewSelfie = document.getElementById('altReviewSelfieStatus');
+    if (reviewSelfie) {
+        const hasSelfie = (selfieFile && selfieFile.files && selfieFile.files.length > 0) || (selfieData && selfieData.value);
+        reviewSelfie.textContent = hasSelfie ? '✓ Verified Live' : '⚠️ Missing';
+        reviewSelfie.className = hasSelfie ? 'fw-semibold text-success mt-0.5' : 'fw-semibold text-danger mt-0.5';
+    }
+}
+
+function toggleAltSubmitBtn() {
+    const chk = document.getElementById('altDeclarationCertified');
+    const btn = document.getElementById('btnSubmitAltWizard');
+    if (btn && chk) {
+        btn.disabled = !chk.checked;
+    }
+}
+
+// Gate submission on form submit
+document.addEventListener('DOMContentLoaded', function() {
+    const altForm = document.getElementById('pathBVerificationForm');
+    if (altForm) {
+        altForm.addEventListener('submit', function(e) {
+            if (!isEmailVerified) {
+                e.preventDefault();
+                altWizardShowStep(1);
+                showAltNotice('Please complete email verification before submitting.', 'danger');
+                return;
+            }
+            if (!isPhoneVerified) {
+                e.preventDefault();
+                altWizardShowStep(2);
+                showAltNotice('Please complete phone verification before submitting.', 'danger');
+                return;
+            }
+            const country = document.getElementById('alt_residential_country')?.value;
+            const state = document.getElementById('alt_state_select')?.value;
+            if (!country || !state) {
+                e.preventDefault();
+                altWizardShowStep(3);
+                showAltNotice('Please specify your country and state of residence before submitting.', 'danger');
+                return;
+            }
+            const poseFile = document.getElementById('altPoseImageInput');
+            const poseData = document.getElementById('altPoseImageData');
+            if ((!poseFile || !poseFile.files || poseFile.files.length === 0) && (!poseData || !poseData.value)) {
+                e.preventDefault();
+                altWizardShowStep(4);
+                showAltNotice('Please provide your pose challenge photo holding the handwritten note.', 'danger');
+                return;
+            }
+            const selfieFile = document.getElementById('altIdSelfieFileInput');
+            const selfieData = document.getElementById('altSelfieData');
+            if ((!selfieFile || !selfieFile.files || selfieFile.files.length === 0) && (!selfieData || !selfieData.value)) {
+                e.preventDefault();
+                altWizardShowStep(5);
+                showAltNotice('Please complete your live selfie verification before submitting.', 'danger');
+                return;
+            }
+            const certCheckbox = document.getElementById('altDeclarationCertified');
+            if (!certCheckbox || !certCheckbox.checked) {
+                e.preventDefault();
+                showAltNotice('Please certify the Publisher Accountability Declaration before submitting.', 'danger');
+                return;
+            }
+        });
+    }
 });
 </script>
 {% endblock %}

@@ -437,6 +437,12 @@ class VerifyAccountView(LoginRequiredMixin, View):
         is_phone_verified = getattr(user, 'phone_verified', False) or bool(request.session.get('vng_verified_phone'))
         user_phone = getattr(user, 'phone_number', '') or request.session.get('vng_verified_phone', '')
 
+        # Generate or retrieve unique 6-digit verification code for Path B Pose Challenge
+        if 'vng_path_b_code' not in request.session:
+            import random
+            request.session['vng_path_b_code'] = f"VNG-{random.randint(100000, 999999)}"
+        path_b_code = request.session['vng_path_b_code']
+
         return render(request, self.template_name, {
             'user_profile': user,
             'supported_countries': supported_countries,
@@ -452,6 +458,7 @@ class VerifyAccountView(LoginRequiredMixin, View):
             'has_declined_gov_id': has_declined_gov_id,
             'is_account_verified': is_account_verified,
             'path_b_form': path_b_form,
+            'path_b_code': path_b_code,
             'selected_method': selected_method,
             'is_email_verified': is_email_verified,
             'is_phone_verified': is_phone_verified,
@@ -1035,7 +1042,12 @@ class PathBVerificationSubmitView(LoginRequiredMixin, View):
 
         # 3. Validate form
         from users.forms import PathBAlternativeVerificationForm
-        form = PathBAlternativeVerificationForm(request.POST, request.FILES)
+        files = request.FILES.copy()
+        if not files.get('selfie_image') and request.POST.get('selfie_image_data'):
+            pose_file = decode_base64_image(request.POST.get('selfie_image_data'), prefix=f"alt_pose_{user.pk}")
+            if pose_file:
+                files['selfie_image'] = pose_file
+        form = PathBAlternativeVerificationForm(request.POST, files)
         if not form.is_valid():
             for field, errors in form.errors.items():
                 for error in errors:
@@ -1046,6 +1058,48 @@ class PathBVerificationSubmitView(LoginRequiredMixin, View):
         submission = form.save(commit=False)
         submission.user = user
         submission.status = 'pending'
+
+        # Update contact credentials and verified standing
+        session = getattr(request, 'session', None)
+        sess_dict = session if hasattr(session, 'get') else {}
+        if sess_dict.get('vng_verified_email') or request.POST.get('email_verified') == 'true':
+            user.email_verified = True
+        if sess_dict.get('vng_verified_phone') or request.POST.get('phone_verified') == 'true':
+            user.phone_verified = True
+        phone_val = request.POST.get('phone_number', '').strip()
+        if phone_val:
+            user.phone_number = phone_val
+
+        # Update location: Country, State, LGA
+        country_val = submission.residential_country or request.POST.get('residential_country', '').strip()
+        state_val = request.POST.get('state', '').strip()
+        lga_val = request.POST.get('lga', '').strip()
+        if country_val:
+            user.country = country_val
+        if state_val and hasattr(user, 'state'):
+            user.state = state_val
+        if lga_val and hasattr(user, 'lga'):
+            user.lga = lga_val
+
+        # Optional street address combined with state/LGA
+        raw_addr = request.POST.get('residential_address', '').strip()
+        if raw_addr:
+            if state_val and lga_val and state_val not in raw_addr:
+                submission.residential_address = f"{raw_addr}, {lga_val}, {state_val}"
+            else:
+                submission.residential_address = raw_addr
+        elif state_val or lga_val:
+            submission.residential_address = f"{lga_val}, {state_val}".strip(', ')
+
+        # Handle Live Selfie (5B)
+        alt_selfie_doc = request.FILES.get('id_selfie_image')
+        if not alt_selfie_doc and request.POST.get('id_selfie_data'):
+            from users.views import decode_base64_image
+            alt_selfie_doc = decode_base64_image(request.POST.get('id_selfie_data'), prefix=f"alt_live_selfie_{user.pk}")
+        if alt_selfie_doc:
+            user.id_selfie_image = alt_selfie_doc
+
+        user.save()
         submission.save()
 
         # 5. Audit log entry
