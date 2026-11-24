@@ -20,7 +20,7 @@
         </a>
         {% elif request.user.role == 'individual' %}
         <a href="{% url 'users:register_company' %}"
-           class="text-decoration-none pb-2 px-1 text-nowrap small fw-semibold text-primary"
+           class="text-decoration-none pb-2 px-1 text-nowrap small fw-semibold {% if active_section == 'register_company' %}text-primary border-bottom border-2 border-primary{% else %}text-muted{% endif %}"
            style="font-size:13.5px;margin-bottom:-1px;">
             Switch to Employer
         </a>
@@ -98,7 +98,7 @@
             </a>
             {% elif request.user.role == 'individual' %}
             <a href="{% url 'users:register_company' %}"
-               class="vng-sidebar-link text-primary fw-semibold" style="background: rgba(16, 185, 129, 0.08);">
+               class="vng-sidebar-link {% if active_section == 'register_company' %}active{% endif %}">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
                 Switch to Employer
             </a>
@@ -141,7 +141,7 @@
                     Buy / Upgrade Plan
                 </a>
                 <a href="{% url 'merchant_landing' %}"
-                   class="vng-sidebar-link text-success fw-semibold" style="background:rgba(34,197,94,0.06);">
+                   class="vng-sidebar-link {% if active_section == 'merchant_seal' %}active{% endif %}">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="#16a34a"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
                     Merchant Trust Seal
                 </a>

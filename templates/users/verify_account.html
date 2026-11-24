@@ -695,7 +695,7 @@
                                                             class="vng-country-item btn btn-sm btn-light text-start d-flex align-items-center justify-content-between px-3 py-2.5 border-0 rounded-2 w-100"
                                                             data-code="{{ c_code }}"
                                                             data-name="{{ c_name }}"
-                                                            onclick="selectWizardCountry('{{ c_code }}', '{{ c_name }}')"
+                                                            onclick="selectWizardCountry(this.dataset.code, this.dataset.name)"
                                                             style="min-height: 42px; font-size: 14.5px; background: transparent;">
                                                         <span class="text-dark fw-medium vng-country-label">{{ c_name }}</span>
                                                         <span class="vng-country-check small fw-bold text-primary d-none">✓</span>
@@ -1011,7 +1011,7 @@
                                     <div>
                                         <h3 class="h5 fw-bold text-dark mb-1" style="font-size:18px;">6. Complete Selfie Verification Exercise</h3>
                                         <p class="text-muted small mb-0" style="font-size:13.5px; line-height: 1.5;">
-                                            Take a live biometric selfie to confirm your photo matches your document ID photo.
+                                            Take a live selfie to confirm your photo matches your document ID photo.
                                         </p>
                                     </div>
                                 </div>
@@ -1343,7 +1343,7 @@
                                 <div class="vng-step-connector" id="altStepConn2"></div>
                                 <div class="vng-step-pill" id="altStepPill3" onclick="altWizardJumpToStep(3)">
                                     <div class="vng-pill-num">3</div>
-                                    <div class="vng-pill-label">Location</div>
+                                    <div class="vng-pill-label">Country</div>
                                 </div>
                                 <div class="vng-step-connector" id="altStepConn3"></div>
                                 <div class="vng-step-pill" id="altStepPill4" onclick="altWizardJumpToStep(4)">
@@ -1448,7 +1448,7 @@
                             <div class="vng-alt-step-pane d-none" id="altStepPane2">
                                 <div class="d-flex align-items-start gap-3 mb-3">
                                     <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 text-success"
-                                         style="width: 44px; height: 44px; background: #ECFDF5;">
+                                         style="width: 44px; height: 44px; background: #F0FDF4;">
                                         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                             <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
                                         </svg>
@@ -1456,132 +1456,219 @@
                                     <div>
                                         <h3 class="h5 fw-bold text-dark mb-1" style="font-size:18px;">2. Verify Your Phone Number</h3>
                                         <p class="text-muted small mb-0" style="font-size:13.5px; line-height: 1.5;">
-                                            We will send a 6-digit WhatsApp OTP to your mobile number. If WhatsApp is unavailable, you can switch to SMS verification.
+                                            We will send a 6-digit One-Time (OTP) to your WhatsApp. Telegram fallback is provided if WhatsApp is not available.
                                         </p>
                                     </div>
                                 </div>
 
                                 <div class="vng-wizard-card mb-3" style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:24px 20px !important;">
-                                    <div class="row g-3 align-items-center">
-                                        <div class="col-sm-7">
-                                            <label class="form-label small fw-semibold text-muted mb-1" style="font-size:11.5px;">MOBILE PHONE NUMBER (INTERNATIONAL FORMAT)</label>
-                                            <input type="tel" name="phone_number" id="altWizardPhoneInput" class="form-control"
-                                                   placeholder="+234 801 234 5678" value="{{ user_phone }}" style="font-size:15px;">
+                                    <label class="form-label small fw-semibold text-dark">Mobile Phone Number <span class="text-danger">*</span></label>
+                                    <div class="input-group mb-2" style="max-width: 420px;">
+                                        <span class="input-group-text bg-white text-muted">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                                        </span>
+                                        <input type="tel" id="altWizardPhoneInput" name="phone_number" class="form-control" placeholder="+234 801 234 5678"
+                                               value="{{ user_phone }}" style="font-size: 15px;">
+                                    </div>
+                                    <div class="form-text small text-muted mb-3">Include international dial code (e.g. +234 for Nigeria, +233 for Ghana).</div>
+
+                                    {# Action buttons to dispatch OTP #}
+                                    <div class="d-flex align-items-center gap-2 flex-wrap mb-3" id="altPhoneDispatchBtnWrap">
+                                        <button type="button" id="btnSendAltWhatsAppOtp" class="btn btn-sm btn-success fw-semibold d-inline-flex align-items-center gap-1.5 px-3" onclick="sendPhoneOtp('whatsapp', 'alt')">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                                <path d="M12.031 2C6.516 2 2.031 6.484 2.031 12c0 2.188.703 4.219 1.906 5.891L2 22l4.25-1.891C7.875 21.234 9.891 22 12.031 22c5.516 0 10-4.484 10-10s-4.484-10-10-10zm0 18.281c-1.859 0-3.594-.594-5.016-1.609l-.359-.25-2.516 1.125 1.141-2.453-.266-.375C3.891 15.25 3.312 13.688 3.312 12c0-4.813 3.906-8.719 8.719-8.719 4.813 0 8.719 3.906 8.719 8.719 0 4.813-3.906 8.281-8.719 8.281z"/>
+                                            </svg>
+                                            Send Code via WhatsApp
+                                        </button>
+                                        <button type="button" id="btnSendAltTelegramOtp" class="btn btn-sm btn-outline-primary fw-semibold d-inline-flex align-items-center gap-1.5 px-3" onclick="sendPhoneOtp('telegram', 'alt')">
+                                            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.75-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/>
+                                            </svg>
+                                            Send via Telegram
+                                        </button>
+                                        <span id="altPhoneVerifiedStatusBadge" class="{% if not is_phone_verified %}d-none{% endif %} badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 rounded-pill">
+                                            ✓ Phone Number Verified
+                                        </span>
+                                    </div>
+
+                                    {# OTP input field container #}
+                                    <div id="altPhoneOtpInputBlock" class="d-none p-3 bg-white border rounded-3 mt-3" style="max-width: 100%;">
+                                        <div class="small fw-semibold text-dark mb-1" id="altPhoneOtpNotice">Enter the 6-digit code sent to your phone:</div>
+
+                                        {# Deep Link Action Button for Telegram #}
+                                        <div id="altTelegramActionWrap" class="d-none my-3 p-3 rounded-3" style="background:#F0F9FF;border:1px solid #BAE6FD;padding:18px 20px !important;">
+                                            <div class="small fw-medium mb-2.5" style="font-size:13.5px;color:#0369A1;line-height:1.45;">
+                                                Tap below to open <strong>@verifyNG_Bot</strong> on Telegram and click <strong>START</strong>:
+                                            </div>
+                                            <a id="btnOpenAltTelegramBot" href="#" target="_blank" class="btn btn-sm btn-primary fw-semibold d-inline-flex align-items-center px-3.5 py-2 shadow-sm" style="background:#0088cc;border-color:#0088cc;border-radius:8px;font-size:13.5px;">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" class="me-2" style="flex-shrink:0;">
+                                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.75-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/>
+                                                </svg>
+                                                Open @verifyNG_Bot to Get Code &rarr;
+                                            </a>
                                         </div>
-                                        <div class="col-sm-5 d-flex align-items-end" id="altPhoneVerifiedBadgeWrap">
-                                            {% if is_phone_verified %}
-                                                <div class="d-flex align-items-center gap-2">
-                                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1.5 rounded-pill fw-semibold" style="font-size:12px;">
-                                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" class="me-1"><polyline points="20 6 9 17 4 12"/></svg>
-                                                        Phone Confirmed
-                                                    </span>
-                                                    <button type="button" class="btn btn-sm btn-link text-muted text-decoration-none p-0 small" style="font-size:11.5px;" onclick="sendPhoneOtp('whatsapp', 'alt')">
-                                                        (Change)
-                                                    </button>
-                                                </div>
-                                            {% else %}
-                                                <button type="button" id="btnSendAltPhoneOtp" class="btn btn-sm btn-success fw-semibold px-3 w-100" onclick="sendPhoneOtp('whatsapp', 'alt')">
-                                                    Send WhatsApp OTP
-                                                </button>
-                                            {% endif %}
+
+                                        <div class="d-flex align-items-center gap-2 mb-2">
+                                            <input type="text" id="altWizardPhoneOtpCode" maxlength="6" class="form-control font-monospace text-center fw-bold fs-5"
+                                                   placeholder="Enter Code" style="letter-spacing: 6px; max-width: 200px;">
+                                            <button type="button" class="btn btn-primary fw-semibold px-3" onclick="verifyPhoneOtp('alt')">
+                                                Verify Code
+                                            </button>
+                                        </div>
+                                        <div class="small text-muted" id="altPhoneOtpTimerText">
+                                            Code valid for 10 minutes.
                                         </div>
                                     </div>
 
-                                    <div id="altPhoneOtpInputBlock" class="d-none mt-3 pt-3 border-top">
-                                        <div class="small text-muted mb-2" id="altPhoneOtpStatusMsg">
-                                            Enter the 6-digit verification code sent to your phone.
-                                        </div>
-                                        <div class="d-flex align-items-center gap-2 flex-wrap">
-                                            <input type="text" id="altWizardPhoneOtpCode" maxlength="6" class="form-control font-monospace text-center fw-bold"
-                                                   placeholder="OTP Code" style="max-width: 220px; font-size: 16px; letter-spacing: 4px;">
-                                            <button type="button" id="btnVerifyAltPhoneOtp" class="btn btn-sm btn-success fw-semibold px-3" onclick="verifyPhoneOtp('alt')">
-                                                Verify Phone Code
-                                            </button>
-                                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="sendPhoneOtp('sms', 'alt')" style="font-size:12px;">
-                                                Resend via SMS
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div id="altPhoneOtpAlert" class="mt-2"></div>
+                                    <div id="altPhoneOtpAlert" class="alert d-none py-2 px-3 small rounded-3 mt-3 mb-0" role="alert"></div>
                                 </div>
 
-                                <div class="d-flex justify-content-between pt-3 border-top">
+                                <div class="d-flex align-items-center justify-content-between pt-3 border-top flex-wrap gap-2">
                                     <button type="button" class="btn btn-outline-secondary px-3" onclick="altWizardPrevStep()">
-                                        &larr; Back
+                                        &larr; Back to Email
                                     </button>
-                                    <button type="button" class="btn btn-primary px-4 fw-semibold" onclick="altWizardNextStep()">
-                                        Continue to Residential Info &rarr;
+                                    <button type="button" class="btn btn-vng-primary px-4 fw-semibold" onclick="altWizardNextStep()">
+                                        Continue to Select Country &rarr;
                                     </button>
                                 </div>
                             </div>
 
                             {# ══════════════════════════════════════════════════════════════ #}
-                            {# STEP 3: Residential Information                               #}
+                            {# STEP 3: Select Country (formerly Location)                     #}
                             {# ══════════════════════════════════════════════════════════════ #}
                             <div class="vng-alt-step-pane d-none" id="altStepPane3">
                                 <div class="d-flex align-items-start gap-3 mb-3">
                                     <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 text-primary"
                                          style="width: 44px; height: 44px; background: #EFF6FF;">
                                         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-                                            <circle cx="12" cy="10" r="3"/>
+                                            <circle cx="12" cy="12" r="10"/>
+                                            <line x1="2" y1="12" x2="22" y2="12"/>
+                                            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
                                         </svg>
                                     </div>
                                     <div>
-                                        <h3 class="h5 fw-bold text-dark mb-1" style="font-size:18px;">3. Provide Residential Information</h3>
+                                        <h3 class="h5 fw-bold text-dark mb-1" style="font-size:18px;">3. Select Country of Residence</h3>
                                         <p class="text-muted small mb-0" style="font-size:13.5px; line-height: 1.5;">
-                                            Select your physical residence jurisdiction. This anchors community accountability under NDPA 2023 data minimization standards.
+                                            Select your country of physical residence. Regional and local administrative areas help anchor community reporting jurisdiction under NDPA standards.
                                         </p>
                                     </div>
                                 </div>
 
                                 <div class="vng-wizard-card mb-3" style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:24px 20px !important;">
-                                    <div class="row g-3 mb-3">
-                                        <div class="col-md-4">
-                                            <label class="form-label small fw-semibold text-muted mb-1" style="font-size:11.5px;">COUNTRY OF RESIDENCE <span class="text-danger">*</span></label>
-                                            <select name="residential_country" id="alt_residential_country" class="form-select" onchange="onAltCountryChange(this.value)" required style="font-size:14.5px;">
-                                                <option value="">-- Select Country --</option>
-                                                {% for c_code, c_name in supported_countries %}
-                                                    <option value="{{ c_code }}" {% if default_issuing_country == c_code or c_code == 'NG' %}selected{% endif %}>{{ c_name }} ({{ c_code }})</option>
-                                                {% endfor %}
-                                            </select>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <label class="form-label small fw-semibold text-muted mb-1" id="altStateLabel" style="font-size:11.5px;">STATE / REGION / PROVINCE <span class="text-danger">*</span></label>
-                                            <select name="state" id="alt_state_select" class="form-select" onchange="onAltStateChange(this.value)" required style="font-size:14.5px;">
-                                                <option value="">-- Select State/Region --</option>
-                                            </select>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <label class="form-label small fw-semibold text-muted mb-1" id="altLgaLabel" style="font-size:11.5px;">DISTRICT / MUNICIPALITY / LGA <span class="text-danger">*</span></label>
-                                            <select name="lga" id="alt_lga_select" class="form-select" style="font-size:14.5px;">
-                                                <option value="">-- Select LGA/District --</option>
-                                            </select>
+                                    <label class="form-label small fw-semibold text-dark mb-2" for="altCountryDropdownBtn">
+                                        Select Your Country <span class="text-danger">*</span>
+                                    </label>
+
+                                    {# Custom Searchable Select Dropdown #}
+                                    <div class="position-relative" id="altSearchableDropdownWrap" style="max-width: 460px;">
+                                        {# Dropdown Trigger Box #}
+                                        <button type="button"
+                                                id="altCountryDropdownBtn"
+                                                class="form-select text-start d-flex align-items-center justify-content-between bg-white w-100"
+                                                style="height: 48px; font-size: 15px; border-color: #CBD5E1; cursor: pointer;"
+                                                onclick="toggleAltCountryDropdown()">
+                                            <span id="altCountrySelectedText" class="text-muted">Select your country of residence...</span>
+                                        </button>
+
+                                        {# Dropdown Menu List Panel #}
+                                        <div id="altCountryDropdownMenu"
+                                             class="d-none position-absolute w-100 bg-white border rounded-3 shadow-lg p-2"
+                                             style="top: calc(100% + 4px); left: 0; z-index: 1050; border-color: #CBD5E1;">
+
+                                            {# Search Input inside Dropdown #}
+                                            <div class="p-1 mb-2">
+                                                <div class="input-group">
+                                                    <span class="input-group-text bg-light border-end-0 text-muted py-2">
+                                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                            <circle cx="11" cy="11" r="8"></circle>
+                                                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                                        </svg>
+                                                    </span>
+                                                    <input type="text"
+                                                           id="altCountrySearchInput"
+                                                           class="form-control bg-light border-start-0 py-2"
+                                                           placeholder="Type to search country..."
+                                                           oninput="filterAltWizardCountries(this.value)"
+                                                           style="font-size: 14px;">
+                                                </div>
+                                            </div>
+
+                                            {# Scrollable Country List #}
+                                            <div id="altCountryListScroll" style="max-height: 230px; overflow-y: auto; -webkit-overflow-scrolling: touch;">
+                                                <div class="d-flex flex-column gap-0.5" id="altCountryListContainer">
+                                                    {% for c_code, c_name in supported_countries %}
+                                                    <button type="button"
+                                                            class="alt-country-item btn btn-sm btn-light text-start d-flex align-items-center justify-content-between px-3 py-2.5 border-0 rounded-2 w-100"
+                                                            data-code="{{ c_code }}"
+                                                            data-name="{{ c_name }}"
+                                                            onclick="selectAltWizardCountry(this.dataset.code, this.dataset.name)"
+                                                            style="min-height: 42px; font-size: 14.5px; background: transparent;">
+                                                        <span class="text-dark fw-medium alt-country-label">{{ c_name }}</span>
+                                                        <span class="alt-country-check small fw-bold text-primary d-none">✓</span>
+                                                    </button>
+                                                    {% endfor %}
+                                                </div>
+                                                <div id="altCountryEmptyState" class="d-none text-center py-4 px-2 text-muted small">
+                                                    <div>No country found matching "<span id="altCountrySearchTerm"></span>".</div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
 
-                                    <div class="mb-2">
-                                        <label class="form-label small fw-semibold text-muted mb-1" style="font-size:11.5px;">RESIDENTIAL LANDMARK OR NEIGHBORHOOD <span class="text-muted fw-normal">(Optional)</span></label>
-                                        <input type="text" name="residential_address" id="alt_residential_address" class="form-control"
-                                               placeholder="e.g. Near Community Center, Victoria Island, Ikeja (Optional street or landmark)" style="font-size:14.5px;">
-                                        <div class="form-text small mt-1 text-muted">
-                                            🔒 NDPA Data Minimization: We do not expose exact house numbers publicly. Your jurisdiction is anchored at the State &amp; LGA administrative level.
+                                    {# Inline feedback alert for country selection #}
+                                    <div id="altCountrySelectAlert" class="alert d-none py-2 px-3 small rounded-3 mt-3 mb-0" role="alert"></div>
+
+                                    {# Regional & Administrative Details Card (Cascading) #}
+                                    <div id="altRegionalDetailsWrap" class="mt-4 pt-3 border-top d-none">
+                                        <div class="d-flex align-items-center justify-content-between mb-2">
+                                            <label class="form-label small fw-semibold text-dark mb-0 d-flex align-items-center gap-1.5" id="altStateLabel">
+                                                <span id="altStateLabelText">State / Region / Province</span>
+                                                <span class="badge bg-light text-secondary border fw-normal py-0.5 px-1.5" style="font-size:10.5px;">Optional</span>
+                                            </label>
+                                            <span class="text-muted small" style="font-size:11px;">For regional reporting jurisdiction</span>
                                         </div>
+
+                                        <div class="row g-2 mb-2">
+                                            {# State / Region / Province Select #}
+                                            <div class="col-sm-6">
+                                                <select id="alt_state_select" class="form-select bg-white" style="height: 46px; font-size: 14.5px; border-color: #CBD5E1;" onchange="onAltStateSelectChange()">
+                                                    <option value="">-- Select State --</option>
+                                                </select>
+                                            </div>
+
+                                            {# LGA / District / Municipality Select #}
+                                            <div class="col-sm-6">
+                                                <select id="alt_lga_select" class="form-select bg-white" style="height: 46px; font-size: 14.5px; border-color: #CBD5E1;" onchange="onAltLgaSelectChange()">
+                                                    <option value="">-- Select State First --</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <input type="hidden" name="residential_address" id="alt_residential_address" value="">
                                     </div>
+
+                                    {# Hidden inputs for form synchronization #}
+                                    <select name="residential_country" id="alt_residential_country" class="d-none">
+                                        <option value="">-- Select Country --</option>
+                                        {% for c_code, c_name in supported_countries %}
+                                            <option value="{{ c_code }}" {% if default_issuing_country == c_code %}selected{% endif %}>{{ c_name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <input type="hidden" name="state" id="alt_state_hidden" value="{{ user_profile.state|default:'' }}">
+                                    <input type="hidden" name="lga" id="alt_lga_hidden" value="{{ user_profile.lga|default:'' }}">
                                 </div>
 
-                                <div class="d-flex justify-content-between pt-3 border-top">
+                                <div class="d-flex align-items-center justify-content-between pt-3 border-top flex-wrap gap-2">
                                     <button type="button" class="btn btn-outline-secondary px-3" onclick="altWizardPrevStep()">
-                                        &larr; Back
+                                        &larr; Back to Phone
                                     </button>
-                                    <button type="button" class="btn btn-primary px-4 fw-semibold" onclick="altWizardNextStep()">
+                                    <button type="button" class="btn btn-vng-primary px-4 fw-semibold" onclick="altWizardNextStep()">
                                         Continue to Pose Challenge &rarr;
                                     </button>
                                 </div>
                             </div>
 
                             {# ══════════════════════════════════════════════════════════════ #}
-                            {# STEP 4: Pose Challenge Photo (Step 5)                          #}
+                            {# STEP 4: Pose Challenge Photo (Camera & Upload Matching Step 5)  #}
                             {# ══════════════════════════════════════════════════════════════ #}
                             <div class="vng-alt-step-pane d-none" id="altStepPane4">
                                 <div class="d-flex align-items-start gap-3 mb-3">
@@ -1629,156 +1716,243 @@
                                     </div>
                                 </div>
 
-                                {# Photo Capture / Upload Card #}
-                                <div class="vng-wizard-card mb-3" style="background:#FFFFFF;border:1px solid #E2E8F0;border-radius:12px;padding:20px !important;">
-                                    <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
-                                        <div class="fw-semibold text-dark small" style="font-size:14px;">Select Pose Photo Submission Method:</div>
-                                        <div class="btn-group btn-group-sm" role="group">
-                                            <button type="button" class="btn btn-outline-primary active" id="btnAltPoseModeUpload" onclick="switchAltPoseMode('upload')">
-                                                📁 Upload File
-                                            </button>
-                                            <button type="button" class="btn btn-outline-primary" id="btnAltPoseModeCamera" onclick="switchAltPoseMode('camera')">
-                                                📷 Take Photo with Camera
-                                            </button>
+                                <div class="vng-wizard-card mb-3" style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:24px 20px !important;">
+                                    {# Dual Choice Option Cards: Matching Gov ID Step 5 exactly #}
+                                    <div class="d-flex flex-column gap-3 mb-3 w-100" id="altPoseProvideMethodWrap">
+                                        {# Option A: Camera Capture #}
+                                        <div id="btnChooseAltPoseCamera"
+                                             class="w-100 p-3 px-sm-4 py-sm-3.5 rounded-3 bg-white border border-2 border-primary shadow-xs"
+                                             onclick="selectAltPoseMode('camera')"
+                                             style="cursor: pointer; transition: all 0.15s ease;">
+                                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0F172A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0">
+                                                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                                                        <circle cx="12" cy="13" r="4"/>
+                                                    </svg>
+                                                    <span class="fw-bold text-dark" style="font-size: 16px;">Capture photo with camera</span>
+                                                </div>
+                                                <span class="badge rounded-pill fw-medium" style="background: #E8F8F0; color: #16A34A; font-size: 13px; padding: 4px 12px; border: 1px solid #C6F0D6;">Recommended</span>
+                                            </div>
+                                            <div class="text-muted" style="font-size: 14px; line-height: 1.45; color: #4B5563 !important;">
+                                                Use your phone or webcam to take a clear photograph holding your handwritten note.
+                                            </div>
+                                        </div>
+
+                                        {# Option B: File Upload #}
+                                        <div id="btnChooseAltPoseUpload"
+                                             class="w-100 p-3 px-sm-4 py-sm-3.5 rounded-3 bg-white border shadow-xs"
+                                             onclick="selectAltPoseMode('upload')"
+                                             style="cursor: pointer; transition: all 0.15s ease; border-color: #E2E8F0;">
+                                            <div class="d-flex align-items-center mb-1">
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0F172A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0">
+                                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                                        <polyline points="17 8 12 3 7 8"/>
+                                                        <line x1="12" y1="3" x2="12" y2="15"/>
+                                                    </svg>
+                                                    <span class="fw-bold text-dark" style="font-size: 16px;">Upload an existing photo</span>
+                                                </div>
+                                            </div>
+                                            <div class="text-muted" style="font-size: 14px; line-height: 1.45; color: #4B5563 !important;">
+                                                Choose an existing photograph from your device.
+                                            </div>
                                         </div>
                                     </div>
 
-                                    {# Mode A: File Upload #}
-                                    <div id="altPoseUploadWrap">
-                                        <label class="form-label small fw-semibold text-muted mb-1" style="font-size:11.5px;">UPLOAD POSE CHALLENGE PHOTO <span class="text-danger">*</span></label>
-                                        <input type="file" name="selfie_image" id="altPoseImageInput" accept=".jpg,.jpeg,.png,.webp" class="form-control" onchange="handleAltPoseFileChange(this)">
-                                        <div class="form-text small mt-1">Accepted formats: JPG, PNG, WEBP &bull; Maximum file size: 5MB</div>
+                                    <div class="text-muted mb-3" style="font-size: 15px; color: #6B7280 !important;">
+                                        Accepted formats: JPG, JPEG and PNG. WEBP can also be supported where appropriate.
                                     </div>
 
-                                    {# Mode B: Camera Viewfinder #}
-                                    <div id="altPoseCameraWrap" class="d-none">
-                                        <div class="text-center p-3 rounded-3" style="background:#0F172A;color:#FFFFFF;">
-                                            <video id="altPoseCameraVideo" autoplay playsinline style="max-height:280px;width:100%;object-fit:cover;border-radius:8px;transform:scaleX(-1);"></video>
-                                            <canvas id="altPoseCameraCanvas" class="d-none"></canvas>
-                                            <div class="mt-2.5 d-flex align-items-center justify-content-center gap-2">
-                                                <button type="button" class="btn btn-sm btn-primary fw-semibold px-3" onclick="captureAltPoseFromCamera()">
+                                    {# Mode A: Compact Camera Viewfinder Panel (Matches Gov ID Step 5) #}
+                                    <div id="altPoseCameraPanel" class="text-center w-100">
+                                        <div class="rounded-3 p-3 mb-2" style="background:#0F172A;color:#FFFFFF;border:1px solid #1E293B;">
+                                            <div id="altPoseCameraViewWrap" class="position-relative mx-auto mb-2.5 overflow-hidden rounded-3" style="max-width: 480px; background:#000000; min-height: 200px;">
+                                                <video id="altPoseCameraVideo" autoplay playsinline muted class="w-100 h-100 d-none" style="object-fit: cover; max-height: 280px; transform: scaleX(-1);"></video>
+                                                <canvas id="altPoseCaptureCanvas" class="d-none"></canvas>
+
+                                                {# Card Guide Overlay Lines #}
+                                                <div id="altPoseCardGuide" class="position-absolute top-50 start-50 translate-middle border border-2 border-primary rounded-3 d-none pointer-events-none"
+                                                     style="width: 85%; height: 80%; border-style: dashed !important; box-shadow: 0 0 0 9999px rgba(0,0,0,0.5);">
+                                                    <span class="badge bg-primary text-white position-absolute top-0 start-50 translate-middle-x mt-1.5" style="font-size:10.5px;">Align Face &amp; Note Within Frame</span>
+                                                </div>
+
+                                                {# Placeholder state when camera is idle #}
+                                                <div id="altPoseCameraIdlePlaceholder" class="p-3 d-flex flex-column align-items-center justify-content-center" style="min-height: 200px;">
+                                                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="1.6" class="mb-2">
+                                                        <rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><line x1="15" y1="8" x2="17" y2="8"/><line x1="15" y1="12" x2="17" y2="12"/><line x1="7" y1="16" x2="17" y2="16"/>
+                                                    </svg>
+                                                    <div class="fw-semibold text-white small mb-1">Live Camera Ready</div>
+                                                    <div class="text-white-50" style="font-size:11.5px;">Click below to launch your camera and photograph yourself holding your note.</div>
+                                                </div>
+
+                                                {# Photo snapped preview inside camera wrap #}
+                                                <div id="altPoseCameraCapturedPreview" class="d-none position-relative">
+                                                    <img id="altPoseCapturedImgEl" class="w-100 rounded-3" style="max-height: 280px; object-fit: contain;" alt="Captured Pose Photo">
+                                                </div>
+                                            </div>
+
+                                            {# Viewfinder control buttons #}
+                                            <div class="d-flex align-items-center justify-content-center gap-2 flex-wrap">
+                                                <button type="button" id="btnStartAltPoseCamera" class="btn btn-primary fw-semibold px-3 py-1.5" style="font-size: 13.5px;" onclick="startAltPoseCamera()">
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                                                    Launch Camera
+                                                </button>
+                                                <button type="button" id="btnTakeAltPosePhoto" class="btn btn-success fw-bold px-3 py-1.5 d-none" style="font-size: 13.5px;" onclick="takeAltPosePhoto()">
                                                     📸 Snap Photo
                                                 </button>
-                                                <button type="button" class="btn btn-sm btn-light" onclick="stopAltPoseCamera()">
-                                                    Cancel Camera
+                                                <button type="button" id="btnRetakeAltPosePhoto" class="btn btn-outline-light btn-sm d-none" onclick="retakeAltPosePhoto()">
+                                                    Retake Photo
+                                                </button>
+                                                <button type="button" id="btnSwitchAltPoseCamera" class="btn btn-outline-light btn-sm d-none" onclick="switchAltPoseCamera()">
+                                                    Switch Camera
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {# Mode B: Compact File Upload Dropzone Panel (Matches Gov ID Step 5) #}
+                                    <div id="altPoseUploadPanel" class="d-none w-100">
+                                        <div id="altPoseUploadDropzone"
+                                             class="rounded-3 p-4 text-center bg-white mb-2"
+                                             onclick="document.getElementById('altPoseFileInput').click()"
+                                             style="border: 2px dashed #CBD5E1; cursor: pointer; transition: all 0.2s ease; background: #FFFFFF;">
+                                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="1.6" class="mb-2">
+                                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                                <polyline points="17 8 12 3 7 8"/>
+                                                <line x1="12" y1="3" x2="12" y2="15"/>
+                                            </svg>
+                                            <div class="fw-semibold text-dark small mb-0.5">Click to choose a photo, or drag and drop here</div>
+                                            <div class="text-muted" style="font-size: 12px;">JPG, PNG, WEBP up to 5MB</div>
+                                            <input type="file" name="selfie_image" id="altPoseFileInput" accept=".jpg,.jpeg,.png,.webp" class="d-none" onchange="handleAltPoseFileChange(this)">
+                                        </div>
+
+                                        {# Upload Ready Card #}
+                                        <div id="altPoseUploadReadyCard" class="d-none p-3 bg-white border border-success-subtle rounded-3 mb-2 shadow-xs">
+                                            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                                <div class="d-flex align-items-center gap-2.5">
+                                                    <img id="altPoseUploadThumbnail" src="" class="rounded border" style="width: 44px; height: 44px; object-fit: cover; display: none;" alt="Preview">
+                                                    <div>
+                                                        <div class="fw-semibold text-dark small" id="altPoseUploadFileName">photo.jpg</div>
+                                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-0.5 rounded-pill" style="font-size: 11px;">✓ File Attached</span>
+                                                    </div>
+                                                </div>
+                                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="removeAltPoseFile()">
+                                                    Change Photo
                                                 </button>
                                             </div>
                                         </div>
                                     </div>
                                     <input type="hidden" name="selfie_image_data" id="altPoseImageData">
-
-                                    {# Preview of captured/selected image #}
-                                    <div id="altPosePreviewWrap" class="d-none mt-3 p-2.5 rounded-3 border bg-light text-center">
-                                        <div class="small fw-semibold text-success mb-1">✓ Pose Photo Ready</div>
-                                        <img id="altPosePreviewImg" src="" alt="Pose Photo Preview" class="rounded border" style="max-height: 180px; max-width: 100%;">
-                                        <div class="mt-1">
-                                            <button type="button" class="btn btn-sm btn-link text-danger text-decoration-none small" onclick="clearAltPosePhoto()">Remove &amp; Retake</button>
-                                        </div>
-                                    </div>
                                 </div>
 
-                                <div class="d-flex justify-content-between pt-3 border-top">
+                                <div class="d-flex align-items-center justify-content-between pt-3 border-top flex-wrap gap-2">
                                     <button type="button" class="btn btn-outline-secondary px-3" onclick="altWizardPrevStep()">
-                                        &larr; Back
+                                        &larr; Back to Country
                                     </button>
-                                    <button type="button" class="btn btn-primary px-4 fw-semibold" onclick="altWizardNextStep()">
+                                    <button type="button" class="btn btn-vng-primary px-4 fw-semibold" onclick="altWizardNextStep()">
                                         Continue to Live Selfie &rarr;
                                     </button>
                                 </div>
                             </div>
 
                             {# ══════════════════════════════════════════════════════════════ #}
-                            {# STEP 5: Live Selfie & Liveness Assessment (Step 5B)            #}
+                            {# STEP 5: Live Selfie & Liveness (Matching Gov ID Step 6)         #}
                             {# ══════════════════════════════════════════════════════════════ #}
                             <div class="vng-alt-step-pane d-none" id="altStepPane5">
                                 <div class="d-flex align-items-start gap-3 mb-3">
                                     <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 text-success"
-                                         style="width: 44px; height: 44px; background: #ECFDF5;">
-                                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2">
-                                            <circle cx="12" cy="12" r="10"/>
-                                            <circle cx="12" cy="10" r="3"/>
-                                            <path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662"/>
+                                         style="width: 44px; height: 44px; background: #F0FDF4;">
+                                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
                                         </svg>
                                     </div>
                                     <div>
-                                        <h3 class="h5 fw-bold text-dark mb-1" style="font-size:18px;">5. Live Selfie &amp; Liveness Assessment</h3>
+                                        <h3 class="h5 fw-bold text-dark mb-1" style="font-size:18px;">5. Complete Selfie Verification Exercise</h3>
                                         <p class="text-muted small mb-0" style="font-size:13.5px; line-height: 1.5;">
-                                            Perform a live front-camera selfie check. This biometric liveness assessment pairs directly with your pose challenge photo for anti-spoofing verification.
+                                            Take a live selfie to confirm genuine personhood to verify your account.
                                         </p>
                                     </div>
                                 </div>
 
-                                <div class="vng-wizard-card mb-3" style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:20px !important;">
-                                    {# Live Camera Viewfinder #}
-                                    <div class="row g-3 align-items-center">
-                                        <div class="col-md-7 text-center">
-                                            <div class="p-3 rounded-3 position-relative" style="background:#0F172A;color:#FFFFFF;min-height:260px;display:flex;flex-direction:column;align-items:center;justify-content:center;">
-                                                <video id="altSelfieVideo" autoplay playsinline class="d-none" style="max-height:240px;width:100%;object-fit:cover;border-radius:8px;transform:scaleX(-1);"></video>
-                                                <canvas id="altSelfieCanvas" class="d-none"></canvas>
+                                <div class="vng-wizard-card mb-3" style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:24px 20px !important;">
+                                    {# Selfie Viewfinder Card #}
+                                    <div class="vng-camera-card mb-3 text-center w-100 position-relative" id="altSelfieCardContainer" style="background:#0F172A;color:#FFFFFF;border:1px solid #1E293B;border-radius:12px;padding:20px !important;transition:all 0.35s ease;">
+                                        <div id="altSelfieCameraViewWrap" class="position-relative mx-auto mb-3 overflow-hidden rounded-3" style="max-width: 440px; background:#000000; min-height: 280px;">
+                                            <video id="altSelfieCameraVideo" autoplay playsinline muted class="w-100 h-100 d-none" style="object-fit: cover; max-height: 320px; transform: scaleX(-1);"></video>
+                                            <canvas id="altSelfieCaptureCanvas" class="d-none"></canvas>
 
-                                                <div id="altSelfieIdleState" class="py-4">
-                                                    <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-2" style="width:64px;height:64px;background:rgba(255,255,255,0.1);color:#FFFFFF;">
-                                                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662"/></svg>
-                                                    </div>
-                                                    <div class="fw-semibold small">Front Camera Liveness Vetting</div>
-                                                    <div class="text-muted small mt-1" style="font-size:12px;">Click below to activate camera and assess live face positioning</div>
-                                                    <button type="button" class="btn btn-sm btn-primary fw-semibold px-3 mt-3" onclick="startAltSelfieCamera()">
-                                                        Activate Front Camera
-                                                    </button>
-                                                </div>
+                                            {# Oval Face Guide Overlay with dynamic active state #}
+                                            <div id="altSelfieOvalGuide" class="position-absolute top-50 start-50 translate-middle border border-2 border-warning d-none pointer-events-none"
+                                                 style="width: 220px; height: 260px; border-radius: 50% !important; border-style: dashed !important; box-shadow: 0 0 0 9999px rgba(0,0,0,0.55); transition: all 0.25s ease;">
+                                            </div>
 
-                                                <div id="altSelfieActiveControls" class="d-none mt-2.5 d-flex align-items-center justify-content-center gap-2">
-                                                    <button type="button" class="btn btn-sm btn-success fw-semibold px-3" onclick="captureAltSelfie()">
-                                                        📸 Capture Live Selfie
-                                                    </button>
-                                                    <button type="button" class="btn btn-sm btn-light" onclick="stopAltSelfieCamera()">
-                                                        Cancel
-                                                    </button>
-                                                </div>
+                                            {# High-Visibility Responsive Status Badge #}
+                                            <div id="altSelfieStatusBadgeWrap" class="position-absolute bottom-0 start-50 translate-middle-x mb-3 w-100 text-center px-2 d-none pointer-events-none" style="z-index: 25;">
+                                                <span id="altSelfieOvalStatusBadge" class="d-inline-flex align-items-center justify-content-center gap-2 px-3 py-2 rounded-pill fw-bold shadow"
+                                                      style="font-size: 13.5px; line-height: 1.35; max-width: 95%; background: #FEF08A; color: #854D0E; border: 1.5px solid #FACC15; backdrop-filter: blur(8px); word-break: break-word;">
+                                                    <span id="altSelfieStatusIcon" style="font-size: 15px;">👤</span> <span id="altSelfieStatusMsg">Center face inside oval</span>
+                                                </span>
+                                            </div>
+
+                                            {# Idle State #}
+                                            <div id="altSelfieIdlePlaceholder" class="p-4 d-flex flex-column align-items-center justify-content-center" style="min-height: 280px;">
+                                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="1.6" class="mb-2">
+                                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                                                </svg>
+                                                <div class="fw-semibold text-white small mb-1">Front Selfie Camera Ready</div>
+                                                <div class="text-white-50" style="font-size:12px;">Position face in good lighting. Click below to start camera.</div>
+                                            </div>
+
+                                            {# Captured Snapshot Preview #}
+                                            <div id="altSelfieCapturedPreview" class="d-none position-relative">
+                                                <img id="altSelfieCapturedImgEl" class="w-100 rounded-3" style="max-height: 320px; object-fit: contain;" alt="Captured Selfie">
                                             </div>
                                         </div>
 
-                                        <div class="col-md-5">
-                                            <div class="p-3 rounded-3 bg-white border">
-                                                <div class="fw-bold text-dark small mb-2" style="font-size:13px;">Liveness Guidance:</div>
-                                                <div class="d-flex align-items-center gap-2 small text-muted mb-2">
-                                                    <span class="badge bg-success-subtle text-success rounded-circle p-1">✓</span>
-                                                    <span>Position your head squarely in frame</span>
-                                                </div>
-                                                <div class="d-flex align-items-center gap-2 small text-muted mb-2">
-                                                    <span class="badge bg-success-subtle text-success rounded-circle p-1">✓</span>
-                                                    <span>Ensure balanced room lighting without glare</span>
-                                                </div>
-                                                <div class="d-flex align-items-center gap-2 small text-muted mb-2">
-                                                    <span class="badge bg-success-subtle text-success rounded-circle p-1">✓</span>
-                                                    <span>Blink or look directly into camera lens</span>
-                                                </div>
+                                        {# Selfie Viewfinder Controls #}
+                                        <div class="d-flex align-items-center justify-content-center gap-2 flex-wrap">
+                                            <button type="button" id="btnStartAltSelfieCamera" class="btn btn-primary fw-semibold px-4 py-2" onclick="startAltSelfieCamera()">
+                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                                                Launch Selfie Camera
+                                            </button>
+                                            <button type="button" id="btnTakeAltSelfiePhoto" class="btn btn-outline-light btn-sm px-3 py-1.5 d-none" onclick="takeAltSelfiePhoto()">
+                                                📸 Manual Capture
+                                            </button>
+                                            <button type="button" id="btnRetakeAltSelfiePhoto" class="btn btn-outline-light btn-sm d-none" onclick="retakeAltSelfiePhoto()">
+                                                Retake Selfie
+                                            </button>
+                                        </div>
 
-                                                {# Fallback file upload if camera fails #}
-                                                <div class="mt-3 pt-3 border-top">
-                                                    <label class="form-label small fw-semibold text-muted mb-1" style="font-size:11.5px;">CAMERA UNAVAILABLE? UPLOAD DIRECTLY</label>
-                                                    <input type="file" name="id_selfie_image" id="altIdSelfieFileInput" accept=".jpg,.jpeg,.png,.webp" class="form-control form-control-sm" onchange="handleAltSelfieFileChange(this)">
+                                        {# Inline feedback container #}
+                                        <div id="altSelfieCameraAlert" class="alert d-none py-2 px-3 small rounded-3 mt-3 mb-0" role="alert"></div>
+                                    </div>
+
+                                    {# Selfie Ready Status & Preview Card #}
+                                    <div id="altSelfieReadyPreviewCard" class="d-none p-3 bg-white border border-success-subtle rounded-3 mb-2 shadow-xs w-100">
+                                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                            <div class="d-flex align-items-center gap-2.5">
+                                                <img id="altSelfiePreviewThumbnail" src="" class="rounded border" style="width: 48px; height: 48px; object-fit: cover; display: none;" alt="Selfie Preview">
+                                                <div>
+                                                    <div class="d-flex align-items-center gap-1.5">
+                                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-0.5 rounded-pill fw-semibold" style="font-size: 11px;">✓ Liveness Confirmed</span>
+                                                    </div>
+                                                    <div class="fw-semibold text-dark small mt-0.5" id="altSelfieReadyFileName">Live Biometric Snapshot</div>
                                                 </div>
                                             </div>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary fw-medium px-2.5 py-1" style="font-size: 12.5px;" onclick="retakeAltSelfiePhoto()">
+                                                Retake Selfie
+                                            </button>
                                         </div>
                                     </div>
                                     <input type="hidden" name="id_selfie_data" id="altSelfieData">
-
-                                    {# Preview of captured live selfie #}
-                                    <div id="altSelfiePreviewWrap" class="d-none mt-3 p-2.5 rounded-3 border bg-light text-center">
-                                        <div class="small fw-semibold text-success mb-1">✓ Live Selfie Captured</div>
-                                        <img id="altSelfiePreviewImg" src="" alt="Live Selfie Preview" class="rounded-circle border" style="width: 120px; height: 120px; object-fit: cover;">
-                                        <div class="mt-1">
-                                            <button type="button" class="btn btn-sm btn-link text-danger text-decoration-none small" onclick="clearAltSelfiePhoto()">Retake Live Selfie</button>
-                                        </div>
-                                    </div>
                                 </div>
 
-                                <div class="d-flex justify-content-between pt-3 border-top">
+                                <div class="d-flex align-items-center justify-content-between pt-3 border-top flex-wrap gap-2">
                                     <button type="button" class="btn btn-outline-secondary px-3" onclick="altWizardPrevStep()">
-                                        &larr; Back
+                                        &larr; Back to Pose Photo
                                     </button>
-                                    <button type="button" class="btn btn-primary px-4 fw-semibold" onclick="altWizardNextStep()">
+                                    <button type="button" class="btn btn-vng-primary px-4 fw-semibold" onclick="altWizardNextStep()">
                                         Continue to Supporting Evidence &rarr;
                                     </button>
                                 </div>
@@ -1802,7 +1976,7 @@
                                     <div>
                                         <div class="d-flex align-items-center gap-2">
                                             <h3 class="h5 fw-bold text-dark mb-0" style="font-size:18px;">6. Provide Optional Supporting Evidence</h3>
-                                            <span class="badge bg-light text-secondary border fw-normal" style="font-size:11.5px;">Strictly Optional</span>
+                                            <span class="badge rounded-pill fw-semibold" style="background: #F1F5F9; color: #334155; border: 1.5px solid #94A3B8; font-size: 13px; padding: 4px 12px;">Strictly Optional</span>
                                         </div>
                                         <p class="text-muted small mb-0 mt-1" style="font-size:13.5px; line-height: 1.5;">
                                             You may upload a non-ID supporting document to assist compliance officers. This does NOT require a government ID.
@@ -1811,17 +1985,81 @@
                                 </div>
 
                                 <div class="vng-wizard-card mb-3" style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:24px 20px !important;">
-                                    <div class="row g-3 align-items-center">
-                                        <div class="col-md-7">
-                                            <label class="form-label small fw-semibold text-muted mb-1" style="font-size:11.5px;">SUPPORTING DOCUMENT <span class="text-muted fw-normal">(OPTIONAL)</span></label>
-                                            <input type="file" name="supporting_document" id="altSupportingDocInput" accept=".pdf,.jpg,.jpeg,.png" class="form-control" onchange="handleAltSupportingDocChange(this)">
-                                            <div class="form-text small mt-1">Accepted: PDF, JPG, PNG &bull; Max 5MB &bull; Examples: Utility bill, workplace letter, student ID, reference document.</div>
-                                        </div>
-                                        <div class="col-md-5">
-                                            <div class="p-3 rounded-3 bg-white border small text-muted" style="line-height:1.6;font-size:12.5px;">
-                                                <div class="fw-semibold text-dark mb-1">💡 No document on hand?</div>
-                                                You can skip this step and proceed immediately! Alternative Person Verification is designed so genuine reporters without documents can still publish.
+                                    {# Uniform Dropzone (Matching Step 4 Pose Photo dropzone) #}
+                                    <div id="altSupportingDocDropzone"
+                                         class="rounded-3 p-4 text-center bg-white mb-2"
+                                         onclick="document.getElementById('altSupportingDocInput').click()"
+                                         style="border: 2px dashed #CBD5E1; cursor: pointer; transition: all 0.2s ease; background: #FFFFFF;">
+                                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="1.6" class="mb-2">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                            <polyline points="14 2 14 8 20 8"/>
+                                            <line x1="12" y1="18" x2="12" y2="12"/>
+                                            <line x1="9" y1="15" x2="15" y2="15"/>
+                                        </svg>
+                                        <div class="fw-semibold text-dark small mb-0.5">Click to choose a document, or drag and drop here</div>
+                                        <div class="text-muted" style="font-size: 12px;">PDF, JPG, PNG up to 5MB (Utility bill, workplace letter, student ID, reference document)</div>
+                                        <input type="file" name="supporting_document" id="altSupportingDocInput" accept=".pdf,.jpg,.jpeg,.png" class="d-none" onchange="handleAltSupportingDocChange(this)">
+                                    </div>
+
+                                    {# Upload Ready Card #}
+                                    <div id="altSupportingDocReadyCard" class="d-none p-3 bg-white border border-success-subtle rounded-3 mb-2 shadow-xs">
+                                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                            <div class="d-flex align-items-center gap-2.5">
+                                                <div class="rounded d-flex align-items-center justify-content-center bg-light border text-primary" style="width: 44px; height: 44px;">
+                                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                                        <polyline points="14 2 14 8 20 8"/>
+                                                    </svg>
+                                                </div>
+                                                <div>
+                                                    <div class="fw-semibold text-dark small" id="altSupportingDocFileName">document.pdf</div>
+                                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-0.5 rounded-pill" style="font-size: 11px;">✓ File Attached</span>
+                                                </div>
                                             </div>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="removeAltSupportingDocFile()">
+                                                Change Document
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div class="p-3.5 rounded-3 bg-white border mt-3" style="font-size:13px; line-height:1.6;">
+                                        <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+                                            <span style="font-size: 16px;">💡</span>
+                                            <span class="fw-bold text-dark" style="font-size: 14px;">Recommended Supporting Documents (Optional)</span>
+                                            <span class="badge rounded-pill fw-semibold" style="background: #EFF6FF; color: #1D4ED8; border: 1.5px solid #93C5FD; font-size: 13px; padding: 4px 12px;">⚡ Helps Expedite Approval</span>
+                                        </div>
+                                        <div class="text-muted mb-2.5" style="font-size: 12.5px;">
+                                            Uploading any document bearing your name helps our compliance officers rapidly authenticate your identity and back up your account verification:
+                                        </div>
+                                        <div class="row g-2 mb-3">
+                                            <div class="col-sm-6">
+                                                <div class="d-flex align-items-center gap-2 p-2 rounded-2 bg-light border-0">
+                                                    <span class="text-primary fw-bold">⚡</span>
+                                                    <span class="text-dark small"><strong>Utility Bill:</strong> Electricity, water, or waste bill with your name</span>
+                                                </div>
+                                            </div>
+                                            <div class="col-sm-6">
+                                                <div class="d-flex align-items-center gap-2 p-2 rounded-2 bg-light border-0">
+                                                    <span class="text-primary fw-bold">🏦</span>
+                                                    <span class="text-dark small"><strong>Bank Statement:</strong> Recent e-statement or account proof</span>
+                                                </div>
+                                            </div>
+                                            <div class="col-sm-6">
+                                                <div class="d-flex align-items-center gap-2 p-2 rounded-2 bg-light border-0">
+                                                    <span class="text-primary fw-bold">🎓</span>
+                                                    <span class="text-dark small"><strong>Student / School ID:</strong> Active college or university ID card</span>
+                                                </div>
+                                            </div>
+                                            <div class="col-sm-6">
+                                                <div class="d-flex align-items-center gap-2 p-2 rounded-2 bg-light border-0">
+                                                    <span class="text-primary fw-bold">💼</span>
+                                                    <span class="text-dark small"><strong>Workplace Proof:</strong> Staff ID card or official employment letter</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex align-items-center gap-2 pt-2 border-top text-muted small" style="font-size: 12px;">
+                                            <span>ℹ️</span>
+                                            <span>Don't have any of these right now? No problem! This step is strictly optional—you can click <strong>"Continue to Declaration &amp; Review"</strong> to proceed immediately.</span>
                                         </div>
                                     </div>
                                 </div>
@@ -1857,45 +2095,89 @@
                                     </div>
                                 </div>
 
-                                {# Review Summary Card #}
-                                <div class="vng-wizard-card mb-3" style="background:#FFFFFF;border:1px solid #E2E8F0;border-radius:12px;padding:20px !important;">
-                                    <div class="small fw-bold text-uppercase text-muted mb-2.5" style="font-size:11px;letter-spacing:0.5px;">Verification Summary</div>
-                                    <div class="row g-3 small">
-                                        <div class="col-sm-6">
-                                            <div class="p-2.5 rounded-2 bg-light border">
-                                                <div class="text-muted" style="font-size:11.5px;">Account Email</div>
-                                                <div class="fw-semibold text-dark mt-0.5">{{ request.user.email }} <span class="badge bg-success-subtle text-success py-0.5 px-1.5 ms-1">Verified</span></div>
+                                {# Comprehensive Review Summary Table / Card (Uniform with Government ID Step 7) #}
+                                <div class="vng-wizard-card mb-3" style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:24px 20px !important;">
+                                    <div class="row g-3">
+                                        {# Item 1: Email #}
+                                        <div class="col-sm-6 border-bottom pb-2">
+                                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                                <span class="small text-muted fw-semibold" style="font-size:11px;">1. EMAIL ADDRESS</span>
+                                                <button type="button" class="btn btn-link p-0 text-primary text-decoration-none small" style="font-size:12px;" onclick="altWizardJumpToStep(1)">Edit</button>
+                                            </div>
+                                            <div class="fw-bold text-dark small text-truncate" id="altRevEmailVal">{{ request.user.email }}</div>
+                                            <div id="altRevEmailStatus" class="small mt-0.5" style="font-size:11.5px;">
+                                                {% if is_email_verified %}
+                                                    <span class="text-success">✓ Email Confirmed</span>
+                                                {% else %}
+                                                    <span class="text-warning">⚠ Email not verified</span>
+                                                {% endif %}
                                             </div>
                                         </div>
-                                        <div class="col-sm-6">
-                                            <div class="p-2.5 rounded-2 bg-light border">
-                                                <div class="text-muted" style="font-size:11.5px;">Verified Mobile</div>
-                                                <div class="fw-semibold text-dark mt-0.5" id="altReviewPhone">{{ user_phone|default:"Pending" }}</div>
+
+                                        {# Item 2: Phone #}
+                                        <div class="col-sm-6 border-bottom pb-2">
+                                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                                <span class="small text-muted fw-semibold" style="font-size:11px;">2. PHONE NUMBER</span>
+                                                <button type="button" class="btn btn-link p-0 text-primary text-decoration-none small" style="font-size:12px;" onclick="altWizardJumpToStep(2)">Edit</button>
+                                            </div>
+                                            <div class="fw-bold text-dark small" id="altRevPhoneVal">{{ user_phone|default:"—" }}</div>
+                                            <div id="altRevPhoneStatus" class="small mt-0.5" style="font-size:11.5px;">
+                                                {% if is_phone_verified %}
+                                                    <span class="text-success">✓ Verified via WhatsApp OTP</span>
+                                                {% elif user_phone %}
+                                                    <span class="text-warning">⚠ Phone not verified</span>
+                                                {% else %}
+                                                    <span class="text-muted">Not supplied</span>
+                                                {% endif %}
                                             </div>
                                         </div>
-                                        <div class="col-sm-6">
-                                            <div class="p-2.5 rounded-2 bg-light border">
-                                                <div class="text-muted" style="font-size:11.5px;">Residential Jurisdiction</div>
-                                                <div class="fw-semibold text-dark mt-0.5" id="altReviewLocation">—</div>
+
+                                        {# Item 3: Country & Region #}
+                                        <div class="col-sm-6 border-bottom pb-2">
+                                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                                <span class="small text-muted fw-semibold" style="font-size:11px;">3. COUNTRY OF RESIDENCE</span>
+                                                <button type="button" class="btn btn-link p-0 text-primary text-decoration-none small" style="font-size:12px;" onclick="altWizardJumpToStep(3)">Edit</button>
+                                            </div>
+                                            <div class="fw-bold text-dark small" id="altRevCountryVal">Not selected</div>
+                                            <div class="text-muted small mt-0.5" id="altRevRegionVal" style="font-size:11.5px;">Region not specified (Optional)</div>
+                                        </div>
+
+                                        {# Item 4: Pose Challenge Photo #}
+                                        <div class="col-sm-6 border-bottom pb-2">
+                                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                                <span class="small text-muted fw-semibold" style="font-size:11px;">4. POSE CHALLENGE PHOTO</span>
+                                                <button type="button" class="btn btn-link p-0 text-primary text-decoration-none small" style="font-size:12px;" onclick="altWizardJumpToStep(4)">Edit</button>
+                                            </div>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <img id="altRevPoseImgPreview" src="" alt="Pose Photo Preview" class="rounded border shadow-sm d-none" style="width:54px;height:40px;object-fit:cover;">
+                                                <span id="altRevPoseStatusText" class="small text-danger fw-medium" style="font-size:11.5px;">
+                                                    ⚠ Photo not taken
+                                                </span>
                                             </div>
                                         </div>
+
+                                        {# Item 5: Live Selfie Exercise #}
                                         <div class="col-sm-6">
-                                            <div class="p-2.5 rounded-2 bg-light border">
-                                                <div class="text-muted" style="font-size:11.5px;">Supporting Document</div>
-                                                <div class="fw-semibold text-dark mt-0.5" id="altReviewSupportDoc">None (Optional)</div>
+                                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                                <span class="small text-muted fw-semibold" style="font-size:11px;">5. SELFIE EXERCISE</span>
+                                                <button type="button" class="btn btn-link p-0 text-primary text-decoration-none small" style="font-size:12px;" onclick="altWizardJumpToStep(5)">Edit</button>
+                                            </div>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <img id="altRevSelfieImgPreview" src="" alt="Selfie Preview" class="rounded border shadow-sm d-none" style="width:40px;height:40px;object-fit:cover;border-radius:50%!important;">
+                                                <span id="altRevSelfieStatusText" class="small text-danger fw-medium" style="font-size:11.5px;">
+                                                    ⚠ Selfie not taken
+                                                </span>
                                             </div>
                                         </div>
+
+                                        {# Item 6: Supporting Evidence #}
                                         <div class="col-sm-6">
-                                            <div class="p-2.5 rounded-2 bg-light border">
-                                                <div class="text-muted" style="font-size:11.5px;">Pose Challenge Photo</div>
-                                                <div class="fw-semibold text-success mt-0.5" id="altReviewPoseStatus">✓ Attached</div>
+                                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                                <span class="small text-muted fw-semibold" style="font-size:11px;">6. SUPPORTING EVIDENCE</span>
+                                                <button type="button" class="btn btn-link p-0 text-primary text-decoration-none small" style="font-size:12px;" onclick="altWizardJumpToStep(6)">Edit</button>
                                             </div>
-                                        </div>
-                                        <div class="col-sm-6">
-                                            <div class="p-2.5 rounded-2 bg-light border">
-                                                <div class="text-muted" style="font-size:11.5px;">Live Selfie Liveness</div>
-                                                <div class="fw-semibold text-success mt-0.5" id="altReviewSelfieStatus">✓ Verified Live</div>
-                                            </div>
+                                            <div class="fw-bold text-dark small text-truncate" id="altRevSupportDocVal">None (Optional)</div>
+                                            <div id="altRevSupportDocStatus" class="small text-muted mt-0.5" style="font-size:11.5px;">Optional non-ID evidence</div>
                                         </div>
                                     </div>
                                 </div>
@@ -1929,13 +2211,6 @@
                                     <button type="button" class="btn btn-outline-secondary px-3" onclick="altWizardPrevStep()">
                                         &larr; Back
                                     </button>
-                                    <div class="d-flex align-items-center gap-2 text-muted small" style="font-size:12.5px;">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.2" class="flex-shrink-0">
-                                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                                            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                                        </svg>
-                                        <span>🔒 Strictly Confidential: Stored in restricted private evidence vault with zero public access.</span>
-                                    </div>
                                     <button type="submit" id="btnSubmitAltWizard" class="btn btn-vng-primary px-4 py-2 fw-semibold" style="font-size:13.5px;">
                                         Submit for Compliance Review &rarr;
                                     </button>
@@ -2629,8 +2904,8 @@ function sendPhoneOtp(channel, target = 'gov') {
         return;
     }
 
-    const waBtn = document.getElementById(isAlt ? 'btnSendAltPhoneOtp' : 'btnSendWhatsAppOtp');
-    const tgBtn = document.getElementById('btnSendTelegramOtp') || document.getElementById('btnSendSmsOtp');
+    const waBtn = isAlt ? (document.getElementById('btnSendAltWhatsAppOtp') || document.getElementById('btnSendAltPhoneOtp')) : document.getElementById('btnSendWhatsAppOtp');
+    const tgBtn = isAlt ? document.getElementById('btnSendAltTelegramOtp') : (document.getElementById('btnSendTelegramOtp') || document.getElementById('btnSendSmsOtp'));
     if (waBtn) waBtn.disabled = true;
     if (tgBtn) tgBtn.disabled = true;
 
@@ -2649,7 +2924,7 @@ function sendPhoneOtp(channel, target = 'gov') {
 
         const block = document.getElementById(isAlt ? 'altPhoneOtpInputBlock' : 'phoneOtpInputBlock');
         if (block) block.classList.remove('d-none');
-        const notice = document.getElementById(isAlt ? 'altPhoneOtpStatusMsg' : 'phoneOtpNotice');
+        const notice = document.getElementById(isAlt ? 'altPhoneOtpNotice' : 'phoneOtpNotice');
         if (notice) {
             notice.textContent = data.message || 'Enter the 6-digit code sent to your phone:';
             if (data.dev_code) {
@@ -2657,8 +2932,8 @@ function sendPhoneOtp(channel, target = 'gov') {
             }
         }
 
-        const tgWrap = document.getElementById('telegramActionWrap');
-        const tgLink = document.getElementById('btnOpenTelegramBot');
+        const tgWrap = document.getElementById(isAlt ? 'altTelegramActionWrap' : 'telegramActionWrap');
+        const tgLink = document.getElementById(isAlt ? 'btnOpenAltTelegramBot' : 'btnOpenTelegramBot');
         if (data.telegram_url && tgWrap && tgLink) {
             tgLink.href = data.telegram_url;
             tgWrap.classList.remove('d-none');
@@ -2728,6 +3003,8 @@ function verifyPhoneOtp(target = 'gov') {
 
             const badge = document.getElementById('phoneVerifiedStatusBadge');
             if (badge) badge.classList.remove('d-none');
+            const altBadge = document.getElementById('altPhoneVerifiedStatusBadge');
+            if (altBadge) altBadge.classList.remove('d-none');
             const block = document.getElementById('phoneOtpInputBlock');
             if (block) block.classList.add('d-none');
 
@@ -4230,7 +4507,9 @@ document.addEventListener('DOMContentLoaded', function() {
     wizardShowStep(1);
 
     // Initialize first step & location cascading for Alternative Person Verification (Path B)
-    initAltLocation(selectedCountryCode || 'NG', selectedState, selectedLga);
+    if (selectedCountryCode) {
+        initAltLocation(selectedCountryCode, selectedState, selectedLga);
+    }
     altWizardShowStep(1);
 });
 
@@ -4242,14 +4521,17 @@ const altTotalWizardSteps = 7;
 const altStepTitles = {
     1: 'Email Verification',
     2: 'Phone Verification',
-    3: 'Residential Information',
+    3: 'Select Country',
     4: 'Pose Challenge Photo',
-    5: 'Live Selfie Liveness',
+    5: 'Selfie Exercise',
     6: 'Supporting Evidence',
-    7: 'Declaration & Review'
+    7: 'Review & Submit'
 };
 
+let altSelectedCountryCode = '{{ default_issuing_country|default:"" }}';
+let altSelectedCountryName = '';
 let altPoseCameraStream = null;
+let activeAltPoseFacing = 'user';
 let altSelfieCameraStream = null;
 
 function altWizardShowStep(stepNum) {
@@ -4311,48 +4593,6 @@ function altWizardShowStep(stepNum) {
 }
 
 function altWizardNextStep() {
-    // Step validation
-    if (altCurrentWizardStep === 1) {
-        if (!isEmailVerified) {
-            showAltNotice('Please complete email verification before continuing.', 'danger');
-            return;
-        }
-    } else if (altCurrentWizardStep === 2) {
-        if (!isPhoneVerified) {
-            showAltNotice('Please complete mobile phone verification before continuing.', 'danger');
-            return;
-        }
-    } else if (altCurrentWizardStep === 3) {
-        const country = document.getElementById('alt_residential_country')?.value;
-        const state = document.getElementById('alt_state_select')?.value;
-        if (!country) {
-            showAltNotice('Please select your country of physical residence.', 'danger');
-            return;
-        }
-        if (!state) {
-            showAltNotice('Please select your state, region, or province.', 'danger');
-            return;
-        }
-    } else if (altCurrentWizardStep === 4) {
-        const fileInput = document.getElementById('altPoseImageInput');
-        const dataInput = document.getElementById('altPoseImageData');
-        const hasFile = fileInput && fileInput.files && fileInput.files.length > 0;
-        const hasData = dataInput && dataInput.value;
-        if (!hasFile && !hasData) {
-            showAltNotice('Please upload or snap your pose challenge photo holding the handwritten note.', 'danger');
-            return;
-        }
-    } else if (altCurrentWizardStep === 5) {
-        const selfieFileInput = document.getElementById('altIdSelfieFileInput');
-        const selfieDataInput = document.getElementById('altSelfieData');
-        const hasSelfie = selfieFileInput && selfieFileInput.files && selfieFileInput.files.length > 0;
-        const hasData = selfieDataInput && selfieDataInput.value;
-        if (!hasSelfie && !hasData) {
-            showAltNotice('Please complete live selfie capture or upload your clear facial photo.', 'danger');
-            return;
-        }
-    }
-
     hideAltNotice();
     altWizardShowStep(altCurrentWizardStep + 1);
 }
@@ -4363,11 +4603,8 @@ function altWizardPrevStep() {
 }
 
 function altWizardJumpToStep(stepNum) {
-    if (stepNum < altCurrentWizardStep) {
-        altWizardShowStep(stepNum);
-    } else if (stepNum === altCurrentWizardStep + 1) {
-        altWizardNextStep();
-    }
+    hideAltNotice();
+    altWizardShowStep(stepNum);
 }
 
 function showAltNotice(msg, type = 'danger') {
@@ -4384,57 +4621,150 @@ function hideAltNotice() {
     if (el) el.classList.add('d-none');
 }
 
-/* ── Path B Location Cascading Engine ── */
-function initAltLocation(countryCode, stateVal, lgaVal) {
-    const countrySelect = document.getElementById('alt_residential_country');
-    if (countrySelect && countryCode) {
-        countrySelect.value = countryCode;
+/* ── Path B Searchable Country Dropdown Engine (Matches Gov ID Step 3) ── */
+function toggleAltCountryDropdown() {
+    const menu = document.getElementById('altCountryDropdownMenu');
+    if (!menu) return;
+    const isClosed = menu.classList.contains('d-none');
+    if (isClosed) {
+        menu.classList.remove('d-none');
+        const input = document.getElementById('altCountrySearchInput');
+        if (input) {
+            input.value = '';
+            filterAltWizardCountries('');
+            setTimeout(() => input.focus(), 60);
+        }
+    } else {
+        menu.classList.add('d-none');
     }
-    onAltCountryChange(countryCode || 'NG', stateVal, lgaVal);
 }
 
-function onAltCountryChange(countryCode, preselectState = '', preselectLga = '') {
-    const stateSelect = document.getElementById('alt_state_select');
-    const lgaSelect = document.getElementById('alt_lga_select');
-    if (!stateSelect) return;
+document.addEventListener('click', function(e) {
+    const wrap = document.getElementById('altSearchableDropdownWrap');
+    const menu = document.getElementById('altCountryDropdownMenu');
+    if (wrap && menu && !wrap.contains(e.target)) {
+        menu.classList.add('d-none');
+    }
+});
 
-    stateSelect.innerHTML = '<option value="">-- Select State/Region --</option>';
-    if (lgaSelect) {
-        lgaSelect.innerHTML = '<option value="">-- Select LGA/District --</option>';
+function selectAltWizardCountry(code, name) {
+    altSelectedCountryCode = code;
+    altSelectedCountryName = name;
+
+    const selectEl = document.getElementById('alt_residential_country');
+    if (selectEl) selectEl.value = code;
+
+    const textEl = document.getElementById('altCountrySelectedText');
+    if (textEl) {
+        textEl.textContent = name;
+        textEl.classList.remove('text-muted');
+        textEl.classList.add('text-dark', 'fw-semibold');
     }
 
-    if (!countryCode || !africanRegionsCatalog[countryCode]) {
+    const menu = document.getElementById('altCountryDropdownMenu');
+    if (menu) menu.classList.add('d-none');
+
+    const alertEl = document.getElementById('altCountrySelectAlert');
+    if (alertEl) alertEl.classList.add('d-none');
+
+    document.querySelectorAll('.alt-country-item').forEach(btn => {
+        const itemCode = btn.getAttribute('data-code');
+        const check = btn.querySelector('.alt-country-check');
+        if (itemCode === code) {
+            btn.classList.add('bg-primary-subtle', 'fw-semibold');
+            if (check) check.classList.remove('d-none');
+        } else {
+            btn.classList.remove('bg-primary-subtle', 'fw-semibold');
+            if (check) check.classList.add('d-none');
+        }
+    });
+
+    populateAltRegionsForCountry(code);
+}
+
+function filterAltWizardCountries(query) {
+    const q = (query || '').toLowerCase().trim();
+    let matchCount = 0;
+    const items = document.querySelectorAll('.alt-country-item');
+    items.forEach(item => {
+        const name = (item.getAttribute('data-name') || '').toLowerCase();
+        const matches = !q || name.includes(q);
+        item.classList.toggle('d-none', !matches);
+        if (matches) matchCount++;
+    });
+
+    const empty = document.getElementById('altCountryEmptyState');
+    const term = document.getElementById('altCountrySearchTerm');
+    if (empty) {
+        empty.classList.toggle('d-none', matchCount > 0);
+        if (term) term.textContent = query;
+    }
+}
+
+function populateAltRegionsForCountry(countryCode, preselectState = '{{ user_profile.state|default:"" }}', preselectLga = '{{ user_profile.lga|default:"" }}') {
+    const wrap = document.getElementById('altRegionalDetailsWrap');
+    const stateSelect = document.getElementById('alt_state_select');
+    const lgaSelect = document.getElementById('alt_lga_select');
+    if (!wrap || !stateSelect) return;
+
+    stateSelect.innerHTML = '<option value="">-- Select State / Region (Optional) --</option>';
+    if (lgaSelect) {
+        lgaSelect.innerHTML = '<option value="">-- Select State First --</option>';
+    }
+
+    if (!countryCode) {
+        wrap.classList.add('d-none');
         return;
     }
 
-    const regions = africanRegionsCatalog[countryCode].regions || {};
-    const regionNames = Object.keys(regions).sort();
+    wrap.classList.remove('d-none');
 
-    regionNames.forEach(rName => {
-        const opt = document.createElement('option');
-        opt.value = rName;
-        opt.textContent = rName;
-        if (preselectState && rName.toLowerCase() === preselectState.toLowerCase()) {
-            opt.selected = true;
-        }
-        stateSelect.appendChild(opt);
-    });
+    const config = africanRegionsCatalog[countryCode] || {
+        state_label: 'State / Province / Region',
+        lga_label: 'District / LGA / Locality',
+        lga_mode: 'input',
+        states: [],
+        lgas: {}
+    };
+
+    const stateLabelText = document.getElementById('altStateLabelText');
+    if (stateLabelText) {
+        stateLabelText.textContent = config.state_label || 'State / Region / Province';
+    }
+
+    if (config.states && config.states.length > 0) {
+        config.states.forEach(st => {
+            const opt = document.createElement('option');
+            opt.value = st;
+            opt.textContent = st;
+            if (preselectState && st.toLowerCase() === preselectState.toLowerCase()) {
+                opt.selected = true;
+            }
+            stateSelect.appendChild(opt);
+        });
+    }
 
     if (stateSelect.value) {
-        onAltStateChange(stateSelect.value, preselectLga);
+        onAltStateSelectChange(preselectLga);
     }
 }
 
-function onAltStateChange(stateName, preselectLga = '') {
-    const countryCode = document.getElementById('alt_residential_country')?.value || 'NG';
+function onAltStateSelectChange(preselectLga = '') {
+    const stateSelect = document.getElementById('alt_state_select');
+    const stateVal = stateSelect ? stateSelect.value : '';
+    const hiddenState = document.getElementById('alt_state_hidden');
+    if (hiddenState) hiddenState.value = stateVal;
+
     const lgaSelect = document.getElementById('alt_lga_select');
     if (!lgaSelect) return;
 
-    lgaSelect.innerHTML = '<option value="">-- Select LGA/District --</option>';
-    if (!countryCode || !stateName || !africanRegionsCatalog[countryCode]) return;
+    const config = africanRegionsCatalog[altSelectedCountryCode];
+    const lgaLabel = (config && config.lga_label) ? config.lga_label : 'LGA / District';
+    lgaSelect.innerHTML = `<option value="">-- Select ${lgaLabel} (Optional) --</option>`;
 
-    const regions = africanRegionsCatalog[countryCode].regions || {};
-    const lgas = regions[stateName] || [];
+    if (!altSelectedCountryCode || !stateVal || !config || !config.lgas) return;
+
+    const lgas = config.lgas[stateVal] || [];
 
     lgas.forEach(lName => {
         const opt = document.createElement('option');
@@ -4445,46 +4775,100 @@ function onAltStateChange(stateName, preselectLga = '') {
         }
         lgaSelect.appendChild(opt);
     });
+
+    onAltLgaSelectChange();
 }
 
-/* ── Path B Pose Challenge Photo Camera & Upload Handlers ── */
-function switchAltPoseMode(mode) {
-    const btnUpload = document.getElementById('btnAltPoseModeUpload');
-    const btnCamera = document.getElementById('btnAltPoseModeCamera');
-    const wrapUpload = document.getElementById('altPoseUploadWrap');
-    const wrapCamera = document.getElementById('altPoseCameraWrap');
+function onAltLgaSelectChange() {
+    const lgaSelect = document.getElementById('alt_lga_select');
+    const lgaVal = lgaSelect ? lgaSelect.value : '';
+    const hiddenLga = document.getElementById('alt_lga_hidden');
+    if (hiddenLga) hiddenLga.value = lgaVal;
+}
+
+function initAltLocation(countryCode, stateVal, lgaVal) {
+    if (!countryCode) return;
+    const selectEl = document.getElementById('alt_residential_country');
+    if (selectEl) {
+        selectEl.value = countryCode;
+        const opt = selectEl.querySelector(`option[value="${countryCode}"]`);
+        const name = opt ? opt.textContent.trim() : countryCode;
+        selectAltWizardCountry(countryCode, name);
+    }
+    if (stateVal) {
+        setTimeout(() => {
+            const stateSelect = document.getElementById('alt_state_select');
+            if (stateSelect) {
+                stateSelect.value = stateVal;
+                onAltStateSelectChange(lgaVal);
+            }
+        }, 100);
+    }
+}
+
+/* ── Path B Pose Challenge Photo: Camera & Upload (Matches Gov ID Step 5) ── */
+let currentAltPoseMode = 'camera';
+
+function selectAltPoseMode(mode) {
+    currentAltPoseMode = mode;
+    const cardCam = document.getElementById('btnChooseAltPoseCamera');
+    const cardUp = document.getElementById('btnChooseAltPoseUpload');
+    const panelCam = document.getElementById('altPoseCameraPanel');
+    const panelUp = document.getElementById('altPoseUploadPanel');
 
     if (mode === 'camera') {
-        btnUpload?.classList.remove('active');
-        btnCamera?.classList.add('active');
-        wrapUpload?.classList.add('d-none');
-        wrapCamera?.classList.remove('d-none');
-        startAltPoseCamera();
+        if (cardCam) {
+            cardCam.classList.add('border-primary', 'border-2');
+            cardCam.style.borderColor = '';
+        }
+        if (cardUp) {
+            cardUp.classList.remove('border-primary', 'border-2');
+            cardUp.style.borderColor = '#E2E8F0';
+        }
+        if (panelCam) panelCam.classList.remove('d-none');
+        if (panelUp) panelUp.classList.add('d-none');
     } else {
-        btnCamera?.classList.remove('active');
-        btnUpload?.classList.add('active');
-        wrapCamera?.classList.add('d-none');
-        wrapUpload?.classList.remove('d-none');
         stopAltPoseCamera();
+        if (cardUp) {
+            cardUp.classList.add('border-primary', 'border-2');
+            cardUp.style.borderColor = '';
+        }
+        if (cardCam) {
+            cardCam.classList.remove('border-primary', 'border-2');
+            cardCam.style.borderColor = '#E2E8F0';
+        }
+        if (panelUp) panelUp.classList.remove('d-none');
+        if (panelCam) panelCam.classList.add('d-none');
     }
 }
 
 function startAltPoseCamera() {
     const video = document.getElementById('altPoseCameraVideo');
+    const idlePlaceholder = document.getElementById('altPoseCameraIdlePlaceholder');
+    const guide = document.getElementById('altPoseCardGuide');
+    const btnStart = document.getElementById('btnStartAltPoseCamera');
+    const btnTake = document.getElementById('btnTakeAltPosePhoto');
+    const btnSwitch = document.getElementById('btnSwitchAltPoseCamera');
     if (!video) return;
 
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         navigator.mediaDevices.getUserMedia({
-            video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }
+            video: { facingMode: activeAltPoseFacing, width: { ideal: 1280 }, height: { ideal: 720 } }
         })
         .then(stream => {
             altPoseCameraStream = stream;
             video.srcObject = stream;
+            video.classList.remove('d-none');
+            if (idlePlaceholder) idlePlaceholder.classList.add('d-none');
+            if (guide) guide.classList.remove('d-none');
+            if (btnStart) btnStart.classList.add('d-none');
+            if (btnTake) btnTake.classList.remove('d-none');
+            if (btnSwitch) btnSwitch.classList.remove('d-none');
             video.play();
         })
         .catch(err => {
-            showAltNotice('Could not access front camera. Please use file upload instead.', 'danger');
-            switchAltPoseMode('upload');
+            showAltNotice('Could not access camera. Please use file upload instead.', 'danger');
+            selectAltPoseMode('upload');
         });
     }
 }
@@ -4494,64 +4878,126 @@ function stopAltPoseCamera() {
         altPoseCameraStream.getTracks().forEach(t => t.stop());
         altPoseCameraStream = null;
     }
+    const video = document.getElementById('altPoseCameraVideo');
+    const idlePlaceholder = document.getElementById('altPoseCameraIdlePlaceholder');
+    const guide = document.getElementById('altPoseCardGuide');
+    const btnStart = document.getElementById('btnStartAltPoseCamera');
+    const btnTake = document.getElementById('btnTakeAltPosePhoto');
+    const btnRetake = document.getElementById('btnRetakeAltPosePhoto');
+    const btnSwitch = document.getElementById('btnSwitchAltPoseCamera');
+
+    if (video) video.classList.add('d-none');
+    if (idlePlaceholder) idlePlaceholder.classList.remove('d-none');
+    if (guide) guide.classList.add('d-none');
+    if (btnStart) btnStart.classList.remove('d-none');
+    if (btnTake) btnTake.classList.add('d-none');
+    if (btnRetake) btnRetake.classList.add('d-none');
+    if (btnSwitch) btnSwitch.classList.add('d-none');
 }
 
-function captureAltPoseFromCamera() {
+function takeAltPosePhoto() {
     const video = document.getElementById('altPoseCameraVideo');
-    const canvas = document.getElementById('altPoseCameraCanvas');
+    const canvas = document.getElementById('altPoseCaptureCanvas');
     if (!video || !canvas) return;
 
     canvas.width = video.videoWidth || 640;
     canvas.height = video.videoHeight || 480;
     const ctx = canvas.getContext('2d');
+    if (activeAltPoseFacing === 'user') {
+        ctx.translate(canvas.width, 0);
+        ctx.scale(-1, 1);
+    }
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
-    document.getElementById('altPoseImageData').value = dataUrl;
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+    const hiddenData = document.getElementById('altPoseImageData');
+    if (hiddenData) hiddenData.value = dataUrl;
 
-    const preview = document.getElementById('altPosePreviewImg');
-    const previewWrap = document.getElementById('altPosePreviewWrap');
-    if (preview && previewWrap) {
-        preview.src = dataUrl;
+    const imgEl = document.getElementById('altPoseCapturedImgEl');
+    const previewWrap = document.getElementById('altPoseCameraCapturedPreview');
+    if (imgEl && previewWrap) {
+        imgEl.src = dataUrl;
         previewWrap.classList.remove('d-none');
     }
 
+    video.classList.add('d-none');
+    const guide = document.getElementById('altPoseCardGuide');
+    if (guide) guide.classList.add('d-none');
+
+    const btnTake = document.getElementById('btnTakeAltPosePhoto');
+    const btnRetake = document.getElementById('btnRetakeAltPosePhoto');
+    if (btnTake) btnTake.classList.add('d-none');
+    if (btnRetake) btnRetake.classList.remove('d-none');
+
+    if (altPoseCameraStream) {
+        altPoseCameraStream.getTracks().forEach(t => t.stop());
+        altPoseCameraStream = null;
+    }
+}
+
+function retakeAltPosePhoto() {
+    const hiddenData = document.getElementById('altPoseImageData');
+    if (hiddenData) hiddenData.value = '';
+    const previewWrap = document.getElementById('altPoseCameraCapturedPreview');
+    if (previewWrap) previewWrap.classList.add('d-none');
+    const btnRetake = document.getElementById('btnRetakeAltPosePhoto');
+    if (btnRetake) btnRetake.classList.add('d-none');
+    startAltPoseCamera();
+}
+
+function switchAltPoseCamera() {
+    activeAltPoseFacing = (activeAltPoseFacing === 'user') ? 'environment' : 'user';
+    const video = document.getElementById('altPoseCameraVideo');
+    if (video) {
+        video.style.transform = (activeAltPoseFacing === 'user') ? 'scaleX(-1)' : 'none';
+    }
     stopAltPoseCamera();
-    const wrapCamera = document.getElementById('altPoseCameraWrap');
-    if (wrapCamera) wrapCamera.classList.add('d-none');
-    showAltNotice('Pose challenge photo captured successfully!', 'success');
+    startAltPoseCamera();
 }
 
 function handleAltPoseFileChange(input) {
     if (input.files && input.files[0]) {
+        const file = input.files[0];
         const reader = new FileReader();
         reader.onload = function(e) {
-            const preview = document.getElementById('altPosePreviewImg');
-            const previewWrap = document.getElementById('altPosePreviewWrap');
-            if (preview && previewWrap) {
-                preview.src = e.target.result;
-                previewWrap.classList.remove('d-none');
+            const thumb = document.getElementById('altPoseUploadThumbnail');
+            const nameEl = document.getElementById('altPoseUploadFileName');
+            const readyCard = document.getElementById('altPoseUploadReadyCard');
+            const dropzone = document.getElementById('altPoseUploadDropzone');
+
+            if (thumb) {
+                thumb.src = e.target.result;
+                thumb.style.display = 'block';
             }
+            if (nameEl) {
+                nameEl.textContent = `${file.name} (${Math.round(file.size / 1024)} KB)`;
+            }
+            if (readyCard) readyCard.classList.remove('d-none');
+            if (dropzone) dropzone.classList.add('d-none');
         };
-        reader.readAsDataURL(input.files[0]);
-        document.getElementById('altPoseImageData').value = '';
+        reader.readAsDataURL(file);
+        const hiddenData = document.getElementById('altPoseImageData');
+        if (hiddenData) hiddenData.value = '';
     }
 }
 
-function clearAltPosePhoto() {
-    const fileInput = document.getElementById('altPoseImageInput');
+function removeAltPoseFile() {
+    const fileInput = document.getElementById('altPoseFileInput');
     if (fileInput) fileInput.value = '';
-    const dataInput = document.getElementById('altPoseImageData');
-    if (dataInput) dataInput.value = '';
-    const previewWrap = document.getElementById('altPosePreviewWrap');
-    if (previewWrap) previewWrap.classList.add('d-none');
+    const readyCard = document.getElementById('altPoseUploadReadyCard');
+    const dropzone = document.getElementById('altPoseUploadDropzone');
+    if (readyCard) readyCard.classList.add('d-none');
+    if (dropzone) dropzone.classList.remove('d-none');
 }
 
-/* ── Path B Live Selfie Camera Handlers ── */
+/* ── Path B Live Selfie Exercise (Matches Gov ID Step 6) ── */
 function startAltSelfieCamera() {
-    const video = document.getElementById('altSelfieVideo');
-    const idleState = document.getElementById('altSelfieIdleState');
-    const activeControls = document.getElementById('altSelfieActiveControls');
+    const video = document.getElementById('altSelfieCameraVideo');
+    const idlePlaceholder = document.getElementById('altSelfieIdlePlaceholder');
+    const guide = document.getElementById('altSelfieOvalGuide');
+    const badgeWrap = document.getElementById('altSelfieStatusBadgeWrap');
+    const btnStart = document.getElementById('btnStartAltSelfieCamera');
+    const btnTake = document.getElementById('btnTakeAltSelfiePhoto');
     if (!video) return;
 
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
@@ -4562,12 +5008,15 @@ function startAltSelfieCamera() {
             altSelfieCameraStream = stream;
             video.srcObject = stream;
             video.classList.remove('d-none');
-            if (idleState) idleState.classList.add('d-none');
-            if (activeControls) activeControls.classList.remove('d-none');
+            if (idlePlaceholder) idlePlaceholder.classList.add('d-none');
+            if (guide) guide.classList.remove('d-none');
+            if (badgeWrap) badgeWrap.classList.remove('d-none');
+            if (btnStart) btnStart.classList.add('d-none');
+            if (btnTake) btnTake.classList.remove('d-none');
             video.play();
         })
         .catch(err => {
-            showAltNotice('Could not access front camera. Please use file upload below.', 'danger');
+            showAltNotice('Could not access front camera. Please check camera permissions.', 'danger');
         });
     }
 }
@@ -4577,121 +5026,280 @@ function stopAltSelfieCamera() {
         altSelfieCameraStream.getTracks().forEach(t => t.stop());
         altSelfieCameraStream = null;
     }
-    const video = document.getElementById('altSelfieVideo');
-    const idleState = document.getElementById('altSelfieIdleState');
-    const activeControls = document.getElementById('altSelfieActiveControls');
+    const video = document.getElementById('altSelfieCameraVideo');
+    const idlePlaceholder = document.getElementById('altSelfieIdlePlaceholder');
+    const guide = document.getElementById('altSelfieOvalGuide');
+    const badgeWrap = document.getElementById('altSelfieStatusBadgeWrap');
+    const btnStart = document.getElementById('btnStartAltSelfieCamera');
+    const btnTake = document.getElementById('btnTakeAltSelfiePhoto');
+    const btnRetake = document.getElementById('btnRetakeAltSelfiePhoto');
+
     if (video) video.classList.add('d-none');
-    if (idleState) idleState.classList.remove('d-none');
-    if (activeControls) activeControls.classList.add('d-none');
+    if (idlePlaceholder) idlePlaceholder.classList.remove('d-none');
+    if (guide) guide.classList.add('d-none');
+    if (badgeWrap) badgeWrap.classList.add('d-none');
+    if (btnStart) btnStart.classList.remove('d-none');
+    if (btnTake) btnTake.classList.add('d-none');
+    if (btnRetake) btnRetake.classList.add('d-none');
 }
 
-function captureAltSelfie() {
-    const video = document.getElementById('altSelfieVideo');
-    const canvas = document.getElementById('altSelfieCanvas');
+function takeAltSelfiePhoto() {
+    const video = document.getElementById('altSelfieCameraVideo');
+    const canvas = document.getElementById('altSelfieCaptureCanvas');
     if (!video || !canvas) return;
 
     canvas.width = video.videoWidth || 480;
     canvas.height = video.videoHeight || 480;
     const ctx = canvas.getContext('2d');
+    ctx.translate(canvas.width, 0);
+    ctx.scale(-1, 1);
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
-    document.getElementById('altSelfieData').value = dataUrl;
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+    const hiddenData = document.getElementById('altSelfieData');
+    if (hiddenData) hiddenData.value = dataUrl;
 
-    const preview = document.getElementById('altSelfiePreviewImg');
-    const previewWrap = document.getElementById('altSelfiePreviewWrap');
-    if (preview && previewWrap) {
-        preview.src = dataUrl;
+    const imgEl = document.getElementById('altSelfieCapturedImgEl');
+    const previewWrap = document.getElementById('altSelfieCapturedPreview');
+    if (imgEl && previewWrap) {
+        imgEl.src = dataUrl;
         previewWrap.classList.remove('d-none');
     }
 
-    stopAltSelfieCamera();
-    showAltNotice('Live selfie verified and captured!', 'success');
-}
+    video.classList.add('d-none');
+    const guide = document.getElementById('altSelfieOvalGuide');
+    if (guide) guide.classList.add('d-none');
+    const badgeWrap = document.getElementById('altSelfieStatusBadgeWrap');
+    if (badgeWrap) badgeWrap.classList.add('d-none');
 
-function handleAltSelfieFileChange(input) {
-    if (input.files && input.files[0]) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const preview = document.getElementById('altSelfiePreviewImg');
-            const previewWrap = document.getElementById('altSelfiePreviewWrap');
-            if (preview && previewWrap) {
-                preview.src = e.target.result;
-                previewWrap.classList.remove('d-none');
-            }
-        };
-        reader.readAsDataURL(input.files[0]);
-        document.getElementById('altSelfieData').value = '';
+    const btnTake = document.getElementById('btnTakeAltSelfiePhoto');
+    const btnRetake = document.getElementById('btnRetakeAltSelfiePhoto');
+    if (btnTake) btnTake.classList.add('d-none');
+    if (btnRetake) btnRetake.classList.remove('d-none');
+
+    const readyCard = document.getElementById('altSelfieReadyPreviewCard');
+    const thumb = document.getElementById('altSelfiePreviewThumbnail');
+    if (thumb) {
+        thumb.src = dataUrl;
+        thumb.style.display = 'block';
+    }
+    if (readyCard) readyCard.classList.remove('d-none');
+
+    if (altSelfieCameraStream) {
+        altSelfieCameraStream.getTracks().forEach(t => t.stop());
+        altSelfieCameraStream = null;
     }
 }
 
-function clearAltSelfiePhoto() {
-    const fileInput = document.getElementById('altIdSelfieFileInput');
-    if (fileInput) fileInput.value = '';
-    const dataInput = document.getElementById('altSelfieData');
-    if (dataInput) dataInput.value = '';
-    const previewWrap = document.getElementById('altSelfiePreviewWrap');
+function retakeAltSelfiePhoto() {
+    const hiddenData = document.getElementById('altSelfieData');
+    if (hiddenData) hiddenData.value = '';
+    const previewWrap = document.getElementById('altSelfieCapturedPreview');
     if (previewWrap) previewWrap.classList.add('d-none');
+    const readyCard = document.getElementById('altSelfieReadyPreviewCard');
+    if (readyCard) readyCard.classList.add('d-none');
+    const btnRetake = document.getElementById('btnRetakeAltSelfiePhoto');
+    if (btnRetake) btnRetake.classList.add('d-none');
+    startAltSelfieCamera();
 }
 
 function handleAltSupportingDocChange(input) {
-    const el = document.getElementById('altReviewSupportDoc');
-    if (el) {
-        if (input.files && input.files[0]) {
-            el.textContent = input.files[0].name;
-        } else {
-            el.textContent = 'None (Optional)';
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        const nameEl = document.getElementById('altSupportingDocFileName');
+        const readyCard = document.getElementById('altSupportingDocReadyCard');
+        const dropzone = document.getElementById('altSupportingDocDropzone');
+
+        if (nameEl) {
+            nameEl.textContent = `${file.name} (${Math.round(file.size / 1024)} KB)`;
         }
+        if (readyCard) readyCard.classList.remove('d-none');
+        if (dropzone) dropzone.classList.add('d-none');
+
+        const reviewSupp = document.getElementById('altReviewSupportDoc');
+        if (reviewSupp) reviewSupp.textContent = file.name;
     }
 }
 
-/* ── Path B Review Summary Population & Submission Gates ── */
-function populateAltReviewSummary() {
-    const phoneInput = document.getElementById('altWizardPhoneInput');
-    const reviewPhone = document.getElementById('altReviewPhone');
-    if (reviewPhone) {
-        const val = phoneInput ? phoneInput.value.trim() : '';
-        reviewPhone.innerHTML = val ? `${val} <span class="badge bg-success-subtle text-success py-0.5 px-1.5 ms-1">Verified</span>` : 'Pending';
-    }
+function removeAltSupportingDocFile() {
+    const input = document.getElementById('altSupportingDocInput');
+    if (input) input.value = '';
+    const readyCard = document.getElementById('altSupportingDocReadyCard');
+    const dropzone = document.getElementById('altSupportingDocDropzone');
+    if (readyCard) readyCard.classList.add('d-none');
+    if (dropzone) dropzone.classList.remove('d-none');
 
-    const countrySelect = document.getElementById('alt_residential_country');
-    const stateSelect = document.getElementById('alt_state_select');
-    const lgaSelect = document.getElementById('alt_lga_select');
-    const reviewLocation = document.getElementById('altReviewLocation');
-    if (reviewLocation) {
-        const cName = countrySelect && countrySelect.selectedIndex >= 0 ? countrySelect.options[countrySelect.selectedIndex].text : '';
-        const sName = stateSelect ? stateSelect.value : '';
-        const lName = lgaSelect ? lgaSelect.value : '';
-        const locParts = [cName, sName, lName].filter(Boolean);
-        reviewLocation.textContent = locParts.length > 0 ? locParts.join(' • ') : '—';
-    }
-
-    const suppInput = document.getElementById('altSupportingDocInput');
     const reviewSupp = document.getElementById('altReviewSupportDoc');
-    if (reviewSupp) {
-        if (suppInput && suppInput.files && suppInput.files.length > 0) {
-            reviewSupp.textContent = suppInput.files[0].name;
+    if (reviewSupp) reviewSupp.textContent = 'None (Optional)';
+}
+
+function setupAltDropzone(dropzoneId, inputId, callback) {
+    const dz = document.getElementById(dropzoneId);
+    const inp = document.getElementById(inputId);
+    if (!dz || !inp) return;
+    ['dragenter', 'dragover'].forEach(evt => {
+        dz.addEventListener(evt, e => {
+            e.preventDefault();
+            e.stopPropagation();
+            dz.style.borderColor = '#2563EB';
+            dz.style.background = '#EFF6FF';
+        });
+    });
+    ['dragleave', 'drop'].forEach(evt => {
+        dz.addEventListener(evt, e => {
+            e.preventDefault();
+            e.stopPropagation();
+            dz.style.borderColor = '#CBD5E1';
+            dz.style.background = '#FFFFFF';
+        });
+    });
+    dz.addEventListener('drop', e => {
+        if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            inp.files = e.dataTransfer.files;
+            callback(inp);
+        }
+    });
+}
+
+/* ── Path B Review Summary Population & Submission ── */
+function populateAltReviewSummary() {
+    const revEmailVal = document.getElementById('altRevEmailVal');
+    const revEmailStatus = document.getElementById('altRevEmailStatus');
+    const revPhoneVal = document.getElementById('altRevPhoneVal');
+    const revPhoneStatus = document.getElementById('altRevPhoneStatus');
+    const revCountryVal = document.getElementById('altRevCountryVal');
+    const revRegionVal = document.getElementById('altRevRegionVal');
+    const revPoseImg = document.getElementById('altRevPoseImgPreview');
+    const revPoseStatus = document.getElementById('altRevPoseStatusText');
+    const revSelfieImg = document.getElementById('altRevSelfieImgPreview');
+    const revSelfieStatus = document.getElementById('altRevSelfieStatusText');
+    const revSupportDocVal = document.getElementById('altRevSupportDocVal');
+    const revSupportDocStatus = document.getElementById('altRevSupportDocStatus');
+
+    // 1. Email Status
+    const emailHidden = document.getElementById('altHiddenEmailVerified');
+    const emailVerified = isEmailVerified || (emailHidden && emailHidden.value === 'true');
+    if (revEmailStatus) {
+        if (emailVerified) {
+            revEmailStatus.innerHTML = '<span class="text-success fw-medium">✓ Email Confirmed</span>';
         } else {
-            reviewSupp.textContent = 'None (Optional)';
+            revEmailStatus.innerHTML = '<span class="text-warning fw-medium">⚠ Email not verified</span>';
         }
     }
 
-    const poseFile = document.getElementById('altPoseImageInput');
-    const poseData = document.getElementById('altPoseImageData');
-    const reviewPose = document.getElementById('altReviewPoseStatus');
-    if (reviewPose) {
-        const hasPose = (poseFile && poseFile.files && poseFile.files.length > 0) || (poseData && poseData.value);
-        reviewPose.textContent = hasPose ? '✓ Attached' : '⚠️ Missing';
-        reviewPose.className = hasPose ? 'fw-semibold text-success mt-0.5' : 'fw-semibold text-danger mt-0.5';
+    // 2. Phone Status
+    const phoneInput = document.getElementById('altWizardPhoneInput');
+    const phoneVal = phoneInput ? phoneInput.value.trim() : '';
+    if (revPhoneVal) revPhoneVal.textContent = phoneVal || '—';
+    const phoneHidden = document.getElementById('altHiddenPhoneVerified');
+    const phoneVerified = isPhoneVerified || (phoneHidden && phoneHidden.value === 'true');
+    if (revPhoneStatus) {
+        if (phoneVerified && phoneVal) {
+            revPhoneStatus.innerHTML = '<span class="text-success fw-medium">✓ Verified via WhatsApp OTP</span>';
+        } else if (phoneVal) {
+            revPhoneStatus.innerHTML = '<span class="text-warning fw-medium">⚠ Phone not verified</span>';
+        } else {
+            revPhoneStatus.innerHTML = '<span class="text-muted">Not supplied</span>';
+        }
     }
 
-    const selfieFile = document.getElementById('altIdSelfieFileInput');
-    const selfieData = document.getElementById('altSelfieData');
-    const reviewSelfie = document.getElementById('altReviewSelfieStatus');
-    if (reviewSelfie) {
-        const hasSelfie = (selfieFile && selfieFile.files && selfieFile.files.length > 0) || (selfieData && selfieData.value);
-        reviewSelfie.textContent = hasSelfie ? '✓ Verified Live' : '⚠️ Missing';
-        reviewSelfie.className = hasSelfie ? 'fw-semibold text-success mt-0.5' : 'fw-semibold text-danger mt-0.5';
+    // 3. Country & Region Status
+    if (revCountryVal) {
+        if (altSelectedCountryName && altSelectedCountryCode) {
+            revCountryVal.textContent = `${altSelectedCountryName} (${altSelectedCountryCode})`;
+        } else if (altSelectedCountryCode) {
+            revCountryVal.textContent = altSelectedCountryCode;
+        } else {
+            revCountryVal.textContent = 'Not selected';
+        }
+    }
+    if (revRegionVal) {
+        const stateSelect = document.getElementById('alt_state_select');
+        const lgaSelect = document.getElementById('alt_lga_select');
+        const sName = stateSelect ? stateSelect.value : '';
+        const lName = lgaSelect ? lgaSelect.value : '';
+        if (sName && lName) {
+            revRegionVal.textContent = `${sName}, ${lName}`;
+            revRegionVal.className = 'text-dark small mt-0.5 fw-medium';
+        } else if (sName) {
+            revRegionVal.textContent = sName;
+            revRegionVal.className = 'text-dark small mt-0.5 fw-medium';
+        } else {
+            revRegionVal.textContent = 'Region not specified (Optional)';
+            revRegionVal.className = 'text-muted small mt-0.5';
+        }
+    }
+
+    // 4. Pose Challenge Photo Preview
+    const poseDataInput = document.getElementById('altPoseImageData');
+    const poseFileInput = document.getElementById('altPoseFileInput');
+    const poseCapturedData = poseDataInput ? poseDataInput.value : '';
+    const poseUploadThumb = document.getElementById('altPoseUploadThumbnail');
+
+    if (poseCapturedData) {
+        if (revPoseImg) {
+            revPoseImg.src = poseCapturedData;
+            revPoseImg.classList.remove('d-none');
+        }
+        if (revPoseStatus) {
+            revPoseStatus.className = 'small text-success fw-medium';
+            revPoseStatus.textContent = '✓ Camera snapshot ready';
+        }
+    } else if (poseFileInput && poseFileInput.files && poseFileInput.files[0]) {
+        if (revPoseImg) {
+            if (poseUploadThumb && poseUploadThumb.src && poseUploadThumb.src.startsWith('data:')) {
+                revPoseImg.src = poseUploadThumb.src;
+                revPoseImg.classList.remove('d-none');
+            } else {
+                revPoseImg.classList.add('d-none');
+            }
+        }
+        if (revPoseStatus) {
+            revPoseStatus.className = 'small text-success fw-medium';
+            revPoseStatus.textContent = `✓ Attached: ${poseFileInput.files[0].name}`;
+        }
+    } else {
+        if (revPoseImg) revPoseImg.classList.add('d-none');
+        if (revPoseStatus) {
+            revPoseStatus.className = 'small text-danger fw-medium';
+            revPoseStatus.textContent = '⚠ Photo not taken';
+        }
+    }
+
+    // 5. Live Selfie Preview
+    const selfieDataInput = document.getElementById('altSelfieData');
+    const selfieCapturedData = selfieDataInput ? selfieDataInput.value : '';
+    if (selfieCapturedData) {
+        if (revSelfieImg) {
+            revSelfieImg.src = selfieCapturedData;
+            revSelfieImg.classList.remove('d-none');
+        }
+        if (revSelfieStatus) {
+            revSelfieStatus.className = 'small text-success fw-medium';
+            revSelfieStatus.textContent = '✓ Live selfie ready';
+        }
+    } else {
+        if (revSelfieImg) revSelfieImg.classList.add('d-none');
+        if (revSelfieStatus) {
+            revSelfieStatus.className = 'small text-danger fw-medium';
+            revSelfieStatus.textContent = '⚠ Selfie not taken';
+        }
+    }
+
+    // 6. Supporting Evidence
+    const suppInput = document.getElementById('altSupportingDocInput');
+    if (suppInput && suppInput.files && suppInput.files[0]) {
+        if (revSupportDocVal) revSupportDocVal.textContent = suppInput.files[0].name;
+        if (revSupportDocStatus) {
+            revSupportDocStatus.className = 'small text-success fw-medium';
+            revSupportDocStatus.textContent = '✓ Document attached';
+        }
+    } else {
+        if (revSupportDocVal) revSupportDocVal.textContent = 'None (Optional)';
+        if (revSupportDocStatus) {
+            revSupportDocStatus.className = 'small text-muted';
+            revSupportDocStatus.textContent = 'Optional non-ID evidence';
+        }
     }
 }
 
@@ -4703,47 +5311,13 @@ function toggleAltSubmitBtn() {
     }
 }
 
-// Gate submission on form submit
 document.addEventListener('DOMContentLoaded', function() {
+    setupAltDropzone('altPoseUploadDropzone', 'altPoseFileInput', handleAltPoseFileChange);
+    setupAltDropzone('altSupportingDocDropzone', 'altSupportingDocInput', handleAltSupportingDocChange);
+
     const altForm = document.getElementById('pathBVerificationForm');
     if (altForm) {
         altForm.addEventListener('submit', function(e) {
-            if (!isEmailVerified) {
-                e.preventDefault();
-                altWizardShowStep(1);
-                showAltNotice('Please complete email verification before submitting.', 'danger');
-                return;
-            }
-            if (!isPhoneVerified) {
-                e.preventDefault();
-                altWizardShowStep(2);
-                showAltNotice('Please complete phone verification before submitting.', 'danger');
-                return;
-            }
-            const country = document.getElementById('alt_residential_country')?.value;
-            const state = document.getElementById('alt_state_select')?.value;
-            if (!country || !state) {
-                e.preventDefault();
-                altWizardShowStep(3);
-                showAltNotice('Please specify your country and state of residence before submitting.', 'danger');
-                return;
-            }
-            const poseFile = document.getElementById('altPoseImageInput');
-            const poseData = document.getElementById('altPoseImageData');
-            if ((!poseFile || !poseFile.files || poseFile.files.length === 0) && (!poseData || !poseData.value)) {
-                e.preventDefault();
-                altWizardShowStep(4);
-                showAltNotice('Please provide your pose challenge photo holding the handwritten note.', 'danger');
-                return;
-            }
-            const selfieFile = document.getElementById('altIdSelfieFileInput');
-            const selfieData = document.getElementById('altSelfieData');
-            if ((!selfieFile || !selfieFile.files || selfieFile.files.length === 0) && (!selfieData || !selfieData.value)) {
-                e.preventDefault();
-                altWizardShowStep(5);
-                showAltNotice('Please complete your live selfie verification before submitting.', 'danger');
-                return;
-            }
             const certCheckbox = document.getElementById('altDeclarationCertified');
             if (!certCheckbox || !certCheckbox.checked) {
                 e.preventDefault();
