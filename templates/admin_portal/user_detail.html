@@ -913,12 +913,18 @@
               {% endif %}
             </div>
             <div class="d-flex align-items-center gap-2 flex-wrap">
-              <button type="button" class="btn btn-outline-warning btn-sm px-3" data-bs-toggle="modal" data-bs-target="#suspendUserIdModal">
-                <i class="bi bi-pause-circle me-1"></i>Suspend Verification
-              </button>
-              <button type="button" class="btn btn-outline-secondary btn-sm px-3" data-bs-toggle="modal" data-bs-target="#expireUserIdModal">
-                <i class="bi bi-clock-history me-1"></i>Mark as Expired
-              </button>
+              {% if target_user.id_verification_status == 'suspended' or target_user.id_verification_status == 'expired' %}
+                <button type="button" class="btn btn-success btn-sm px-3" data-bs-toggle="modal" data-bs-target="#reactivateUserIdModal">
+                  <i class="bi bi-check-circle me-1"></i>Reactivate Verification
+                </button>
+              {% else %}
+                <button type="button" class="btn btn-outline-warning btn-sm px-3" data-bs-toggle="modal" data-bs-target="#suspendUserIdModal">
+                  <i class="bi bi-pause-circle me-1"></i>Suspend Verification
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-sm px-3" data-bs-toggle="modal" data-bs-target="#expireUserIdModal">
+                  <i class="bi bi-clock-history me-1"></i>Mark as Expired
+                </button>
+              {% endif %}
               <button type="button" class="btn btn-outline-danger btn-sm px-3" data-bs-toggle="modal" data-bs-target="#revokeUserIdModal">
                 <i class="bi bi-x-circle me-1"></i>Revoke Verification
               </button>
@@ -1657,6 +1663,41 @@ document.addEventListener('DOMContentLoaded', function () {
           <button type="button" class="btn btn-adm-primary px-3" data-bs-dismiss="modal">Cancel</button>
           <button type="submit" class="btn btn-primary px-4 d-inline-flex align-items-center gap-2">
             <i class="bi bi-shield-check"></i>Confirm Enhanced Approval
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{# ── Reactivate Profile Verification Modal ── #}
+<div class="modal fade" id="reactivateUserIdModal" tabindex="-1" aria-labelledby="reactivateUserIdModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content shadow-lg border-0" style="border-radius:14px;">
+      <form method="post" action="{% url 'admin_portal:user_detail' target_user.public_id %}" id="reactivateUserIdForm">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="verify_identity">
+        <div class="modal-header border-bottom py-3" style="background:#F0FDF4;">
+          <h5 class="modal-title fw-bold mb-0 text-success" id="reactivateUserIdModalLabel" style="font-size:1.05rem;">
+            <i class="bi bi-check-circle me-1"></i>Reactivate Profile Verification
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body py-3">
+          <p class="small text-secondary mb-3">
+            Reactivates verified profile standing for <strong>{{ target_user.get_full_name|default:target_user.username }}</strong>. 
+            Their Verified Badge and verified platform access will be restored immediately.
+          </p>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold" for="reactivateNotes">Compliance Notes (Optional)</label>
+            <input type="text" name="verification_notes" id="reactivateNotes" class="form-control form-control-sm"
+                   placeholder="e.g. Compliance inquiry cleared. Verification reinstated.">
+          </div>
+        </div>
+        <div class="modal-footer border-top py-2 gap-2">
+          <button type="button" class="btn btn-outline-secondary px-3" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-success px-4 fw-semibold">
+            Yes, Reactivate Verification
           </button>
         </div>
       </form>
