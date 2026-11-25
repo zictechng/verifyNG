@@ -421,7 +421,10 @@ class VerifyAccountView(LoginRequiredMixin, View):
         path_b_form = PathBAlternativeVerificationForm()
 
         selected_method = request.GET.get('method', '').strip().lower()
-        if has_pending_gov_id:
+        if has_suspended_gov_id:
+            # When verification is suspended, neither method form is accessible
+            selected_method = ''
+        elif has_pending_gov_id:
             # Locked to government_id while pending compliance review; cannot switch to alternative
             selected_method = 'government_id'
         elif has_pending_path_b:
@@ -772,6 +775,16 @@ class UserIdentityVerificationSubmitView(LoginRequiredMixin, View):
         user = request.user
         redirect_url = reverse('users:verify_account') + '?method=government_id'
 
+        # Guard: Cannot submit Government ID if verification is suspended
+        if user.id_verification_status == 'suspended':
+            messages.error(
+                request,
+                "Your account profile verification is currently suspended. "
+                "You cannot submit new verification documents while your verification is on hold. "
+                "Please follow the instructions sent to your registered email address."
+            )
+            return redirect('users:verify_account')
+
         # Guard: Cannot submit Government ID if an Alternative Verification is pending review
         if user.alternative_verification_submissions.filter(status='pending').exists():
             messages.warning(
@@ -1019,8 +1032,8 @@ class PathBVerificationSubmitView(LoginRequiredMixin, View):
 
         # 1. Enforce account standing: Suspended accounts cannot submit
         if getattr(user, 'is_suspended', False) or getattr(user, 'id_verification_status', None) == 'suspended':
-            messages.error(request, "Your account is suspended. Platform verification submissions are restricted.")
-            return redirect(redirect_url)
+            messages.error(request, "Your account profile verification is currently suspended. You cannot submit an alternative verification request while your verification is on hold. Please follow the instructions sent to your registered email.")
+            return redirect('users:verify_account')
 
         # 2. Block submissions if there is already an active pending application
         if user.alternative_verification_submissions.filter(status='pending').exists():

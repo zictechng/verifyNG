@@ -159,9 +159,9 @@
                 <div>
                     <div class="fw-bold text-warning-emphasis" style="font-size:14.5px;">Profile Verification Suspended</div>
                     <div class="small text-secondary mt-0.5" style="font-size:13px;">
-                        Reason: {{ user_profile.id_rejection_reason|default:"Your profile verification standing has been placed on hold pending compliance inquiry." }}
+                        <strong>Compliance Reason:</strong> {{ user_profile.id_rejection_reason|default:"Your profile verification standing has been placed on hold pending compliance inquiry." }}
                     </div>
-                    <div class="small text-muted mt-1" style="font-size:12.5px;">While suspended, your Verified Badge is paused. If you need to submit updated credentials or clarifying documentation, you may update your submission below.</div>
+                    <div class="small text-muted mt-1" style="font-size:12.5px;">While suspended, your Verified Badge is paused. Please follow the guidance and instructions sent to your registered email address.</div>
                 </div>
             </div>
             {% elif has_expired_gov_id %}
@@ -228,9 +228,12 @@
 
                 <div class="d-flex flex-column gap-3 mb-3 w-100" id="verificationMethodWrap">
                     {# Option 1: Government Identity Document #}
-                    <div class="vng-method-card w-100 p-3 px-sm-4 py-sm-3.5 rounded-3 bg-white border {% if selected_method == 'government_id' %}vng-method-active{% endif %} {% if has_pending_path_b %}vng-method-locked{% endif %} shadow-xs"
+                    <div class="vng-method-card w-100 p-3 px-sm-4 py-sm-3.5 rounded-3 bg-white border {% if selected_method == 'government_id' %}vng-method-active{% endif %} {% if has_pending_path_b or has_suspended_gov_id %}vng-method-locked{% endif %} shadow-xs"
                          id="methodCardGovId"
-                         {% if has_pending_path_b %}
+                         {% if has_suspended_gov_id %}
+                         style="opacity: 0.6; cursor: not-allowed; border-color: #FDE68A;"
+                         onclick="alertLockedMethod('suspended')"
+                         {% elif has_pending_path_b %}
                          style="opacity: 0.6; cursor: not-allowed; border-color: #E2E8F0;"
                          onclick="alertLockedMethod('government_id')"
                          {% else %}
@@ -249,7 +252,9 @@
                                 <span class="fw-bold text-dark" style="font-size: 16px;">Government Identity Document</span>
                             </div>
                             <div>
-                                {% if has_pending_path_b %}
+                                {% if has_suspended_gov_id %}
+                                    <span class="badge rounded-pill fw-medium" style="background: #FFFBEB; border: 1px solid #FDE68A; color: #B45309; font-size: 13px; padding: 4px 12px;">🔒 Suspended</span>
+                                {% elif has_pending_path_b %}
                                     <span class="badge rounded-pill fw-medium" style="background: #F1F5F9; border: 1px solid #CBD5E1; color: #64748B; font-size: 13px; padding: 4px 12px;">🔒 Locked</span>
                                 {% elif has_pending_gov_id %}
                                     <span class="badge rounded-pill fw-medium" style="background: #EFF6FF; color: #2563EB; font-size: 13px; padding: 4px 12px; border: 1px solid #BFDBFE;">Under Review</span>
@@ -263,7 +268,11 @@
                         <div class="text-muted" style="font-size: 14px; line-height: 1.45; color: #4B5563 !important;">
                             Verify your account using an official government ID of your country (NIN Slip, Voter's Card, Passport, or Driver's License).
                         </div>
-                        {% if has_pending_path_b %}
+                        {% if has_suspended_gov_id %}
+                        <div class="small text-warning-emphasis mt-2 pt-1 border-top" style="font-size: 12px;">
+                            🔒 Profile verification is currently suspended. Submissions are paused pending compliance inquiry.
+                        </div>
+                        {% elif has_pending_path_b %}
                         <div class="small text-danger mt-2 pt-1 border-top" style="font-size: 12px;">
                             🔒 An Alternative Personhood request is currently pending review. You cannot switch to Government ID while that request is pending.
                         </div>
@@ -271,9 +280,12 @@
                     </div>
 
                     {# Option 2: Alternative Personhood Verification #}
-                    <div class="vng-method-card w-100 p-3 px-sm-4 py-sm-3.5 rounded-3 bg-white border {% if selected_method == 'alternative' %}vng-method-active{% endif %} {% if has_pending_gov_id %}vng-method-locked{% endif %} shadow-xs"
+                    <div class="vng-method-card w-100 p-3 px-sm-4 py-sm-3.5 rounded-3 bg-white border {% if selected_method == 'alternative' %}vng-method-active{% endif %} {% if has_pending_gov_id or has_suspended_gov_id %}vng-method-locked{% endif %} shadow-xs"
                          id="methodCardAlternative"
-                         {% if has_pending_gov_id %}
+                         {% if has_suspended_gov_id %}
+                         style="opacity: 0.6; cursor: not-allowed; border-color: #E2E8F0;"
+                         onclick="alertLockedMethod('suspended')"
+                         {% elif has_pending_gov_id %}
                          style="opacity: 0.6; cursor: not-allowed; border-color: #E2E8F0;"
                          onclick="alertLockedMethod('alternative')"
                          {% else %}
@@ -288,7 +300,9 @@
                                 <span class="fw-bold text-dark" style="font-size: 16px;">Alternative Person Verification</span>
                             </div>
                             <div>
-                                {% if has_pending_gov_id %}
+                                {% if has_suspended_gov_id %}
+                                    <span class="badge rounded-pill fw-medium" style="background: #F1F5F9; border: 1px solid #CBD5E1; color: #64748B; font-size: 13px; padding: 4px 12px;">🔒 Locked</span>
+                                {% elif has_pending_gov_id %}
                                     <span class="badge rounded-pill fw-medium" style="background: #F1F5F9; border: 1px solid #CBD5E1; color: #64748B; font-size: 13px; padding: 4px 12px;">🔒 Locked</span>
                                 {% elif has_pending_path_b %}
                                     <span class="badge rounded-pill fw-medium" style="background: #EFF6FF; color: #2563EB; font-size: 13px; padding: 4px 12px; border: 1px solid #BFDBFE;">Under Review</span>
@@ -302,7 +316,11 @@
                         <div class="text-muted" style="font-size: 14px; line-height: 1.45; color: #4B5563 !important;">
                             Establish genuine personhood to verify your account without an official government ID card to unlock the platform services .
                         </div>
-                        {% if has_pending_gov_id %}
+                        {% if has_suspended_gov_id %}
+                        <div class="small text-muted mt-2 pt-1 border-top" style="font-size: 12px;">
+                            🔒 Profile verification is currently suspended. You cannot submit an alternative verification while under compliance review.
+                        </div>
+                        {% elif has_pending_gov_id %}
                         <div class="small text-danger mt-2 pt-1 border-top" style="font-size: 12px;">
                             🔒 A Government ID verification request is currently pending review. You cannot switch to Alternative Verification while that request is pending.
                         </div>
@@ -311,8 +329,24 @@
                 </div>
             </div>
 
+            {# ── Suspension Locked Card ── #}
+            {% if has_suspended_gov_id %}
+            <div class="vng-card p-4 text-center mb-4" style="border: 1px solid #FDE68A; background: #FFFDF5; border-radius: 14px;">
+                <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3" style="width: 52px; height: 52px; background: #FEF3C7; color: #D97706;">
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                </div>
+                <h3 class="h6 fw-bold text-dark mb-1" style="font-size: 16px;">Verification Submissions Locked</h3>
+                <p class="small text-muted mb-0" style="max-width: 540px; margin: 0 auto; font-size: 13.5px; line-height: 1.5;">
+                    Your profile verification standing has been placed on hold by platform compliance. Additional verification submissions and method changes are disabled while your account is under compliance review. Please check your registered email (<strong>{{ user_profile.email }}</strong>) for instructions or contact support for assistance.
+                </p>
+            </div>
+            {% endif %}
+
             {# ── Initial Guidance Prompt When No Method is Selected ── #}
-            <div id="noMethodSelectedPrompt" class="{% if selected_method %}d-none{% endif %} mb-4">
+            <div id="noMethodSelectedPrompt" class="{% if selected_method or has_suspended_gov_id %}d-none{% endif %} mb-4">
                 <div class="vng-card p-4 text-center" style="border: 2px dashed #CBD5E1; background: #F8FAFC; border-radius: 14px;">
                     <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3" style="width: 52px; height: 52px; background: #EFF6FF; color: #2563EB;">
                         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -2575,6 +2609,7 @@
 <script>
 const hasPendingGovId = {% if has_pending_gov_id %}true{% else %}false{% endif %};
 const hasPendingPathB = {% if has_pending_path_b %}true{% else %}false{% endif %};
+const hasSuspendedGovId = {% if has_suspended_gov_id %}true{% else %}false{% endif %};
 
 function alertLockedMethod(method) {
     const modalEl = document.getElementById('lockedMethodModal');
@@ -2583,7 +2618,19 @@ function alertLockedMethod(method) {
     const badgeEl = document.getElementById('lockedMethodModalBadge');
     const detailEl = document.getElementById('lockedMethodModalDetail');
 
-    if (method === 'alternative') {
+    if (method === 'suspended') {
+        if (titleEl) titleEl.textContent = 'Verification Submissions Locked';
+        if (msgEl) {
+            msgEl.innerHTML = 'Your account profile verification standing has been placed on hold by platform compliance.';
+        }
+        if (badgeEl) {
+            badgeEl.className = 'badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill fw-semibold';
+            badgeEl.textContent = 'Profile Suspended';
+        }
+        if (detailEl) {
+            detailEl.textContent = 'While suspended, new verification requests and method switches are disabled. Please follow the instructions sent to your registered email.';
+        }
+    } else if (method === 'alternative') {
         if (titleEl) titleEl.textContent = 'Alternative Verification Locked';
         if (msgEl) {
             msgEl.innerHTML = 'You currently have an account profile verification submitted and awaiting review.';
@@ -2614,15 +2661,21 @@ function alertLockedMethod(method) {
         modal.show();
     } else {
         showWizardNotice(
-            method === 'alternative'
-                ? 'Your Government ID verification is currently pending review. Alternative Verification is locked.'
-                : 'Your Alternative Verification is currently pending review. Government ID verification is locked.',
+            method === 'suspended'
+                ? 'Profile verification is currently suspended. Submissions and method switching are locked.'
+                : (method === 'alternative'
+                    ? 'Your Government ID verification is currently pending review. Alternative Verification is locked.'
+                    : 'Your Alternative Verification is currently pending review. Government ID verification is locked.'),
             'warning'
         );
     }
 }
 
 function selectVerificationMethod(method) {
+    if (hasSuspendedGovId) {
+        alertLockedMethod('suspended');
+        return;
+    }
     if (method === 'alternative' && hasPendingGovId) {
         alertLockedMethod('alternative');
         return;

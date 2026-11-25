@@ -109,7 +109,7 @@
             <div>
                 <div class="fw-semibold" style="color:#92400E;">Profile Verification Suspended</div>
                 <div class="small" style="color:#92400E;">
-                    {{ request.user.id_rejection_reason|default:"Your profile verification standing has been placed on hold pending compliance inquiry." }}
+                    Your profile verification standing has been placed on hold by platform compliance.
                     <a href="{% url 'users:verify_account' %}" style="color:#B45309;font-weight:600;text-decoration:underline;">Review verification status &rarr;</a>
                 </div>
             </div>
@@ -286,7 +286,7 @@
                             <div class="small text-muted d-flex align-items-center gap-2 mt-1"><span>Account type:</span> <span class="badge bg-secondary">{{ request.user.get_role_display|default:"Individual" }}</span></div>
                         </div>
                     </div>
-                    <div class="small text-muted mb-2" style="font-size:12px;">{{ request.user.id_rejection_reason|default:"Your verification standing is temporarily suspended pending compliance review." }}</div>
+                    <div class="small text-muted mb-2" style="font-size:12.5px;">While suspended, your Verified Badge is paused.</div>
                     <a href="{% url 'users:verify_account' %}" class="btn btn-outline-warning btn-sm w-100 mb-2">
                         Review Verification &rarr;
                     </a>
