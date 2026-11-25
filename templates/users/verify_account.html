@@ -375,10 +375,14 @@
                         </div>
                         {% if user_profile.identity_verified or user_profile.id_verification_status == 'verified' %}
                             <span class="badge bg-success px-2.5 py-1.5"><span class="dot"></span>Verified Individual</span>
-                        {% elif user_profile.id_verification_status == 'pending' or user_profile.has_id_document and user_profile.id_verification_status != 'rejected' %}
+                        {% elif user_profile.id_verification_status == 'pending' %}
                             <span class="badge bg-primary px-2.5 py-1.5"><span class="dot"></span>Under Compliance Review</span>
                         {% elif user_profile.id_verification_status == 'rejected' %}
                             <span class="badge bg-danger px-2.5 py-1.5"><span class="dot"></span>Verification Declined</span>
+                        {% elif user_profile.id_verification_status == 'suspended' %}
+                            <span class="badge bg-warning text-dark px-2.5 py-1.5"><span class="dot"></span>Verification Suspended</span>
+                        {% elif user_profile.id_verification_status == 'expired' %}
+                            <span class="badge bg-secondary text-white px-2.5 py-1.5"><span class="dot"></span>Verification Expired</span>
                         {% else %}
                             <span class="badge bg-warning text-dark px-2.5 py-1.5"><span class="dot"></span>Unverified</span>
                         {% endif %}
@@ -405,7 +409,7 @@
                         </div>
 
                     {# ── State 2: Under Review ── #}
-                    {% elif user_profile.id_verification_status == 'pending' or user_profile.has_id_document and user_profile.id_verification_status != 'rejected' %}
+                    {% elif user_profile.id_verification_status == 'pending' %}
                         <div class="p-3 p-sm-4 rounded-3 mb-3" style="background:#EFF6FF;border:1px solid #BFDBFE;">
                             <div class="d-flex align-items-start justify-content-between gap-3">
                                 <div class="d-flex align-items-start gap-3">
@@ -428,7 +432,7 @@
                                     </a>
                                     {% endif %}
                                     <button type="button" class="btn btn-sm btn-outline-secondary" id="toggleResubmitBtn" onclick="toggleIdResubmitForm()" style="font-size:12px;">
-                                        Update Proof
+                                        Update Record
                                     </button>
                                 </div>
                             </div>
@@ -450,14 +454,53 @@
                             </div>
                         </div>
 
-                    {# ── State 4: Unverified Initial Prompt ── #}
+                    {# ── State 4: Expired ── #}
+                    {% elif user_profile.id_verification_status == 'expired' %}
+                        <div class="p-3 p-sm-4 rounded-3 mb-3" style="background:#F8FAFC;border:1px solid #CBD5E1;">
+                            <div class="d-flex align-items-start justify-content-between gap-3 flex-wrap">
+                                <div class="d-flex align-items-start gap-3">
+                                    <div class="rounded-circle p-2 d-inline-flex align-items-center justify-content-center flex-shrink-0 mt-0.5" style="background:#E2E8F0;color:#475569;width:38px;height:38px;">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                    </div>
+                                    <div>
+                                        <div class="fw-bold text-dark" style="font-size:14.5px;">Verification Expired &bull; Document Renewal Required</div>
+                                        <div class="small text-muted mt-0.5">
+                                            Your previous identity document validity has reached expiration. Please select an accepted document type below and provide an updated document to restore active verified standing.
+                                        </div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <button type="button" class="btn btn-sm btn-primary fw-semibold px-3" id="toggleResubmitBtn" onclick="toggleIdResubmitForm()" style="font-size:12px;">
+                                        Update Record
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                    {# ── State 5: Suspended ── #}
+                    {% elif user_profile.id_verification_status == 'suspended' %}
+                        <div class="p-3 p-sm-4 rounded-3 mb-3" style="background:#FFFBEB;border:1px solid #FDE68A;">
+                            <div class="d-flex align-items-start gap-3">
+                                <div class="rounded-circle p-2 d-inline-flex align-items-center justify-content-center flex-shrink-0 mt-0.5" style="background:#FEF3C7;color:#D97706;width:38px;height:38px;">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="10" y1="15" x2="10" y2="9"/><line x1="14" y1="15" x2="14" y2="9"/></svg>
+                                </div>
+                                <div>
+                                    <div class="fw-bold text-warning-emphasis" style="font-size:14.5px;">Verification Suspended</div>
+                                    <div class="small text-secondary mt-0.5">
+                                        Your account verification standing has been paused by platform compliance. Please check your registered email for instructions.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    {# ── State 6: Unverified Initial Prompt ── #}
                     {% else %}
                         
                     {% endif %}
 
                     {# ── Government ID Form Container: Step-by-Step Question Wizard ── #}
                     {% if not user_profile.identity_verified and user_profile.id_verification_status != 'verified' %}
-                    <div id="idVerificationFormWrap" class="{% if user_profile.id_verification_status == 'pending' or user_profile.has_id_document and user_profile.id_verification_status != 'rejected' %}d-none{% endif %} pt-3 border-top mt-3">
+                    <div id="idVerificationFormWrap" class="{% if user_profile.id_verification_status == 'pending' %}d-none{% endif %} pt-3 border-top mt-3">
 
                         {# ── Wizard Stepper Header & Progress Bar ── #}
                         <div class="vng-wizard-header mb-4">
@@ -518,8 +561,8 @@
                             <input type="hidden" name="issuing_country" id="wizard_issuing_country" value="{{ default_issuing_country }}">
                             <input type="hidden" name="state" id="wizard_state" value="{{ user_profile.state|default:'' }}">
                             <input type="hidden" name="lga" id="wizard_lga" value="{{ user_profile.lga|default:'' }}">
-                            <input type="hidden" name="id_type" id="wizard_id_type" value="{{ user_profile.id_type|default:'nin' }}">
-                            <input type="hidden" name="id_number" id="wizard_id_number" value="{{ user_profile.id_number|default:'' }}">
+                            <input type="hidden" name="id_type" id="wizard_id_type" value="{% if has_expired_gov_id %}{% else %}{{ user_profile.id_type|default:'nin' }}{% endif %}">
+                            <input type="hidden" name="id_number" id="wizard_id_number" value="{% if has_expired_gov_id %}{% else %}{{ user_profile.id_number|default:'' }}{% endif %}">
                             <input type="hidden" name="phone_number" id="wizard_phone_number" value="{{ user_phone }}">
                             <input type="hidden" name="phone_verified" id="wizard_phone_verified" value="{% if is_phone_verified %}true{% else %}false{% endif %}">
                             <input type="hidden" name="email_verified" id="wizard_email_verified" value="{% if is_email_verified %}true{% else %}false{% endif %}">
@@ -870,7 +913,7 @@
                                         </label>
                                         <div style="max-width: 440px;">
                                             <input type="text" id="id_number_input" class="form-control font-monospace"
-                                                   value="{{ user_profile.id_number }}" required placeholder="Enter ID number" style="font-size:16px;">
+                                                   value="{% if not has_expired_gov_id %}{{ user_profile.id_number }}{% endif %}" required placeholder="Enter ID number" style="font-size:16px;">
                                             <div id="id_number_help" class="form-text small mt-1 text-muted">Enter your official identification number.</div>
                                         </div>
                                     </div>
@@ -1310,6 +1353,10 @@
                             <span class="badge bg-success px-2.5 py-1.5"><span class="dot"></span>Approved Community Reporter</span>
                         {% elif has_pending_path_b %}
                             <span class="badge bg-primary px-2.5 py-1.5"><span class="dot"></span>Under Compliance Review</span>
+                        {% elif has_expired_gov_id %}
+                            <span class="badge bg-secondary text-white px-2.5 py-1.5"><span class="dot"></span>Verification Expired</span>
+                        {% elif has_declined_path_b %}
+                            <span class="badge bg-danger px-2.5 py-1.5"><span class="dot"></span>Verification Declined</span>
                         {% else %}
                             <span class="badge bg-warning text-dark px-2.5 py-1.5"><span class="dot"></span>Not Enrolled</span>
                         {% endif %}
@@ -1338,6 +1385,18 @@
                                 <div class="small text-muted mt-0.5">
                                     Your selfie challenge and residential declaration are queued for compliance review.
                                     {% if latest_path_b and latest_path_b.created_at %}Submitted {{ latest_path_b.created_at|timesince }} ago.{% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    {% elif has_expired_gov_id %}
+                        <div class="d-flex align-items-start gap-3 p-3 p-sm-4 rounded-3 mb-3" style="background:#F8FAFC;border:1px solid #CBD5E1;">
+                            <div class="rounded-circle p-2 d-inline-flex align-items-center justify-content-center flex-shrink-0 mt-0.5" style="background:#E2E8F0;color:#475569;width:38px;height:38px;">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                            </div>
+                            <div>
+                                <div class="fw-bold text-dark" style="font-size:14.5px;">Verification Expired &bull; Alternative Renewal Available</div>
+                                <div class="small text-muted mt-0.5">
+                                    Your previous verification standing has expired. You may establish personhood below to renew your account without an official government ID.
                                 </div>
                             </div>
                         </div>
@@ -2610,6 +2669,7 @@
 const hasPendingGovId = {% if has_pending_gov_id %}true{% else %}false{% endif %};
 const hasPendingPathB = {% if has_pending_path_b %}true{% else %}false{% endif %};
 const hasSuspendedGovId = {% if has_suspended_gov_id %}true{% else %}false{% endif %};
+const hasExpiredGovId = {% if has_expired_gov_id %}true{% else %}false{% endif %};
 
 function alertLockedMethod(method) {
     const modalEl = document.getElementById('lockedMethodModal');
@@ -2745,7 +2805,7 @@ function toggleIdResubmitForm() {
     if (wrap) {
         wrap.classList.toggle('d-none');
         if (btn) {
-            btn.textContent = wrap.classList.contains('d-none') ? 'Update Proof' : 'Cancel';
+            btn.textContent = wrap.classList.contains('d-none') ? 'Update Record' : 'Cancel';
         }
     }
 }
@@ -2772,7 +2832,7 @@ let selectedCountryCode = '{{ default_issuing_country|default:"" }}';
 let selectedCountryName = '';
 let selectedState = '{{ user_profile.state|default:"" }}';
 let selectedLga = '{{ user_profile.lga|default:"" }}';
-let selectedDocCode = '{{ user_profile.id_type|default:"" }}';
+let selectedDocCode = '{% if has_expired_gov_id %}{% else %}{{ user_profile.id_type|default:"" }}{% endif %}';
 let selectedDocName = '';
 
 let idCameraStream = null;
@@ -3450,6 +3510,15 @@ function populateDocTypesForCountry(countryCode) {
     const docs = countryDocsMap[countryCode].documents;
     selectEl.innerHTML = '';
 
+    if (hasExpiredGovId && !selectedDocCode) {
+        const placeholderOpt = document.createElement('option');
+        placeholderOpt.value = '';
+        placeholderOpt.textContent = '-- Select Accepted Document Type --';
+        placeholderOpt.selected = true;
+        placeholderOpt.disabled = true;
+        selectEl.appendChild(placeholderOpt);
+    }
+
     let matchedSelected = false;
     docs.forEach((doc) => {
         const opt = document.createElement('option');
@@ -3465,7 +3534,7 @@ function populateDocTypesForCountry(countryCode) {
         selectEl.appendChild(opt);
     });
 
-    if (!matchedSelected && docs.length > 0) {
+    if (!matchedSelected && docs.length > 0 && !hasExpiredGovId) {
         selectEl.selectedIndex = 0;
         selectedDocCode = docs[0].code;
         selectedDocName = docs[0].name;

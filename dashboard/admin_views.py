@@ -324,6 +324,41 @@ def get_compliance_review_queue(category_filter='all', search_query=''):
             ):
                 items.append(item)
 
+    # 5. Expired Identity Documents (Record / Audit Track)
+    if category_filter == 'expired_documents':
+        exp_qs = User.objects.filter(id_verification_status='expired').order_by('-id_submitted_at')
+        for u in exp_qs:
+            cfg = get_country_config(u.country) if u.country else {}
+            c_name = cfg.get('name', u.country or 'International')
+            id_name = u.get_id_type_display() if u.id_type else 'Government ID Document'
+            name = u.get_full_name() or u.username
+            item = {
+                'id': f"exp_{u.id}",
+                'category': 'expired_documents',
+                'category_label': 'Expired Document',
+                'category_badge': 'badge bg-secondary text-white',
+                'title': name,
+                'subtitle': f"@{u.username} · {u.email}",
+                'document_type': id_name,
+                'id_number': getattr(u, 'masked_id_number', u.id_number),
+                'country': u.country or 'NG',
+                'country_name': c_name,
+                'submitted_at': u.id_submitted_at or u.date_joined,
+                'status': 'expired',
+                'status_label': 'Verification Expired',
+                'review_url': reverse('admin_portal:user_detail', kwargs={'public_id': u.public_id}),
+                'user': u,
+            }
+            if not q_str or (
+                q_str in name.lower() or
+                q_str in u.username.lower() or
+                q_str in u.email.lower() or
+                q_str in id_name.lower() or
+                q_str in str(u.id_number or '').lower() or
+                q_str in c_name.lower()
+            ):
+                items.append(item)
+
     from django.utils import timezone as _tz
     _now = _tz.now()
     items.sort(key=lambda x: x['submitted_at'] if x['submitted_at'] else _now, reverse=True)
@@ -4741,7 +4776,7 @@ class AdminReviewQueueView(SuperAdminRequiredMixin, TemplateView):
         search_query = self.request.GET.get('q', '').strip()
         page_num = self.request.GET.get('page', 1)
 
-        valid_categories = ['all', 'personal_id', 'alternative_person', 'employer_cac', 'merchant_trust']
+        valid_categories = ['all', 'personal_id', 'alternative_person', 'employer_cac', 'merchant_trust', 'expired_documents']
         if category not in valid_categories:
             category = 'all'
 
@@ -4754,6 +4789,7 @@ class AdminReviewQueueView(SuperAdminRequiredMixin, TemplateView):
         ctx['count_alternative_person'] = sum(1 for x in all_unfiltered if x['category'] == 'alternative_person')
         ctx['count_employer_cac'] = sum(1 for x in all_unfiltered if x['category'] == 'employer_cac')
         ctx['count_merchant_trust'] = sum(1 for x in all_unfiltered if x['category'] == 'merchant_trust')
+        ctx['count_expired_documents'] = User.objects.filter(id_verification_status='expired').count()
 
         try:
             per_page = int(self.request.GET.get('per_page', 15))

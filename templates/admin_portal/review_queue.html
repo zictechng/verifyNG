@@ -75,6 +75,9 @@
                     <option value="merchant_trust" {% if category == 'merchant_trust' %}selected{% endif %}>
                         🛍️ Merchant Trust Seal ({{ count_merchant_trust }})
                     </option>
+                    <option value="expired_documents" {% if category == 'expired_documents' %}selected{% endif %}>
+                        ⌛ Expired Documents ({{ count_expired_documents }})
+                    </option>
                 </select>
             </div>
         </div>
@@ -87,7 +90,9 @@
 <div class="adm-card shadow-sm mb-4" style="border-radius:12px; border:1px solid var(--adm-border); overflow:hidden;">
     <div class="adm-card-header d-flex align-items-center justify-content-between py-2.5 px-3.5 bg-light border-bottom">
         <div class="d-flex align-items-center gap-2">
-            <span class="fw-bold text-dark small" style="font-size:0.88rem;">Pending Queue Items</span>
+            <span class="fw-bold text-dark small" style="font-size:0.88rem;">
+                {% if category == 'expired_documents' %}Expired Documents Record{% else %}Pending Queue Items{% endif %}
+            </span>
             <span class="badge bg-secondary rounded-pill" style="font-size:0.75rem;">{{ total_results }} found</span>
         </div>
         {% if search_query or category != 'all' %}
@@ -158,15 +163,21 @@
 
                         <!-- Status Badge -->
                         <td class="py-3">
+                            {% if item.status == 'expired' %}
+                            <span class="badge rounded-pill fw-semibold" style="background:#F1F5F9; color:#475569; border:1px solid #CBD5E1; font-size:0.72rem; padding:4px 8px;">
+                                ⌛ {{ item.status_label }}
+                            </span>
+                            {% else %}
                             <span class="badge rounded-pill fw-semibold" style="background:#FEF3C7; color:#92400E; border:1px solid #FDE68A; font-size:0.72rem; padding:4px 8px;">
                                 ⏳ {{ item.status_label }}
                             </span>
+                            {% endif %}
                         </td>
 
                         <!-- Review Action Button -->
                         <td class="text-end pe-3.5 py-3">
-                            <a href="{{ item.review_url }}" class="btn btn-sm btn-primary py-1.5 px-3 fw-semibold d-inline-flex align-items-center gap-1 shadow-sm" style="font-size:0.8rem; border-radius:6px;">
-                                <span>Review Document</span>
+                            <a href="{{ item.review_url }}" class="btn btn-sm {% if item.status == 'expired' %}btn-outline-secondary{% else %}btn-primary{% endif %} py-1.5 px-3 fw-semibold d-inline-flex align-items-center gap-1 shadow-sm" style="font-size:0.8rem; border-radius:6px;">
+                                <span>{% if item.status == 'expired' %}View Profile{% else %}Review Document{% endif %}</span>
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
                             </a>
                         </td>
@@ -182,10 +193,16 @@
             <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width:52px; height:52px; background:#F1F5F9; color:#64748B;">
                 <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             </div>
-            <h5 class="fw-bold text-dark mb-1" style="font-size:1.05rem;">No Submissions Found</h5>
+            <h5 class="fw-bold text-dark mb-1" style="font-size:1.05rem;">
+                {% if category == 'expired_documents' %}No Expired Documents Found{% else %}No Submissions Found{% endif %}
+            </h5>
             <p class="text-muted small mb-3" style="max-width:420px; margin:0 auto; font-size:0.85rem;">
-                {% if search_query or category != 'all' %}
-                No pending verification submissions match your filter criteria: "<strong>{{ search_query|default:category }}</strong>".
+                {% if search_query %}
+                No documents match your search query: "<strong>{{ search_query }}</strong>".
+                {% elif category == 'expired_documents' %}
+                There are currently no expired identity documents on record.
+                {% elif category != 'all' %}
+                No pending verification submissions match your filter category.
                 {% else %}
                 There are currently no verification submissions waiting for review in this queue.
                 {% endif %}
