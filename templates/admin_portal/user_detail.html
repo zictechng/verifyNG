@@ -1,6 +1,34 @@
 {% extends "admin_portal/base_admin.html" %}
 {% load humanize %}
-{% block title %}User: {{ target_user.username }} — Admin{% endblock %}
+{% block title %}User: {{ target_user.username }} — Admin
+{# ── Revoke Path B Alternative Verification Modal ── #}
+<div class="modal fade" id="revokePathBModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content shadow-lg border-0" style="border-radius:14px;">
+      <form method="post" action="{% url 'admin_portal:user_detail' target_user.public_id %}">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="revoke_path_b">
+        <div class="modal-header border-bottom py-3">
+          <h6 class="modal-title fw-bold text-danger">Revoke Alternative Personhood Verification</h6>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body py-3">
+          <p class="small text-secondary mb-3">
+            Are you sure you want to revoke Path B verification for <strong>{{ target_user.username }}</strong>?
+            If this user has independent qualifying Path A government ID evidence, report-publishing standing will be preserved; otherwise, report-publishing will be disabled.
+          </p>
+          <textarea name="revocation_reason" class="form-control" rows="2" placeholder="Reason for revocation..."></textarea>
+        </div>
+        <div class="modal-footer py-2">
+          <button type="button" class="btn btn-sm btn-light" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-sm btn-danger px-3">Revoke Standing</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
 
 {% block admin_body %}
 <div class="adm-page-header" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem;">
@@ -131,227 +159,6 @@
         {% if not associated_employer and not associated_merchant %}
           <div class="text-muted small text-center py-2" style="font-size:0.8rem;">
             No associated company or merchant profile registered for this user.
-          </div>
-        {% endif %}
-      </div>
-    </div>
-
-    <!-- ── Government Identity Verification Card ── -->
-    <div class="adm-card mb-4">
-      <div class="adm-card-header d-flex justify-content-between align-items-center">
-        <span>Identity Credentials</span>
-        {% if target_user.identity_verified %}
-          <span class="adm-badge green"><span class="dot"></span>Verified</span>
-        {% elif target_user.id_verification_status == 'pending' %}
-          <span class="adm-badge amber"><span class="dot"></span>Pending Review</span>
-        {% elif target_user.id_verification_status == 'rejected' %}
-          <span class="adm-badge red"><span class="dot"></span>Declined</span>
-        {% else %}
-          <span class="adm-badge gray">Unverified</span>
-        {% endif %}
-      </div>
-      <div class="p-3">
-        {% if target_user.id_type or target_user.has_id_document %}
-          <table class="table table-sm mb-3 small">
-            <tr>
-              <th style="color:var(--adm-muted);font-weight:500;width:40%;">Document Type</th>
-              <td class="fw-semibold">{{ target_user.get_id_type_display|default:target_user.id_type|upper }}</td>
-            </tr>
-            <tr>
-              <th style="color:var(--adm-muted);font-weight:500;">ID Number</th>
-              <td class="font-monospace fw-semibold">{{ target_user.masked_id_number|default:"—" }}</td>
-            </tr>
-            {% if target_user.country %}
-            <tr>
-              <th style="color:var(--adm-muted);font-weight:500;">Issuing Country</th>
-              <td class="fw-semibold">{{ target_user.country_name|default:target_user.country }} <span class="text-muted fw-normal">({{ target_user.country }})</span></td>
-            </tr>
-            {% endif %}
-            {% if target_user.state or target_user.lga %}
-            <tr>
-              <th style="color:var(--adm-muted);font-weight:500;">State / LGA</th>
-              <td>{{ target_user.state }}{% if target_user.lga %} &bull; {{ target_user.lga }}{% endif %}</td>
-            </tr>
-            {% endif %}
-            {% if target_user.id_submitted_at %}
-            <tr>
-              <th style="color:var(--adm-muted);font-weight:500;">Submitted At</th>
-              <td>{{ target_user.id_submitted_at|date:"d M Y, H:i" }}</td>
-            </tr>
-            {% endif %}
-            {% if target_user.id_verified_at %}
-            <tr>
-              <th style="color:var(--adm-muted);font-weight:500;">Verified At</th>
-              <td>{{ target_user.id_verified_at|date:"d M Y, H:i" }}</td>
-            </tr>
-            {% endif %}
-            {% if target_user.id_rejection_reason %}
-            <tr>
-              <th style="color:var(--adm-muted);font-weight:500;">Decline Reason</th>
-              <td class="text-danger small">{{ target_user.id_rejection_reason }}</td>
-            </tr>
-            {% endif %}
-          </table>
-
-          {% if target_user.has_id_document %}
-            <div class="d-flex gap-2">
-              <button type="button" class="btn btn-adm-sm btn-adm-primary flex-grow-1 d-inline-flex align-items-center justify-content-center gap-1"
-                      data-bs-toggle="modal" data-bs-target="#viewUserIdDocModal">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                View ID Document
-              </button>
-              <a href="{% url 'admin_portal:user_id_document' target_user.public_id %}?download=1" class="btn btn-adm-sm btn-adm-primary" title="Download Document">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              </a>
-            </div>
-          {% endif %}
-        {% else %}
-          <div class="text-center py-3 text-muted small">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="mb-2 text-secondary opacity-50"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><line x1="15" y1="8" x2="17" y2="8"/><line x1="15" y1="12" x2="17" y2="12"/><line x1="7" y1="16" x2="17" y2="16"/></svg>
-            <p class="mb-0">No government identification credentials submitted yet.</p>
-          </div>
-        {% endif %}
-      </div>
-    </div>
-
-    <!-- ── Alternative Person Verification (Path B) Card ── -->
-    <div class="adm-card mb-4">
-      <div class="adm-card-header d-flex justify-content-between align-items-center">
-        <span>Alternative Personhood (Path B)</span>
-        {% if has_approved_path_b %}
-          <span class="adm-badge green"><span class="dot"></span>Approved Reporter</span>
-        {% elif path_b_submissions.0.status == 'pending' %}
-          <span class="adm-badge amber"><span class="dot"></span>Pending Review</span>
-        {% elif path_b_submissions.0.status == 'rejected' %}
-          <span class="adm-badge red"><span class="dot"></span>Declined</span>
-        {% elif path_b_submissions.0.status == 'revoked' %}
-          <span class="adm-badge gray">Revoked</span>
-        {% else %}
-          <span class="adm-badge gray">None</span>
-        {% endif %}
-      </div>
-      <div class="p-3">
-        {% if path_b_submissions %}
-          {% with sub=path_b_submissions.0 %}
-            <table class="table table-sm mb-3 small">
-              <tr>
-                <th style="color:var(--adm-muted);font-weight:500;width:40%;">Challenge Type</th>
-                <td class="fw-semibold">{{ sub.get_evidence_type_display }}</td>
-              </tr>
-              <tr>
-                <th style="color:var(--adm-muted);font-weight:500;">Status</th>
-                <td><span class="fw-bold">{{ sub.get_status_display }}</span></td>
-              </tr>
-              <tr>
-                <th style="color:var(--adm-muted);font-weight:500;">Residence</th>
-                <td>{{ sub.residential_address }}, {{ sub.residential_country }}</td>
-              </tr>
-              <tr>
-                <th style="color:var(--adm-muted);font-weight:500;">Declaration</th>
-                <td class="small text-muted font-monospace" style="font-size:0.8rem;">"{{ sub.declaration_statement }}"</td>
-              </tr>
-              <tr>
-                <th style="color:var(--adm-muted);font-weight:500;">Submitted At</th>
-                <td>{{ sub.submitted_at|date:"d M Y, H:i" }}</td>
-              </tr>
-              {% if sub.reviewed_at %}
-              <tr>
-                <th style="color:var(--adm-muted);font-weight:500;">Reviewed At</th>
-                <td>{{ sub.reviewed_at|date:"d M Y, H:i" }} {% if sub.reviewed_by %}(by {{ sub.reviewed_by.username }}){% endif %}</td>
-              </tr>
-              {% endif %}
-              {% if sub.rejection_reason %}
-              <tr>
-                <th style="color:var(--adm-muted);font-weight:500;">Decline Reason</th>
-                <td class="text-danger small">{{ sub.rejection_reason }}</td>
-              </tr>
-              {% endif %}
-            </table>
-
-            <div class="d-flex gap-2 mb-3">
-              <a href="{% url 'admin_portal:alternative_verification_document' sub.id 'selfie' %}" target="_blank" class="btn btn-adm-sm btn-adm-primary flex-grow-1 d-inline-flex align-items-center justify-content-center gap-1">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                View Selfie Challenge
-              </a>
-              {% if sub.supporting_document %}
-              <a href="{% url 'admin_portal:alternative_verification_document' sub.id 'document' %}" target="_blank" class="btn btn-adm-sm btn-adm-primary flex-grow-1 d-inline-flex align-items-center justify-content-center gap-1">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                View Supporting Doc
-              </a>
-              {% endif %}
-            </div>
-
-            <div class="d-flex flex-wrap gap-2 pt-2 border-top">
-              {% if sub.status == 'pending' %}
-                <a href="{% url 'admin_portal:user_id_review' target_user.public_id %}?tab=alternative" class="btn btn-sm btn-primary px-3 fw-semibold d-inline-flex align-items-center gap-1">
-                  <span>Open in Review Desk</span>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
-                </a>
-
-                <!-- Modal for Reject Path B -->
-                <div class="modal fade" id="rejectPathBModal-{{ sub.id }}" tabindex="-1" aria-hidden="true">
-                  <div class="modal-dialog modal-dialog-centered">
-                    <div class="modal-content shadow-lg border-0" style="border-radius:14px;">
-                      <form method="post" action="{% url 'admin_portal:user_detail' target_user.public_id %}">
-                        {% csrf_token %}
-                        <input type="hidden" name="action" value="reject_path_b">
-                        <input type="hidden" name="submission_id" value="{{ sub.id }}">
-                        <div class="modal-header border-bottom py-3">
-                          <h6 class="modal-title fw-bold">Decline Alternative Personhood Verification</h6>
-                          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body py-3">
-                          <p class="small text-secondary mb-3">
-                            Provide a reason for declining this Path B challenge. The user will be notified and allowed to resubmit.
-                          </p>
-                          <textarea name="rejection_reason" class="form-control" rows="3" placeholder="e.g. Handwritten verification card is blurry or date does not match." required></textarea>
-                        </div>
-                        <div class="modal-footer py-2">
-                          <button type="button" class="btn btn-sm btn-light" data-bs-dismiss="modal">Cancel</button>
-                          <button type="submit" class="btn btn-sm btn-danger px-3">Confirm Decline</button>
-                        </div>
-                      </form>
-                    </div>
-                  </div>
-                </div>
-              {% elif sub.status == 'approved' %}
-                <button type="button" class="btn btn-sm btn-outline-danger px-3 fw-semibold" data-bs-toggle="modal" data-bs-target="#revokePathBModal">
-                  <i class="bi bi-slash-circle me-1"></i>Revoke Alternative Standing
-                </button>
-
-                <!-- Modal for Revoke Path B -->
-                <div class="modal fade" id="revokePathBModal" tabindex="-1" aria-hidden="true">
-                  <div class="modal-dialog modal-dialog-centered">
-                    <div class="modal-content shadow-lg border-0" style="border-radius:14px;">
-                      <form method="post" action="{% url 'admin_portal:user_detail' target_user.public_id %}">
-                        {% csrf_token %}
-                        <input type="hidden" name="action" value="revoke_path_b">
-                        <div class="modal-header border-bottom py-3">
-                          <h6 class="modal-title fw-bold text-danger">Revoke Alternative Personhood Verification</h6>
-                          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body py-3">
-                          <p class="small text-secondary mb-3">
-                            Are you sure you want to revoke Path B verification for <strong>{{ target_user.username }}</strong>?
-                            If this user has independent qualifying Path A government ID evidence, report-publishing standing will be preserved; otherwise, report-publishing will be disabled.
-                          </p>
-                          <textarea name="revocation_reason" class="form-control" rows="2" placeholder="Reason for revocation..."></textarea>
-                        </div>
-                        <div class="modal-footer py-2">
-                          <button type="button" class="btn btn-sm btn-light" data-bs-dismiss="modal">Cancel</button>
-                          <button type="submit" class="btn btn-sm btn-danger px-3">Revoke Standing</button>
-                        </div>
-                      </form>
-                    </div>
-                  </div>
-                </div>
-              {% endif %}
-            </div>
-          {% endwith %}
-        {% else %}
-          <div class="text-center py-3 text-muted small">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="mb-2 text-secondary opacity-50"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-            <p class="mb-0">No alternative personhood verification submissions.</p>
           </div>
         {% endif %}
       </div>
@@ -981,47 +788,38 @@
   <!-- ── Right column: activity panels ── -->
   <div class="col-lg-8">
 
-    <!-- ── Side-by-Side Name Comparison & Legal Identity Review Desk ── -->
-    <div class="adm-card mb-4" id="identityVerificationDeskCard" style="border: 1px solid #BCDFF4; box-shadow: 0 4px 14px rgba(1, 27, 51, 0.04);">
-      <div class="adm-card-header d-flex justify-content-between align-items-center flex-wrap gap-2" style="background: linear-gradient(180deg, #F8FCFE 0%, #FFFFFF 100%); border-bottom: 1px solid #BCDFF4;">
-        <div class="d-flex align-items-center gap-2">
-          <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:28px;height:28px;background:#EAF6FC;border:1px solid #BCDFF4;color:#011B33;">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
+        <!-- ── Dynamic Verification Standing & Review Desk ── -->
+    {% if target_user.identity_verified or target_user.id_verification_status == 'verified' or target_user.id_verification_status == 'suspended' or target_user.id_verification_status == 'expired' %}
+      {# ══ APPROVED GOVERNMENT IDENTITY (PATH A) ══ #}
+      <div class="adm-card mb-4" id="identityVerificationDeskCard" style="border: 1px solid #BCDFF4; box-shadow: 0 4px 14px rgba(1, 27, 51, 0.04);">
+        <div class="adm-card-header d-flex justify-content-between align-items-center flex-wrap gap-2" style="background: linear-gradient(180deg, #F8FCFE 0%, #FFFFFF 100%); border-bottom: 1px solid #BCDFF4;">
+          <div class="d-flex align-items-center gap-2">
+            <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:28px;height:28px;background:#EAF6FC;border:1px solid #BCDFF4;color:#011B33;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
+            </div>
+            <span class="fw-bold" style="color:#011B33; font-size: 0.95rem;">Verified Government Identity Credentials</span>
           </div>
-          <span class="fw-bold" style="color:#011B33; font-size: 0.95rem;">Identity Verification &amp; Name Comparison Desk</span>
-        </div>
-        <div class="d-flex align-items-center gap-2 flex-wrap">
-          {% if target_user.id_type %}
-            <span class="adm-badge blue fw-semibold" style="letter-spacing:0.02em;">
-              {{ id_doc_spec_name|default:target_user.get_id_type_display|default:target_user.id_type|upper }}
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            {% if target_user.id_type %}
+              <span class="adm-badge blue fw-semibold" style="letter-spacing:0.02em;">
+                {{ id_doc_spec_name|default:target_user.get_id_type_display|default:target_user.id_type|upper }}
+              </span>
+            {% endif %}
+            {% if target_user.id_verification_status == 'verified' %}
+              <span class="adm-badge green"><span class="dot"></span>Verified</span>
+            {% elif target_user.id_verification_status == 'suspended' %}
+              <span class="adm-badge amber"><span class="dot"></span>Suspended</span>
+            {% elif target_user.id_verification_status == 'expired' %}
+              <span class="adm-badge gray"><span class="dot"></span>Expired</span>
+            {% endif %}
+            <span class="adm-badge {{ id_assurance_badge_class|default:'gray' }}">
+              {{ id_assurance_standing|default:"Verified" }}
             </span>
-          {% endif %}
-          {# Separate Lifecycle Status Badge #}
-          {% if target_user.id_verification_status == 'verified' %}
-            <span class="adm-badge green"><span class="dot"></span>Verified</span>
-          {% elif target_user.id_verification_status == 'pending' %}
-            <span class="adm-badge amber"><span class="dot"></span>Pending Compliance Review</span>
-          {% elif target_user.id_verification_status == 'rejected' %}
-            <span class="adm-badge red"><span class="dot"></span>Declined</span>
-          {% elif target_user.id_verification_status == 'suspended' %}
-            <span class="adm-badge amber"><span class="dot"></span>Suspended</span>
-          {% elif target_user.id_verification_status == 'expired' %}
-            <span class="adm-badge gray"><span class="dot"></span>Expired</span>
-          {% else %}
-            <span class="adm-badge gray">Unverified</span>
-          {% endif %}
-          {# Separate Assurance Standing Badge #}
-          <span class="adm-badge {{ id_assurance_badge_class|default:'gray' }}">
-            {{ id_assurance_standing|default:"Not verified" }}
-          </span>
+          </div>
         </div>
-      </div>
 
-      <div class="p-3 p-md-4">
-        {% if target_user.id_type or target_user.has_id_document or target_user.id_verification_status != 'unverified' %}
-          <!-- ── Side-by-Side Comparison Grid ── -->
+        <div class="p-3 p-md-4">
           <div class="row g-3 mb-3">
-            
             <!-- Left Side: VerifyNG Registered Profile -->
             <div class="col-md-6">
               <div class="h-100 p-3 rounded-3" style="background:#F8FAFC; border:1px solid #E2E8F0;">
@@ -1031,19 +829,12 @@
                   </span>
                   <span class="badge bg-light text-secondary border fw-normal" style="font-size:0.7rem;">VerifyNG Record</span>
                 </div>
-
                 <div class="mb-3 pb-2 border-bottom">
                   <div class="text-muted" style="font-size:0.72rem;">Registered Full Legal Name</div>
                   <div class="fw-bold fs-5 text-truncate" style="color:#011B33;" title="{{ target_user.get_full_name|default:target_user.username }}">
                     {{ target_user.get_full_name|default:"Not Provided" }}
                   </div>
-                  {% if not target_user.get_full_name %}
-                    <div class="text-warning small fst-italic" style="font-size:0.74rem;">
-                      <i class="bi bi-exclamation-triangle me-1"></i>Profile has no first/last name saved (Username: {{ target_user.username }})
-                    </div>
-                  {% endif %}
                 </div>
-
                 <table class="table table-sm table-borderless mb-0 small" style="font-size:0.82rem;">
                   <tr>
                     <td class="text-muted ps-0 py-1" style="width:38%;">First Name:</td>
@@ -1069,24 +860,23 @@
               </div>
             </div>
 
-            <!-- Right Side: Official Submitted Credential -->
+            <!-- Right Side: Official Verified Credential -->
             <div class="col-md-6">
               <div class="h-100 p-3 rounded-3" style="background:#F0F9FF; border:1px solid #BCDFF4;">
                 <div class="d-flex align-items-center justify-content-between mb-2">
                   <span class="text-uppercase fw-bold" style="font-size:0.72rem;letter-spacing:0.06em;color:#0369A1;">
-                    <i class="bi bi-shield-check me-1"></i>Submitted Government ID
+                    <i class="bi bi-shield-check me-1"></i>Verified Government ID
                   </span>
                   <span class="badge" style="background:#EAF6FC;color:#011B33;border:1px solid #BCDFF4;font-size:0.7rem;">
                     {{ id_doc_spec_name|default:target_user.get_id_type_display|default:target_user.id_type|upper }}
                   </span>
                 </div>
-
                 <table class="table table-sm table-borderless mb-2 small" style="font-size:0.82rem;">
                   <tr>
                     <td class="text-muted ps-0 py-1" style="width:38%;">Issuing Country:</td>
                     <td class="fw-semibold text-dark py-1">
-                      {{ id_issuing_country_name|default:"Not configured" }}
-                      {% if id_issuing_country_code and id_issuing_country_name != 'Not configured' %}
+                      {{ id_issuing_country_name|default:"Nigeria" }}
+                      {% if id_issuing_country_code %}
                         <span class="text-muted fw-normal">({{ id_issuing_country_code }})</span>
                       {% endif %}
                     </td>
@@ -1104,29 +894,28 @@
                   {% endif %}
                   <tr>
                     <td class="text-muted ps-0 py-1">Issuing Authority:</td>
-                    <td class="fw-semibold text-dark py-1">{{ id_issuing_authority|default:"Not configured" }}</td>
+                    <td class="fw-semibold text-dark py-1">{{ id_issuing_authority|default:"National Identity Management Commission (NIMC)" }}</td>
                   </tr>
                   <tr>
                     <td class="text-muted ps-0 py-1">Assurance Standing:</td>
                     <td class="py-1">
-                      <span class="adm-badge {{ id_assurance_badge_class|default:'gray' }} py-0.5 px-2" style="font-size:0.72rem;">
-                        {{ id_assurance_standing|default:"Not verified" }}
+                      <span class="adm-badge {{ id_assurance_badge_class|default:'green' }} py-0.5 px-2" style="font-size:0.72rem;">
+                        {{ id_assurance_standing|default:"Verified" }}
                       </span>
                     </td>
                   </tr>
                 </table>
-
                 <div class="mb-3 pb-2 border-bottom" style="border-color:#BCDFF4 !important;">
                   <div class="text-muted" style="font-size:0.72rem;">Identification Number (Masked by default)</div>
-                  <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-                    <span class="font-monospace fw-bold fs-5 text-dark" id="displayIdNumber">
+                  <div class="d-flex align-items-center justify-content-between mt-1">
+                    <span class="font-monospace fw-bold text-dark fs-6" id="maskedIdDisplay" style="letter-spacing:0.04em;">
                       {{ target_user.masked_id_number|default:"—" }}
                     </span>
                     {% if target_user.id_number %}
                       <div class="d-flex gap-1">
-                        <button type="button" class="btn btn-sm btn-outline-secondary py-0.5 px-2" style="font-size:0.72rem;border-radius:4px;"
-                                onclick="const el=document.getElementById('displayIdNumber'); if(el.innerText==='{{ target_user.masked_id_number }}'){el.innerText='{{ target_user.id_number }}'; this.innerText='Hide';}else{el.innerText='{{ target_user.masked_id_number }}'; this.innerText='Reveal';}">
-                          Reveal
+                        <button type="button" class="btn btn-sm btn-adm-primary py-0.5 px-2" style="font-size:0.72rem;border-radius:4px;"
+                                onclick="toggleRevealId('{{ target_user.id_number }}', '{{ target_user.masked_id_number }}')">
+                          <span id="revealIdBtnText">Reveal</span>
                         </button>
                         <button type="button" class="btn btn-sm btn-adm-primary py-0.5 px-2" style="font-size:0.72rem;border-radius:4px;"
                                 onclick="navigator.clipboard.writeText('{{ target_user.id_number }}'); this.innerText='Copied!'; setTimeout(()=>this.innerText='Copy', 1500);"
@@ -1137,7 +926,6 @@
                     {% endif %}
                   </div>
                 </div>
-
                 <table class="table table-sm table-borderless mb-0 small" style="font-size:0.82rem;">
                   <tr>
                     <td class="text-muted ps-0 py-1" style="width:38%;">Document File:</td>
@@ -1161,31 +949,12 @@
                     <td class="py-1 text-success fw-semibold">{{ target_user.id_verified_at|date:"d M Y, H:i" }}</td>
                   </tr>
                   {% endif %}
-                  {% if target_user.id_rejection_reason %}
-                  <tr>
-                    <td class="text-danger ps-0 py-1">Notice / Reason:</td>
-                    <td class="py-1 text-danger small">{{ target_user.id_rejection_reason }}</td>
-                  </tr>
-                  {% endif %}
                 </table>
               </div>
             </div>
-
           </div>
 
-          <!-- ── Compliance Name-Match Protocol Notice ── -->
-          <div class="p-3 mb-3 rounded-2" style="background:#FFFBEB; border:1px solid #FDE68A;">
-            <div class="d-flex align-items-start gap-2">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2.2" class="flex-shrink-0 mt-0.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-              <div class="small" style="color:#92400E; font-size:0.8rem; line-height:1.45;">
-                <strong>Compliance Protocol — Name Match Audit:</strong>
-                Inspect the uploaded document below to confirm that the legal name printed on the <strong>{{ id_doc_spec_name|default:target_user.get_id_type_display|default:"Government ID" }}</strong> strictly matches the registered name <strong>"{{ target_user.get_full_name|default:target_user.username }}"</strong>. 
-                Third-party documents or names belonging to another individual must be <strong>Declined</strong> immediately.
-              </div>
-            </div>
-          </div>
-
-          <!-- ── Action Buttons with Unified Brand Styling ── -->
+          <!-- Administrative Revocation Controls for Approved Government ID -->
           <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 pt-2 border-top">
             <div class="d-flex align-items-center gap-2 flex-wrap">
               {% if target_user.has_id_document %}
@@ -1205,43 +974,150 @@
                 </button>
               {% endif %}
             </div>
-
             <div class="d-flex align-items-center gap-2 flex-wrap">
-              {% if target_user.id_verification_status != 'verified' %}
-                <div class="d-flex align-items-center gap-2">
-                  <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill px-2.5 py-1.5 fw-semibold" style="font-size:0.75rem;">
-                    ⏳ Awaiting Compliance Approval
+              <button type="button" class="btn btn-outline-warning btn-sm px-3" data-bs-toggle="modal" data-bs-target="#suspendUserIdModal">
+                <i class="bi bi-pause-circle me-1"></i>Suspend Verification
+              </button>
+              <button type="button" class="btn btn-outline-secondary btn-sm px-3" data-bs-toggle="modal" data-bs-target="#expireUserIdModal">
+                <i class="bi bi-clock-history me-1"></i>Mark as Expired
+              </button>
+              <button type="button" class="btn btn-outline-danger btn-sm px-3" data-bs-toggle="modal" data-bs-target="#revokeUserIdModal">
+                <i class="bi bi-x-circle me-1"></i>Revoke Verification
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    {% elif has_approved_path_b %}
+      {# ══ APPROVED ALTERNATIVE PERSONHOOD (PATH B) ══ #}
+      {% with sub=path_b_submissions.0 %}
+      <div class="adm-card mb-4" id="alternativeVerificationDeskCard" style="border: 1px solid #BAE6FD; box-shadow: 0 4px 14px rgba(1, 27, 51, 0.04);">
+        <div class="adm-card-header d-flex justify-content-between align-items-center flex-wrap gap-2" style="background: linear-gradient(180deg, #F0F9FF 0%, #FFFFFF 100%); border-bottom: 1px solid #BAE6FD;">
+          <div class="d-flex align-items-center gap-2">
+            <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:28px;height:28px;background:#E0F2FE;border:1px solid #BAE6FD;color:#0369A1;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <span class="fw-bold" style="color:#0369A1; font-size: 0.95rem;">Verified Alternative Personhood (Path B)</span>
+          </div>
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            <span class="adm-badge blue fw-semibold">Community Reporter</span>
+            <span class="adm-badge green"><span class="dot"></span>Approved Standing</span>
+          </div>
+        </div>
+
+        <div class="p-3 p-md-4">
+          <div class="row g-3 mb-3">
+            <!-- Left: Registered Profile -->
+            <div class="col-md-6">
+              <div class="h-100 p-3 rounded-3" style="background:#F8FAFC; border:1px solid #E2E8F0;">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                  <span class="text-uppercase fw-bold" style="font-size:0.72rem;letter-spacing:0.06em;color:#64748B;">
+                    <i class="bi bi-person-badge me-1"></i>Registered User Profile
                   </span>
-                  <a href="{% url 'admin_portal:user_id_review' target_user.public_id %}" class="btn btn-primary btn-sm px-3.5 fw-semibold shadow-sm d-inline-flex align-items-center gap-1.5" style="border-radius:6px;">
-                    <span>Open in Review Desk</span>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
-                  </a>
+                  <span class="badge bg-light text-secondary border fw-normal" style="font-size:0.7rem;">VerifyNG Record</span>
                 </div>
-              {% else %}
-                <button type="button" class="btn btn-outline-warning btn-sm px-3" data-bs-toggle="modal" data-bs-target="#suspendUserIdModal">
-                  <i class="bi bi-pause-circle me-1"></i>Suspend Verification
-                </button>
+                <div class="mb-3 pb-2 border-bottom">
+                  <div class="text-muted" style="font-size:0.72rem;">Registered Full Legal Name</div>
+                  <div class="fw-bold fs-5 text-truncate" style="color:#011B33;">{{ target_user.get_full_name|default:target_user.username }}</div>
+                </div>
+                <table class="table table-sm table-borderless mb-0 small" style="font-size:0.82rem;">
+                  <tr><td class="text-muted ps-0 py-1" style="width:38%;">Username:</td><td class="py-1"><code>@{{ target_user.username }}</code></td></tr>
+                  <tr><td class="text-muted ps-0 py-1">Account Email:</td><td class="py-1 text-truncate" style="max-width:180px;">{{ target_user.email }}</td></tr>
+                  <tr><td class="text-muted ps-0 py-1">Account Role:</td><td class="py-1"><span class="adm-badge blue py-0.5 px-2" style="font-size:0.7rem;">{{ target_user.get_role_display }}</span></td></tr>
+                </table>
+              </div>
+            </div>
 
-                <button type="button" class="btn btn-outline-secondary btn-sm px-3" data-bs-toggle="modal" data-bs-target="#expireUserIdModal">
-                  <i class="bi bi-clock-history me-1"></i>Mark as Expired
-                </button>
-
-                <button type="button" class="btn btn-outline-danger btn-sm px-3" data-bs-toggle="modal" data-bs-target="#revokeUserIdModal">
-                  <i class="bi bi-x-circle me-1"></i>Revoke Verification
-                </button>
-              {% endif %}
+            <!-- Right: Approved Personhood Record -->
+            <div class="col-md-6">
+              <div class="h-100 p-3 rounded-3" style="background:#F0FDF4; border:1px solid #BBF7D0;">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                  <span class="text-uppercase fw-bold" style="font-size:0.72rem;letter-spacing:0.06em;color:#15803D;">
+                    <i class="bi bi-shield-check me-1"></i>Approved Personhood Standing
+                  </span>
+                  <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size:0.7rem;">
+                    {{ sub.get_evidence_type_display }}
+                  </span>
+                </div>
+                <table class="table table-sm table-borderless mb-0 small" style="font-size:0.82rem;">
+                  <tr><td class="text-muted ps-0 py-1" style="width:38%;">Challenge Type:</td><td class="fw-semibold text-dark py-1">{{ sub.get_evidence_type_display }}</td></tr>
+                  <tr><td class="text-muted ps-0 py-1">Residence:</td><td class="fw-semibold text-dark py-1">{{ sub.residential_address }}, {{ sub.residential_country }}</td></tr>
+                  <tr><td class="text-muted ps-0 py-1">Declaration:</td><td class="small text-muted py-1 fst-italic">"{{ sub.declaration_statement|truncatechars:50 }}"</td></tr>
+                  <tr><td class="text-muted ps-0 py-1">Approved On:</td><td class="fw-semibold text-success py-1">{{ sub.reviewed_at|date:"d M Y, H:i"|default:sub.submitted_at|date:"d M Y, H:i" }}</td></tr>
+                </table>
+              </div>
             </div>
           </div>
 
-        {% else %}
-          <div class="text-center py-4 text-muted">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="mb-2 text-secondary opacity-50"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><line x1="15" y1="8" x2="17" y2="8"/><line x1="15" y1="12" x2="17" y2="12"/><line x1="7" y1="16" x2="17" y2="16"/></svg>
-            <div class="fw-semibold text-dark">No Government Identification Submitted</div>
-            <div class="small text-muted mt-1">This user has not yet submitted a National Identity Number (NIN), Bank Verification Number (BVN), or ID document.</div>
+          <!-- Actions for Approved Alternative Personhood -->
+          <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 pt-2 border-top">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <a href="{% url 'admin_portal:alternative_verification_document' sub.id 'selfie' %}" target="_blank" class="btn btn-adm-primary">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                View Selfie Challenge
+              </a>
+              {% if sub.supporting_document %}
+              <a href="{% url 'admin_portal:alternative_verification_document' sub.id 'document' %}" target="_blank" class="btn btn-adm-primary">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                View Supporting Doc
+              </a>
+              {% endif %}
+            </div>
+            <button type="button" class="btn btn-outline-danger btn-sm px-3 fw-semibold" data-bs-toggle="modal" data-bs-target="#revokePathBModal">
+              <i class="bi bi-slash-circle me-1"></i>Revoke Alternative Standing
+            </button>
           </div>
-        {% endif %}
+        </div>
       </div>
-    </div>
+      {% endwith %}
+
+    {% elif target_user.id_verification_status == 'pending' or path_b_submissions.0.status == 'pending' %}
+      {# ══ PENDING REVIEW NOTIFICATION (DO NOT SHOW VERIFICATION DESK UNTIL APPROVED) ══ #}
+      <div class="adm-card mb-4" style="border: 1px solid #FDE68A; background: #FFFDF5; border-radius: 12px;">
+        <div class="p-3.5 d-flex align-items-center justify-content-between flex-wrap gap-3">
+          <div class="d-flex align-items-center gap-3">
+            <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width:42px; height:42px; background:#FEF3C7; color:#D97706;">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            </div>
+            <div>
+              <div class="d-flex align-items-center gap-2">
+                <h5 class="fw-bold mb-0 text-dark" style="font-size:0.95rem;">Account Verification Pending Compliance Review</h5>
+                <span class="adm-badge amber"><span class="dot"></span>Awaiting Review</span>
+              </div>
+              <p class="text-muted small mb-0 mt-0.5">
+                This user has submitted {% if target_user.id_verification_status == 'pending' %}a <strong>{{ id_doc_spec_name|default:"Government Identification Document" }}</strong>{% else %}an <strong>Alternative Personhood Challenge</strong>{% endif %} awaiting verification review.
+              </p>
+            </div>
+          </div>
+          <a href="{% url 'admin_portal:user_id_review' target_user.public_id %}{% if target_user.id_verification_status != 'pending' and path_b_submissions.0.status == 'pending' %}?tab=alternative{% endif %}" class="btn btn-primary btn-sm px-3.5 py-1.5 fw-semibold d-inline-flex align-items-center gap-1.5 shadow-sm" style="border-radius:6px; text-decoration:none;">
+            <span>Open in Review Desk</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+          </a>
+        </div>
+      </div>
+
+    {% elif target_user.id_verification_status == 'rejected' or path_b_submissions.0.status == 'rejected' %}
+      {# ══ REJECTED / DECLINED NOTIFICATION ══ #}
+      <div class="adm-card mb-4" style="border: 1px solid #FECACA; background: #FFF5F5; border-radius: 12px;">
+        <div class="p-3.5 d-flex align-items-center justify-content-between flex-wrap gap-2">
+          <div class="d-flex align-items-center gap-3">
+            <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width:38px; height:38px; background:#FEE2E2; color:#DC2626;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+            </div>
+            <div>
+              <h5 class="fw-bold mb-0 text-danger" style="font-size:0.92rem;">Account Verification Declined</h5>
+              <div class="text-muted small mt-0.5">
+                Reason: <span class="text-danger fw-medium">{{ target_user.id_rejection_reason|default:path_b_submissions.0.rejection_reason|default:"Submitted credentials did not meet compliance criteria." }}</span>
+              </div>
+            </div>
+          </div>
+          <a href="{% url 'admin_portal:user_id_review' target_user.public_id %}" class="btn btn-adm-outline btn-adm-sm text-decoration-none">
+            View Review Record &rarr;
+          </a>
+        </div>
+      </div>
+    {% endif %}
 
     <!-- Reports submitted -->
         
