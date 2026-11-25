@@ -801,6 +801,14 @@ class UserIdentityVerificationSubmitView(LoginRequiredMixin, View):
             # Fall back to user's residence country if known, or Nigeria default for backward compatibility
             issuing_country = getattr(user, 'country', None) or 'NG'
 
+        if not id_type:
+            messages.error(request, "Please select an accepted government identity document type.")
+            return redirect(redirect_url)
+
+        if not id_number:
+            messages.error(request, "Please enter your official identification document number.")
+            return redirect(redirect_url)
+
         # Strict Security & Policy Gate: BVN is a financial identifier, not an accepted identity document
         if id_type == 'bvn':
             messages.error(
@@ -831,6 +839,12 @@ class UserIdentityVerificationSubmitView(LoginRequiredMixin, View):
         if not id_doc and request.POST.get('id_document_data'):
             id_doc = decode_base64_image(request.POST.get('id_document_data'), prefix=f"id_doc_{user.pk}")
 
+        # When an account is expired, rejected, or unverified: a fresh document file is strictly mandatory!
+        is_fresh_doc_required = (user.id_verification_status in ('expired', 'rejected', 'unverified') or not user.has_id_document)
+        if not id_doc and is_fresh_doc_required:
+            messages.error(request, "Please attach or capture a clear, valid photo or scan of your government identity document.")
+            return redirect(redirect_url)
+
         if id_doc:
             if hasattr(id_doc, 'size') and id_doc.size > 5 * 1024 * 1024:
                 messages.error(request, "Uploaded document exceeds the 5MB size limit. Please upload a smaller file.")
@@ -842,14 +856,18 @@ class UserIdentityVerificationSubmitView(LoginRequiredMixin, View):
 
             user.id_document = id_doc
             file_uploaded = True
-        elif not user.has_id_document:
-            messages.error(request, "Please attach a verifiable photo or scan of your government identity document.")
-            return redirect(redirect_url)
 
         # Handle selfie image from camera or upload
         selfie_doc = request.FILES.get('id_selfie_image')
         if not selfie_doc and request.POST.get('id_selfie_data'):
             selfie_doc = decode_base64_image(request.POST.get('id_selfie_data'), prefix=f"selfie_{user.pk}")
+
+        # When an account is expired, rejected, or unverified: a fresh live selfie is strictly mandatory!
+        is_fresh_selfie_required = (user.id_verification_status in ('expired', 'rejected', 'unverified') or not getattr(user, 'id_selfie_image', None))
+        if not selfie_doc and is_fresh_selfie_required:
+            messages.error(request, "Please capture a fresh live selfie photograph to verify your identity.")
+            return redirect(redirect_url)
+
         if selfie_doc:
             is_valid_selfie, selfie_error = audit_selfie_quality(selfie_doc)
             if not is_valid_selfie:

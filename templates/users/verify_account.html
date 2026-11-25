@@ -1287,8 +1287,8 @@
                                             </div>
                                             <div class="d-flex align-items-center gap-2">
                                                 <img id="revDocImgPreview" src="" alt="Document Preview" class="rounded border shadow-sm d-none" style="width:54px;height:40px;object-fit:cover;">
-                                                <span id="revDocStatusText" class="small {% if user_profile.has_id_document %}text-success{% else %}text-danger{% endif %} fw-medium">
-                                                    {% if user_profile.has_id_document %}✓ Existing document on file{% else %}⚠ No document attached{% endif %}
+                                                <span id="revDocStatusText" class="small {% if user_profile.has_id_document and not has_expired_gov_id %}text-success{% else %}text-danger{% endif %} fw-medium">
+                                                    {% if user_profile.has_id_document and not has_expired_gov_id %}✓ Existing document on file{% else %}⚠ No document attached{% endif %}
                                                 </span>
                                             </div>
                                         </div>
@@ -1301,8 +1301,8 @@
                                             </div>
                                             <div class="d-flex align-items-center gap-2">
                                                 <img id="revSelfieImgPreview" src="" alt="Selfie Preview" class="rounded border shadow-sm d-none" style="width:40px;height:40px;object-fit:cover;border-radius:50%!important;">
-                                                <span id="revSelfieStatusText" class="small {% if has_selfie %}text-success{% else %}text-danger{% endif %} fw-medium">
-                                                    {% if has_selfie %}✓ Existing selfie on file{% else %}⚠ Selfie not taken{% endif %}
+                                                <span id="revSelfieStatusText" class="small {% if has_selfie and not has_expired_gov_id %}text-success{% else %}text-danger{% endif %} fw-medium">
+                                                    {% if has_selfie and not has_expired_gov_id %}✓ Existing selfie on file{% else %}⚠ Selfie not taken{% endif %}
                                                 </span>
                                             </div>
                                         </div>
@@ -2939,7 +2939,51 @@ function wizardShowStep(stepNum) {
 }
 
 function wizardJumpToStep(targetStep) {
+    if (targetStep > currentWizardStep) {
+        if (!validateWizardStepPrerequisites(targetStep)) {
+            return;
+        }
+    }
     wizardShowStep(targetStep);
+}
+
+function validateWizardStepPrerequisites(targetStep) {
+    if (targetStep > 3 && !selectedCountryCode) {
+        wizardShowStep(3);
+        showWizardNotice('Please select your document-issuing country first.', 'danger', 'countrySelectAlert');
+        return false;
+    }
+    if (targetStep > 4) {
+        const idNumInput = document.getElementById('id_number_input');
+        const idNumVal = idNumInput ? idNumInput.value.trim() : '';
+        if (!selectedDocCode || !idNumVal) {
+            wizardShowStep(4);
+            showWizardNotice('Please select your document type and enter your identification number.', 'danger', 'docValidationAlert');
+            idNumInput?.focus();
+            return false;
+        }
+    }
+    if (targetStep === 7) {
+        const idFileInput = document.getElementById('idDocumentFileInput');
+        const hasDocFile = idFileInput && idFileInput.files && idFileInput.files.length > 0;
+        const hasCapturedDoc = !!capturedIdDataUrl;
+        const hasExistingDoc = {% if user_profile.has_id_document and not has_expired_gov_id %}true{% else %}false{% endif %};
+        if (!hasDocFile && !hasCapturedDoc && !hasExistingDoc) {
+            wizardShowStep(5);
+            showWizardNotice('Please capture or upload your updated identity document before proceeding to review.', 'danger', 'idCameraAlert');
+            return false;
+        }
+        const selfieFileInput = document.getElementById('idSelfieFileInput');
+        const hasSelfieFile = selfieFileInput && selfieFileInput.files && selfieFileInput.files.length > 0;
+        const hasCapturedSelfie = !!capturedSelfieDataUrl;
+        const hasExistingSelfie = {% if has_selfie and not has_expired_gov_id %}true{% else %}false{% endif %};
+        if (!hasSelfieFile && !hasCapturedSelfie && !hasExistingSelfie) {
+            wizardShowStep(6);
+            showWizardNotice('Please complete your live camera selfie before proceeding to review.', 'danger', 'selfieCameraAlert');
+            return false;
+        }
+    }
+    return true;
 }
 
 function wizardPrevStep(current) {
@@ -4702,11 +4746,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const idFileInput = document.getElementById('idDocumentFileInput');
             const hasDocFile = idFileInput && idFileInput.files && idFileInput.files.length > 0;
             const hasCapturedDoc = !!capturedIdDataUrl;
-            const hasExistingDoc = {% if user_profile.has_id_document %}true{% else %}false{% endif %};
+            const hasExistingDoc = {% if user_profile.has_id_document and not has_expired_gov_id %}true{% else %}false{% endif %};
             if (!hasDocFile && !hasCapturedDoc && !hasExistingDoc) {
                 e.preventDefault();
                 wizardShowStep(5);
-                showWizardNotice('Please capture or upload a clear photo of your identity document before submitting.', 'danger', 'idCameraAlert');
+                showWizardNotice('Please capture or upload a clear photo of your updated identity document before submitting.', 'danger', 'idCameraAlert');
                 return;
             }
 
@@ -4714,11 +4758,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const selfieFileInput = document.getElementById('idSelfieFileInput');
             const hasSelfieFile = selfieFileInput && selfieFileInput.files && selfieFileInput.files.length > 0;
             const hasCapturedSelfie = !!capturedSelfieDataUrl;
-            const hasExistingSelfie = {% if has_selfie %}true{% else %}false{% endif %};
+            const hasExistingSelfie = {% if has_selfie and not has_expired_gov_id %}true{% else %}false{% endif %};
             if (!hasSelfieFile && !hasCapturedSelfie && !hasExistingSelfie) {
                 e.preventDefault();
                 wizardShowStep(6);
-                showWizardNotice('Please complete the live selfie verification before submitting.', 'danger', 'selfieCameraAlert');
+                showWizardNotice('Please capture a fresh live selfie photo before submitting.', 'danger', 'selfieCameraAlert');
                 return;
             }
 
