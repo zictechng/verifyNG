@@ -167,6 +167,169 @@ class SuperAdminRequiredMixin(AdminPermissionRequiredMixin):
     pass
 
 
+
+def get_compliance_review_queue(category_filter='all', search_query=''):
+    """
+    Aggregates pending compliance submissions across:
+      - personal_id: User government ID submissions
+      - alternative_person: AlternativeVerificationSubmission (Path B)
+      - employer_cac: EmployerProfile CAC incorporation submissions
+      - merchant_trust: MerchantProfile trust seal applications
+    Returns a sorted list of dict items.
+    """
+    from users.models import User, AlternativeVerificationSubmission
+    from employer.models import EmployerProfile
+    from payments.models import MerchantProfile
+    from users.country_config import get_country_config
+    from django.urls import reverse
+
+    items = []
+    q_str = str(search_query or '').strip().lower()
+
+    # 1. Personal Government ID (Path A)
+    if category_filter in ('all', 'personal_id'):
+        gov_qs = User.objects.filter(
+            Q(id_verification_status='pending') | (
+                Q(id_document__isnull=False) & ~Q(id_document='') & ~Q(id_verification_status__in=['verified', 'rejected'])
+            )
+        )
+        for u in gov_qs:
+            cfg = get_country_config(u.country) if u.country else {}
+            c_name = cfg.get('name', u.country or 'International')
+            id_name = u.get_id_type_display() if u.id_type else 'Government ID Document'
+            name = u.get_full_name() or u.username
+            item = {
+                'id': f"gov_{u.id}",
+                'category': 'personal_id',
+                'category_label': 'Personal Government ID',
+                'category_badge': 'badge bg-primary text-white',
+                'title': name,
+                'subtitle': f"@{u.username} · {u.email}",
+                'document_type': id_name,
+                'id_number': getattr(u, 'masked_id_number', u.id_number),
+                'country': u.country or 'NG',
+                'country_name': c_name,
+                'submitted_at': u.id_submitted_at or u.date_joined,
+                'status': 'pending',
+                'status_label': 'Awaiting Compliance Review',
+                'review_url': reverse('admin_portal:user_id_review', kwargs={'public_id': u.public_id}),
+                'user': u,
+            }
+            if not q_str or (
+                q_str in name.lower() or
+                q_str in u.username.lower() or
+                q_str in u.email.lower() or
+                q_str in id_name.lower() or
+                q_str in str(u.id_number or '').lower() or
+                q_str in c_name.lower()
+            ):
+                items.append(item)
+
+    # 2. Alternative Person Verification (Path B)
+    if category_filter in ('all', 'alternative_person'):
+        alt_qs = AlternativeVerificationSubmission.objects.filter(status='pending').select_related('user')
+        for sub in alt_qs:
+            u = sub.user
+            cfg = get_country_config(sub.residential_country) if sub.residential_country else {}
+            c_name = cfg.get('name', sub.residential_country or 'International')
+            name = u.get_full_name() or u.username
+            doc_type = sub.get_evidence_type_display() or 'Community Reporter Pose Challenge'
+            item = {
+                'id': f"alt_{sub.id}",
+                'category': 'alternative_person',
+                'category_label': 'Alternative Personhood',
+                'category_badge': 'badge bg-info text-dark',
+                'title': name,
+                'subtitle': f"@{u.username} · {u.email}",
+                'document_type': doc_type,
+                'id_number': 'N/A (Alternative)',
+                'country': sub.residential_country or u.country or 'NG',
+                'country_name': c_name,
+                'submitted_at': sub.submitted_at,
+                'status': 'pending',
+                'status_label': 'Awaiting Compliance Review',
+                'review_url': reverse('admin_portal:user_id_review', kwargs={'public_id': u.public_id}) + '?tab=alternative',
+                'user': u,
+            }
+            if not q_str or (
+                q_str in name.lower() or
+                q_str in u.username.lower() or
+                q_str in u.email.lower() or
+                q_str in doc_type.lower() or
+                q_str in c_name.lower()
+            ):
+                items.append(item)
+
+    # 3. Employer CAC Incorporation (EmployerProfile)
+    if category_filter in ('all', 'employer_cac'):
+        emp_qs = EmployerProfile.objects.filter(verification_status='pending').select_related('user')
+        for emp in emp_qs:
+            u = emp.user
+            c_name = 'Nigeria' if emp.country == 'NG' else (emp.country or 'Nigeria')
+            name = emp.company_name or (u.get_full_name() or u.username)
+            rc_info = f"RC: {emp.rc_number}" if emp.rc_number else "CAC Incorporation"
+            item = {
+                'id': f"emp_{emp.id}",
+                'category': 'employer_cac',
+                'category_label': 'Employer (CAC)',
+                'category_badge': 'badge bg-warning text-dark',
+                'title': emp.company_name or "Registered Company",
+                'subtitle': f"Rep: {u.get_full_name() or u.username} · {u.email}",
+                'document_type': f"CAC Incorporation ({rc_info})",
+                'id_number': emp.rc_number or '—',
+                'country': emp.country or 'NG',
+                'country_name': c_name,
+                'submitted_at': emp.updated_at or emp.created_at,
+                'status': 'pending',
+                'status_label': 'CAC Document Review',
+                'review_url': reverse('admin_portal:employer_detail', kwargs={'pk': emp.pk}),
+                'user': u,
+            }
+            if not q_str or (
+                q_str in (emp.company_name or '').lower() or
+                q_str in (emp.rc_number or '').lower() or
+                q_str in u.username.lower() or
+                q_str in u.email.lower()
+            ):
+                items.append(item)
+
+    # 4. Merchant Trust Badges (MerchantProfile)
+    if category_filter in ('all', 'merchant_trust'):
+        merch_qs = MerchantProfile.objects.filter(status='pending').select_related('user')
+        for m in merch_qs:
+            u = m.user
+            name = m.store_name or (u.get_full_name() or u.username)
+            item = {
+                'id': f"merch_{m.id}",
+                'category': 'merchant_trust',
+                'category_label': 'Merchant Trust Seal',
+                'category_badge': 'badge bg-success text-white',
+                'title': m.store_name or "Merchant Store",
+                'subtitle': f"Owner: {u.get_full_name() or u.username} · {u.email}",
+                'document_type': "Merchant Trust Seal Audit",
+                'id_number': m.cac_reg_number or '—',
+                'country': m.country or 'NG',
+                'country_name': 'Nigeria' if m.country == 'NG' else (m.country or 'Nigeria'),
+                'submitted_at': m.created_at,
+                'status': 'pending',
+                'status_label': 'Trust Seal Audit',
+                'review_url': reverse('admin_portal:merchant_detail', kwargs={'pk': m.pk}),
+                'user': u,
+            }
+            if not q_str or (
+                q_str in (m.store_name or '').lower() or
+                q_str in (m.cac_reg_number or '').lower() or
+                q_str in u.username.lower() or
+                q_str in u.email.lower()
+            ):
+                items.append(item)
+
+    from django.utils import timezone as _tz
+    _now = _tz.now()
+    items.sort(key=lambda x: x['submitted_at'] if x['submitted_at'] else _now, reverse=True)
+    return items
+
+
 class AdminOverviewView(SuperAdminRequiredMixin, TemplateView):
     """Executive Admin Portal Dashboard: KPIs, 7-Day Activity Trends, System Health."""
     template_name = "admin_portal/overview.html"
@@ -246,6 +409,15 @@ class AdminOverviewView(SuperAdminRequiredMixin, TemplateView):
             status__in=['pending', 'in_progress']
         ).select_related('requester').order_by('-created_at')[:5] if VerificationRequest else []
         ctx['recent_users_qs'] = User.objects.order_by('-date_joined')[:5]
+
+        # 6. Unified Compliance Review Queue (Action Required)
+        all_pending_queue = get_compliance_review_queue('all')
+        ctx['pending_compliance_queue'] = all_pending_queue[:5]
+        ctx['total_pending_compliance_count'] = len(all_pending_queue)
+        ctx['pending_personal_id_count'] = sum(1 for x in all_pending_queue if x['category'] == 'personal_id')
+        ctx['pending_alt_person_count'] = sum(1 for x in all_pending_queue if x['category'] == 'alternative_person')
+        ctx['pending_employer_cac_count'] = sum(1 for x in all_pending_queue if x['category'] == 'employer_cac')
+        ctx['pending_merchant_trust_count'] = sum(1 for x in all_pending_queue if x['category'] == 'merchant_trust')
 
         return ctx
 
@@ -976,6 +1148,20 @@ class AdminUserDetailView(SuperAdminRequiredMixin, TemplateView):
         ctx['service_access_rules'] = service_rules
         ctx['service_access_rules_json'] = service_access_rules_json
         ctx['service_choices'] = UserServiceAccess.SERVICE_CHOICES
+
+        # Associated Employer Profile
+        try:
+            from employer.models import EmployerProfile
+            ctx['associated_employer'] = EmployerProfile.objects.filter(user=target_user).first()
+        except Exception:
+            ctx['associated_employer'] = None
+
+        # Associated Merchant Profile
+        try:
+            from payments.models import MerchantProfile
+            ctx['associated_merchant'] = MerchantProfile.objects.filter(user=target_user).first()
+        except Exception:
+            ctx['associated_merchant'] = None
 
         # Login history — paginated
         login_qs = LoginAudit.objects.filter(user=target_user).order_by('-timestamp')
@@ -4507,6 +4693,8 @@ class AdminProfileView(LoginRequiredMixin, View):
             return redirect('admin_portal:profile')
 
         elif action == 'change_password':
+            from django.contrib.auth.forms import PasswordChangeForm
+            from django.contrib.auth import update_session_auth_hash
             pw_form = PasswordChangeForm(user=request.user, data=request.POST)
             if pw_form.is_valid():
                 user = pw_form.save()
@@ -4520,3 +4708,197 @@ class AdminProfileView(LoginRequiredMixin, View):
                 })
 
         return redirect('admin_portal:profile')
+
+
+class AdminReviewQueueView(SuperAdminRequiredMixin, TemplateView):
+    """
+    Centralized Compliance Review Queue.
+    Aggregates pending personal ID, alternative personhood, employer CAC,
+    and merchant trust seal submissions into a unified triage desk.
+    """
+    section_name = "Verifications"
+    required_permission = "users.view_user"
+    template_name = "admin_portal/review_queue.html"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        category = self.request.GET.get('category', 'all').strip()
+        search_query = self.request.GET.get('q', '').strip()
+        page_num = self.request.GET.get('page', 1)
+
+        valid_categories = ['all', 'personal_id', 'alternative_person', 'employer_cac', 'merchant_trust']
+        if category not in valid_categories:
+            category = 'all'
+
+        all_items = get_compliance_review_queue(category, search_query)
+
+        # Full counts regardless of active category filter (for the dropdown badge totals)
+        all_unfiltered = get_compliance_review_queue('all', '')
+        ctx['count_all'] = len(all_unfiltered)
+        ctx['count_personal_id'] = sum(1 for x in all_unfiltered if x['category'] == 'personal_id')
+        ctx['count_alternative_person'] = sum(1 for x in all_unfiltered if x['category'] == 'alternative_person')
+        ctx['count_employer_cac'] = sum(1 for x in all_unfiltered if x['category'] == 'employer_cac')
+        ctx['count_merchant_trust'] = sum(1 for x in all_unfiltered if x['category'] == 'merchant_trust')
+
+        from django.core.paginator import Paginator
+        paginator = Paginator(all_items, 15)
+        page_obj = paginator.get_page(page_num)
+
+        ctx['page_obj'] = page_obj
+        ctx['category'] = category
+        ctx['search_query'] = search_query
+        ctx['total_results'] = len(all_items)
+        return ctx
+
+
+class AdminUserIdReviewView(SuperAdminRequiredMixin, View):
+    """
+    Dedicated Compliance Review Desk for Individual Identity (Path A & Path B).
+    Side-by-side comparison of Registered User Profile vs Submitted Evidence,
+    with professional Approve, Decline, and Request Clarification actions.
+    """
+    section_name = "Verifications"
+    required_permission = "users.change_user"
+    template_name = "admin_portal/user_id_review.html"
+
+    def get(self, request, public_id):
+        target_user = get_object_or_404(User, public_id=public_id)
+        from users.country_config import get_country_config
+        cfg = get_country_config(target_user.country) if target_user.country else {}
+        country_name = cfg.get('name', target_user.country or 'Nigeria')
+        authority = cfg.get('accepted_documents', {}).get(target_user.id_type, {}).get('authority', 'National Identity Management Commission (NIMC)') if cfg else 'National Authority'
+        id_doc_spec_name = cfg.get('accepted_documents', {}).get(target_user.id_type, {}).get('name', target_user.get_id_type_display() if target_user.id_type else 'National Identity Number (NIN)')
+
+        path_b_submissions = target_user.alternative_verification_submissions.all().order_by('-submitted_at')
+        latest_path_b = path_b_submissions.first()
+
+        ctx = {
+            'target_user': target_user,
+            'country_name': country_name,
+            'issuing_authority': authority,
+            'id_doc_spec_name': id_doc_spec_name,
+            'path_b_submissions': path_b_submissions,
+            'latest_path_b': latest_path_b,
+            'active_tab': request.GET.get('tab', 'government_id'),
+        }
+        return render(request, self.template_name, ctx)
+
+    def post(self, request, public_id):
+        target_user = get_object_or_404(User, public_id=public_id)
+        action = request.POST.get('action', '').strip()
+
+        if action == 'verify_identity':
+            from users.services import IdentityVerificationLifecycleService
+            IdentityVerificationLifecycleService.transition_to_basic_verified(
+                user=target_user,
+                officer=request.user,
+                notes=request.POST.get('verification_notes', ''),
+                request=request
+            )
+            messages.success(request, f"Government identity verified successfully for '{target_user.get_full_name() or target_user.username}'.")
+            return redirect('admin_portal:review_queue')
+
+        elif action == 'verify_enhanced_identity':
+            from users.services import IdentityVerificationLifecycleService
+            provider = request.POST.get('enhanced_provider', '').strip()
+            method = request.POST.get('enhanced_method', '').strip()
+            ref = request.POST.get('enhanced_reference', '').strip()
+            notes_raw = request.POST.get('verification_notes', '').strip()
+            evidence_summary = f"Method: {method or 'Biometric/Registry Check'} | Provider: {provider or 'Authoritative Registry'} | Ref: {ref or 'N/A'}"
+            if notes_raw:
+                evidence_summary += f" | Notes: {notes_raw}"
+            IdentityVerificationLifecycleService.transition_to_enhanced_verified(
+                user=target_user,
+                officer=request.user,
+                notes=evidence_summary,
+                request=request
+            )
+            messages.success(request, f"Enhanced identity verified successfully for '{target_user.get_full_name() or target_user.username}'.")
+            return redirect('admin_portal:review_queue')
+
+        elif action == 'reject_identity':
+            from users.services import IdentityVerificationLifecycleService
+            reason = request.POST.get('rejection_reason', '').strip()
+            IdentityVerificationLifecycleService.transition_to_rejected(
+                user=target_user,
+                reason=reason,
+                officer=request.user,
+                request=request
+            )
+            messages.success(request, f"Identity proof declined for '{target_user.username}'. Formal notice dispatched.")
+            return redirect('admin_portal:review_queue')
+
+        elif action == 'request_more_info':
+            message_text = request.POST.get('info_request_message', '').strip()
+            if message_text:
+                from notifications.services import dispatch_notification
+                dispatch_notification(
+                    user=target_user,
+                    event_type='SYSTEM_ALERT',
+                    title='Compliance Notice: Additional Information Required for Verification',
+                    body=message_text
+                )
+                from reports.models import AuditLog
+                AuditLog.objects.create(
+                    action="ADMIN_REQUEST_MORE_VERIFICATION_INFO",
+                    performed_by=request.user,
+                    details={"target_user_id": target_user.id, "message": message_text}
+                )
+                messages.success(request, f"Clarification request sent to '{target_user.username}'.")
+            else:
+                messages.error(request, "Please enter a specific message describing what information is needed.")
+            return redirect('admin_portal:user_id_review', public_id=public_id)
+
+        elif action == 'approve_path_b':
+            from users.models import AlternativeVerificationSubmission
+            from reports.models import AuditLog
+            submission_id = request.POST.get('submission_id')
+            submission = get_object_or_404(AlternativeVerificationSubmission, id=submission_id, user=target_user)
+            submission.status = 'approved'
+            submission.reviewed_at = timezone.now()
+            submission.reviewed_by = request.user
+            submission.rejection_reason = ''
+            submission.save()
+
+            target_user.can_publish_reports = True
+            target_user.save(update_fields=['can_publish_reports'])
+
+            AuditLog.objects.create(
+                action="ADMIN_APPROVE_ALTERNATIVE_VERIFICATION",
+                performed_by=request.user,
+                details={"target_user_id": target_user.id, "submission_id": submission.id}
+            )
+            messages.success(request, f"Alternative Person Verification approved for '{target_user.username}'.")
+            return redirect('admin_portal:review_queue')
+
+        elif action == 'reject_path_b':
+            from users.models import AlternativeVerificationSubmission
+            from core.permissions import has_strict_path_a_evidence
+            from reports.models import AuditLog
+            submission_id = request.POST.get('submission_id')
+            submission = get_object_or_404(AlternativeVerificationSubmission, id=submission_id, user=target_user)
+            reason = request.POST.get('rejection_reason', '').strip() or 'Submitted selfie challenge could not be validated.'
+
+            submission.status = 'rejected'
+            submission.rejection_reason = reason
+            submission.reviewed_at = timezone.now()
+            submission.reviewed_by = request.user
+            submission.save()
+
+            has_other_approved_b = target_user.alternative_verification_submissions.filter(status='approved').exists()
+            has_qualifying_a = has_strict_path_a_evidence(target_user).allowed
+            if not has_other_approved_b and not has_qualifying_a:
+                target_user.can_publish_reports = False
+                target_user.save(update_fields=['can_publish_reports'])
+
+            AuditLog.objects.create(
+                action="ADMIN_REJECT_ALTERNATIVE_VERIFICATION",
+                performed_by=request.user,
+                details={"target_user_id": target_user.id, "submission_id": submission.id, "reason": reason}
+            )
+            messages.success(request, f"Alternative Person Verification declined for '{target_user.username}'.")
+            return redirect('admin_portal:review_queue')
+
+        messages.error(request, "Unknown action.")
+        return redirect('admin_portal:user_id_review', public_id=public_id)
+

@@ -24,21 +24,10 @@
 
     {% if not target_user.identity_verified %}
       {% if target_user.has_id_document or target_user.id_verification_status == 'pending' %}
-        <button type="button" class="btn-adm-primary"
-                data-confirm-action=""
-                data-title="Approve User Identity Verification"
-                data-body="Are you sure you want to approve identity verification for <strong>{{ target_user.get_full_name|default:target_user.username }}</strong> ({{ target_user.get_id_type_display|default:target_user.id_type|upper }}: {{ target_user.masked_id_number }})?<br><br>This will grant the user a verified identity badge across {{ site_config.site_name|default:'VerifyNG' }}."
-                data-confirm-label="Yes, Approve &amp; Verify"
-                data-confirm-class="btn-primary"
-                data-form-action="{% url 'admin_portal:user_detail' target_user.public_id %}"
-                data-hidden-action="verify_identity">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-          Approve &amp; Verify Identity
-        </button>
-        <button type="button" class="btn-adm-primary" data-bs-toggle="modal" data-bs-target="#rejectUserIdModal">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-          Decline ID Proof
-        </button>
+        <a href="{% url 'admin_portal:user_id_review' target_user.public_id %}" class="btn btn-adm-primary d-inline-flex align-items-center gap-1.5">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+          Review Verification in Desk
+        </a>
       {% endif %}
     {% else %}
       <button type="button" class="btn-adm-primary"
@@ -101,6 +90,50 @@
         <tr><th style="color:var(--adm-muted);font-weight:500;">Joined</th><td>{{ target_user.date_joined|date:"d M Y H:i" }}</td></tr>
         <tr><th style="color:var(--adm-muted);font-weight:500;">Last Login</th><td>{{ target_user.last_login|date:"d M Y H:i"|default:"Never" }}</td></tr>
       </table>
+    </div>
+
+    <!-- ── Associated Business & Merchant Profiles Card ── -->
+    <div class="adm-card mb-4">
+      <div class="adm-card-header d-flex align-items-center justify-content-between">
+        <span>Associated Business Profiles</span>
+      </div>
+      <div class="p-3">
+        {% if associated_employer %}
+          <div class="p-2.5 rounded mb-2" style="background:#F8FAFC; border:1px solid #E2E8F0;">
+            <div class="d-flex align-items-center justify-content-between">
+              <span class="small fw-bold text-dark">🏢 {{ associated_employer.company_name }}</span>
+              <span class="badge bg-secondary rounded-pill" style="font-size:0.7rem;">{{ associated_employer.get_verification_status_display }}</span>
+            </div>
+            <div class="text-muted small mt-1" style="font-size:0.75rem;">RC: {{ associated_employer.rc_number|default:"—" }}</div>
+            <div class="mt-2 text-end">
+              <a href="{% url 'admin_portal:employer_detail' associated_employer.pk %}" class="btn btn-outline-primary btn-sm py-0.5 px-2" style="font-size:0.75rem;">
+                View Employer Profile &rarr;
+              </a>
+            </div>
+          </div>
+        {% endif %}
+
+        {% if associated_merchant %}
+          <div class="p-2.5 rounded mb-2" style="background:#F8FAFC; border:1px solid #E2E8F0;">
+            <div class="d-flex align-items-center justify-content-between">
+              <span class="small fw-bold text-dark">🛍️ {{ associated_merchant.store_name }}</span>
+              <span class="badge bg-secondary rounded-pill" style="font-size:0.7rem;">{{ associated_merchant.get_status_display }}</span>
+            </div>
+            <div class="text-muted small mt-1" style="font-size:0.75rem;">Status: {{ associated_merchant.status|title }}</div>
+            <div class="mt-2 text-end">
+              <a href="{% url 'admin_portal:merchant_detail' associated_merchant.pk %}" class="btn btn-outline-success btn-sm py-0.5 px-2" style="font-size:0.75rem;">
+                View Merchant Badge &rarr;
+              </a>
+            </div>
+          </div>
+        {% endif %}
+
+        {% if not associated_employer and not associated_merchant %}
+          <div class="text-muted small text-center py-2" style="font-size:0.8rem;">
+            No associated company or merchant profile registered for this user.
+          </div>
+        {% endif %}
+      </div>
     </div>
 
     <!-- ── Government Identity Verification Card ── -->
@@ -250,18 +283,10 @@
 
             <div class="d-flex flex-wrap gap-2 pt-2 border-top">
               {% if sub.status == 'pending' %}
-                <form method="post" action="{% url 'admin_portal:user_detail' target_user.public_id %}" class="d-inline">
-                  {% csrf_token %}
-                  <input type="hidden" name="action" value="approve_path_b">
-                  <input type="hidden" name="submission_id" value="{{ sub.id }}">
-                  <button type="submit" class="btn btn-sm btn-success px-3 fw-semibold">
-                    <i class="bi bi-check-circle me-1"></i>Approve Path B
-                  </button>
-                </form>
-
-                <button type="button" class="btn btn-sm btn-outline-danger px-3 fw-semibold" data-bs-toggle="modal" data-bs-target="#rejectPathBModal-{{ sub.id }}">
-                  <i class="bi bi-x-circle me-1"></i>Decline Path B
-                </button>
+                <a href="{% url 'admin_portal:user_id_review' target_user.public_id %}?tab=alternative" class="btn btn-sm btn-primary px-3 fw-semibold d-inline-flex align-items-center gap-1">
+                  <span>Open in Review Desk</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                </a>
 
                 <!-- Modal for Reject Path B -->
                 <div class="modal fade" id="rejectPathBModal-{{ sub.id }}" tabindex="-1" aria-hidden="true">
@@ -1183,27 +1208,15 @@
 
             <div class="d-flex align-items-center gap-2 flex-wrap">
               {% if target_user.id_verification_status != 'verified' %}
-                <button type="button" class="btn btn-adm-primary"
-                        data-confirm-action=""
-                        data-title="Approve as Basic Verified (Evidence Review)"
-                        data-body="Confirm that the legal name on the submitted <strong>{{ id_doc_spec_name }}</strong> strictly matches the registered name <strong>{{ target_user.get_full_name|default:target_user.username }}</strong>.<br><br><small class='text-muted'>Note: Basic verification confirms manual review of photo ID evidence. It does not certify biometric or government-confirmed authenticity.</small>"
-                        data-confirm-label="Yes, Approve Basic"
-                        data-confirm-class="btn-primary"
-                        data-form-action="{% url 'admin_portal:user_detail' target_user.public_id %}"
-                        data-hidden-action="verify_identity">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                  Approve as Basic Verified
-                </button>
-
-                <button type="button" class="btn btn-outline-primary btn-sm px-3" data-bs-toggle="modal" data-bs-target="#approveEnhancedIdModal">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                  Approve as Enhanced Verified
-                </button>
-
-                <button type="button" class="btn btn-adm-primary" data-bs-toggle="modal" data-bs-target="#rejectUserIdModal">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-                  Decline ID Proof
-                </button>
+                <div class="d-flex align-items-center gap-2">
+                  <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill px-2.5 py-1.5 fw-semibold" style="font-size:0.75rem;">
+                    ⏳ Awaiting Compliance Approval
+                  </span>
+                  <a href="{% url 'admin_portal:user_id_review' target_user.public_id %}" class="btn btn-primary btn-sm px-3.5 fw-semibold shadow-sm d-inline-flex align-items-center gap-1.5" style="border-radius:6px;">
+                    <span>Open in Review Desk</span>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                  </a>
+                </div>
               {% else %}
                 <button type="button" class="btn btn-outline-warning btn-sm px-3" data-bs-toggle="modal" data-bs-target="#suspendUserIdModal">
                   <i class="bi bi-pause-circle me-1"></i>Suspend Verification

@@ -809,9 +809,17 @@
     {% endif %}
 
     <!-- Section: Verifications -->
-    {% if request.user.is_superuser or perms.verification.view_verificationrequest or perms.verification.view_verificationcertificate %}
+    {% if request.user.is_superuser or perms.verification.view_verificationrequest or perms.verification.view_verificationcertificate or perms.users.view_user %}
     <div class="adm-nav-label">Verifications</div>
     <nav class="adm-nav">
+        <a href="{% url 'admin_portal:review_queue' %}"
+           class="adm-nav-link {% if request.resolver_match.url_name in 'review_queue,user_id_review' %}active{% endif %}">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+            Review Queue
+            {% if pending_compliance_review_count > 0 %}
+            <span class="nav-badge" style="background:#EF4444; color:#fff;">{{ pending_compliance_review_count }}</span>
+            {% endif %}
+        </a>
         {% if request.user.is_superuser or perms.verification.view_verificationrequest %}
         <a href="{% url 'admin_portal:verifications' %}"
            class="adm-nav-link {% if request.resolver_match.url_name in 'verifications,verification_detail' %}active{% endif %}">

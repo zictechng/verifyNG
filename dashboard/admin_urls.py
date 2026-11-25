@@ -5,6 +5,8 @@ from dashboard.admin_views import (
     AdminMenuAccessView,
     AdminProfileView,
     AdminOverviewView,
+    AdminReviewQueueView,
+    AdminUserIdReviewView,
     AdminPlanToggleView,
     AdminSubscriptionActionView,
     AdminUserListView,
@@ -78,6 +80,7 @@ urlpatterns = [
     # ── Overview Dashboard ─────────────────────────────────────────────────
     path('', AdminOverviewView.as_view(), name='overview'),
     path('profile/', AdminProfileView.as_view(), name='profile'),
+    path('review-queue/', AdminReviewQueueView.as_view(), name='review_queue'),
 
     # ── Analytics ─────────────────────────────────────────────────────────
     path('analytics/', AdminAnalyticsView.as_view(), name='analytics'),
@@ -85,6 +88,7 @@ urlpatterns = [
     # ── User Management ────────────────────────────────────────────────────
     path('users/', AdminUserListView.as_view(), name='users'),
     path('users/<uuid:public_id>/', AdminUserDetailView.as_view(), name='user_detail'),
+    path('users/<uuid:public_id>/review/', AdminUserIdReviewView.as_view(), name='user_id_review'),
     path('users/<uuid:public_id>/toggle-status/', AdminUserToggleStatusView.as_view(), name='user_toggle_status'),
     path('users/<uuid:public_id>/change-role/', AdminUserChangeRoleView.as_view(), name='user_change_role'),
     path('users/<uuid:public_id>/block/', AdminUserBlockView.as_view(), name='user_block'),

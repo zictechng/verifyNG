@@ -28,6 +28,18 @@ def site_configuration(request):
             except Exception:
                 ctx['pending_dossier_payments_count'] = 0
 
+            try:
+                from users.models import User, AlternativeVerificationSubmission
+                from employer.models import EmployerProfile
+                from payments.models import MerchantProfile
+                gov_pending = User.objects.filter(id_verification_status='pending').count()
+                alt_pending = AlternativeVerificationSubmission.objects.filter(status='pending').count()
+                emp_pending = EmployerProfile.objects.filter(verification_status='pending').count()
+                merch_pending = MerchantProfile.objects.filter(status='pending').count()
+                ctx['pending_compliance_review_count'] = gov_pending + alt_pending + emp_pending + merch_pending
+            except Exception:
+                ctx['pending_compliance_review_count'] = 0
+
         try:
             from payments.services import get_active_subscription
             from payments.models import FreeUsageQuota

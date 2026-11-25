@@ -21,6 +21,82 @@
     <p>Live platform KPIs, 7-day activity trends, and recent security events.</p>
 </div>
 
+<!-- ── Action Required: Compliance Review Queue Widget ── -->
+<div class="adm-card mb-4" style="border:1px solid #BFDBFE; background:#F8FAFC; border-radius:12px; overflow:hidden;">
+  <div class="adm-card-header d-flex align-items-center justify-content-between py-2.5 px-3.5" style="background:#EFF6FF; border-bottom:1px solid #BFDBFE;">
+    <div class="d-flex align-items-center gap-2">
+      <div class="rounded-circle d-flex align-items-center justify-content-center text-primary" style="width:28px; height:28px; background:#DBEAFE;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1D4ED8" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+      </div>
+      <div>
+        <span class="fw-bold text-dark" style="font-size:0.92rem;">Action Required — Compliance Review Queue</span>
+        <span class="badge rounded-pill ms-2" style="background:#1D4ED8; font-size:0.75rem;">{{ total_pending_compliance_count }} Pending</span>
+      </div>
+    </div>
+    <a href="{% url 'admin_portal:review_queue' %}" class="btn btn-adm-primary btn-sm py-1 px-3 d-inline-flex align-items-center gap-1.5" style="font-size:0.8rem; font-weight:600;">
+      <span>Open Review Queue</span>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+    </a>
+  </div>
+
+  <div class="p-0">
+    {% if pending_compliance_queue %}
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 small" style="background:#fff;">
+          <thead class="table-light text-muted" style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.5px;">
+            <tr>
+              <th class="ps-3.5 py-2.5">Applicant / Entity</th>
+              <th class="py-2.5">Verification Track</th>
+              <th class="py-2.5">Document Details</th>
+              <th class="py-2.5">Submitted</th>
+              <th class="text-end pe-3.5 py-2.5">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in pending_compliance_queue %}
+            <tr>
+              <td class="ps-3.5 py-2.5">
+                <div class="fw-bold text-dark" style="font-size:0.88rem;">{{ item.title }}</div>
+                <div class="text-muted" style="font-size:0.78rem;">{{ item.subtitle }}</div>
+              </td>
+              <td class="py-2.5">
+                <span class="{{ item.category_badge }}" style="font-size:0.75rem; padding: 4px 8px; border-radius: 6px;">{{ item.category_label }}</span>
+              </td>
+              <td class="py-2.5">
+                <div class="text-dark fw-medium" style="font-size:0.82rem;">{{ item.document_type }}</div>
+                <div class="text-muted" style="font-size:0.75rem;">{{ item.country_name }} {% if item.id_number and item.id_number != '—' %}&bull; {{ item.id_number }}{% endif %}</div>
+              </td>
+              <td class="py-2.5 text-muted" style="font-size:0.8rem;">
+                {{ item.submitted_at|naturaltime|default:"Recently" }}
+              </td>
+              <td class="text-end pe-3.5 py-2.5">
+                <a href="{{ item.review_url }}" class="btn btn-sm btn-primary py-1 px-3 fw-semibold d-inline-flex align-items-center gap-1" style="font-size:0.78rem; border-radius:6px;">
+                  Review &rarr;
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="d-flex align-items-center justify-content-between px-3.5 py-2 bg-light border-top" style="font-size:0.8rem;">
+        <span class="text-muted">
+          Showing {{ pending_compliance_queue|length }} of {{ total_pending_compliance_count }} submissions awaiting review.
+        </span>
+        <a href="{% url 'admin_portal:review_queue' %}" class="fw-semibold text-primary text-decoration-none">
+          View all in Compliance Queue &rarr;
+        </a>
+      </div>
+    {% else %}
+      <div class="py-4 text-center text-muted">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2" class="mb-1"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg>
+        <div class="fw-bold text-dark mt-1" style="font-size:0.9rem;">Compliance Queue is Clean</div>
+        <div class="small text-muted">All incoming personal IDs, alternative verifications, and company submissions have been reviewed.</div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
 <!-- KPI strip -->
 <div class="row g-3 mb-4">
     <!-- Users -->
