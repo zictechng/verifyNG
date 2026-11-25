@@ -71,7 +71,19 @@
                     </div>
                     <div>
                         <a href="{% url 'users:verify_account' %}" class="btn btn-outline-primary btn-sm px-3.5 py-1.5 fw-semibold d-inline-flex align-items-center gap-1.5 rounded-pill" style="font-size:13px;">
-                            <span>Verify Account</span>
+                            {% if user_profile.identity_verified or user_profile.id_verification_status == 'verified' or has_approved_path_b %}
+                                <span>View Verification</span>
+                            {% elif user_profile.id_verification_status == 'pending' or has_pending_path_b %}
+                                <span>Check Status</span>
+                            {% elif user_profile.id_verification_status == 'rejected' %}
+                                <span>Resubmit Verification</span>
+                            {% elif user_profile.id_verification_status == 'suspended' %}
+                                <span>Review Status</span>
+                            {% elif user_profile.id_verification_status == 'expired' %}
+                                <span>Renew Verification</span>
+                            {% else %}
+                                <span>Verify Account</span>
+                            {% endif %}
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
                         </a>
                     </div>

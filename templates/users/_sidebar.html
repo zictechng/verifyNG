@@ -33,7 +33,11 @@
         <a href="{% url 'users:verify_account' %}"
            class="text-decoration-none pb-2 px-1 text-nowrap small fw-semibold {% if active_section == 'verify_account' %}text-primary border-bottom border-2 border-primary{% else %}text-muted{% endif %}"
            style="font-size:13.5px;margin-bottom:-1px;">
-            Verify Account
+            {% if request.user.identity_verified or request.user.id_verification_status == 'verified' or has_approved_path_b %}
+                Verification Status
+            {% else %}
+                Verify Account
+            {% endif %}
         </a>
         <a href="{% url 'users:password_change' %}"
            class="text-decoration-none pb-2 px-1 text-nowrap small fw-semibold {% if active_section == 'settings' %}text-primary border-bottom border-2 border-primary{% else %}text-muted{% endif %}"
@@ -83,7 +87,11 @@
             <a href="{% url 'users:verify_account' %}"
                class="vng-sidebar-link {% if active_section == 'verify_account' %}active{% endif %}">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                Verify Account
+                {% if request.user.identity_verified or request.user.id_verification_status == 'verified' or has_approved_path_b %}
+                    Verification Status
+                {% else %}
+                    Verify Account
+                {% endif %}
                 {% if request.user.identity_verified or request.user.id_verification_status == 'verified' %}
                     <span class="ms-auto badge rounded-pill bg-success-subtle text-success border border-success-subtle" style="font-size:10px;">Verified</span>
                 {% elif request.user.id_verification_status == 'pending' %}
