@@ -358,7 +358,28 @@
 
         <!-- Approval / Rejection Actions -->
         <div class="d-flex align-items-center flex-wrap gap-3" style="gap: 12px !important;">
-            {% if target_user.id_verification_status != 'verified' %}
+            {% if target_user.id_verification_status == 'verified' %}
+                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-2 fw-semibold">
+                    ✓ Identity Already Approved
+                </span>
+                <a href="{% url 'admin_portal:user_detail' target_user.public_id %}" class="btn btn-outline-secondary btn-sm px-3 py-1.5 fw-semibold">
+                    Manage on User Profile &rarr;
+                </a>
+            {% elif target_user.id_verification_status == 'expired' %}
+                <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill px-3 py-2 fw-semibold">
+                    <i class="bi bi-clock-history me-1"></i>Document Expired &bull; Awaiting User Renewal
+                </span>
+                <a href="{% url 'admin_portal:user_detail' target_user.public_id %}" class="btn btn-outline-secondary btn-sm px-3 py-1.5 fw-semibold">
+                    View User Profile &rarr;
+                </a>
+            {% elif target_user.id_verification_status == 'suspended' %}
+                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill px-3 py-2 fw-semibold">
+                    <i class="bi bi-pause-circle me-1"></i>Profile Suspended &bull; Compliance Hold Active
+                </span>
+                <a href="{% url 'admin_portal:user_detail' target_user.public_id %}" class="btn btn-outline-secondary btn-sm px-3 py-1.5 fw-semibold">
+                    Manage on User Profile &rarr;
+                </a>
+            {% else %}
                 <!-- Approve as Basic Verified (Bootstrap Modal Trigger - NO JS Alert) -->
                 <button type="button" class="btn btn-primary btn-sm px-3.5 py-2 fw-semibold shadow-sm d-inline-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#approveBasicIdModal">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
@@ -376,13 +397,6 @@
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
                     <span>Decline ID Proof</span>
                 </button>
-            {% else %}
-                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-2 fw-semibold">
-                    ✓ Identity Already Approved
-                </span>
-                <a href="{% url 'admin_portal:user_detail' target_user.public_id %}" class="btn btn-outline-secondary btn-sm px-3 py-1.5 fw-semibold">
-                    Manage on User Profile &rarr;
-                </a>
             {% endif %}
         </div>
     </div>

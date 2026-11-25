@@ -190,7 +190,7 @@ def get_compliance_review_queue(category_filter='all', search_query=''):
     if category_filter in ('all', 'personal_id'):
         gov_qs = User.objects.filter(
             Q(id_verification_status='pending') | (
-                Q(id_document__isnull=False) & ~Q(id_document='') & ~Q(id_verification_status__in=['verified', 'rejected'])
+                Q(id_document__isnull=False) & ~Q(id_document='') & ~Q(id_verification_status__in=['verified', 'rejected', 'suspended', 'expired'])
             )
         )
         for u in gov_qs:
