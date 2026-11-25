@@ -572,14 +572,17 @@
                     <div class="mb-2">
                         <span class="text-muted small fw-semibold d-block mb-1">Quick Compliance Presets:</span>
                         <div class="d-flex flex-wrap gap-1">
-                            <button type="button" class="btn btn-outline-secondary btn-sm py-1 px-2" style="font-size:0.75rem;" onclick="document.getElementById('rejectReasonInput').value='Name mismatch: The legal name on your submitted government ID does not match your registered VerifyNG profile name (' + '{{ target_user.get_full_name|default:target_user.username }}' + '). Please submit your own valid credentials.';">
+                            <button type="button" class="btn btn-outline-secondary btn-sm py-1 px-2" style="font-size:0.75rem;" onclick="document.getElementById('rejectReasonInput').value='Name mismatch: The legal name on your submitted government ID does not match your registered VerifyNG profile name (' + '{{ target_user.get_full_name|default:target_user.username }}' + '). Please submit your own valid credentials.'; document.getElementById('rejectReasonInput').focus();">
                                 Name Mismatch
                             </button>
-                            <button type="button" class="btn btn-outline-secondary btn-sm py-1 px-2" style="font-size:0.75rem;" onclick="document.getElementById('rejectReasonInput').value='Document unreadable: The uploaded ID document is blurry, cropped, or illegible. Please upload a clear, high-resolution photo or PDF scan.';">
+                            <button type="button" class="btn btn-outline-secondary btn-sm py-1 px-2" style="font-size:0.75rem;" onclick="document.getElementById('rejectReasonInput').value='Document unreadable: The uploaded ID document is blurry, cropped, or illegible. Please upload a clear, high-resolution photo or PDF scan.'; document.getElementById('rejectReasonInput').focus();">
                                 Blurry / Cropped
                             </button>
-                            <button type="button" class="btn btn-outline-secondary btn-sm py-1 px-2" style="font-size:0.75rem;" onclick="document.getElementById('rejectReasonInput').value='Invalid credential: The submitted identification number or document could not be authenticated against regulatory records.';">
+                            <button type="button" class="btn btn-outline-secondary btn-sm py-1 px-2" style="font-size:0.75rem;" onclick="document.getElementById('rejectReasonInput').value='Invalid credential: The submitted identification number or document could not be authenticated against regulatory records.'; document.getElementById('rejectReasonInput').focus();">
                                 Invalid Number
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm py-1 px-2" style="font-size:0.75rem;" onclick="document.getElementById('rejectReasonInput').value='Unclear selfie photo: The submitted live selfie is blurry, dark, cropped, or does not clearly show your full facial features for verification. Please upload a clear, well-lit live selfie photo facing the camera directly.'; document.getElementById('rejectReasonInput').focus();">
+                                Blurry / Unclear Selfie
                             </button>
                         </div>
                     </div>
@@ -713,7 +716,21 @@
                     <p class="small text-secondary mb-3">
                         Provide a reason for declining the alternative verification selfie challenge for <strong>{{ target_user.username }}</strong>.
                     </p>
-                    <div class="mb-3">
+                    <div class="mb-2">
+                        <span class="text-muted small fw-semibold d-block mb-1">Quick Compliance Presets:</span>
+                        <div class="d-flex flex-wrap gap-1">
+                            <button type="button" class="btn btn-outline-secondary btn-sm py-1 px-2" style="font-size:0.75rem;" onclick="document.getElementById('pathBReasonInput').value='Unclear selfie photo: The submitted selfie photo is blurry, dark, cropped, or does not clearly show your full face. Please resubmit a clear, well-lit photo.'; document.getElementById('pathBReasonInput').focus();">
+                                Blurry / Unclear Selfie
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm py-1 px-2" style="font-size:0.75rem;" onclick="document.getElementById('pathBReasonInput').value='Illegible verification card: The handwritten code or date on the card is blurry, cropped, or unreadable. Please resubmit a clear photo displaying both the code and date.'; document.getElementById('pathBReasonInput').focus();">
+                                Illegible Card / Code
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm py-1 px-2" style="font-size:0.75rem;" onclick="document.getElementById('pathBReasonInput').value='Code mismatch: The handwritten verification code does not match the prompt code assigned to your session.'; document.getElementById('pathBReasonInput').focus();">
+                                Code Mismatch
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mb-3 mt-3">
                         <label class="form-label small fw-semibold" for="pathBReasonInput">Decline Reason <span class="text-danger">*</span></label>
                         <textarea name="rejection_reason" id="pathBReasonInput" class="form-control" rows="3" required
                                   placeholder="e.g. The verification code written on the card is illegible or does not match the prompt code."></textarea>
