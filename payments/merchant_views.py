@@ -443,7 +443,7 @@ class AdminMerchantListView(SuperAdminRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        status_filter = self.request.GET.get('status', 'pending')
+        status_filter = self.request.GET.get('status') or self.request.GET.get('category') or 'all'
         search_query = self.request.GET.get('q', '').strip()
 
         qs = MerchantProfile.objects.select_related('user').order_by('-updated_at')
@@ -460,8 +460,12 @@ class AdminMerchantListView(SuperAdminRequiredMixin, TemplateView):
                 Q(store_name__icontains=search_query) |
                 Q(store_slug__icontains=search_query) |
                 Q(user__email__icontains=search_query) |
+                Q(user__username__icontains=search_query) |
+                Q(user__first_name__icontains=search_query) |
+                Q(user__last_name__icontains=search_query) |
                 Q(bank_account__icontains=search_query) |
-                Q(bank_account_name__icontains=search_query)
+                Q(bank_account_name__icontains=search_query) |
+                Q(bank_name__icontains=search_query)
             )
 
         try:
@@ -481,6 +485,7 @@ class AdminMerchantListView(SuperAdminRequiredMixin, TemplateView):
         ctx['per_page_options'] = [15, 25, 50, 75, 100]
         ctx['status_filter'] = status_filter
         ctx['search_query'] = search_query
+        ctx['all_count'] = MerchantProfile.objects.count()
         ctx['pending_count'] = MerchantProfile.objects.filter(status='pending').count()
         ctx['active_count'] = MerchantProfile.objects.filter(status='active').count()
         ctx['dispute_count'] = MerchantProfile.objects.filter(status__in=['disputed', 'under_dispute']).count()
