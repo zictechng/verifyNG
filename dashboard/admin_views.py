@@ -1613,9 +1613,20 @@ class AdminDossierPaymentsView(AdminPermissionRequiredMixin, TemplateView):
         ctx['rejected_count'] = all_dossiers.filter(payment_status='rejected').count()
 
         # Pagination
-        paginator = Paginator(qs, 15)
+        try:
+            per_page = int(self.request.GET.get('per_page', 15))
+        except (ValueError, TypeError):
+            per_page = 15
+        if per_page not in (15, 25, 50, 75, 100):
+            per_page = 15
+
+        paginator = Paginator(qs, per_page)
         page_number = self.request.GET.get('page', 1)
-        ctx['dossiers_page'] = paginator.get_page(page_number)
+        page_obj = paginator.get_page(page_number)
+        ctx['dossiers_page'] = page_obj
+        ctx['page_obj'] = page_obj
+        ctx['per_page'] = per_page
+        ctx['per_page_options'] = [15, 25, 50, 75, 100]
         ctx['status_filter'] = status_filter or 'all'
         ctx['method_filter'] = method_filter or 'all'
         ctx['search_query'] = q
@@ -4740,11 +4751,20 @@ class AdminReviewQueueView(SuperAdminRequiredMixin, TemplateView):
         ctx['count_employer_cac'] = sum(1 for x in all_unfiltered if x['category'] == 'employer_cac')
         ctx['count_merchant_trust'] = sum(1 for x in all_unfiltered if x['category'] == 'merchant_trust')
 
+        try:
+            per_page = int(self.request.GET.get('per_page', 15))
+        except (ValueError, TypeError):
+            per_page = 15
+        if per_page not in (15, 25, 50, 75, 100):
+            per_page = 15
+
         from django.core.paginator import Paginator
-        paginator = Paginator(all_items, 15)
+        paginator = Paginator(all_items, per_page)
         page_obj = paginator.get_page(page_num)
 
         ctx['page_obj'] = page_obj
+        ctx['per_page'] = per_page
+        ctx['per_page_options'] = [15, 25, 50, 75, 100]
         ctx['category'] = category
         ctx['search_query'] = search_query
         ctx['total_results'] = len(all_items)

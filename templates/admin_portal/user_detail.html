@@ -72,7 +72,7 @@
             </div>
             <div class="text-muted small mt-1" style="font-size:0.75rem;">RC: {{ associated_employer.rc_number|default:"—" }}</div>
             <div class="mt-2 text-end">
-              <a href="{% url 'admin_portal:employer_detail' associated_employer.pk %}" class="btn btn-outline-primary btn-sm py-0.5 px-2" style="font-size:0.75rem;">
+              <a href="{% url 'admin_portal:employer_detail' associated_employer.public_id %}" class="btn btn-outline-primary btn-sm py-0.5 px-2" style="font-size:0.75rem;">
                 View Employer Profile &rarr;
               </a>
             </div>
@@ -735,7 +735,7 @@
             <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:28px;height:28px;background:#EAF6FC;border:1px solid #BCDFF4;color:#011B33;">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
             </div>
-            <span class="fw-bold" style="color:#011B33; font-size: 0.95rem;">Verified Government Identity Credentials</span>
+            <span class="fw-bold" style="color:#011B33; font-size: 0.95rem;">Verified Account Profile</span>
           </div>
           <div class="d-flex align-items-center gap-2 flex-wrap">
             {% if target_user.id_type %}
@@ -1673,7 +1673,7 @@ document.addEventListener('DOMContentLoaded', function () {
         <input type="hidden" name="action" value="suspend_identity">
         <div class="modal-header border-bottom py-3" style="background:#FFFBEB;">
           <h5 class="modal-title fw-bold mb-0 text-warning" id="suspendUserIdModalLabel" style="font-size:1.05rem;">
-            <i class="bi bi-pause-circle me-1"></i>Suspend Identity Verification
+            <i class="bi bi-pause-circle me-1"></i>Suspend Profile Verification
           </h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
@@ -1686,7 +1686,7 @@ document.addEventListener('DOMContentLoaded', function () {
           <div class="mb-3">
             <label class="form-label small fw-semibold" for="suspendUserIdReason">Reason for Suspension <span class="text-danger">*</span></label>
             <textarea name="suspension_reason" id="suspendUserIdReason" class="form-control form-control-sm" rows="3" required
-                      placeholder="e.g. Identity verification temporarily suspended pending investigation of suspicious report activity."></textarea>
+                      placeholder="e.g. Profile verification temporarily suspended pending compliance inquiry."></textarea>
           </div>
         </div>
         <div class="modal-footer border-top py-2 gap-2">
@@ -1709,13 +1709,13 @@ document.addEventListener('DOMContentLoaded', function () {
         <input type="hidden" name="action" value="expire_identity">
         <div class="modal-header border-bottom py-3" style="background:#F8FAFC;">
           <h5 class="modal-title fw-bold mb-0 text-secondary" id="expireUserIdModalLabel" style="font-size:1.05rem;">
-            <i class="bi bi-clock-history me-1"></i>Mark Identity as Expired
+            <i class="bi bi-clock-history me-1"></i>Mark Profile Verification as Expired
           </h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body py-3">
           <p class="small text-secondary mb-3">
-            Marks the identity credentials for <strong>{{ target_user.get_full_name|default:target_user.username }}</strong> as expired. 
+            Marks the verification on file for <strong>{{ target_user.get_full_name|default:target_user.username }}</strong> as expired. 
             The user will be prompted to submit updated documentation to restore verified access.
           </p>
 

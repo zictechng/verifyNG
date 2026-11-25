@@ -14,7 +14,7 @@
         <div class="col-lg-9 col-md-8">
             <div class="mb-4">
                 <h1 class="h4 fw-bold mb-1">Personal Profile</h1>
-                <p class="small text-muted mb-0">Manage your verified legal identity and account credentials.</p>
+                <p class="small text-muted mb-0">Manage your profile information and account credentials.</p>
             </div>
 
             {# ── Account Verification Quick Standing Card ── #}
@@ -56,7 +56,7 @@
                             </div>
                             <p class="text-muted mb-0 small" style="font-size:13px;">
                                 {% if user_profile.identity_verified or user_profile.id_verification_status == 'verified' %}
-                                    Official Government Identity verified &bull; Full platform services unlocked.
+                                    Account profile approved &bull; Full platform access unlocked.
                                 {% elif has_approved_path_b %}
                                     Alternative Personhood verified &bull; Community fraud reporting unlocked.
                                 {% elif user_profile.id_verification_status == 'pending' or has_pending_path_b %}
@@ -116,7 +116,7 @@
                         {% if user_profile.identity_verified or user_profile.id_verification_status == 'verified' %}
                         <div class="col-12 mt-1">
                             <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-1 p-2 rounded-2 bg-light border">
-                                <span class="small text-muted" style="font-size:12px;">🔒 Legal identity locked. Need updates? <a href="{% url 'contact' %}" class="fw-semibold text-decoration-underline text-dark">Contact Support</a></span>
+                                <span class="small text-muted" style="font-size:12px;">🔒 Profile details locked. Need updates? <a href="{% url 'contact' %}" class="fw-semibold text-decoration-underline text-dark">Contact Support</a></span>
                                 <button type="button" class="btn btn-link p-0 small fw-semibold text-decoration-none" data-bs-toggle="modal" data-bs-target="#legalNameChangeModal">
                                     👉 Request Legal Name Change
                                 </button>

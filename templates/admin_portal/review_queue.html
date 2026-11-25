@@ -81,6 +81,8 @@
     </form>
 </div>
 
+<!-- ── Zero-Reload Admin Table Container ── -->
+<div id="adminTableContainer" class="admin-table-container">
 <!-- ── Submissions Table Card ── -->
 <div class="adm-card shadow-sm mb-4" style="border-radius:12px; border:1px solid var(--adm-border); overflow:hidden;">
     <div class="adm-card-header d-flex align-items-center justify-content-between py-2.5 px-3.5 bg-light border-bottom">
@@ -174,44 +176,6 @@
             </table>
         </div>
 
-        <!-- Pagination -->
-        {% if page_obj.has_other_pages %}
-        <div class="d-flex align-items-center justify-content-between p-3 border-top bg-light">
-            <span class="small text-muted" style="font-size:0.8rem;">
-                Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} items
-            </span>
-            <nav aria-label="Queue navigation">
-                <ul class="pagination pagination-sm mb-0">
-                    {% if page_obj.has_previous %}
-                    <li class="page-item">
-                        <a class="page-link" href="?category={{ category }}&q={{ search_query }}&page={{ page_obj.previous_page_number }}">Previous</a>
-                    </li>
-                    {% else %}
-                    <li class="page-item disabled"><span class="page-link">Previous</span></li>
-                    {% endif %}
-
-                    {% for num in page_obj.paginator.page_range %}
-                        {% if page_obj.number == num %}
-                        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
-                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-                        <li class="page-item">
-                            <a class="page-link" href="?category={{ category }}&q={{ search_query }}&page={{ num }}">{{ num }}</a>
-                        </li>
-                        {% endif %}
-                    {% endfor %}
-
-                    {% if page_obj.has_next %}
-                    <li class="page-item">
-                        <a class="page-link" href="?category={{ category }}&q={{ search_query }}&page={{ page_obj.next_page_number }}">Next</a>
-                    </li>
-                    {% else %}
-                    <li class="page-item disabled"><span class="page-link">Next</span></li>
-                    {% endif %}
-                </ul>
-            </nav>
-        </div>
-        {% endif %}
-
         {% else %}
         <!-- Empty State -->
         <div class="py-5 text-center">
@@ -234,5 +198,8 @@
         </div>
         {% endif %}
     </div>
+</div>
+
+{% include "admin_portal/_pagination.html" %}
 </div>
 {% endblock %}

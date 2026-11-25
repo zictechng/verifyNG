@@ -90,10 +90,10 @@ class IdentityVerificationLifecycleService:
         cls._dispatch_notification(
             user=user,
             event_type='VERIFICATION_COMPLETED',
-            title='Identity Verification Approved',
+            title='Profile Approved',
             body=(
-                f"Your {cls.get_id_display(user)} evidence has been reviewed and accepted by compliance. "
-                f"You now hold a Verified Profile badge with access to citizen reporting and trust features."
+                f"Your profile submission has been reviewed and accepted by compliance. "
+                f"You now hold a Verified Badge with access to the platform."
             )
         )
         return user
@@ -239,8 +239,8 @@ class IdentityVerificationLifecycleService:
         cls._dispatch_notification(
             user=user,
             event_type='VERIFICATION_REJECTED',
-            title='Identity Verification Suspended',
-            body=f"Your profile identity verification has been suspended. Reason: {reason_clean}",
+            title='Profile Verification Suspended',
+            body=f"Your profile verification standing has been suspended. Reason: {reason_clean}",
             rejection_reason=reason_clean
         )
         return user
@@ -279,8 +279,8 @@ class IdentityVerificationLifecycleService:
         cls._dispatch_notification(
             user=user,
             event_type='VERIFICATION_REJECTED',
-            title='Identity Verification Expired',
-            body="Your identity document on file has reached its validity period. Please submit an updated document to restore verified status."
+            title='Profile Verification Expired',
+            body="Your verification on file has reached its validity period. Please submit an updated document to restore verified status."
         )
         return user
 

@@ -466,23 +466,23 @@ def build_broadcast(subject_line: str, message_body: str, username: str) -> Tupl
 
 def build_identity_verified(username: str, id_type: str = "Government ID") -> Tuple[str, str, str]:
     site_name, site_url = _get_site_meta()
-    subject = f"Identity Verification Approved — {site_name}"
+    subject = f"Profile Approved — {site_name}"
     body_html = f"""
-    <p>Congratulations! Your {id_type} document has been authenticated and approved by our compliance officers.</p>
-    <p>Your account now holds an official <strong>Verified Identity Badge</strong>. You can now publish verified fraud reports, submit dispute resolutions, and request candidate checks across {site_name}.</p>
+    <p>Good news! Your profile submission has been reviewed and approved by our compliance team.</p>
+    <p>Your account now holds an official <strong>Verified Badge</strong> with confirmed access to {site_name}.</p>
     """
     try:
         html_body, text_body = render_email('generic_notification', {
             'user_name': username,
-            'heading': "Identity Verification Approved",
+            'heading': "Profile Approved",
             'body_html': body_html,
             'cta_url': f"{site_url}/users/profile/",
-            'cta_label': "View Your Verified Profile →",
+            'cta_label': "View Your Profile →",
         })
         return subject, html_body, text_body
     except Exception:
-        fallback_html = f"<h2>Identity Verification Approved</h2><p>Hi {username}, your {id_type} has been verified.</p>"
-        return subject, _html_fallback(subject, fallback_html), f"Hi {username}, your {id_type} has been verified."
+        fallback_html = f"<h2>Profile Approved</h2><p>Hi {username}, your profile has been approved.</p>"
+        return subject, _html_fallback(subject, fallback_html), f"Hi {username}, your profile has been approved."
 
 
 def build_identity_rejected(username: str, id_type: str = "Government ID", reason: str = "") -> Tuple[str, str, str]:
