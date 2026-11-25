@@ -1,34 +1,6 @@
 {% extends "admin_portal/base_admin.html" %}
 {% load humanize %}
-{% block title %}User: {{ target_user.username }} — Admin
-{# ── Revoke Path B Alternative Verification Modal ── #}
-<div class="modal fade" id="revokePathBModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content shadow-lg border-0" style="border-radius:14px;">
-      <form method="post" action="{% url 'admin_portal:user_detail' target_user.public_id %}">
-        {% csrf_token %}
-        <input type="hidden" name="action" value="revoke_path_b">
-        <div class="modal-header border-bottom py-3">
-          <h6 class="modal-title fw-bold text-danger">Revoke Alternative Personhood Verification</h6>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body py-3">
-          <p class="small text-secondary mb-3">
-            Are you sure you want to revoke Path B verification for <strong>{{ target_user.username }}</strong>?
-            If this user has independent qualifying Path A government ID evidence, report-publishing standing will be preserved; otherwise, report-publishing will be disabled.
-          </p>
-          <textarea name="revocation_reason" class="form-control" rows="2" placeholder="Reason for revocation..."></textarea>
-        </div>
-        <div class="modal-footer py-2">
-          <button type="button" class="btn btn-sm btn-light" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-sm btn-danger px-3">Revoke Standing</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-
-{% endblock %}
+{% block title %}User: {{ target_user.username }} &mdash; Admin{% endblock %}
 
 {% block admin_body %}
 <div class="adm-page-header" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem;">
@@ -36,41 +8,7 @@
     <h1 class="adm-page-title">{{ target_user.get_full_name|default:target_user.username }}</h1>
     <p class="adm-page-sub">@{{ target_user.username }} · {{ target_user.email }}</p>
   </div>
-  <div class="d-flex align-items-center gap-2 flex-wrap">
-    {% if target_user.has_id_document %}
-      <button type="button" class="btn-adm-primary" data-bs-toggle="modal" data-bs-target="#viewUserIdDocModal">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-        View ID Document
-      </button>
-    {% endif %}
-    {% if target_user.has_selfie %}
-      <button type="button" class="btn-adm-primary" data-bs-toggle="modal" data-bs-target="#viewUserSelfieModal">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-        View Live Selfie
-      </button>
-    {% endif %}
-
-    {% if not target_user.identity_verified %}
-      {% if target_user.has_id_document or target_user.id_verification_status == 'pending' %}
-        <a href="{% url 'admin_portal:user_id_review' target_user.public_id %}" class="btn btn-adm-primary d-inline-flex align-items-center gap-1.5">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
-          Review Verification in Desk
-        </a>
-      {% endif %}
-    {% else %}
-      <button type="button" class="btn-adm-primary"
-              data-confirm-action=""
-              data-title="Revoke Identity Verification"
-              data-body="Are you sure you want to revoke the identity verification badge for <strong>{{ target_user.get_full_name|default:target_user.username }}</strong>?<br><br>Their status will return to unverified and they will need to resubmit."
-              data-confirm-label="Yes, Revoke Verification"
-              data-confirm-class="btn-primary"
-              data-form-action="{% url 'admin_portal:user_detail' target_user.public_id %}"
-              data-hidden-action="revoke_identity">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-        Revoke Identity
-      </button>
-    {% endif %}
-
+  <div>
     <a href="{% url 'admin_portal:users' %}" class="btn-adm-primary">← All Users</a>
   </div>
 </div>
