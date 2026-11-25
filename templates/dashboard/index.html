@@ -149,9 +149,9 @@
                 <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
             </svg>
             <div>
-                <div class="fw-semibold" style="color:#1E40AF;">Verification in progress</div>
+                <div class="fw-semibold" style="color:#1E40AF;">Verification Under Compliance Review</div>
                 <div class="small" style="color:#1E40AF;">
-                    Your account verification is being reviewed. You'll receive an update once your account is approved.
+                    Your account verification is being reviewed by compliance. You'll receive an update once your account is approved.
                     <a href="{% url 'users:verify_account' %}" style="color:#1E40AF;font-weight:600;text-decoration:underline;">Check status &rarr;</a>
                 </div>
             </div>
@@ -258,7 +258,7 @@
                     {% elif request.user.id_verification_status == 'rejected' %}
                         <span class="badge bg-danger">Declined</span>
                     {% elif request.user.id_verification_status == 'pending' or request.user.has_id_document and request.user.id_verification_status not in 'verified,rejected,suspended,expired' %}
-                        <span class="badge bg-primary">Under Review</span>
+                        <span class="badge bg-primary">Under Compliance Review</span>
                     {% else %}
                         <span class="badge bg-warning text-dark">Unverified</span>
                     {% endif %}
@@ -311,7 +311,7 @@
                             <polyline points="12 6 12 12 16 14"/>
                         </svg>
                         <div>
-                            <div class="fw-semibold text-primary" style="font-size:14px;">Under Review</div>
+                            <div class="fw-semibold text-primary" style="font-size:14px;">Under Compliance Review</div>
                             <div class="small text-muted d-flex align-items-center gap-2 mt-1"><span>Account type:</span> <span class="badge bg-secondary">{{ request.user.get_role_display|default:"Individual" }}</span></div>
                         </div>
                     </div>

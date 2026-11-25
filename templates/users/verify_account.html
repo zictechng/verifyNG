@@ -195,7 +195,7 @@
                         </div>
                     </div>
                 </div>
-                <span class="badge bg-primary text-white px-3 py-1.5 rounded-pill" style="font-size:12px;">Under Review</span>
+                <span class="badge bg-primary text-white px-3 py-1.5 rounded-pill" style="font-size:12px;">Under Compliance Review</span>
             </div>
             {% elif has_declined_gov_id or has_declined_path_b %}
             <div class="alert d-flex align-items-start gap-3 mb-4 p-3 p-sm-4"
@@ -257,7 +257,7 @@
                                 {% elif has_pending_path_b %}
                                     <span class="badge rounded-pill fw-medium" style="background: #F1F5F9; border: 1px solid #CBD5E1; color: #64748B; font-size: 13px; padding: 4px 12px;">🔒 Locked</span>
                                 {% elif has_pending_gov_id %}
-                                    <span class="badge rounded-pill fw-medium" style="background: #EFF6FF; color: #2563EB; font-size: 13px; padding: 4px 12px; border: 1px solid #BFDBFE;">Under Review</span>
+                                    <span class="badge rounded-pill fw-medium" style="background: #EFF6FF; color: #2563EB; font-size: 13px; padding: 4px 12px; border: 1px solid #BFDBFE;">Under Compliance Review</span>
                                 {% elif has_declined_gov_id %}
                                     <span class="badge rounded-pill fw-medium" style="background: #FEF2F2; color: #DC2626; font-size: 13px; padding: 4px 12px; border: 1px solid #FCA5A5;">Declined &bull; Re-submit Available</span>
                                 {% else %}
@@ -305,7 +305,7 @@
                                 {% elif has_pending_gov_id %}
                                     <span class="badge rounded-pill fw-medium" style="background: #F1F5F9; border: 1px solid #CBD5E1; color: #64748B; font-size: 13px; padding: 4px 12px;">🔒 Locked</span>
                                 {% elif has_pending_path_b %}
-                                    <span class="badge rounded-pill fw-medium" style="background: #EFF6FF; color: #2563EB; font-size: 13px; padding: 4px 12px; border: 1px solid #BFDBFE;">Under Review</span>
+                                    <span class="badge rounded-pill fw-medium" style="background: #EFF6FF; color: #2563EB; font-size: 13px; padding: 4px 12px; border: 1px solid #BFDBFE;">Under Compliance Review</span>
                                 {% elif has_declined_path_b %}
                                     <span class="badge rounded-pill fw-medium" style="background: #FEF2F2; color: #DC2626; font-size: 13px; padding: 4px 12px; border: 1px solid #FCA5A5;">Declined &bull; Re-submit Available</span>
                                 {% else %}
@@ -431,9 +431,6 @@
                                         View Uploaded ID
                                     </a>
                                     {% endif %}
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="toggleResubmitBtn" onclick="toggleIdResubmitForm()" style="font-size:12px;">
-                                        Update Record
-                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -1381,7 +1378,7 @@
                                 <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
                             </svg>
                             <div>
-                                <div class="fw-bold text-primary" style="font-size:14.5px;">Alternative Verification Under Review</div>
+                                <div class="fw-bold text-primary" style="font-size:14.5px;">Alternative Verification Under Compliance Review</div>
                                 <div class="small text-muted mt-0.5">
                                     Your selfie challenge and residential declaration are queued for compliance review.
                                     {% if latest_path_b and latest_path_b.created_at %}Submitted {{ latest_path_b.created_at|timesince }} ago.{% endif %}
@@ -2374,7 +2371,7 @@
                 <div class="p-3 rounded-3" style="background: #F8FAFC; border: 1px solid #E2E8F0;">
                     <div class="d-flex align-items-center justify-content-between mb-2 pb-2 border-bottom flex-wrap gap-1">
                         <span class="text-muted small fw-semibold" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">Current Standing</span>
-                        <span id="lockedMethodModalBadge" class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill fw-semibold" style="font-size: 11px;">Under Review</span>
+                        <span id="lockedMethodModalBadge" class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill fw-semibold" style="font-size: 11px;">Under Compliance Review</span>
                     </div>
                     <div class="small text-muted" id="lockedMethodModalDetail" style="font-size: 12.5px; line-height: 1.55;">
                         To protect account integrity and prevent conflicting identity records, you cannot switch verification tracks while an active submission is awaiting review.
@@ -2697,7 +2694,7 @@ function alertLockedMethod(method) {
         }
         if (badgeEl) {
             badgeEl.className = 'badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill fw-semibold';
-            badgeEl.textContent = 'Profile Under Review';
+            badgeEl.textContent = 'Under Compliance Review';
         }
         if (detailEl) {
             detailEl.textContent = 'Your account verification is under review, you cannot switch to Alternative Verification while review is in progress.';
@@ -2709,7 +2706,7 @@ function alertLockedMethod(method) {
         }
         if (badgeEl) {
             badgeEl.className = 'badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill fw-semibold';
-            badgeEl.textContent = 'Alternative Verification Under Review';
+            badgeEl.textContent = 'Under Compliance Review';
         }
         if (detailEl) {
             detailEl.textContent = 'Your account verification is under review, you cannot switch to Government ID verification while review is in progress.';

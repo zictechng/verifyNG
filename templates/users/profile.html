@@ -51,7 +51,7 @@
                                 {% elif has_approved_path_b %}
                                     <span class="badge bg-success text-white px-2.5 py-1 rounded-pill" style="font-size:11px;">Community Approved</span>
                                 {% elif user_profile.id_verification_status == 'pending' or has_pending_path_b %}
-                                    <span class="badge bg-primary text-white px-2.5 py-1 rounded-pill" style="font-size:11px;">Under Review</span>
+                                    <span class="badge bg-primary text-white px-2.5 py-1 rounded-pill" style="font-size:11px;">Under Compliance Review</span>
                                 {% elif user_profile.id_verification_status == 'rejected' %}
                                     <span class="badge bg-danger text-white px-2.5 py-1 rounded-pill" style="font-size:11px;">Declined</span>
                                 {% else %}
