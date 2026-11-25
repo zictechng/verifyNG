@@ -100,17 +100,31 @@
 
     {# ── Verification Status Banner ──────────────────────────────────────── #}
     {% if not request.user.identity_verified and request.user.id_verification_status != 'verified' %}
-        {% if request.user.id_verification_status == 'pending' or request.user.has_id_document and request.user.id_verification_status != 'rejected' %}
+        {% if request.user.id_verification_status == 'suspended' %}
         <div class="alert d-flex align-items-start gap-3 mb-4"
-             style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:var(--vng-radius-md);">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2" class="flex-shrink-0 mt-1">
+             style="background:#FFFBEB;border:1px solid #FDE68A;border-left:4px solid #F59E0B;border-radius:var(--vng-radius-md);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" class="flex-shrink-0 mt-1">
+                <circle cx="12" cy="12" r="10"/><line x1="10" y1="15" x2="10" y2="9"/><line x1="14" y1="15" x2="14" y2="9"/>
+            </svg>
+            <div>
+                <div class="fw-semibold" style="color:#92400E;">Profile Verification Suspended</div>
+                <div class="small" style="color:#92400E;">
+                    {{ request.user.id_rejection_reason|default:"Your profile verification standing has been placed on hold pending compliance inquiry." }}
+                    <a href="{% url 'users:verify_account' %}" style="color:#B45309;font-weight:600;text-decoration:underline;">Review verification status &rarr;</a>
+                </div>
+            </div>
+        </div>
+        {% elif request.user.id_verification_status == 'expired' %}
+        <div class="alert d-flex align-items-start gap-3 mb-4"
+             style="background:#F8FAFC;border:1px solid #E2E8F0;border-left:4px solid #64748B;border-radius:var(--vng-radius-md);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2" class="flex-shrink-0 mt-1">
                 <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
             </svg>
             <div>
-                <div class="fw-semibold" style="color:#1E40AF;">Verification in progress</div>
-                <div class="small" style="color:#1E40AF;">
-                    Your account verification is being reviewed. You'll receive an update once your account is approved.
-                    <a href="{% url 'users:verify_account' %}" style="color:#1E40AF;font-weight:600;text-decoration:underline;">Check status &rarr;</a>
+                <div class="fw-semibold" style="color:#334155;">Profile Verification Expired</div>
+                <div class="small" style="color:#475569;">
+                    Your profile verification has reached its validity period. Please submit an updated document to restore verified status.
+                    <a href="{% url 'users:verify_account' %}" style="color:#1E293B;font-weight:600;text-decoration:underline;">Renew verification &rarr;</a>
                 </div>
             </div>
         </div>
@@ -121,10 +135,24 @@
                 <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
             </svg>
             <div>
-                <div class="fw-semibold" style="color:#991B1B;">Identity Verification Declined</div>
+                <div class="fw-semibold" style="color:#991B1B;">Profile Verification Declined</div>
                 <div class="small" style="color:#991B1B;">
                     {{ request.user.id_rejection_reason|default:"Your credentials could not be authenticated." }}
                     <a href="{% url 'users:verify_account' %}" style="color:#991B1B;font-weight:600;text-decoration:underline;">Upload updated ID proof &rarr;</a>
+                </div>
+            </div>
+        </div>
+        {% elif request.user.id_verification_status == 'pending' or request.user.has_id_document and request.user.id_verification_status not in 'verified,rejected,suspended,expired' %}
+        <div class="alert d-flex align-items-start gap-3 mb-4"
+             style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:var(--vng-radius-md);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2" class="flex-shrink-0 mt-1">
+                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            </svg>
+            <div>
+                <div class="fw-semibold" style="color:#1E40AF;">Verification in progress</div>
+                <div class="small" style="color:#1E40AF;">
+                    Your account verification is being reviewed. You'll receive an update once your account is approved.
+                    <a href="{% url 'users:verify_account' %}" style="color:#1E40AF;font-weight:600;text-decoration:underline;">Check status &rarr;</a>
                 </div>
             </div>
         </div>
@@ -223,10 +251,14 @@
                     <span class="small fw-semibold text-muted">Account Status</span>
                     {% if request.user.identity_verified or request.user.id_verification_status == 'verified' %}
                         <span class="badge bg-success">Verified</span>
-                    {% elif request.user.id_verification_status == 'pending' or request.user.has_id_document and request.user.id_verification_status != 'rejected' %}
-                        <span class="badge bg-primary">Under Review</span>
+                    {% elif request.user.id_verification_status == 'suspended' %}
+                        <span class="badge bg-warning text-dark">Suspended</span>
+                    {% elif request.user.id_verification_status == 'expired' %}
+                        <span class="badge bg-secondary">Expired</span>
                     {% elif request.user.id_verification_status == 'rejected' %}
                         <span class="badge bg-danger">Declined</span>
+                    {% elif request.user.id_verification_status == 'pending' or request.user.has_id_document and request.user.id_verification_status not in 'verified,rejected,suspended,expired' %}
+                        <span class="badge bg-primary">Under Review</span>
                     {% else %}
                         <span class="badge bg-warning text-dark">Unverified</span>
                     {% endif %}
@@ -242,7 +274,37 @@
                             <div class="small text-muted d-flex align-items-center gap-2 mt-1"><span>Account type:</span> <span class="badge bg-secondary">{{ request.user.get_role_display|default:"Individual" }}</span></div>
                         </div>
                     </div>
-                {% elif request.user.id_verification_status == 'pending' or request.user.has_id_document and request.user.id_verification_status != 'rejected' %}
+                {% elif request.user.id_verification_status == 'suspended' %}
+                    <div class="d-flex align-items-center gap-3 mb-2">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="1.8" class="flex-shrink-0">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="10" y1="15" x2="10" y2="9"/>
+                            <line x1="14" y1="15" x2="14" y2="9"/>
+                        </svg>
+                        <div>
+                            <div class="fw-semibold text-warning-emphasis" style="font-size:14px;">Verification Suspended</div>
+                            <div class="small text-muted d-flex align-items-center gap-2 mt-1"><span>Account type:</span> <span class="badge bg-secondary">{{ request.user.get_role_display|default:"Individual" }}</span></div>
+                        </div>
+                    </div>
+                    <div class="small text-muted mb-2" style="font-size:12px;">{{ request.user.id_rejection_reason|default:"Your verification standing is temporarily suspended pending compliance review." }}</div>
+                    <a href="{% url 'users:verify_account' %}" class="btn btn-outline-warning btn-sm w-100 mb-2">
+                        Review Verification &rarr;
+                    </a>
+                {% elif request.user.id_verification_status == 'expired' %}
+                    <div class="d-flex align-items-center gap-3 mb-2">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="1.8" class="flex-shrink-0">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                        <div>
+                            <div class="fw-semibold text-secondary" style="font-size:14px;">Verification Expired</div>
+                            <div class="small text-muted d-flex align-items-center gap-2 mt-1"><span>Account type:</span> <span class="badge bg-secondary">{{ request.user.get_role_display|default:"Individual" }}</span></div>
+                        </div>
+                    </div>
+                    <a href="{% url 'users:verify_account' %}" class="btn btn-outline-secondary btn-sm w-100 mb-2">
+                        Renew Verification &rarr;
+                    </a>
+                {% elif request.user.id_verification_status == 'pending' or request.user.has_id_document and request.user.id_verification_status not in 'verified,rejected,suspended,expired' %}
                     <div class="d-flex align-items-center gap-3 mb-2">
                         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="1.8" class="flex-shrink-0">
                             <circle cx="12" cy="12" r="10"/>

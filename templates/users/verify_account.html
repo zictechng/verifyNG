@@ -150,7 +150,34 @@
             {% else %}
 
             {# ── Overall Account Status Overview Banner When Not Yet Verified ── #}
-            {% if has_pending_gov_id or has_pending_path_b %}
+            {% if has_suspended_gov_id %}
+            <div class="alert d-flex align-items-start gap-3 mb-4 p-3 p-sm-4"
+                 style="background:#FFFBEB;border:1px solid #FDE68A;border-left:4px solid #F59E0B;border-radius:12px;">
+                <div class="rounded-circle p-2 d-inline-flex align-items-center justify-content-center flex-shrink-0 mt-0.5" style="background:#FEF3C7;color:#D97706;width:36px;height:36px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="10" y1="15" x2="10" y2="9"/><line x1="14" y1="15" x2="14" y2="9"/></svg>
+                </div>
+                <div>
+                    <div class="fw-bold text-warning-emphasis" style="font-size:14.5px;">Profile Verification Suspended</div>
+                    <div class="small text-secondary mt-0.5" style="font-size:13px;">
+                        Reason: {{ user_profile.id_rejection_reason|default:"Your profile verification standing has been placed on hold pending compliance inquiry." }}
+                    </div>
+                    <div class="small text-muted mt-1" style="font-size:12.5px;">While suspended, your Verified Badge is paused. If you need to submit updated credentials or clarifying documentation, you may update your submission below.</div>
+                </div>
+            </div>
+            {% elif has_expired_gov_id %}
+            <div class="alert d-flex align-items-start gap-3 mb-4 p-3 p-sm-4"
+                 style="background:#F8FAFC;border:1px solid #E2E8F0;border-left:4px solid #64748B;border-radius:12px;">
+                <div class="rounded-circle p-2 d-inline-flex align-items-center justify-content-center flex-shrink-0 mt-0.5" style="background:#E2E8F0;color:#475569;width:36px;height:36px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                </div>
+                <div>
+                    <div class="fw-bold text-dark" style="font-size:14.5px;">Profile Verification Expired</div>
+                    <div class="small text-muted mt-0.5" style="font-size:13px;">
+                        Your verification credential has reached the end of its validity period. Please submit an updated document to restore active verified standing.
+                    </div>
+                </div>
+            </div>
+            {% elif has_pending_gov_id or has_pending_path_b %}
             <div class="alert d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4 p-3 p-sm-4"
                  style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:12px;">
                 <div class="d-flex align-items-center gap-3">

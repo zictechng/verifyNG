@@ -44,6 +44,10 @@
                                 Account Verification
                                 {% if user_profile.identity_verified or user_profile.id_verification_status == 'verified' %}
                                     <span class="badge bg-success text-white px-2.5 py-1 rounded-pill" style="font-size:11px;">Verified</span>
+                                {% elif user_profile.id_verification_status == 'suspended' %}
+                                    <span class="badge bg-warning text-dark px-2.5 py-1 rounded-pill" style="font-size:11px;">Suspended</span>
+                                {% elif user_profile.id_verification_status == 'expired' %}
+                                    <span class="badge bg-secondary text-white px-2.5 py-1 rounded-pill" style="font-size:11px;">Expired</span>
                                 {% elif has_approved_path_b %}
                                     <span class="badge bg-success text-white px-2.5 py-1 rounded-pill" style="font-size:11px;">Community Approved</span>
                                 {% elif user_profile.id_verification_status == 'pending' or has_pending_path_b %}
@@ -57,6 +61,10 @@
                             <p class="text-muted mb-0 small" style="font-size:13px;">
                                 {% if user_profile.identity_verified or user_profile.id_verification_status == 'verified' %}
                                     Account profile approved &bull; Full platform access unlocked.
+                                {% elif user_profile.id_verification_status == 'suspended' %}
+                                    Profile verification suspended &bull; Reason: {{ user_profile.id_rejection_reason|default:"Pending compliance inquiry." }}
+                                {% elif user_profile.id_verification_status == 'expired' %}
+                                    Profile verification expired &bull; Renew credentials to restore active Verified Badge.
                                 {% elif has_approved_path_b %}
                                     Alternative Personhood verified &bull; Community fraud reporting unlocked.
                                 {% elif user_profile.id_verification_status == 'pending' or has_pending_path_b %}

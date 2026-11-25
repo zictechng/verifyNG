@@ -410,9 +410,11 @@ class VerifyAccountView(LoginRequiredMixin, View):
 
         has_pending_gov_id = (user.id_verification_status == 'pending') or (
             bool(user.id_document and hasattr(user.id_document, 'name') and user.id_document.name)
-            and user.id_verification_status not in ('rejected', 'verified')
+            and user.id_verification_status not in ('rejected', 'verified', 'suspended', 'expired')
         )
         has_declined_gov_id = (user.id_verification_status == 'rejected')
+        has_suspended_gov_id = (user.id_verification_status == 'suspended')
+        has_expired_gov_id = (user.id_verification_status == 'expired')
         is_account_verified = bool(user.id_verification_status == 'verified' or has_approved_path_b)
 
         from users.forms import PathBAlternativeVerificationForm
@@ -456,6 +458,8 @@ class VerifyAccountView(LoginRequiredMixin, View):
             'has_declined_path_b': has_declined_path_b,
             'has_pending_gov_id': has_pending_gov_id,
             'has_declined_gov_id': has_declined_gov_id,
+            'has_suspended_gov_id': has_suspended_gov_id,
+            'has_expired_gov_id': has_expired_gov_id,
             'is_account_verified': is_account_verified,
             'path_b_form': path_b_form,
             'path_b_code': path_b_code,
@@ -1030,7 +1034,7 @@ class PathBVerificationSubmitView(LoginRequiredMixin, View):
         # 2b. Block submissions if there is a Government ID verification pending compliance review
         has_pending_gov_id = (user.id_verification_status == 'pending') or (
             bool(user.id_document and hasattr(user.id_document, 'name') and user.id_document.name)
-            and user.id_verification_status not in ('rejected', 'verified')
+            and user.id_verification_status not in ('rejected', 'verified', 'suspended', 'expired')
         )
         if has_pending_gov_id:
             messages.warning(

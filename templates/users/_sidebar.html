@@ -94,6 +94,12 @@
                 {% endif %}
                 {% if request.user.identity_verified or request.user.id_verification_status == 'verified' %}
                     <span class="ms-auto badge rounded-pill bg-success-subtle text-success border border-success-subtle" style="font-size:10px;">Verified</span>
+                {% elif request.user.id_verification_status == 'suspended' %}
+                    <span class="ms-auto badge rounded-pill bg-warning-subtle text-warning-emphasis border border-warning-subtle" style="font-size:10px;">Suspended</span>
+                {% elif request.user.id_verification_status == 'expired' %}
+                    <span class="ms-auto badge rounded-pill bg-secondary-subtle text-secondary border border-secondary-subtle" style="font-size:10px;">Expired</span>
+                {% elif request.user.id_verification_status == 'rejected' %}
+                    <span class="ms-auto badge rounded-pill bg-danger-subtle text-danger border border-danger-subtle" style="font-size:10px;">Declined</span>
                 {% elif request.user.id_verification_status == 'pending' %}
                     <span class="ms-auto badge rounded-pill bg-primary-subtle text-primary border border-primary-subtle" style="font-size:10px;">Pending</span>
                 {% endif %}
