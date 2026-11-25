@@ -85,11 +85,11 @@
                 <div class="text-muted small fw-bold text-uppercase letter-spacing-1 mb-2" style="font-size:0.75rem;">Applicant Profile</div>
                 <h3 class="h5 fw-bold text-dark mb-3">{{ target_user.get_full_name|default:target_user.username }}</h3>
                 <table class="table table-sm table-borderless mb-0 small">
-                    <tr><td class="text-muted ps-0">Username:</td><td class="fw-bold">@{{ target_user.username }}</td></tr>
-                    <tr><td class="text-muted ps-0">Email:</td><td class="fw-bold">{{ target_user.email }}</td></tr>
-                    <tr><td class="text-muted ps-0">Phone:</td><td class="fw-bold">{{ target_user.phone_number|default:"—" }}</td></tr>
-                    <tr><td class="text-muted ps-0">Residence:</td><td class="fw-bold">{{ latest_path_b.residential_address|default:"—" }}</td></tr>
-                    <tr><td class="text-muted ps-0">Country:</td><td class="fw-bold">{{ latest_path_b.residential_country|default:"NG" }}</td></tr>
+                    <tr><td class="text-muted py-1.5 ps-2">Username:</td><td class="fw-bold">@{{ target_user.username }}</td></tr>
+                    <tr><td class="text-muted py-1.5 ps-2">Email:</td><td class="fw-bold">{{ target_user.email }}</td></tr>
+                    <tr><td class="text-muted py-1.5 ps-2">Phone:</td><td class="fw-bold">{{ target_user.phone_number|default:"—" }}</td></tr>
+                    <tr><td class="text-muted py-1.5 ps-2">Residence:</td><td class="fw-bold">{{ latest_path_b.residential_address|default:"—" }}</td></tr>
+                    <tr><td class="text-muted py-1.5 ps-2">Country:</td><td class="fw-bold">{{ latest_path_b.residential_country|default:"NG" }}</td></tr>
                 </table>
             </div>
         </div>
@@ -166,10 +166,7 @@
                         {{ id_doc_spec_name }}
                     </span>
                     {% if target_user.id_verification_status == 'pending' %}
-                        <span class="badge rounded-pill fw-semibold" style="background:#FEF3C7; color:#92400E; border:1px solid #FDE68A; font-size:0.75rem;">
-                            &bull; Pending Compliance Review
-                        </span>
-                        <span class="badge bg-light text-muted border rounded-pill fw-medium" style="font-size:0.75rem;">
+                        <span class="badge bg-light text-muted border rounded-pill fw-semibold" style="font-size:0.78rem; padding: 5px 12px;">
                             Awaiting review
                         </span>
                     {% elif target_user.identity_verified %}
@@ -200,38 +197,40 @@
                         VerifyNG Record
                     </span>
                 </div>
-                <div class="mb-3 pb-2">
-                    <div class="text-muted small mb-1" style="font-size:0.78rem;">Registered Full Legal Name</div>
-                    <div class="fw-bold text-dark text-truncate" style="font-size:1.35rem; color:#0F172A;" title="{{ target_user.get_full_name|default:target_user.username }}">
+                <div class="mb-3 pb-1">
+                    <div class="fw-bold mb-1" style="font-size: 1.05rem; color: #334155; letter-spacing: 0.01em;">Registered Full Legal Name</div>
+                    <div class="fw-bold text-dark text-truncate" style="font-size: 1.55rem; color: #0F172A;" title="{{ target_user.get_full_name|default:target_user.username }}">
                         {{ target_user.get_full_name|default:target_user.username }}
                     </div>
                 </div>
-                <table class="table table-sm table-borderless mb-0 small" style="font-size:0.875rem;">
-                    <tr>
-                        <td class="text-muted ps-0 py-2" style="width:140px;">First Name:</td>
-                        <td class="fw-bold text-dark py-2">{{ target_user.first_name|default:"—" }}</td>
-                    </tr>
-                    <tr>
-                        <td class="text-muted ps-0 py-2">Last / Surname:</td>
-                        <td class="fw-bold text-dark py-2">{{ target_user.last_name|default:"—" }}</td>
-                    </tr>
-                    <tr>
-                        <td class="text-muted ps-0 py-2">Username:</td>
-                        <td class="fw-bold text-primary py-2">@{{ target_user.username }}</td>
-                    </tr>
-                    <tr>
-                        <td class="text-muted ps-0 py-2">Account Email:</td>
-                        <td class="fw-bold text-dark py-2">{{ target_user.email }}</td>
-                    </tr>
-                    <tr>
-                        <td class="text-muted ps-0 py-2">Account Role:</td>
-                        <td class="py-2">
-                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill fw-semibold px-2.5 py-1" style="font-size:0.75rem;">
-                                {{ target_user.get_role_display }}
-                            </span>
-                        </td>
-                    </tr>
-                </table>
+                <div class="p-3.5 rounded-3 bg-white border" style="border-color:#E2E8F0 !important;">
+                    <table class="table table-sm table-borderless mb-0 small" style="font-size:0.875rem;">
+                        <tr>
+                            <td class="text-muted py-2 ps-2" style="width:140px;">First Name:</td>
+                            <td class="fw-bold text-dark py-2">{{ target_user.first_name|default:"—" }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted py-2 ps-2">Last / Surname:</td>
+                            <td class="fw-bold text-dark py-2">{{ target_user.last_name|default:"—" }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted py-2 ps-2">Username:</td>
+                            <td class="fw-bold text-primary py-2">@{{ target_user.username }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted py-2 ps-2">Account Email:</td>
+                            <td class="fw-bold text-dark py-2">{{ target_user.email }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted py-2 ps-2">Account Role:</td>
+                            <td class="py-2">
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill fw-semibold px-2.5 py-1" style="font-size:0.75rem;">
+                                    {{ target_user.get_role_display }}
+                                </span>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
             </div>
         </div>
 
@@ -247,67 +246,69 @@
                         {{ id_doc_spec_name }}
                     </span>
                 </div>
-                <table class="table table-sm table-borderless mb-0 small" style="font-size:0.875rem;">
-                    <tr>
-                        <td class="text-muted ps-0 py-2" style="width:150px;">Issuing Country:</td>
-                        <td class="fw-bold text-dark py-2">{{ country_name }} ({{ target_user.country|default:"NG" }})</td>
-                    </tr>
-                    <tr>
-                        <td class="text-muted ps-0 py-2">State / Region:</td>
-                        <td class="fw-bold text-dark py-2">{{ target_user.state|default:"—" }}{% if target_user.lga %} ({{ target_user.lga }}){% endif %}</td>
-                    </tr>
-                    <tr>
-                        <td class="text-muted ps-0 py-2">Issuing Authority:</td>
-                        <td class="fw-bold text-dark py-2">{{ issuing_authority }}</td>
-                    </tr>
-                    <tr>
-                        <td class="text-muted ps-0 py-2">Assurance Standing:</td>
-                        <td class="py-2">
-                            <span class="badge rounded-pill fw-semibold px-2.5 py-1" style="background:#FEF3C7; color:#92400E; border:1px solid #FDE68A; font-size:0.72rem;">
-                                Awaiting review
-                            </span>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="text-muted ps-0 py-2 align-middle">Identification Number:</td>
-                        <td class="py-2">
-                            <div class="d-flex align-items-center gap-2 flex-wrap">
-                                <span class="font-monospace fw-bold text-dark fs-6" id="maskedIdDisplay" style="letter-spacing:1px;">
-                                    {{ target_user.masked_id_number|default:"—" }}
+                <div class="p-3.5 rounded-3 bg-white border" style="border-color:#BAE6FD !important;">
+                    <table class="table table-sm table-borderless mb-0 small" style="font-size:0.875rem;">
+                        <tr>
+                            <td class="text-muted py-2 ps-2" style="width:160px;">Issuing Country:</td>
+                            <td class="fw-bold text-dark py-2">{{ country_name }} ({{ target_user.country|default:"NG" }})</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted py-2 ps-2">State / Region:</td>
+                            <td class="fw-bold text-dark py-2">{{ target_user.state|default:"—" }}{% if target_user.lga %} ({{ target_user.lga }}){% endif %}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted py-2 ps-2">Issuing Authority:</td>
+                            <td class="fw-bold text-dark py-2">{{ issuing_authority }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted py-2 ps-2">Assurance Standing:</td>
+                            <td class="py-2">
+                                <span class="badge rounded-pill fw-semibold px-2.5 py-1" style="background:#FEF3C7; color:#92400E; border:1px solid #FDE68A; font-size:0.72rem;">
+                                    Awaiting review
                                 </span>
-                                {% if target_user.id_number %}
-                                <button type="button" class="btn btn-outline-secondary btn-sm py-0.5 px-2.5" style="font-size:0.75rem;"
-                                        onclick="toggleRevealId('{{ target_user.id_number }}', '{{ target_user.masked_id_number }}')">
-                                    <span id="revealIdBtnText">Reveal</span>
-                                </button>
-                                <button type="button" class="btn btn-outline-secondary btn-sm py-0.5 px-2.5" style="font-size:0.75rem;"
-                                        onclick="navigator.clipboard.writeText('{{ target_user.id_number }}'); this.textContent='Copied!'; setTimeout(()=>this.textContent='Copy', 1500);">
-                                    Copy
-                                </button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted py-2 ps-2 align-middle">Identification Number:</td>
+                            <td class="py-2">
+                                <div class="d-flex align-items-center gap-2 flex-wrap">
+                                    <span class="font-monospace fw-bold text-dark fs-6" id="maskedIdDisplay" style="letter-spacing:1px;">
+                                        {{ target_user.masked_id_number|default:"—" }}
+                                    </span>
+                                    {% if target_user.id_number %}
+                                    <button type="button" class="btn btn-outline-secondary btn-sm py-0.5 px-2.5" style="font-size:0.75rem;"
+                                            onclick="toggleRevealId('{{ target_user.id_number }}', '{{ target_user.masked_id_number }}')">
+                                        <span id="revealIdBtnText">Reveal</span>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm py-0.5 px-2.5" style="font-size:0.75rem;"
+                                            onclick="navigator.clipboard.writeText('{{ target_user.id_number }}'); this.textContent='Copied!'; setTimeout(()=>this.textContent='Copy', 1500);">
+                                        Copy
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted py-2 ps-2">Document File:</td>
+                            <td class="py-2">
+                                {% if target_user.has_id_document %}
+                                    <a href="{% url 'admin_portal:user_id_document' target_user.public_id %}" target="_blank" class="fw-bold text-primary text-decoration-underline d-inline-flex align-items-center gap-1.5">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                        <span>{{ target_user.id_document_filename|truncatechars:26|default:"Uploaded Document" }}</span>
+                                    </a>
+                                {% else %}
+                                    <span class="text-muted">No file uploaded</span>
                                 {% endif %}
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="text-muted ps-0 py-2">Document File:</td>
-                        <td class="py-2">
-                            {% if target_user.has_id_document %}
-                                <a href="{% url 'admin_portal:user_id_document' target_user.public_id %}" target="_blank" class="fw-bold text-primary text-decoration-underline d-inline-flex align-items-center gap-1.5">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                                    <span>{{ target_user.id_document_filename|truncatechars:26|default:"Uploaded Document" }}</span>
-                                </a>
-                            {% else %}
-                                <span class="text-muted">No file uploaded</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="text-muted ps-0 py-2">Submission Date:</td>
-                        <td class="fw-bold text-dark py-2">
-                            {{ target_user.id_submitted_at|date:"d M Y, H:i"|default:target_user.date_joined|date:"d M Y, H:i" }}
-                        </td>
-                    </tr>
-                </table>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted py-2 ps-2">Submission Date:</td>
+                            <td class="fw-bold text-dark py-2">
+                                {{ target_user.id_submitted_at|date:"d M Y, H:i"|default:target_user.date_joined|date:"d M Y, H:i" }}
+                            </td>
+                        </tr>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
