@@ -464,12 +464,12 @@ def build_broadcast(subject_line: str, message_body: str, username: str) -> Tupl
 # Account Identity & Corporate CAC Compliance Builders
 # ---------------------------------------------------------------------------
 
-def build_identity_verified(username: str, id_type: str = "Government ID") -> Tuple[str, str, str]:
+def build_identity_verified(username: str, id_type: str = "Verification Document") -> Tuple[str, str, str]:
     site_name, site_url = _get_site_meta()
     subject = f"Profile Approved — {site_name}"
     body_html = f"""
     <p>Good news! Your profile submission has been reviewed and approved by our compliance team.</p>
-    <p>Your account now holds an official <strong>Verified Badge</strong> with confirmed access to {site_name}.</p>
+    <p>Your account now holds an official <strong>Verified Badge</strong> with access to verified features on {site_name}.</p>
     """
     try:
         html_body, text_body = render_email('generic_notification', {
@@ -485,51 +485,176 @@ def build_identity_verified(username: str, id_type: str = "Government ID") -> Tu
         return subject, _html_fallback(subject, fallback_html), f"Hi {username}, your profile has been approved."
 
 
-def build_identity_rejected(username: str, id_type: str = "Government ID", reason: str = "") -> Tuple[str, str, str]:
+def build_identity_reactivated(username: str, notes: str = "") -> Tuple[str, str, str]:
     site_name, site_url = _get_site_meta()
-    subject = f"Action Required: Identity Verification Update — {site_name}"
-    reason_clean = reason or "Document could not be authenticated against primary identity registries."
+    subject = f"Profile Verification Restored — {site_name}"
+    notes_clean = str(notes or '').strip()
+    notes_html = ""
+    if notes_clean:
+        notes_html = f"""
+        <div style="background:#f0fdf4;border-left:4px solid #10b981;padding:12px 16px;border-radius:6px;margin:16px 0;">
+            <strong style="color:#065f46;">Compliance Note:</strong>
+            <p style="color:#047857;margin:4px 0 0;">{notes_clean}</p>
+        </div>
+        """
     body_html = f"""
-    <p>We reviewed your submitted {id_type} document, but our compliance team was unable to verify it at this time.</p>
-    <div style="background:#fef2f2;border-left:4px solid #ef4444;padding:12px 16px;border-radius:6px;margin:16px 0;">
-        <strong style="color:#991b1b;">Reason:</strong>
-        <p style="color:#7f1d1d;margin:4px 0 0;">{reason_clean}</p>
-    </div>
-    <p>Please log in to your profile, review your submitted information, and provide a clear, valid government-issued document.</p>
+    <p>We are pleased to inform you that following compliance review, your profile verification standing on {site_name} has been successfully reinstated.</p>
+    <p>Your <strong>Verified Badge</strong> and verified platform access have been restored immediately.</p>
+    {notes_html}
     """
     try:
         html_body, text_body = render_email('generic_notification', {
             'user_name': username,
-            'heading': "Identity Verification Declined",
+            'heading': "Profile Verification Restored",
+            'body_html': body_html,
+            'cta_url': f"{site_url}/users/profile/",
+            'cta_label': "View Your Profile →",
+        })
+        return subject, html_body, text_body
+    except Exception:
+        fallback_html = f"<h2>Profile Verification Restored</h2><p>Hi {username}, your profile verification standing has been restored.</p>"
+        return subject, _html_fallback(subject, fallback_html), f"Hi {username}, your profile verification standing has been restored."
+
+
+def build_identity_suspended(username: str, reason: str = "") -> Tuple[str, str, str]:
+    site_name, site_url = _get_site_meta()
+    subject = f"Important Notice: Profile Verification Suspended — {site_name}"
+    reason_clean = str(reason or '').strip() or "Profile verification temporarily placed on hold pending compliance inquiry."
+    body_html = f"""
+    <p>This is to inform you that your profile verification standing on {site_name} has been temporarily suspended by our compliance desk.</p>
+    <div style="background:#fffbeb;border-left:4px solid #f59e0b;padding:12px 16px;border-radius:6px;margin:16px 0;">
+        <strong style="color:#b45309;">Reason for Suspension:</strong>
+        <p style="color:#92400e;margin:4px 0 0;">{reason_clean}</p>
+    </div>
+    <p>While suspended, your <strong>Verified Badge</strong> is paused and verification-gated platform features are restricted. Your account login remains active.</p>
+    <p>Our compliance team may contact you if additional details or clarification are needed. If you have supporting information to address this inquiry, please review your account profile.</p>
+    """
+    try:
+        html_body, text_body = render_email('generic_notification', {
+            'user_name': username,
+            'heading': "Profile Verification Suspended",
+            'body_html': body_html,
+            'cta_url': f"{site_url}/users/profile/",
+            'cta_label': "Review Account Profile →",
+        })
+        return subject, html_body, text_body
+    except Exception:
+        fallback_html = f"<h2>Profile Verification Suspended</h2><p>Hi {username}, your profile verification standing has been suspended. Reason: {reason_clean}</p>"
+        return subject, _html_fallback(subject, fallback_html), f"Hi {username}, your profile verification standing has been suspended. Reason: {reason_clean}"
+
+
+def build_identity_expired(username: str, reason: str = "") -> Tuple[str, str, str]:
+    site_name, site_url = _get_site_meta()
+    subject = f"Notice: Profile Verification Expired — {site_name}"
+    reason_clean = str(reason or '').strip()
+    reason_html = ""
+    if reason_clean:
+        reason_html = f"""
+        <div style="background:#f8fafc;border-left:4px solid #64748b;padding:12px 16px;border-radius:6px;margin:16px 0;">
+            <strong style="color:#334155;">Note:</strong>
+            <p style="color:#475569;margin:4px 0 0;">{reason_clean}</p>
+        </div>
+        """
+    body_html = f"""
+    <p>This is to inform you that your verified profile credential on {site_name} has reached the end of its validity period.</p>
+    {reason_html}
+    <p>To restore your <strong>Verified Badge</strong> and retain uninterrupted access to verified platform features, please submit an updated document through your profile settings.</p>
+    """
+    try:
+        html_body, text_body = render_email('generic_notification', {
+            'user_name': username,
+            'heading': "Profile Verification Expired",
+            'body_html': body_html,
+            'cta_url': f"{site_url}/users/profile/",
+            'cta_label': "Renew Verification in Profile →",
+        })
+        return subject, html_body, text_body
+    except Exception:
+        fallback_html = f"<h2>Profile Verification Expired</h2><p>Hi {username}, your profile verification credential has expired.</p>"
+        return subject, _html_fallback(subject, fallback_html), f"Hi {username}, your profile verification credential has expired."
+
+
+def build_identity_rejected(username: str, id_type: str = "Verification Document", reason: str = "") -> Tuple[str, str, str]:
+    site_name, site_url = _get_site_meta()
+    subject = f"Action Required: Profile Verification Declined — {site_name}"
+    reason_clean = reason or "Submitted document could not be validated against compliance criteria."
+    body_html = f"""
+    <p>We reviewed your submitted {id_type}, but our compliance team was unable to approve it at this time.</p>
+    <div style="background:#fef2f2;border-left:4px solid #ef4444;padding:12px 16px;border-radius:6px;margin:16px 0;">
+        <strong style="color:#991b1b;">Reason for Decline:</strong>
+        <p style="color:#7f1d1d;margin:4px 0 0;">{reason_clean}</p>
+    </div>
+    <p>Please log in to your profile, review the reason above, and submit a clear, valid document to complete your profile verification.</p>
+    """
+    try:
+        html_body, text_body = render_email('generic_notification', {
+            'user_name': username,
+            'heading': "Profile Verification Declined",
             'body_html': body_html,
             'cta_url': f"{site_url}/users/profile/",
             'cta_label': "Update Document in Profile →",
         })
         return subject, html_body, text_body
     except Exception:
-        fallback_html = f"<h2>Identity Verification Declined</h2><p>Hi {username}, your {id_type} was declined. Reason: {reason_clean}</p>"
+        fallback_html = f"<h2>Profile Verification Declined</h2><p>Hi {username}, your {id_type} was declined. Reason: {reason_clean}</p>"
         return subject, _html_fallback(subject, fallback_html), f"Hi {username}, your {id_type} was declined. Reason: {reason_clean}"
 
 
-def build_identity_revoked(username: str) -> Tuple[str, str, str]:
+def build_identity_revoked(username: str, reason: str = "") -> Tuple[str, str, str]:
     site_name, site_url = _get_site_meta()
-    subject = f"Notice: Identity Verification Badge Revoked — {site_name}"
+    subject = f"Notice: Profile Verification Revoked — {site_name}"
+    reason_clean = str(reason or '').strip()
+    reason_html = ""
+    if reason_clean:
+        reason_html = f"""
+        <div style="background:#fef2f2;border-left:4px solid #ef4444;padding:12px 16px;border-radius:6px;margin:16px 0;">
+            <strong style="color:#991b1b;">Reason:</strong>
+            <p style="color:#7f1d1d;margin:4px 0 0;">{reason_clean}</p>
+        </div>
+        """
     body_html = f"""
-    <p>This is to inform you that your verified identity badge on {site_name} has been revoked by platform compliance.</p>
-    <p>Your status has reverted to unverified. Platform operations that require verified identity will remain locked until valid documents are submitted and re-approved.</p>
+    <p>This is to inform you that your verified profile standing on {site_name} has been revoked by platform compliance.</p>
+    {reason_html}
+    <p>Your account status has reverted to unverified. Platform operations that require verified standing will remain locked until valid credentials are submitted and re-approved.</p>
     """
     try:
         html_body, text_body = render_email('generic_notification', {
             'user_name': username,
-            'heading': "Identity Verification Revoked",
+            'heading': "Profile Verification Revoked",
             'body_html': body_html,
             'cta_url': f"{site_url}/users/profile/",
             'cta_label': "Review Profile →",
         })
         return subject, html_body, text_body
     except Exception:
-        fallback_html = f"<h2>Identity Verification Revoked</h2><p>Hi {username}, your verified badge has been revoked.</p>"
+        fallback_html = f"<h2>Profile Verification Revoked</h2><p>Hi {username}, your verified badge has been revoked.</p>"
         return subject, _html_fallback(subject, fallback_html), f"Hi {username}, your verified badge has been revoked."
+
+
+def build_identity_info_requested(username: str, message_text: str = "") -> Tuple[str, str, str]:
+    site_name, site_url = _get_site_meta()
+    subject = f"Action Required: Information Requested for Profile Verification — {site_name}"
+    msg_clean = str(message_text or '').strip() or "Additional clarification or documentation is required for your profile verification."
+    body_html = f"""
+    <p>Our compliance team is currently reviewing your profile verification submission and requires additional information to proceed.</p>
+    <div style="background:#eff6ff;border-left:4px solid #3b82f6;padding:12px 16px;border-radius:6px;margin:16px 0;">
+        <strong style="color:#1e40af;">Compliance Desk Request:</strong>
+        <p style="color:#1e3a8a;margin:4px 0 0;">{msg_clean}</p>
+    </div>
+    <p>Please log in to your account to review your profile and respond with the requested details.</p>
+    """
+    try:
+        html_body, text_body = render_email('generic_notification', {
+            'user_name': username,
+            'heading': "Additional Information Requested",
+            'body_html': body_html,
+            'cta_url': f"{site_url}/users/profile/",
+            'cta_label': "Review Profile →",
+        })
+        return subject, html_body, text_body
+    except Exception:
+        fallback_html = f"<h2>Additional Information Requested</h2><p>Hi {username}, please provide requested verification details.</p>"
+        return subject, _html_fallback(subject, fallback_html), f"Hi {username}, please provide requested verification details."
 
 
 def build_employer_verified(company_name: str, username: str) -> Tuple[str, str, str]:

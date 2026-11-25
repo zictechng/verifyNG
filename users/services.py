@@ -50,7 +50,7 @@ class IdentityVerificationLifecycleService:
     @transaction.atomic
     def transition_to_basic_verified(cls, user, officer=None, notes='', request=None):
         """
-        Transitions user to Basic Identity Evidence Reviewed (Free tier).
+        Transitions user to Basic Identity Evidence Reviewed (Free tier) or reinstates suspended/expired status.
         Synchronizes:
           - assurance_level = 'basic_verified' (preserves 'enhanced_verified' if already set)
           - identity_verified = True
@@ -58,6 +58,8 @@ class IdentityVerificationLifecycleService:
           - id_verified_at = current timestamp
           - id_rejection_reason = ''
         """
+        was_suspended_or_expired = user.id_verification_status in ('suspended', 'expired')
+
         if user.assurance_level != 'enhanced_verified':
             user.assurance_level = 'basic_verified'
         user.identity_verified = True
@@ -71,8 +73,9 @@ class IdentityVerificationLifecycleService:
         ])
 
         # Audit Log
+        audit_action = "ADMIN_USER_IDENTITY_REINSTATED" if was_suspended_or_expired else "ADMIN_USER_IDENTITY_VERIFIED"
         cls._create_audit_log(
-            action="ADMIN_USER_IDENTITY_VERIFIED",
+            action=audit_action,
             user=user,
             officer=officer,
             request=request,
@@ -83,19 +86,35 @@ class IdentityVerificationLifecycleService:
                 "id_type": user.id_type,
                 "id_number": getattr(user, 'masked_id_number', user.id_number),
                 "notes": notes,
+                "was_suspended_or_expired": was_suspended_or_expired,
             }
         )
 
         # Dispatch Compliance Notification
-        cls._dispatch_notification(
-            user=user,
-            event_type='VERIFICATION_COMPLETED',
-            title='Profile Approved',
-            body=(
-                f"Your profile submission has been reviewed and accepted by compliance. "
-                f"You now hold a Verified Badge with access to the platform."
+        if was_suspended_or_expired:
+            cls._dispatch_notification(
+                user=user,
+                event_type='VERIFICATION_COMPLETED',
+                title='Profile Verification Restored',
+                body=(
+                    f"Your verified profile standing has been reinstated by compliance. "
+                    f"Your Verified Badge and verified platform access are now active."
+                ),
+                action_kind='reactivated',
+                notes=notes,
             )
-        )
+        else:
+            cls._dispatch_notification(
+                user=user,
+                event_type='VERIFICATION_COMPLETED',
+                title='Profile Approved',
+                body=(
+                    f"Your profile submission has been reviewed and accepted by compliance. "
+                    f"You now hold a Verified Badge with access to the platform."
+                ),
+                action_kind='approved',
+                notes=notes,
+            )
         return user
 
     @classmethod
@@ -195,9 +214,10 @@ class IdentityVerificationLifecycleService:
         cls._dispatch_notification(
             user=user,
             event_type='VERIFICATION_REJECTED',
-            title='Identity Verification Declined',
-            body=f"Your identity document review could not be approved. Reason: {reason_clean}",
-            rejection_reason=reason_clean
+            title='Profile Verification Declined',
+            body=f"Your profile verification submission could not be approved. Reason: {reason_clean}",
+            rejection_reason=reason_clean,
+            action_kind='rejected',
         )
         return user
 
@@ -240,8 +260,9 @@ class IdentityVerificationLifecycleService:
             user=user,
             event_type='VERIFICATION_REJECTED',
             title='Profile Verification Suspended',
-            body=f"Your profile verification standing has been suspended. Reason: {reason_clean}",
-            rejection_reason=reason_clean
+            body=f"Your verified profile standing has been temporarily suspended by compliance. Reason: {reason_clean}",
+            rejection_reason=reason_clean,
+            action_kind='suspended',
         )
         return user
 
@@ -280,7 +301,9 @@ class IdentityVerificationLifecycleService:
             user=user,
             event_type='VERIFICATION_REJECTED',
             title='Profile Verification Expired',
-            body="Your verification on file has reached its validity period. Please submit an updated document to restore verified status."
+            body="Your verified profile standing has reached its validity period. Please submit an updated document to restore your Verified Badge.",
+            rejection_reason=reason_clean,
+            action_kind='expired',
         )
         return user
 
@@ -316,31 +339,51 @@ class IdentityVerificationLifecycleService:
         cls._dispatch_notification(
             user=user,
             event_type='VERIFICATION_REJECTED',
-            title='Identity Verification Revoked',
-            body="Your verified identity badge has been revoked by platform compliance. Please review your profile credentials."
+            title='Profile Verification Revoked',
+            body=f"Your verified profile standing has been revoked by compliance. Reason: {reason_clean}",
+            rejection_reason=reason_clean,
+            action_kind='revoked',
         )
         return user
 
     @classmethod
-    def _dispatch_notification(cls, user, event_type, title, body, rejection_reason=None):
+    def _dispatch_notification(cls, user, event_type, title, body, rejection_reason=None, action_kind=None, notes=None):
         """Safely dispatches in-app and email notifications without interrupting transaction."""
         try:
             from notifications.services import dispatch_notification
             from notifications.email_templates import (
-                build_identity_verified, build_identity_rejected, build_identity_revoked
+                build_identity_verified, build_identity_reactivated,
+                build_identity_suspended, build_identity_expired,
+                build_identity_rejected, build_identity_revoked
             )
 
             id_display = cls.get_id_display(user)
             username_display = user.get_full_name() or user.username
 
-            if event_type == 'VERIFICATION_COMPLETED':
+            if action_kind == 'reactivated' or title == 'Profile Verification Restored':
+                subject, html_body, text_body = build_identity_reactivated(
+                    username=username_display,
+                    notes=notes or ''
+                )
+            elif action_kind == 'suspended' or title == 'Profile Verification Suspended':
+                subject, html_body, text_body = build_identity_suspended(
+                    username=username_display,
+                    reason=rejection_reason or body
+                )
+            elif action_kind == 'expired' or title == 'Profile Verification Expired':
+                subject, html_body, text_body = build_identity_expired(
+                    username=username_display,
+                    reason=rejection_reason or ''
+                )
+            elif action_kind == 'revoked' or 'Revoked' in title:
+                subject, html_body, text_body = build_identity_revoked(
+                    username=username_display,
+                    reason=rejection_reason or ''
+                )
+            elif event_type == 'VERIFICATION_COMPLETED':
                 subject, html_body, text_body = build_identity_verified(
                     username=username_display,
                     id_type=id_display
-                )
-            elif title == 'Identity Verification Revoked':
-                subject, html_body, text_body = build_identity_revoked(
-                    username=username_display
                 )
             else:
                 subject, html_body, text_body = build_identity_rejected(
@@ -358,6 +401,7 @@ class IdentityVerificationLifecycleService:
                 subject=subject,
                 html_body=html_body,
                 text_body=text_body,
+                force_email=True,
             )
         except Exception as e:
             logger.warning(f"Failed to dispatch verification notification for {user.username}: {e}")

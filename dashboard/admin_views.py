@@ -924,13 +924,17 @@ class AdminUserDetailView(SuperAdminRequiredMixin, TemplateView):
         
         elif action == 'verify_identity':
             from users.services import IdentityVerificationLifecycleService
+            was_prior_suspended = target_user.id_verification_status in ('suspended', 'expired')
             IdentityVerificationLifecycleService.transition_to_basic_verified(
                 user=target_user,
                 officer=request.user,
                 notes=request.POST.get('verification_notes', ''),
                 request=request
             )
-            messages.success(request, f"Government identity verified for '{target_user.get_full_name() or target_user.username}'.")
+            if was_prior_suspended:
+                messages.success(request, f"Profile verification restored for '{target_user.get_full_name() or target_user.username}'.")
+            else:
+                messages.success(request, f"Profile verification approved for '{target_user.get_full_name() or target_user.username}'.")
             return redirect('admin_portal:user_detail', public_id=public_id)
 
         elif action == 'verify_enhanced_identity':
@@ -960,7 +964,7 @@ class AdminUserDetailView(SuperAdminRequiredMixin, TemplateView):
                 officer=request.user,
                 request=request
             )
-            messages.success(request, f"Identity proof declined for '{target_user.username}'.")
+            messages.success(request, f"Profile verification declined for '{target_user.username}'.")
             return redirect('admin_portal:user_detail', public_id=public_id)
 
         elif action == 'suspend_identity':
@@ -972,7 +976,7 @@ class AdminUserDetailView(SuperAdminRequiredMixin, TemplateView):
                 officer=request.user,
                 request=request
             )
-            messages.success(request, f"Identity verification suspended for '{target_user.username}'.")
+            messages.success(request, f"Profile verification suspended for '{target_user.username}'. Notice dispatched.")
             return redirect('admin_portal:user_detail', public_id=public_id)
 
         elif action == 'expire_identity':
@@ -984,7 +988,7 @@ class AdminUserDetailView(SuperAdminRequiredMixin, TemplateView):
                 officer=request.user,
                 request=request
             )
-            messages.success(request, f"Identity verification marked expired for '{target_user.username}'.")
+            messages.success(request, f"Profile verification marked expired for '{target_user.username}'. Notice dispatched.")
             return redirect('admin_portal:user_detail', public_id=public_id)
 
         elif action == 'revoke_identity':
@@ -996,7 +1000,7 @@ class AdminUserDetailView(SuperAdminRequiredMixin, TemplateView):
                 officer=request.user,
                 request=request
             )
-            messages.success(request, f"Identity verification badge revoked for '{target_user.username}'.")
+            messages.success(request, f"Profile verification revoked for '{target_user.username}'. Notice dispatched.")
             return redirect('admin_portal:user_detail', public_id=public_id)
 
         elif action == 'approve_path_b':
@@ -4809,13 +4813,17 @@ class AdminUserIdReviewView(SuperAdminRequiredMixin, View):
 
         if action == 'verify_identity':
             from users.services import IdentityVerificationLifecycleService
+            was_prior_suspended = target_user.id_verification_status in ('suspended', 'expired')
             IdentityVerificationLifecycleService.transition_to_basic_verified(
                 user=target_user,
                 officer=request.user,
                 notes=request.POST.get('verification_notes', ''),
                 request=request
             )
-            messages.success(request, f"Government identity verified successfully for '{target_user.get_full_name() or target_user.username}'.")
+            if was_prior_suspended:
+                messages.success(request, f"Profile verification restored for '{target_user.get_full_name() or target_user.username}'.")
+            else:
+                messages.success(request, f"Profile verification approved successfully for '{target_user.get_full_name() or target_user.username}'.")
             return redirect('admin_portal:review_queue')
 
         elif action == 'verify_enhanced_identity':
@@ -4845,18 +4853,29 @@ class AdminUserIdReviewView(SuperAdminRequiredMixin, View):
                 officer=request.user,
                 request=request
             )
-            messages.success(request, f"Identity proof declined for '{target_user.username}'. Formal notice dispatched.")
+            messages.success(request, f"Profile verification declined for '{target_user.username}'. Formal notice dispatched.")
             return redirect('admin_portal:review_queue')
 
         elif action == 'request_more_info':
             message_text = request.POST.get('info_request_message', '').strip()
             if message_text:
                 from notifications.services import dispatch_notification
+                from notifications.email_templates import build_identity_info_requested
+                username_display = target_user.get_full_name() or target_user.username
+                subj, html_b, txt_b = build_identity_info_requested(
+                    username=username_display,
+                    message_text=message_text
+                )
                 dispatch_notification(
-                    user=target_user,
-                    event_type='SYSTEM_ALERT',
-                    title='Compliance Notice: Additional Information Required for Verification',
-                    body=message_text
+                    recipient=target_user,
+                    event_type='BROADCAST',
+                    title='Additional Information Requested for Verification',
+                    body=message_text,
+                    object_reference=f"ID-{target_user.public_id}",
+                    subject=subj,
+                    html_body=html_b,
+                    text_body=txt_b,
+                    force_email=True,
                 )
                 from reports.models import AuditLog
                 AuditLog.objects.create(

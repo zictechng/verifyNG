@@ -57,7 +57,7 @@ class IdentityVerificationLifecycleServiceTests(TestCase):
             event_type='VERIFICATION_COMPLETED'
         ).first()
         self.assertIsNotNone(notif)
-        self.assertEqual(notif.title, 'Identity Verification Approved')
+        self.assertEqual(notif.title, 'Profile Approved')
 
     def test_transition_to_basic_verified_preserves_enhanced(self):
         """Account already holding enhanced_verified is not downgraded to basic."""
@@ -129,7 +129,7 @@ class IdentityVerificationLifecycleServiceTests(TestCase):
             event_type='VERIFICATION_REJECTED'
         ).first()
         self.assertIsNotNone(notif)
-        self.assertEqual(notif.title, 'Identity Verification Declined')
+        self.assertEqual(notif.title, 'Profile Verification Declined')
         self.assertIn('Blurry image; name mismatch', notif.body)
 
     def test_transition_to_rejected_preserves_enhanced_assurance_tier(self):
@@ -215,7 +215,7 @@ class IdentityVerificationLifecycleServiceTests(TestCase):
         notif = Notification.objects.filter(
             recipient=self.user,
             event_type='VERIFICATION_REJECTED',
-            title='Identity Verification Revoked'
+            title='Profile Verification Revoked'
         ).first()
         self.assertIsNotNone(notif)
 
@@ -283,3 +283,25 @@ class AdminComplianceViewsIntegrationTests(TestCase):
         self.assertEqual(self.applicant.assurance_level, 'unverified')
         self.assertFalse(self.applicant.identity_verified)
         self.assertEqual(self.applicant.id_verification_status, 'expired')
+
+    def test_admin_reactivate_suspended_identity_action(self):
+        """Reactivating a suspended verification restores verified standing with restored notice."""
+        self.applicant.id_verification_status = 'suspended'
+        self.applicant.identity_verified = False
+        self.applicant.save(update_fields=['id_verification_status', 'identity_verified'])
+
+        response = self.client.post(self.detail_url, {
+            'action': 'verify_identity',
+            'verification_notes': 'Compliance inquiry cleared. Restored.'
+        })
+        self.assertEqual(response.status_code, 302)
+        self.applicant.refresh_from_db()
+        self.assertTrue(self.applicant.identity_verified)
+        self.assertEqual(self.applicant.id_verification_status, 'verified')
+
+        notif = Notification.objects.filter(
+            recipient=self.applicant,
+            event_type='VERIFICATION_COMPLETED',
+            title='Profile Verification Restored'
+        ).first()
+        self.assertIsNotNone(notif)
