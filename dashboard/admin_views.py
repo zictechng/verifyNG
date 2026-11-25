@@ -410,9 +410,9 @@ class AdminOverviewView(SuperAdminRequiredMixin, TemplateView):
         ).select_related('requester').order_by('-created_at')[:5] if VerificationRequest else []
         ctx['recent_users_qs'] = User.objects.order_by('-date_joined')[:5]
 
-        # 6. Unified Compliance Review Queue (Action Required)
+        # 6. Unified Compliance Review Queue (Action Required - top 10 recent)
         all_pending_queue = get_compliance_review_queue('all')
-        ctx['pending_compliance_queue'] = all_pending_queue[:5]
+        ctx['pending_compliance_queue'] = all_pending_queue[:10]
         ctx['total_pending_compliance_count'] = len(all_pending_queue)
         ctx['pending_personal_id_count'] = sum(1 for x in all_pending_queue if x['category'] == 'personal_id')
         ctx['pending_alt_person_count'] = sum(1 for x in all_pending_queue if x['category'] == 'alternative_person')
