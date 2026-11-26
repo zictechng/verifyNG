@@ -185,12 +185,13 @@
                 </div>
             </div>
             {% elif has_declined_gov_id or has_declined_path_b %}
-            <div class="alert d-flex align-items-start gap-3 mb-4 p-3 p-sm-4"
+            <div class="alert alert-dismissible fade show d-flex align-items-start gap-3 mb-4 p-3 p-sm-4 position-relative"
+                 role="alert"
                  style="background:#FEF2F2;border:1px solid #FECACA;border-radius:12px;">
                 <div class="rounded-circle p-2 d-inline-flex align-items-center justify-content-center flex-shrink-0 mt-0.5" style="background:#FEE2E2;color:#DC2626;width:36px;height:36px;">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                 </div>
-                <div>
+                <div class="flex-grow-1 pe-2">
                     <div class="fw-bold text-danger" style="font-size:14.5px;">Previous Verification Declined</div>
                     <div class="small text-danger mt-0.5" style="font-size:13px;">
                         {% if has_declined_gov_id %}
@@ -201,6 +202,13 @@
                     </div>
                     <div class="small text-muted mt-1" style="font-size:12.5px;">You can now update and re-submit your proof, or switch to the alternative verification method below.</div>
                 </div>
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="alert"
+                        aria-label="Dismiss notification"
+                        onclick="const a = this.closest('.alert'); if (a) { a.style.transition = 'opacity 0.25s ease, transform 0.25s ease'; a.style.opacity = '0'; a.style.transform = 'translateY(-6px)'; setTimeout(() => a.remove(), 250); }"
+                        style="padding:0.75rem; margin-top:-2px; margin-right:-2px; opacity:0.6; cursor:pointer;"
+                        title="Dismiss"></button>
             </div>
             {% endif %}
 
@@ -229,17 +237,17 @@
             {# What happens next card (from attachment) #}
             <div class="vng-card p-4 p-sm-5 mb-4 text-center shadow-xs" style="border-radius:14px;border:1px solid #E2E8F0;background:#FFFFFF;">
                 <div class="p-3.5 p-sm-4 rounded-3 mb-4 text-start small mx-auto" style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;max-width:680px;font-size:13.5px;line-height:1.6;color:#334155;">
-                    <div class="d-flex align-items-start gap-2.5">
-                        <div class="rounded-1 d-inline-flex align-items-center justify-content-center flex-shrink-0 text-white" style="background:#2563EB;width:18px;height:18px;font-size:11px;font-weight:700;margin-top:2px;">
+                    <div class="d-flex align-items-start gap-2" style="gap: 12px;">
+                        <div class="rounded-1 d-inline-flex align-items-center justify-content-center flex-shrink-0 text-white" style="background:#2563EB;width:18px;height:18px;font-size:11px;font-weight:700;margin-top:2px;margin-right:4px;">
                             i
                         </div>
                         <div>
-                            <strong> What happens next:</strong> Our compliance team typically reviews submissions within <strong>1 to 84 hours</strong>. You will receive an email update at <strong>{{ request.user.email }}</strong> as soon as your account verification status is updated.
+                            <strong>What happens next:</strong> Our compliance team typically reviews submissions within <strong>1 to 84 hours</strong>. You will receive an email update at <strong>{{ request.user.email }}</strong> as soon as your account verification status is updated. Platform features will activate automatically upon approval.
                         </div>
                     </div>
                 </div>
 
-                <div class="d-flex align-items-center justify-content-center gap-2.5 flex-wrap">
+                <div class="d-flex align-items-center justify-content-center gap-3 flex-wrap" style="gap: 12px;">
                     <a href="{% url 'dashboard:index' %}" class="btn btn-sm btn-outline-primary px-3.5 py-1.5 rounded-pill fw-semibold" style="background:#EBF5FF;border-color:#BFDBFE;color:#1D4ED8;font-size:13px;">
                         &larr; Return to Dashboard
                     </a>
