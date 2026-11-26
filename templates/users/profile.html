@@ -18,9 +18,9 @@
             </div>
 
             {# ── Account Verification Quick Standing Card ── #}
-            <div class="vng-card p-3 p-sm-3.5 mb-4" style="border-radius:14px;background:#ffffff;border:1px solid #e2e8f0;box-shadow:0 2px 10px rgba(15,23,42,0.03);padding:16px 18px;">
-                <div class="d-flex align-items-start align-items-sm-center justify-content-between flex-column flex-sm-row gap-3">
-                    <div class="d-flex align-items-start align-items-sm-center gap-3 flex-grow-1" style="min-width:0;">
+            <div class="vng-card p-3 p-sm-3.5 mb-4" style="border-radius:14px;background:#ffffff;border:1px solid #e2e8f0;box-shadow:0 2px 10px rgba(15,23,42,0.03);">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                    <div class="d-flex align-items-center gap-3" style="min-width: 260px; flex: 1 1 auto;">
                         <div class="rounded-circle d-inline-flex align-items-center justify-content-center flex-shrink-0"
                              style="width:44px;height:44px;min-width:44px;
                              {% if user_profile.identity_verified or user_profile.id_verification_status == 'verified' or has_approved_path_b %}
@@ -39,7 +39,7 @@
                                 {% endif %}
                             </svg>
                         </div>
-                        <div style="min-width:0;flex-grow:1;">
+                        <div>
                             <div class="fw-bold text-dark d-flex align-items-center gap-2 flex-wrap mb-1" style="font-size:15px;line-height:1.35;">
                                 <span>Account Verification</span>
                                 {% if user_profile.identity_verified or user_profile.id_verification_status == 'verified' %}
@@ -58,7 +58,7 @@
                                     <span class="badge bg-warning text-dark px-2 py-1 rounded-pill" style="font-size:11px;margin-left:4px;">Unverified</span>
                                 {% endif %}
                             </div>
-                            <p class="text-muted mb-0 small text-break" style="font-size:13px;line-height:1.45;">
+                            <p class="text-muted mb-0 small" style="font-size:13px;line-height:1.5;">
                                 {% if user_profile.identity_verified or user_profile.id_verification_status == 'verified' %}
                                     Account profile approved &bull; Full platform access unlocked.
                                 {% elif user_profile.id_verification_status == 'suspended' %}
@@ -77,8 +77,8 @@
                             </p>
                         </div>
                     </div>
-                    <div class="w-100 w-sm-auto flex-shrink-0 text-start text-sm-end">
-                        <a href="{% url 'users:verify_account' %}" class="btn btn-outline-primary btn-sm px-3.5 py-1.5 fw-semibold d-inline-flex align-items-center justify-content-center gap-1.5 rounded-pill w-100 w-sm-auto shadow-xs" style="font-size:13px;">
+                    <div class="flex-shrink-0">
+                        <a href="{% url 'users:verify_account' %}" class="btn btn-outline-primary btn-sm px-3.5 py-1.5 fw-semibold d-inline-flex align-items-center justify-content-center gap-1.5 rounded-pill shadow-xs text-nowrap" style="font-size:13px;">
                             {% if user_profile.identity_verified or user_profile.id_verification_status == 'verified' or has_approved_path_b %}
                                 <span>View Verification</span>
                             {% elif user_profile.id_verification_status == 'pending' or has_pending_path_b %}
