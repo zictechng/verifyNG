@@ -775,23 +775,23 @@
                 </div>
                 <table class="table table-sm table-borderless mb-0 small" style="font-size:0.82rem;">
                   <tr>
-                    <td class="text-muted ps-0 py-1" style="width:38%;">First Name:</td>
+                    <td class="text-muted ps-2 py-1" style="width:38%;">First Name:</td>
                     <td class="fw-semibold text-dark py-1">{{ target_user.first_name|default:"—" }}</td>
                   </tr>
                   <tr>
-                    <td class="text-muted ps-0 py-1">Last / Surname:</td>
+                    <td class="text-muted ps-2 py-1">Last / Surname:</td>
                     <td class="fw-semibold text-dark py-1">{{ target_user.last_name|default:"—" }}</td>
                   </tr>
                   <tr>
-                    <td class="text-muted ps-0 py-1">Username:</td>
+                    <td class="text-muted ps-2 py-1">Username:</td>
                     <td class="py-1"><code>@{{ target_user.username }}</code></td>
                   </tr>
                   <tr>
-                    <td class="text-muted ps-0 py-1">Account Email:</td>
+                    <td class="text-muted ps-2 py-1">Account Email:</td>
                     <td class="py-1 text-truncate" style="max-width:180px;">{{ target_user.email }}</td>
                   </tr>
                   <tr>
-                    <td class="text-muted ps-0 py-1">Account Role:</td>
+                    <td class="text-muted ps-2 py-1">Account Role:</td>
                     <td class="py-1"><span class="adm-badge blue py-0.5 px-2" style="font-size:0.7rem;">{{ target_user.get_role_display }}</span></td>
                   </tr>
                 </table>
@@ -811,7 +811,7 @@
                 </div>
                 <table class="table table-sm table-borderless mb-2 small" style="font-size:0.82rem;">
                   <tr>
-                    <td class="text-muted ps-0 py-1" style="width:38%;">Issuing Country:</td>
+                    <td class="text-muted ps-2 py-1" style="width:38%;">Issuing Country:</td>
                     <td class="fw-semibold text-dark py-1">
                       {{ id_issuing_country_name|default:"Nigeria" }}
                       {% if id_issuing_country_code %}
@@ -821,7 +821,7 @@
                   </tr>
                   {% if target_user.state or target_user.lga %}
                   <tr>
-                    <td class="text-muted ps-0 py-1">State / Region:</td>
+                    <td class="text-muted ps-2 py-1">State / Region:</td>
                     <td class="fw-semibold text-dark py-1">
                       {{ target_user.state|default:"—" }}
                       {% if target_user.lga %}
@@ -831,11 +831,11 @@
                   </tr>
                   {% endif %}
                   <tr>
-                    <td class="text-muted ps-0 py-1">Issuing Authority:</td>
+                    <td class="text-muted ps-2 py-1">Issuing Authority:</td>
                     <td class="fw-semibold text-dark py-1">{{ id_issuing_authority|default:"National Identity Management Commission (NIMC)" }}</td>
                   </tr>
                   <tr>
-                    <td class="text-muted ps-0 py-1">Assurance Standing:</td>
+                    <td class="text-muted ps-2 py-1">Assurance Standing:</td>
                     <td class="py-1">
                       <span class="adm-badge {{ id_assurance_badge_class|default:'green' }} py-0.5 px-2" style="font-size:0.72rem;">
                         {{ id_assurance_standing|default:"Verified" }}
@@ -866,7 +866,7 @@
                 </div>
                 <table class="table table-sm table-borderless mb-0 small" style="font-size:0.82rem;">
                   <tr>
-                    <td class="text-muted ps-0 py-1" style="width:38%;">Document File:</td>
+                    <td class="text-muted ps-2 py-1" style="width:38%;">Document File:</td>
                     <td class="py-1 text-truncate" style="max-width:180px;">
                       {% if target_user.has_id_document %}
                         <a href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#viewUserIdDocModal" class="fw-semibold text-decoration-none" style="color:#0284C7;">
@@ -878,12 +878,12 @@
                     </td>
                   </tr>
                   <tr>
-                    <td class="text-muted ps-0 py-1">Submission Date:</td>
+                    <td class="text-muted ps-2 py-1">Submission Date:</td>
                     <td class="py-1 text-dark">{{ target_user.id_submitted_at|date:"d M Y, H:i"|default:"Recently" }}</td>
                   </tr>
                   {% if target_user.id_verified_at %}
                   <tr>
-                    <td class="text-muted ps-0 py-1">Verified On:</td>
+                    <td class="text-muted ps-2 py-1">Verified On:</td>
                     <td class="py-1 text-success fw-semibold">{{ target_user.id_verified_at|date:"d M Y, H:i" }}</td>
                   </tr>
                   {% endif %}
@@ -973,9 +973,9 @@
                   <div class="fw-bold fs-5 text-truncate" style="color:#011B33;">{{ target_user.get_full_name|default:target_user.username }}</div>
                 </div>
                 <table class="table table-sm table-borderless mb-0 small" style="font-size:0.82rem;">
-                  <tr><td class="text-muted ps-0 py-1" style="width:38%;">Username:</td><td class="py-1"><code>@{{ target_user.username }}</code></td></tr>
-                  <tr><td class="text-muted ps-0 py-1">Account Email:</td><td class="py-1 text-truncate" style="max-width:180px;">{{ target_user.email }}</td></tr>
-                  <tr><td class="text-muted ps-0 py-1">Account Role:</td><td class="py-1"><span class="adm-badge blue py-0.5 px-2" style="font-size:0.7rem;">{{ target_user.get_role_display }}</span></td></tr>
+                  <tr><td class="text-muted ps-2 py-1" style="width:38%;">Username:</td><td class="py-1"><code>@{{ target_user.username }}</code></td></tr>
+                  <tr><td class="text-muted ps-2 py-1">Account Email:</td><td class="py-1 text-truncate" style="max-width:180px;">{{ target_user.email }}</td></tr>
+                  <tr><td class="text-muted ps-2 py-1">Account Role:</td><td class="py-1"><span class="adm-badge blue py-0.5 px-2" style="font-size:0.7rem;">{{ target_user.get_role_display }}</span></td></tr>
                 </table>
               </div>
             </div>
@@ -992,10 +992,10 @@
                   </span>
                 </div>
                 <table class="table table-sm table-borderless mb-0 small" style="font-size:0.82rem;">
-                  <tr><td class="text-muted ps-0 py-1" style="width:38%;">Challenge Type:</td><td class="fw-semibold text-dark py-1">{{ sub.get_evidence_type_display }}</td></tr>
-                  <tr><td class="text-muted ps-0 py-1">Residence:</td><td class="fw-semibold text-dark py-1">{{ sub.residential_address }}, {{ sub.residential_country }}</td></tr>
-                  <tr><td class="text-muted ps-0 py-1">Declaration:</td><td class="small text-muted py-1 fst-italic">"{{ sub.declaration_statement|truncatechars:50 }}"</td></tr>
-                  <tr><td class="text-muted ps-0 py-1">Approved On:</td><td class="fw-semibold text-success py-1">{{ sub.reviewed_at|date:"d M Y, H:i"|default:sub.submitted_at|date:"d M Y, H:i" }}</td></tr>
+                  <tr><td class="text-muted ps-2 py-1" style="width:38%;">Challenge Type:</td><td class="fw-semibold text-dark py-1">{{ sub.get_evidence_type_display }}</td></tr>
+                  <tr><td class="text-muted ps-2 py-1">Residence:</td><td class="fw-semibold text-dark py-1">{{ sub.residential_address }}, {{ sub.residential_country }}</td></tr>
+                  <tr><td class="text-muted ps-2 py-1">Declaration:</td><td class="small text-muted py-1 fst-italic">"{{ sub.declaration_statement|truncatechars:50 }}"</td></tr>
+                  <tr><td class="text-muted ps-2 py-1">Approved On:</td><td class="fw-semibold text-success py-1">{{ sub.reviewed_at|date:"d M Y, H:i"|default:sub.submitted_at|date:"d M Y, H:i" }}</td></tr>
                 </table>
               </div>
             </div>
