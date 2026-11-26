@@ -819,19 +819,32 @@
 </section>
 
 <!-- ══ 7. FINAL COMMUNITY CALL TO ACTION ═════════════════════════ -->
-<section class="py-5" style="background: #EAF6FC; border-top: 1px solid #BCDFF4; border-bottom: 1px solid #BCDFF4;">
-    <div class="container py-4 text-center">
+<section class="py-5 position-relative overflow-hidden" style="background-color: #EAF6FC; border-top: 1px solid #BCDFF4; border-bottom: 1px solid #BCDFF4;">
+    {# Background Crowd Photo with Full Cover & Cinematic Soft Fade #}
+    <div class="position-absolute top-0 start-0 w-100 h-100" style="
+        background: url('{% static 'img/city-crosswalk-bg.jpg' %}') center 42% / cover no-repeat;
+        opacity: 0.24;
+        filter: saturate(1.15) contrast(1.05);
+        pointer-events: none;
+    "></div>
+    {# Multi-Layer Atmospheric Gradient Overlay for Flawless Readability and Edge Fade #}
+    <div class="position-absolute top-0 start-0 w-100 h-100" style="
+        background: radial-gradient(circle at 50% 50%, rgba(234, 246, 252, 0.76) 0%, rgba(234, 246, 252, 0.88) 60%, rgba(234, 246, 252, 0.98) 100%);
+        pointer-events: none;
+    "></div>
+
+    <div class="container py-4 text-center position-relative" style="z-index: 1;">
         <h2 class="h2 fw-extrabold mb-3" style="color: #011B33; font-weight: 800; letter-spacing: -0.02em;">
             A Safer Nigeria Starts With Checking First.
         </h2>
-        <p class="lead mb-4" style="color: #334155; max-width: 620px; margin-inline: auto; font-size: 1.05rem; line-height: 1.6;">
+        <p class="lead mb-4" style="color: #1E293B; max-width: 620px; margin-inline: auto; font-size: 1.05rem; line-height: 1.6; font-weight: 500;">
             Join thousands of individuals and verified organizations protecting themselves, their finances, and their communities against scams every day.
         </p>
         <div class="d-flex flex-column flex-sm-row justify-content-center gap-3">
             <a href="{% url 'check' %}" class="btn px-4 py-3 fw-bold fs-6 shadow-sm" style="background: #FFFFFF !important; border: 1.5px solid #011B33 !important; color: #011B33 !important; border-radius: 12px;">
                 Search &amp; Verify Now &rarr;
             </a>
-            <a href="{% url 'reports:create' %}" class="btn px-4 py-3 fw-bold fs-6 shadow-sm" style="background: transparent !important; border: 1.5px solid #011B33 !important; color: #011B33 !important; border-radius: 12px;">
+            <a href="{% url 'reports:create' %}" class="btn px-4 py-3 fw-bold fs-6 shadow-sm" style="background: rgba(255, 255, 255, 0.7) !important; backdrop-filter: blur(4px); border: 1.5px solid #011B33 !important; color: #011B33 !important; border-radius: 12px;">
                 Report a Scam or Incident
             </a>
         </div>

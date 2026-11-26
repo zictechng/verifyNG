@@ -271,31 +271,6 @@
 
             <!-- Search Card Container -->
             <div class="vng-card p-4 mb-4">
-                
-                {% if request.user.is_authenticated and user_entitlement and user_entitlement.details.remaining != 0 and user_entitlement.reason != 'quota_exceeded' %}
-                <div class="mb-3 d-flex flex-wrap align-items-center justify-content-between p-2 px-3 rounded-2 bg-light border small gap-2">
-                    <span class="text-muted">
-                        Signed in as <strong class="text-dark">{{ request.user.username }}</strong>
-                    </span>
-                    <span>
-                        {% if user_entitlement.reason == 'service_restricted' %}
-                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle"><i class="bi bi-slash-circle me-1"></i>Search Access Restricted by Admin</span>
-                        {% elif user_entitlement.reason == 'direct_paid' %}
-                            <span class="badge bg-success-subtle text-success border"><i class="bi bi-patch-check-fill me-1"></i>Single Check Unlocked via Paystack</span>
-                        {% elif is_public_check_free %}
-                            <span class="badge bg-success-subtle text-success border">Complimentary Public Search</span>
-                        {% elif user_entitlement.reason in 'service_free_granted,organization_service_free_granted' %}
-                            <span class="badge bg-info-subtle text-info border"><i class="bi bi-gift-fill me-1"></i>Complimentary Access (Admin Waiver)</span>
-                        {% elif user_entitlement.reason == 'unlimited' %}
-                            <span class="badge bg-success-subtle text-success border">Unlimited Checks (Active Plan)</span>
-                        {% elif user_entitlement.details.remaining == 'unlimited' %}
-                            <span class="badge bg-success-subtle text-success border">Unlimited Checks Active</span>
-                        {% else %}
-                            <span class="badge bg-primary-subtle text-primary border">{{ user_entitlement.details.remaining }} of {{ user_entitlement.details.limit }} Check(s) Available</span>
-                        {% endif %}
-                    </span>
-                </div>
-                {% endif %}
 
                 
 
