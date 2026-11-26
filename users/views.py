@@ -730,10 +730,11 @@ def audit_selfie_quality(file_obj):
         stat = ImageStat.Stat(gray)
 
         # 2. Overall Brightness / Luminance Gate (0 to 255)
+        # Calibrated for realistic indoor / evening domestic lighting without rejecting legitimate users
         mean_brightness = stat.mean[0]
-        if mean_brightness < 45.0:
+        if mean_brightness < 20.0:
             return False, "The captured selfie is too dark for identity verification. Please move to a well-lit area and face the light source."
-        if mean_brightness > 235.0:
+        if mean_brightness > 248.0:
             return False, "The captured selfie is overexposed or has excessive glare. Please adjust your lighting."
 
         # 3. Facial Center Region Exposure & Backlighting Gate
@@ -748,19 +749,19 @@ def audit_selfie_quality(file_obj):
         center_stat = ImageStat.Stat(center_gray)
         center_brightness = center_stat.mean[0]
 
-        if center_brightness < 48.0:
+        if center_brightness < 22.0:
             return False, "The face region in your selfie is too dark or in shadow. Please face a light source directly and avoid bright backgrounds or windows behind you."
-        if center_brightness > 235.0:
+        if center_brightness > 248.0:
             return False, "The face region in your selfie is overexposed or has excessive glare. Please adjust your lighting."
 
-        # Severe backlighting check (bright background/window but face is shadowed)
-        if mean_brightness > 115.0 and center_brightness < 55.0:
+        # Severe backlighting check (bright background/window but face is in pitch shadow)
+        if mean_brightness > 160.0 and center_brightness < 25.0:
             return False, "Severe backlighting detected (light source is behind you). Please turn around so light illuminates your face."
 
-        # 4. Dynamic Contrast / Standard Deviation Gate
+        # 4. Dynamic Contrast / Standard Deviation Gate (rejects blank, solid, or flat textures)
         std_dev = stat.stddev[0]
         center_std_dev = center_stat.stddev[0]
-        if std_dev < 16.0 or center_std_dev < 18.0:
+        if std_dev < 8.0 or center_std_dev < 8.0:
             return False, "The captured selfie lacks contrast or is too grainy. Please ensure your face is clearly and directly illuminated."
 
         # 5. Denoised Laplacian Focus / Blur Detection
@@ -770,7 +771,7 @@ def audit_selfie_quality(file_obj):
         center_lap = denoised_center.filter(lap_filter)
         lap_stat = ImageStat.Stat(center_lap)
         lap_var = lap_stat.var[0]
-        if lap_var < 8.0:
+        if lap_var < 2.5:
             return False, "The captured selfie is too blurry or out of focus. Please hold steady in good lighting and retake."
 
         return True, ""

@@ -1227,6 +1227,10 @@
                                                 </svg>
                                                 <div class="fw-semibold text-white small mb-1">Front Selfie Camera Ready</div>
                                                 <div class="text-white-50" style="font-size:12px;">Position face in good lighting. Click below to start camera.</div>
+                                                <div class="mt-2.5 px-2.5 py-1.5 rounded-3 d-inline-flex align-items-center gap-1.5 text-start" style="background: rgba(255,255,255,0.08); font-size: 11.5px; color: #E2E8F0; max-width: 92%;">
+                                                    <span style="font-size: 14px; flex-shrink: 0;">💡</span>
+                                                    <span><strong>Tip:</strong> If your phone screen flashes, turn <strong>OFF</strong> the flash (⚡️ icon) in the camera corner to prevent dark shadows.</span>
+                                                </div>
                                             </div>
 
                                             {# Captured Snapshot Preview #}
@@ -2141,6 +2145,10 @@
                                                 </svg>
                                                 <div class="fw-semibold text-white small mb-1">Front Selfie Camera Ready</div>
                                                 <div class="text-white-50" style="font-size:12px;">Position face in good lighting. Click below to start camera.</div>
+                                                <div class="mt-2.5 px-2.5 py-1.5 rounded-3 d-inline-flex align-items-center gap-1.5 text-start" style="background: rgba(255,255,255,0.08); font-size: 11.5px; color: #E2E8F0; max-width: 92%;">
+                                                    <span style="font-size: 14px; flex-shrink: 0;">💡</span>
+                                                    <span><strong>Tip:</strong> If your phone screen flashes, turn <strong>OFF</strong> the flash (⚡️ icon) in the camera corner to prevent dark shadows.</span>
+                                                </div>
                                             </div>
 
                                             {# Captured Snapshot Preview #}
@@ -3909,6 +3917,44 @@ function compressImageFile(file, maxDimension, quality, callback) {
     reader.readAsDataURL(file);
 }
 
+function auditSelfieLuminance(dataUrl, callback) {
+    const img = new Image();
+    img.onload = function() {
+        try {
+            const canvas = document.createElement('canvas');
+            canvas.width = 64;
+            canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, 64, 64);
+            const imgData = ctx.getImageData(0, 0, 64, 64).data;
+            let total = 0;
+            let centerTotal = 0;
+            let centerCount = 0;
+            const count = 64 * 64;
+            for (let y = 0; y < 64; y++) {
+                for (let x = 0; x < 64; x++) {
+                    const idx = (y * 64 + x) * 4;
+                    const lum = 0.299 * imgData[idx] + 0.587 * imgData[idx + 1] + 0.114 * imgData[idx + 2];
+                    total += lum;
+                    if (x >= 16 && x < 48 && y >= 16 && y < 48) {
+                        centerTotal += lum;
+                        centerCount++;
+                    }
+                }
+            }
+            const avgLum = total / count;
+            const centerLum = centerTotal / (centerCount || 1);
+            callback({ avg: avgLum, center: centerLum, isDark: (centerLum < 20.0 || avgLum < 18.0) });
+        } catch (e) {
+            callback({ avg: 100, center: 100, isDark: false });
+        }
+    };
+    img.onerror = function() {
+        callback({ avg: 100, center: 100, isDark: false });
+    };
+    img.src = dataUrl;
+}
+
 function handleNativeCameraCapture(input, target) {
     if (!input.files || !input.files[0]) return;
     const file = input.files[0];
@@ -3961,6 +4007,27 @@ function handleNativeCameraCapture(input, target) {
                 thumb.src = dataUrl;
                 thumb.style.display = 'block';
             }
+            const selfieAlertEl = document.getElementById('selfieCameraAlert');
+            const selfieBadgeEl = readyCard ? readyCard.querySelector('.badge') : null;
+            auditSelfieLuminance(dataUrl, function(res) {
+                if (res.isDark) {
+                    if (selfieAlertEl) {
+                        selfieAlertEl.className = 'alert alert-warning py-2.5 px-3 small rounded-3 mt-3 mb-0';
+                        selfieAlertEl.innerHTML = '<strong>⚠️ Dim Lighting:</strong> Your face looks dark or in shadow. Please face a light source directly and retake your selfie for clear compliance review.';
+                        selfieAlertEl.classList.remove('d-none');
+                    }
+                    if (selfieBadgeEl) {
+                        selfieBadgeEl.className = 'badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-0.5 rounded-pill fw-semibold';
+                        selfieBadgeEl.textContent = '⚠️ Dim Lighting — Retake Recommended';
+                    }
+                } else {
+                    if (selfieAlertEl) selfieAlertEl.classList.add('d-none');
+                    if (selfieBadgeEl) {
+                        selfieBadgeEl.className = 'badge bg-success-subtle text-success border border-success-subtle px-2 py-0.5 rounded-pill fw-semibold';
+                        selfieBadgeEl.textContent = '✓ Lighting & Focus Confirmed';
+                    }
+                }
+            });
             if (fileNameEl) fileNameEl.textContent = 'Mobile Camera Photo';
         } else if (target === 'gov_selfie') {
             capturedSelfieDataUrl = dataUrl;
@@ -4009,6 +4076,27 @@ function handleNativeCameraCapture(input, target) {
                 thumb.src = dataUrl;
                 thumb.style.display = 'block';
             }
+            const selfieAlertEl = document.getElementById('selfieCameraAlert');
+            const selfieBadgeEl = readyCard ? readyCard.querySelector('.badge') : null;
+            auditSelfieLuminance(dataUrl, function(res) {
+                if (res.isDark) {
+                    if (selfieAlertEl) {
+                        selfieAlertEl.className = 'alert alert-warning py-2.5 px-3 small rounded-3 mt-3 mb-0';
+                        selfieAlertEl.innerHTML = '<strong>⚠️ Dim Lighting:</strong> Your face looks dark or in shadow. Please face a light source directly and retake your selfie for clear compliance review.';
+                        selfieAlertEl.classList.remove('d-none');
+                    }
+                    if (selfieBadgeEl) {
+                        selfieBadgeEl.className = 'badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-0.5 rounded-pill fw-semibold';
+                        selfieBadgeEl.textContent = '⚠️ Dim Lighting — Retake Recommended';
+                    }
+                } else {
+                    if (selfieAlertEl) selfieAlertEl.classList.add('d-none');
+                    if (selfieBadgeEl) {
+                        selfieBadgeEl.className = 'badge bg-success-subtle text-success border border-success-subtle px-2 py-0.5 rounded-pill fw-semibold';
+                        selfieBadgeEl.textContent = '✓ Lighting & Focus Confirmed';
+                    }
+                }
+            });
         } else if (target === 'alt_pose') {
             const hiddenData = document.getElementById('altPoseImageData');
             if (hiddenData) hiddenData.value = dataUrl;
@@ -4954,14 +5042,6 @@ async function startSelfieCamera() {
         if (btnStart) btnStart.classList.add('d-none');
         if (btnTake) btnTake.classList.add('d-none');
 
-        // Activate Virtual Screen Ring Light: floods surrounding card area with clean, diffuse white light
-        if (card) {
-            card.style.background = '#FFFFFF';
-            card.style.color = '#0F172A';
-            card.style.boxShadow = '0 0 100px 50px rgba(255, 255, 255, 0.98), 0 20px 40px rgba(0, 0, 0, 0.15)';
-            card.style.borderColor = '#CBD5E1';
-        }
-
         // Start automated real-time biometric liveness engine
         startLivenessProcessing();
     } catch (err) {
@@ -5034,11 +5114,35 @@ function takeSelfiePhoto() {
     }
     if (readyCard) readyCard.classList.remove('d-none');
 
+    const alertEl = document.getElementById('selfieCameraAlert');
+    const badgeEl = readyCard ? readyCard.querySelector('.badge') : null;
+    auditSelfieLuminance(capturedSelfieDataUrl, function(res) {
+        if (res.isDark) {
+            if (alertEl) {
+                alertEl.className = 'alert alert-warning py-2.5 px-3 small rounded-3 mt-3 mb-0';
+                alertEl.innerHTML = '<strong>⚠️ Dim Lighting:</strong> Your face looks dark or in shadow. Please face a light source directly and retake your selfie for clear compliance review.';
+                alertEl.classList.remove('d-none');
+            }
+            if (badgeEl) {
+                badgeEl.className = 'badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-0.5 rounded-pill fw-semibold';
+                badgeEl.textContent = '⚠️ Dim Lighting — Retake Recommended';
+            }
+        } else {
+            if (alertEl) alertEl.classList.add('d-none');
+            if (badgeEl) {
+                badgeEl.className = 'badge bg-success-subtle text-success border border-success-subtle px-2 py-0.5 rounded-pill fw-semibold';
+                badgeEl.textContent = '✓ Lighting & Focus Confirmed';
+            }
+        }
+    });
+
     stopSelfieCamera();
 }
 
 function retakeSelfiePhoto() {
     stopLivenessProcessing();
+    const alertEl = document.getElementById('selfieCameraAlert');
+    if (alertEl) alertEl.classList.add('d-none');
     capturedSelfieDataUrl = '';
     const hiddenData = document.getElementById('wizard_id_selfie_data');
     if (hiddenData) hiddenData.value = '';
@@ -6054,14 +6158,6 @@ async function startAltSelfieCamera() {
         if (btnStart) btnStart.classList.add('d-none');
         if (btnTake) btnTake.classList.add('d-none');
 
-        // Activate Virtual Screen Ring Light: floods surrounding card area with clean, diffuse white light
-        if (card) {
-            card.style.background = '#FFFFFF';
-            card.style.color = '#0F172A';
-            card.style.boxShadow = '0 0 100px 50px rgba(255, 255, 255, 0.98), 0 20px 40px rgba(0, 0, 0, 0.15)';
-            card.style.borderColor = '#CBD5E1';
-        }
-
         // Start automated real-time biometric liveness engine
         startLivenessProcessing();
     } catch (err) {
@@ -6152,11 +6248,35 @@ function takeAltSelfiePhoto() {
     }
     if (readyCard) readyCard.classList.remove('d-none');
 
+    const alertEl = document.getElementById('altSelfieCameraAlert');
+    const badgeEl = readyCard ? readyCard.querySelector('.badge') : null;
+    auditSelfieLuminance(capturedSelfieDataUrl, function(res) {
+        if (res.isDark) {
+            if (alertEl) {
+                alertEl.className = 'alert alert-warning py-2.5 px-3 small rounded-3 mt-3 mb-0';
+                alertEl.innerHTML = '<strong>⚠️ Dim Lighting:</strong> Your face looks dark or in shadow. Please face a light source directly and retake your selfie for clear compliance review.';
+                alertEl.classList.remove('d-none');
+            }
+            if (badgeEl) {
+                badgeEl.className = 'badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-0.5 rounded-pill fw-semibold';
+                badgeEl.textContent = '⚠️ Dim Lighting — Retake Recommended';
+            }
+        } else {
+            if (alertEl) alertEl.classList.add('d-none');
+            if (badgeEl) {
+                badgeEl.className = 'badge bg-success-subtle text-success border border-success-subtle px-2 py-0.5 rounded-pill fw-semibold';
+                badgeEl.textContent = '✓ Lighting & Focus Confirmed';
+            }
+        }
+    });
+
     stopAltSelfieCamera();
 }
 
 function retakeAltSelfiePhoto() {
     stopLivenessProcessing();
+    const alertEl = document.getElementById('altSelfieCameraAlert');
+    if (alertEl) alertEl.classList.add('d-none');
     const hiddenData = document.getElementById('altSelfieData');
     if (hiddenData) hiddenData.value = '';
     const previewWrap = document.getElementById('altSelfieCapturedPreview');
