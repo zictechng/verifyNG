@@ -141,7 +141,16 @@
     background: #FFFFFF !important;
     border: 1.5px solid #011B33 !important;
     color: #011B33 !important;
-    border-radius: 12px;
+    border-radius: 10px;
+    padding: 0.65rem 1.35rem;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    min-height: 46px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    line-height: 1.35;
     box-shadow: 0 4px 14px rgba(1, 27, 51, 0.08) !important;
     transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
@@ -149,8 +158,8 @@
     background: #011B33 !important;
     border-color: #011B33 !important;
     color: #FFFFFF !important;
-    transform: translateY(-2.5px);
-    box-shadow: 0 10px 24px rgba(1, 27, 51, 0.25) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(1, 27, 51, 0.22) !important;
 }
 .btn-cta-verify:active {
     transform: translateY(0);
@@ -161,7 +170,16 @@
     backdrop-filter: blur(6px);
     border: 1.5px solid #011B33 !important;
     color: #011B33 !important;
-    border-radius: 12px;
+    border-radius: 10px;
+    padding: 0.65rem 1.35rem;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    min-height: 46px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    line-height: 1.35;
     box-shadow: 0 4px 14px rgba(1, 27, 51, 0.06) !important;
     transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
@@ -169,8 +187,8 @@
     background: #011B33 !important;
     border-color: #011B33 !important;
     color: #FFFFFF !important;
-    transform: translateY(-2.5px);
-    box-shadow: 0 10px 24px rgba(1, 27, 51, 0.25) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(1, 27, 51, 0.22) !important;
 }
 .btn-cta-report:active {
     transform: translateY(0);
@@ -881,10 +899,10 @@
             Join thousands of individuals and verified organizations protecting themselves, their finances, and their communities against scams every day.
         </p>
         <div class="d-flex flex-column flex-sm-row justify-content-center gap-3">
-            <a href="{% url 'check' %}" class="btn btn-cta-verify px-4 py-3 fw-bold fs-6">
+            <a href="{% url 'check' %}" class="btn btn-cta-verify">
                 Search &amp; Verify Now &rarr;
             </a>
-            <a href="{% url 'reports:create' %}" class="btn btn-cta-report px-4 py-3 fw-bold fs-6">
+            <a href="{% url 'reports:create' %}" class="btn btn-cta-report">
                 Report a Scam or Incident
             </a>
         </div>
