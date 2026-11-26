@@ -31,10 +31,14 @@ if DEBUG:
             if ip not in _raw_hosts:
                 _raw_hosts.append(ip)
 
+        # Allow all local network hosts in debug mode
+        if '*' not in _raw_hosts:
+            _raw_hosts.append('*')
+
         # Print the exact iPhone URL once when starting the dev server
         if os.environ.get('RUN_MAIN') == 'true' and local_ips:
             print("\n" + "=" * 55)
-            print(f"📱 iPhone / Mobile URL: http://{local_ips[0]}:8000/")
+            print(f"📱 Phone / Mobile URL: http://{local_ips[0]}:8000/")
             print(f"📱 Or via Hostname:     http://{pc_hostname.lower()}.local:8000/")
             print("=" * 55 + "\n")
     except Exception:
@@ -43,6 +47,7 @@ if DEBUG:
 ALLOWED_HOSTS = _raw_hosts
 
 INSTALLED_APPS = [
+    'core',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -58,7 +63,6 @@ INSTALLED_APPS = [
     'identities',
     'reports',
     'verification',
-    'core',
     'notifications',
     'payments',
     'employer',
@@ -293,6 +297,10 @@ SECURE_BROWSER_XSS_FILTER = True
 # to allow legitimate internal preview modals (CAC certificates & ID cards)
 # while strictly forbidding external third-party framing (anti-clickjacking).
 SILENCED_SYSTEM_CHECKS = ['security.W019']
+
+# Upload size limits: Support high-resolution mobile camera uploads & document scans (up to 50MB)
+DATA_UPLOAD_MAX_MEMORY_SIZE = 50 * 1024 * 1024   # 50 MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 50 * 1024 * 1024   # 50 MB
 
 
 

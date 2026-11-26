@@ -27,6 +27,13 @@
                 <p class="small text-muted mb-0">Select your preferred verification method to activate your profile and unlock platform services.</p>
             </div>
 
+            {% if request.GET.from_qr %}
+            <div class="alert alert-success d-flex align-items-center gap-2 py-2.5 px-3 rounded-3 mb-3 shadow-xs" role="alert" style="background:#ECFDF5; border:1px solid #A7F3D0; color:#065F46;">
+                <span style="font-size: 18px;">📱</span>
+                <div class="small fw-semibold">Connected via Mobile QR Code. Complete your verification below using your smartphone's camera.</div>
+            </div>
+            {% endif %}
+
             {% if is_account_verified %}
             {# ══════════════════════════════════════════════════════════════════════ #}
             {# ACTIVE & FULLY VERIFIED ACCOUNT STANDING                             #}
@@ -217,16 +224,79 @@
             </div>
             {% endif %}
 
-            {# ── Method Selection Cards ── #}
-            <div class="mb-4">
-                <div class="d-flex align-items-center justify-content-between mb-3">
-                    <div>
-                        <div class="small fw-bold text-uppercase text-muted letter-spacing-1" style="font-size:11.5px;">Choose Verification Method</div>
-                        <p class="small text-muted mb-0" style="font-size:13px;">Select a verification method to get started:</p>
+            {# ── Desktop Mobile Verification Handoff (Only visible on desktop/laptop) ── #}
+            {% if not has_pending_gov_id and not has_pending_path_b and not has_suspended_gov_id %}
+            <div class="d-none d-md-block mb-4">
+                <div class="p-4 rounded-3 border shadow-xs"
+                     style="background: linear-gradient(135deg, #F0FDF4 0%, #FFFFFF 100%); border-color: #BBF7D0 !important;">
+                    <div class="row align-items-center g-4">
+                        <div class="col-lg-7">
+                            <div class="d-flex align-items-center gap-2.5 mb-2">
+                                <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                                     style="width: 42px; height: 42px; background: #DCFCE7; color: #16A34A; font-size: 20px;">
+                                    📱
+                                </div>
+                                <div class="fw-bold text-dark" style="font-size: 16px;">Complete on Mobile for better result: recommend</div>
+                            </div>
+                            <p class="text-muted small mb-3" style="font-size: 13.5px; line-height: 1.55;">
+                                Click &ldquo;Scan QR Code&rdquo; to get started and complete your verification seamlessly using your mobile phone.
+                            </p>
+                            <div class="p-3 rounded-3 mb-3 small" style="background: #F8FAFC; border: 1px solid #E2E8F0; font-size: 13px;">
+                                <div class="fw-semibold text-dark mb-2 d-flex align-items-center gap-1.5">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                                    <span>Why verification is completed on mobile:</span>
+                                </div>
+                                <ul class="text-muted mb-0 ps-3 small" style="line-height: 1.6;">
+                                    <li>Easy and fast verification process</li>
+                                    <li>Easy selfie taking</li>
+                                    <li>Instant and secure verification</li>
+                                </ul>
+                            </div>
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <button type="button" class="btn btn-success fw-semibold px-4 py-2 rounded-pill shadow-xs"
+                                        onclick="openMobileHandoffModal()">
+                                    📱 Scan QR Code &rarr;
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm px-3 py-2 rounded-pill"
+                                        onclick="copyDesktopHandoffLink()" id="btnDesktopCopyLink">
+                                    📋 Copy Link
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-lg-5 text-center">
+                            <div class="p-3 bg-white rounded-3 d-inline-block shadow-xs border" style="width: 210px;">
+                                <div class="position-relative d-flex align-items-center justify-content-center mx-auto"
+                                     style="width: 180px; height: 180px; background: #FAFAFA; border: 1px dashed #CBD5E1; border-radius: 8px;">
+                                    <div id="desktopQrSpinner" class="spinner-border text-success" role="status">
+                                        <span class="visually-hidden">Loading QR...</span>
+                                    </div>
+                                    <img id="desktopQrImg" src="" alt="Mobile QR Code" class="w-100 h-100 d-none" style="object-fit: contain;">
+                                </div>
+                                <div class="small text-muted mt-2 fw-medium" style="font-size: 12px;">
+                                    Point phone camera to scan
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center justify-content-center gap-2 mt-2">
+                                <span class="spinner-grow spinner-grow-sm text-success" role="status" style="width: 8px; height: 8px;"></span>
+                                <span class="small text-muted" style="font-size: 11.5px;" id="desktopQrStatusText">Waiting for mobile submission...</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
+            </div>
+            {% endif %}
 
-                <div class="d-flex flex-column gap-3 mb-3 w-100" id="verificationMethodWrap">
+            {# ── Mobile-Only Verification Flow (100% Mobile Device Only) ── #}
+            <div class="d-md-none" id="mobileVerificationFlowWrap">
+                <div class="mb-4">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <div>
+                            <div class="small fw-bold text-uppercase text-muted letter-spacing-1" style="font-size:11.5px;">Choose Verification Method</div>
+                            <p class="small text-muted mb-0" style="font-size:13px;">Select a verification method to get started:</p>
+                        </div>
+                    </div>
+
+                    <div class="d-flex flex-column gap-3 mb-3 w-100" id="verificationMethodWrap">
                     {# Option 1: Government Identity Document #}
                     <div class="vng-method-card w-100 p-3 px-sm-4 py-sm-3.5 rounded-3 bg-white border {% if selected_method == 'government_id' %}vng-method-active{% endif %} {% if has_pending_path_b or has_suspended_gov_id %}vng-method-locked{% endif %} shadow-xs"
                          id="methodCardGovId"
@@ -435,22 +505,6 @@
                             </div>
                         </div>
 
-                    {# ── State 3: Declined ── #}
-                    {% elif user_profile.id_verification_status == 'rejected' %}
-                        <div class="p-3 p-sm-4 rounded-3 mb-3" style="background:#FEF2F2;border:1px solid #FCA5A5;">
-                            <div class="d-flex align-items-start gap-3">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2" class="flex-shrink-0 mt-0.5">
-                                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-                                </svg>
-                                <div>
-                                    <div class="fw-bold text-danger" style="font-size:14.5px;">Verification Proof Declined</div>
-                                    <div class="small text-dark mt-0.5">
-                                        {{ user_profile.id_rejection_reason|default:"The submitted identity document could not be authenticated. Please ensure the document is clear, valid, and uncropped." }}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
                     {# ── State 4: Expired ── #}
                     {% elif user_profile.id_verification_status == 'expired' %}
                         <div class="p-3 p-sm-4 rounded-3 mb-3" style="background:#F8FAFC;border:1px solid #CBD5E1;">
@@ -502,14 +556,39 @@
                         {# ── Wizard Stepper Header & Progress Bar ── #}
                         <div class="vng-wizard-header mb-4">
                             <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
-                                <div>
-                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1 rounded-pill fw-semibold" id="wizardStepBadge" style="font-size:11.5px;">
-                                        Step 1 of 7 &bull; Email Verification
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="badge bg-primary px-2.5 py-1 rounded-pill fw-bold" id="wizardStepBadge" style="font-size:12px;">
+                                        Step 1 of 7
                                     </span>
+                                    <span class="fw-bold text-dark small" id="govMobileStepLabel" style="font-size:13.5px;">
+                                        Email Verification
+                                    </span>
+                                </div>
+                                <div class="small text-muted fw-semibold" id="govMobileProgressPct" style="font-size:12px;">
+                                    14%
                                 </div>
                             </div>
                             <div class="progress" style="height: 6px; border-radius: 9999px; background: #E2E8F0;">
                                 <div id="wizardProgressBar" class="progress-bar bg-primary" role="progressbar" style="width: 14.3%; transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);"></div>
+                            </div>
+
+                            {# Mobile Interactive Step Breadcrumbs (1 to 7) #}
+                            <div class="d-md-none mt-2.5 p-2 rounded-3 bg-light border d-flex align-items-center justify-content-between" style="overflow-x: auto;">
+                                <div class="d-flex align-items-center justify-content-between w-100" id="govMobileDotsWrap">
+                                    <span class="badge rounded-circle p-1 bg-primary text-white" id="govDot1" onclick="wizardJumpToStep(1)" style="width:26px;height:26px;font-size:11px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;">1</span>
+                                    <span class="text-muted small" style="font-size:10px;">&bull;</span>
+                                    <span class="badge rounded-circle p-1 bg-secondary-subtle text-secondary" id="govDot2" onclick="wizardJumpToStep(2)" style="width:26px;height:26px;font-size:11px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;">2</span>
+                                    <span class="text-muted small" style="font-size:10px;">&bull;</span>
+                                    <span class="badge rounded-circle p-1 bg-secondary-subtle text-secondary" id="govDot3" onclick="wizardJumpToStep(3)" style="width:26px;height:26px;font-size:11px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;">3</span>
+                                    <span class="text-muted small" style="font-size:10px;">&bull;</span>
+                                    <span class="badge rounded-circle p-1 bg-secondary-subtle text-secondary" id="govDot4" onclick="wizardJumpToStep(4)" style="width:26px;height:26px;font-size:11px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;">4</span>
+                                    <span class="text-muted small" style="font-size:10px;">&bull;</span>
+                                    <span class="badge rounded-circle p-1 bg-secondary-subtle text-secondary" id="govDot5" onclick="wizardJumpToStep(5)" style="width:26px;height:26px;font-size:11px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;">5</span>
+                                    <span class="text-muted small" style="font-size:10px;">&bull;</span>
+                                    <span class="badge rounded-circle p-1 bg-secondary-subtle text-secondary" id="govDot6" onclick="wizardJumpToStep(6)" style="width:26px;height:26px;font-size:11px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;">6</span>
+                                    <span class="text-muted small" style="font-size:10px;">&bull;</span>
+                                    <span class="badge rounded-circle p-1 bg-secondary-subtle text-secondary" id="govDot7" onclick="wizardJumpToStep(7)" style="width:26px;height:26px;font-size:11px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;">7</span>
+                                </div>
                             </div>
 
                             {# Desktop / Tablet Stepper Indicators #}
@@ -1003,6 +1082,7 @@
                                             <div id="idCameraViewWrap" class="position-relative mx-auto mb-2.5 overflow-hidden rounded-3" style="max-width: 480px; background:#000000; min-height: 200px;">
                                                 <video id="idCameraVideo" autoplay playsinline muted class="w-100 h-100 d-none" style="object-fit: cover; max-height: 260px;"></video>
                                                 <canvas id="idCaptureCanvas" class="d-none"></canvas>
+                                                <input type="file" id="govDocNativeCamera" accept="image/*" capture="environment" class="d-none" onchange="handleNativeCameraCapture(this, 'gov_doc')">
 
                                                 {# Card Guide Overlay Lines #}
                                                 <div id="idCameraCardGuide" class="position-absolute top-50 start-50 translate-middle border border-2 border-primary rounded-3 d-none pointer-events-none"
@@ -1020,8 +1100,8 @@
                                                 </div>
 
                                                 {# Photo snapped preview inside camera wrap #}
-                                                <div id="idCameraCapturedPreview" class="d-none position-relative">
-                                                    <img id="idCapturedImgEl" class="w-100 rounded-3" style="max-height: 260px; object-fit: contain;" alt="Captured Document">
+                                                <div id="idCameraCapturedPreview" class="d-none position-relative text-center w-100 p-1">
+                                                    <img id="idCameraCapturedImgEl" class="w-100 rounded-3" style="max-height: 280px; object-fit: contain; image-orientation: from-image; background: #000;" alt="Captured Document">
                                                 </div>
                                             </div>
 
@@ -1075,9 +1155,6 @@
                                                     <div class="fw-semibold text-dark small mt-0.5 text-truncate" id="docReadyFileName" style="max-width: 220px;">Captured Document</div>
                                                 </div>
                                             </div>
-                                            <button type="button" class="btn btn-sm btn-outline-secondary fw-medium px-2.5 py-1" style="font-size: 12.5px;" onclick="resetDocumentChoice()">
-                                                Replace / Retake
-                                            </button>
                                         </div>
                                     </div>
 
@@ -1123,6 +1200,7 @@
                                         <div id="selfieCameraViewWrap" class="position-relative mx-auto mb-3 overflow-hidden rounded-3" style="max-width: 440px; background:#000000; min-height: 280px;">
                                             <video id="selfieCameraVideo" autoplay playsinline muted class="w-100 h-100 d-none" style="object-fit: cover; max-height: 320px;"></video>
                                             <canvas id="selfieCaptureCanvas" class="d-none"></canvas>
+                                            <input type="file" id="govSelfieNativeCamera" accept="image/*" capture="user" class="d-none" onchange="handleNativeCameraCapture(this, 'gov_selfie')">
 
                                             {# Oval Face Guide Overlay with dynamic active state #}
                                             <div id="selfieOvalGuide" class="position-absolute top-50 start-50 translate-middle border border-2 border-warning d-none pointer-events-none"
@@ -1147,8 +1225,8 @@
                                             </div>
 
                                             {# Captured Snapshot Preview #}
-                                            <div id="selfieCapturedPreview" class="d-none position-relative">
-                                                <img id="selfieCapturedImgEl" class="w-100 rounded-3" style="max-height: 320px; object-fit: contain;" alt="Captured Selfie">
+                                            <div id="selfieCapturedPreview" class="d-none position-relative text-center w-100 p-1">
+                                                <img id="selfieCapturedImgEl" class="w-100 rounded-3" style="max-height: 320px; object-fit: contain; image-orientation: from-image; background: #000;" alt="Captured Selfie">
                                             </div>
                                         </div>
 
@@ -1182,9 +1260,6 @@
                                                     <div class="fw-semibold text-dark small mt-0.5" id="selfieReadyFileName">Live Biometric Snapshot</div>
                                                 </div>
                                             </div>
-                                            <button type="button" class="btn btn-sm btn-outline-secondary fw-medium px-2.5 py-1" style="font-size: 12.5px;" onclick="retakeSelfiePhoto()">
-                                                Retake Selfie
-                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -1344,7 +1419,7 @@
                                 Alternative Person Verification
                                 <span class="badge bg-light text-secondary border fw-normal" style="font-size:11.5px;">No Government ID Required</span>
                             </div>
-                            <div class="small text-muted">Confirm genuine live personhood to unlock community scam and fraud reporting without an official government identity document.</div>
+                            <div class="small text-muted">Confirm genuine live personhood to unlock platform features without an official government identity document.</div>
                         </div>
                         {% if has_approved_path_b %}
                             <span class="badge bg-success px-2.5 py-1.5"><span class="dot"></span>Approved Community Reporter</span>
@@ -1399,36 +1474,6 @@
                         </div>
                     {% endif %}
 
-                    {# ── Previous Submissions History ── #}
-                    {% if path_b_submissions %}
-                    <div class="mb-4">
-                        <div class="small fw-bold text-muted text-uppercase mb-2" style="font-size:11.5px;">Submission History</div>
-                        <div class="list-group list-group-flush border rounded-3 overflow-hidden">
-                            {% for sub in path_b_submissions %}
-                            <div class="list-group-item d-flex align-items-center justify-content-between p-3 flex-wrap gap-2">
-                                <div>
-                                    <div class="fw-semibold text-dark small">{{ sub.get_evidence_type_display }} &bull; {{ sub.get_residential_country_display }}</div>
-                                    <div class="text-muted" style="font-size:12px;">Submitted on {{ sub.created_at|date:"d M Y, H:i" }}</div>
-                                    {% if sub.status == 'rejected' and sub.rejection_reason %}
-                                    <div class="small text-danger mt-1">Rejection Reason: {{ sub.rejection_reason }}</div>
-                                    {% endif %}
-                                </div>
-                                <div>
-                                    {% if sub.status == 'approved' %}
-                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 rounded-pill">Approved</span>
-                                    {% elif sub.status == 'pending' %}
-                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1 rounded-pill">Pending Review</span>
-                                    {% elif sub.status == 'rejected' %}
-                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2.5 py-1 rounded-pill">Rejected</span>
-                                    {% elif sub.status == 'revoked' %}
-                                        <span class="badge bg-secondary-subtle text-secondary border px-2.5 py-1 rounded-pill">Revoked</span>
-                                    {% endif %}
-                                </div>
-                            </div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                    {% endif %}
 
                     {# ── Path B Submission Form ── #}
                     {% if not has_approved_path_b and not has_pending_path_b %}
@@ -1436,14 +1481,39 @@
                         {# ── Path B Stepper Header & Progress Bar ── #}
                         <div class="vng-wizard-header mb-4">
                             <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
-                                <div>
-                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1 rounded-pill fw-semibold" id="altWizardStepBadge" style="font-size:11.5px;">
-                                        Step 1 of 7 &bull; Email Verification
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="badge bg-primary px-2.5 py-1 rounded-pill fw-bold" id="altWizardStepBadge" style="font-size:12px;">
+                                        Step 1 of 7
                                     </span>
+                                    <span class="fw-bold text-dark small" id="altMobileStepLabel" style="font-size:13.5px;">
+                                        Email Verification
+                                    </span>
+                                </div>
+                                <div class="small text-muted fw-semibold" id="altMobileProgressPct" style="font-size:12px;">
+                                    14%
                                 </div>
                             </div>
                             <div class="progress" style="height: 6px; border-radius: 9999px; background: #E2E8F0;">
                                 <div id="altWizardProgressBar" class="progress-bar bg-primary" role="progressbar" style="width: 14.3%; transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);"></div>
+                            </div>
+
+                            {# Mobile Interactive Step Breadcrumbs (1 to 7) #}
+                            <div class="d-md-none mt-2.5 p-2 rounded-3 bg-light border d-flex align-items-center justify-content-between" style="overflow-x: auto;">
+                                <div class="d-flex align-items-center justify-content-between w-100" id="altMobileDotsWrap">
+                                    <span class="badge rounded-circle p-1 bg-primary text-white" id="altDot1" onclick="altWizardJumpToStep(1)" style="width:26px;height:26px;font-size:11px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;">1</span>
+                                    <span class="text-muted small" style="font-size:10px;">&bull;</span>
+                                    <span class="badge rounded-circle p-1 bg-secondary-subtle text-secondary" id="altDot2" onclick="altWizardJumpToStep(2)" style="width:26px;height:26px;font-size:11px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;">2</span>
+                                    <span class="text-muted small" style="font-size:10px;">&bull;</span>
+                                    <span class="badge rounded-circle p-1 bg-secondary-subtle text-secondary" id="altDot3" onclick="altWizardJumpToStep(3)" style="width:26px;height:26px;font-size:11px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;">3</span>
+                                    <span class="text-muted small" style="font-size:10px;">&bull;</span>
+                                    <span class="badge rounded-circle p-1 bg-secondary-subtle text-secondary" id="altDot4" onclick="altWizardJumpToStep(4)" style="width:26px;height:26px;font-size:11px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;">4</span>
+                                    <span class="text-muted small" style="font-size:10px;">&bull;</span>
+                                    <span class="badge rounded-circle p-1 bg-secondary-subtle text-secondary" id="altDot5" onclick="altWizardJumpToStep(5)" style="width:26px;height:26px;font-size:11px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;">5</span>
+                                    <span class="text-muted small" style="font-size:10px;">&bull;</span>
+                                    <span class="badge rounded-circle p-1 bg-secondary-subtle text-secondary" id="altDot6" onclick="altWizardJumpToStep(6)" style="width:26px;height:26px;font-size:11px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;">6</span>
+                                    <span class="text-muted small" style="font-size:10px;">&bull;</span>
+                                    <span class="badge rounded-circle p-1 bg-secondary-subtle text-secondary" id="altDot7" onclick="altWizardJumpToStep(7)" style="width:26px;height:26px;font-size:11px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;">7</span>
+                                </div>
                             </div>
 
                             {# Desktop / Tablet Stepper Indicators #}
@@ -1882,6 +1952,23 @@
                                                 Choose an existing photograph from your device.
                                             </div>
                                         </div>
+
+                                        {# Option C: Switch to Mobile Phone via QR Code #}
+                                        <div id="btnChooseAltPoseMobile"
+                                             class="w-100 p-3 px-sm-4 py-sm-3.5 rounded-3 bg-white border shadow-xs d-none d-md-block"
+                                             onclick="openMobileHandoffModal('alternative')"
+                                             style="cursor: pointer; transition: all 0.15s ease; border-color: #E2E8F0;">
+                                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <span style="font-size: 20px;">📱</span>
+                                                    <span class="fw-bold text-dark" style="font-size: 16px;">Continue on Mobile Phone (QR Code)</span>
+                                                </div>
+                                                <span class="badge rounded-pill fw-medium" style="background: #EFF6FF; color: #2563EB; font-size: 13px; padding: 4px 12px; border: 1px solid #BFDBFE;">Autofocus Camera</span>
+                                            </div>
+                                            <div class="text-muted" style="font-size: 14px; line-height: 1.45; color: #4B5563 !important;">
+                                                Scan a QR code to photograph your handwritten note with your smartphone camera for maximum clarity.
+                                            </div>
+                                        </div>
                                     </div>
 
                                     <div class="text-muted mb-3" style="font-size: 15px; color: #6B7280 !important;">
@@ -1892,8 +1979,9 @@
                                     <div id="altPoseCameraPanel" class="text-center w-100">
                                         <div class="rounded-3 p-3 mb-2" style="background:#0F172A;color:#FFFFFF;border:1px solid #1E293B;">
                                             <div id="altPoseCameraViewWrap" class="position-relative mx-auto mb-2.5 overflow-hidden rounded-3" style="max-width: 480px; background:#000000; min-height: 200px;">
-                                                <video id="altPoseCameraVideo" autoplay playsinline muted class="w-100 h-100 d-none" style="object-fit: cover; max-height: 280px; transform: scaleX(-1);"></video>
+                                                <video id="altPoseCameraVideo" autoplay playsinline muted class="w-100 h-100 d-none" style="object-fit: cover; max-height: 280px;"></video>
                                                 <canvas id="altPoseCaptureCanvas" class="d-none"></canvas>
+                                                <input type="file" id="altPoseNativeCamera" accept="image/*" capture="user" class="d-none" onchange="handleNativeCameraCapture(this, 'alt_pose')">
 
                                                 {# Card Guide Overlay Lines #}
                                                 <div id="altPoseCardGuide" class="position-absolute top-50 start-50 translate-middle border border-2 border-primary rounded-3 d-none pointer-events-none"
@@ -1911,8 +1999,8 @@
                                                 </div>
 
                                                 {# Photo snapped preview inside camera wrap #}
-                                                <div id="altPoseCameraCapturedPreview" class="d-none position-relative">
-                                                    <img id="altPoseCapturedImgEl" class="w-100 rounded-3" style="max-height: 280px; object-fit: contain;" alt="Captured Pose Photo">
+                                                <div id="altPoseCameraCapturedPreview" class="d-none position-relative text-center w-100 p-1">
+                                                    <img id="altPoseCapturedImgEl" class="w-100 rounded-3" style="max-height: 280px; object-fit: contain; image-orientation: from-image; background: #000;" alt="Captured Pose Photo">
                                                 </div>
                                             </div>
 
@@ -1931,6 +2019,21 @@
                                                 <button type="button" id="btnSwitchAltPoseCamera" class="btn btn-outline-light btn-sm d-none" onclick="switchAltPoseCamera()">
                                                     Switch Camera
                                                 </button>
+                                            </div>
+                                        </div>
+
+                                        {# Pose Photo Ready Status & Preview Card (Matches Step 5 Selfie) #}
+                                        <div id="altPoseReadyPreviewCard" class="d-none p-3 bg-white border border-success-subtle rounded-3 mb-2 shadow-xs w-100">
+                                            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                                <div class="d-flex align-items-center gap-2.5">
+                                                    <img id="altPosePreviewThumbnail" src="" class="rounded border" style="width: 48px; height: 48px; object-fit: cover; display: none;" alt="Pose Photo Preview">
+                                                    <div>
+                                                        <div class="d-flex align-items-center gap-1.5">
+                                                            <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-0.5 rounded-pill fw-semibold" style="font-size: 11px;">✓ Photo Captured</span>
+                                                        </div>
+                                                        <div class="fw-semibold text-dark small mt-0.5" id="altPoseReadyFileName">Handwritten Note Photo</div>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -2003,8 +2106,9 @@
                                     {# Selfie Viewfinder Card #}
                                     <div class="vng-camera-card mb-3 text-center w-100 position-relative" id="altSelfieCardContainer" style="background:#0F172A;color:#FFFFFF;border:1px solid #1E293B;border-radius:12px;padding:20px !important;transition:all 0.35s ease;">
                                         <div id="altSelfieCameraViewWrap" class="position-relative mx-auto mb-3 overflow-hidden rounded-3" style="max-width: 440px; background:#000000; min-height: 280px;">
-                                            <video id="altSelfieCameraVideo" autoplay playsinline muted class="w-100 h-100 d-none" style="object-fit: cover; max-height: 320px; transform: scaleX(-1);"></video>
+                                            <video id="altSelfieCameraVideo" autoplay playsinline muted class="w-100 h-100 d-none" style="object-fit: cover; max-height: 320px;"></video>
                                             <canvas id="altSelfieCaptureCanvas" class="d-none"></canvas>
+                                            <input type="file" id="altSelfieNativeCamera" accept="image/*" capture="user" class="d-none" onchange="handleNativeCameraCapture(this, 'alt_selfie')">
 
                                             {# Oval Face Guide Overlay with dynamic active state #}
                                             <div id="altSelfieOvalGuide" class="position-absolute top-50 start-50 translate-middle border border-2 border-warning d-none pointer-events-none"
@@ -2029,8 +2133,8 @@
                                             </div>
 
                                             {# Captured Snapshot Preview #}
-                                            <div id="altSelfieCapturedPreview" class="d-none position-relative">
-                                                <img id="altSelfieCapturedImgEl" class="w-100 rounded-3" style="max-height: 320px; object-fit: contain;" alt="Captured Selfie">
+                                            <div id="altSelfieCapturedPreview" class="d-none position-relative text-center w-100 p-1">
+                                                <img id="altSelfieCapturedImgEl" class="w-100 rounded-3" style="max-height: 320px; object-fit: contain; image-orientation: from-image; background: #000;" alt="Captured Selfie">
                                             </div>
                                         </div>
 
@@ -2064,9 +2168,6 @@
                                                     <div class="fw-semibold text-dark small mt-0.5" id="altSelfieReadyFileName">Live Biometric Snapshot</div>
                                                 </div>
                                             </div>
-                                            <button type="button" class="btn btn-sm btn-outline-secondary fw-medium px-2.5 py-1" style="font-size: 12.5px;" onclick="retakeAltSelfiePhoto()">
-                                                Retake Selfie
-                                            </button>
                                         </div>
                                     </div>
                                     <input type="hidden" name="id_selfie_data" id="altSelfieData">
@@ -2212,9 +2313,9 @@
                                         </svg>
                                     </div>
                                     <div>
-                                        <h3 class="h5 fw-bold text-dark mb-1" style="font-size:18px;">7. Review &amp; Publisher Accountability Declaration</h3>
+                                        <h3 class="h5 fw-bold text-dark mb-1" style="font-size:18px;">7. Review Details &amp; Accept Declaration</h3>
                                         <p class="text-muted small mb-0" style="font-size:13.5px; line-height: 1.5;">
-                                            Review your verification summary and affirm the Publisher Accountability Declaration before submitting for compliance review.
+                                            Review your verification summary and accept the declaration before submitting for compliance review.
                                         </p>
                                     </div>
                                 </div>
@@ -2346,6 +2447,7 @@
                     {% endif %}
                 </div>
             </div>
+            </div>{# ── /mobileVerificationFlowWrap ── #}
             {% endif %}
 
         </div>
@@ -2760,6 +2862,7 @@ function selectVerificationMethod(method) {
     }
 
     if (method === 'alternative') {
+        stopSelfieCamera();
         if (cardGov) {
             cardGov.classList.remove('vng-method-active');
             cardGov.style.borderColor = '#E2E8F0';
@@ -2774,6 +2877,7 @@ function selectVerificationMethod(method) {
         updateMethodRadio(cardAlt, true);
         window.history.replaceState(null, '', '?method=alternative');
     } else {
+        stopAltSelfieCamera();
         if (cardAlt) {
             cardAlt.classList.remove('vng-method-active');
             cardAlt.style.borderColor = '#E2E8F0';
@@ -2901,13 +3005,39 @@ function wizardShowStep(stepNum) {
     }
 
     // Update progress bar & badge
+    stepNum = parseInt(stepNum, 10);
     const badge = document.getElementById('wizardStepBadge');
     if (badge) {
-        badge.innerHTML = `Step ${stepNum} of ${totalWizardSteps} &bull; ${stepTitles[stepNum]}`;
+        badge.innerHTML = `Step ${stepNum} of ${totalWizardSteps}`;
     }
     const bar = document.getElementById('wizardProgressBar');
     const pVal = Math.round((stepNum / totalWizardSteps) * 100);
     if (bar) bar.style.width = `${pVal}%`;
+
+    // Update mobile dots & label
+    const govMobileLabel = document.getElementById('govMobileStepLabel');
+    if (govMobileLabel && stepTitles[stepNum]) {
+        govMobileLabel.textContent = stepTitles[stepNum];
+    }
+    const govMobileProgressPct = document.getElementById('govMobileProgressPct');
+    if (govMobileProgressPct) {
+        govMobileProgressPct.textContent = `${pVal}%`;
+    }
+    for (let i = 1; i <= totalWizardSteps; i++) {
+        const dot = document.getElementById(`govDot${i}`);
+        if (dot) {
+            if (i < stepNum) {
+                dot.className = 'badge rounded-circle p-1 bg-success text-white fw-bold shadow-xs';
+                dot.innerHTML = '✓';
+            } else if (i === stepNum) {
+                dot.className = 'badge rounded-circle p-1 bg-primary text-white fw-bold shadow';
+                dot.innerHTML = i;
+            } else {
+                dot.className = 'badge rounded-circle p-1 bg-secondary-subtle text-secondary';
+                dot.innerHTML = i;
+            }
+        }
+    }
 
     // Update desktop stepper pills
     for (let i = 1; i <= totalWizardSteps; i++) {
@@ -3684,6 +3814,356 @@ function resetDocumentChoice() {
     }
 }
 
+/* ── Universal Native Mobile Camera Bridge (iOS Safari / Android / Web) ── */
+function compressImageFile(file, maxDimension, quality, callback) {
+    if (!file || !file.type.match(/image.*/)) {
+        const reader = new FileReader();
+        reader.onload = e => callback(e.target.result);
+        reader.readAsDataURL(file);
+        return;
+    }
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+            let w = img.width;
+            let h = img.height;
+            const maxDim = maxDimension || 1920;
+            if (w > maxDim || h > maxDim) {
+                if (w > h) {
+                    h = Math.round((h * maxDim) / w);
+                    w = maxDim;
+                } else {
+                    w = Math.round((w * maxDim) / h);
+                    h = maxDim;
+                }
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            ctx.drawImage(img, 0, 0, w, h);
+            const compressed = canvas.toDataURL('image/jpeg', quality || 0.88);
+            callback(compressed);
+        };
+        img.onerror = function() {
+            callback(e.target.result);
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+function handleNativeCameraCapture(input, target) {
+    if (!input.files || !input.files[0]) return;
+    const file = input.files[0];
+    compressImageFile(file, 1920, 0.88, function(dataUrl) {
+        if (target === 'gov_doc') {
+            capturedIdDataUrl = dataUrl;
+            const hiddenData = document.getElementById('wizard_id_document_data');
+            if (hiddenData) hiddenData.value = dataUrl;
+            const previewImg = document.getElementById('idCameraCapturedImgEl');
+            const previewWrap = document.getElementById('idCameraCapturedPreview');
+            const placeholder = document.getElementById('idCameraIdlePlaceholder');
+            const video = document.getElementById('idCameraVideo');
+            const guide = document.getElementById('idCameraCardGuide');
+            const btnStart = document.getElementById('btnStartIdCamera');
+            const btnTake = document.getElementById('btnTakeIdPhoto');
+            const btnRetake = document.getElementById('btnRetakeIdPhoto');
+            const readyCard = document.getElementById('docReadyPreviewCard');
+            const thumb = document.getElementById('docPreviewThumbnail');
+            const fileNameEl = document.getElementById('docReadyFileName');
+            
+            if (previewImg) previewImg.src = dataUrl;
+            if (previewWrap) {
+                previewWrap.classList.remove('d-none');
+                previewWrap.style.setProperty('display', 'block', 'important');
+            }
+            if (placeholder) {
+                placeholder.classList.remove('d-flex');
+                placeholder.classList.add('d-none');
+                placeholder.style.setProperty('display', 'none', 'important');
+            }
+            if (video) {
+                video.classList.add('d-none');
+                video.style.setProperty('display', 'none', 'important');
+            }
+            if (guide) guide.classList.add('d-none');
+            if (btnStart) {
+                btnStart.classList.add('d-none');
+                btnStart.style.setProperty('display', 'none', 'important');
+            }
+            if (btnTake) {
+                btnTake.classList.add('d-none');
+                btnTake.style.setProperty('display', 'none', 'important');
+            }
+            if (btnRetake) {
+                btnRetake.classList.remove('d-none');
+                btnRetake.style.setProperty('display', 'inline-block', 'important');
+            }
+            if (readyCard) readyCard.classList.remove('d-none');
+            if (thumb) {
+                thumb.src = dataUrl;
+                thumb.style.display = 'block';
+            }
+            if (fileNameEl) fileNameEl.textContent = 'Mobile Camera Photo';
+        } else if (target === 'gov_selfie') {
+            capturedSelfieDataUrl = dataUrl;
+            const hiddenData = document.getElementById('wizard_id_selfie_data');
+            if (hiddenData) hiddenData.value = dataUrl;
+            const previewImg = document.getElementById('selfieCapturedImgEl');
+            const previewWrap = document.getElementById('selfieCapturedPreview');
+            const placeholder = document.getElementById('selfieIdlePlaceholder');
+            const video = document.getElementById('selfieCameraVideo');
+            const guide = document.getElementById('selfieOvalGuide');
+            const btnStart = document.getElementById('btnStartSelfieCamera');
+            const btnTake = document.getElementById('btnTakeSelfiePhoto');
+            const btnRetake = document.getElementById('btnRetakeSelfiePhoto');
+            const readyCard = document.getElementById('selfieReadyPreviewCard');
+            const thumb = document.getElementById('selfiePreviewThumbnail');
+            
+            if (previewImg) previewImg.src = dataUrl;
+            if (previewWrap) {
+                previewWrap.classList.remove('d-none');
+                previewWrap.style.setProperty('display', 'block', 'important');
+            }
+            if (placeholder) {
+                placeholder.classList.remove('d-flex');
+                placeholder.classList.add('d-none');
+                placeholder.style.setProperty('display', 'none', 'important');
+            }
+            if (video) {
+                video.classList.add('d-none');
+                video.style.setProperty('display', 'none', 'important');
+            }
+            if (guide) guide.classList.add('d-none');
+            if (btnStart) {
+                btnStart.classList.add('d-none');
+                btnStart.style.setProperty('display', 'none', 'important');
+            }
+            if (btnTake) {
+                btnTake.classList.add('d-none');
+                btnTake.style.setProperty('display', 'none', 'important');
+            }
+            if (btnRetake) {
+                btnRetake.classList.remove('d-none');
+                btnRetake.style.setProperty('display', 'inline-block', 'important');
+            }
+            if (readyCard) readyCard.classList.remove('d-none');
+            if (thumb) {
+                thumb.src = dataUrl;
+                thumb.style.display = 'block';
+            }
+        } else if (target === 'alt_pose') {
+            const hiddenData = document.getElementById('altPoseImageData');
+            if (hiddenData) hiddenData.value = dataUrl;
+            const imgEl = document.getElementById('altPoseCapturedImgEl');
+            const previewWrap = document.getElementById('altPoseCameraCapturedPreview');
+            const placeholder = document.getElementById('altPoseCameraIdlePlaceholder');
+            const video = document.getElementById('altPoseCameraVideo');
+            const guide = document.getElementById('altPoseCardGuide');
+            const btnStart = document.getElementById('btnStartAltPoseCamera');
+            const btnTake = document.getElementById('btnTakeAltPosePhoto');
+            const btnRetake = document.getElementById('btnRetakeAltPosePhoto');
+            const readyCard = document.getElementById('altPoseReadyPreviewCard');
+            const thumb = document.getElementById('altPosePreviewThumbnail');
+            
+            if (imgEl) imgEl.src = dataUrl;
+            if (previewWrap) {
+                previewWrap.classList.remove('d-none');
+                previewWrap.style.setProperty('display', 'block', 'important');
+            }
+            if (placeholder) {
+                placeholder.classList.remove('d-flex');
+                placeholder.classList.add('d-none');
+                placeholder.style.setProperty('display', 'none', 'important');
+            }
+            if (video) {
+                video.classList.add('d-none');
+                video.style.setProperty('display', 'none', 'important');
+            }
+            if (guide) guide.classList.add('d-none');
+            if (btnStart) {
+                btnStart.classList.add('d-none');
+                btnStart.style.setProperty('display', 'none', 'important');
+            }
+            if (btnTake) {
+                btnTake.classList.add('d-none');
+                btnTake.style.setProperty('display', 'none', 'important');
+            }
+            if (btnRetake) {
+                btnRetake.classList.remove('d-none');
+                btnRetake.style.setProperty('display', 'inline-block', 'important');
+            }
+            if (readyCard) {
+                readyCard.classList.remove('d-none');
+                readyCard.style.setProperty('display', 'block', 'important');
+            }
+            if (thumb) {
+                thumb.src = dataUrl;
+                thumb.style.setProperty('display', 'block', 'important');
+            }
+        } else if (target === 'alt_selfie') {
+            const hiddenData = document.getElementById('altSelfieData');
+            if (hiddenData) hiddenData.value = dataUrl;
+            const previewImg = document.getElementById('altSelfieCapturedImgEl');
+            const previewWrap = document.getElementById('altSelfieCapturedPreview');
+            const placeholder = document.getElementById('altSelfieIdlePlaceholder');
+            const video = document.getElementById('altSelfieCameraVideo');
+            const guide = document.getElementById('altSelfieOvalGuide');
+            const btnStart = document.getElementById('btnStartAltSelfieCamera');
+            const btnTake = document.getElementById('btnTakeAltSelfiePhoto');
+            const btnRetake = document.getElementById('btnRetakeAltSelfiePhoto');
+            const readyCard = document.getElementById('altSelfieReadyPreviewCard');
+            const thumb = document.getElementById('altSelfiePreviewThumbnail');
+            
+            if (previewImg) previewImg.src = dataUrl;
+            if (previewWrap) {
+                previewWrap.classList.remove('d-none');
+                previewWrap.style.setProperty('display', 'block', 'important');
+            }
+            if (placeholder) {
+                placeholder.classList.remove('d-flex');
+                placeholder.classList.add('d-none');
+                placeholder.style.setProperty('display', 'none', 'important');
+            }
+            if (video) {
+                video.classList.add('d-none');
+                video.style.setProperty('display', 'none', 'important');
+            }
+            if (guide) guide.classList.add('d-none');
+            if (btnStart) {
+                btnStart.classList.add('d-none');
+                btnStart.style.setProperty('display', 'none', 'important');
+            }
+            if (btnTake) {
+                btnTake.classList.add('d-none');
+                btnTake.style.setProperty('display', 'none', 'important');
+            }
+            if (btnRetake) {
+                btnRetake.classList.remove('d-none');
+                btnRetake.style.setProperty('display', 'inline-block', 'important');
+            }
+            if (readyCard) {
+                readyCard.classList.remove('d-none');
+                readyCard.style.setProperty('display', 'block', 'important');
+            }
+            if (thumb) {
+                thumb.src = dataUrl;
+                thumb.style.setProperty('display', 'block', 'important');
+            }
+        }
+    });
+}
+
+/* ── Universal Rotation & Flipping Tools for Captured Media ── */
+function rotateCapturedImage(target, degrees = 90) {
+    let currentDataUrl = '';
+    let previewImg = null;
+    let thumbImg = null;
+    let hiddenInput = null;
+
+    if (target === 'gov_doc') {
+        currentDataUrl = capturedIdDataUrl;
+        previewImg = document.getElementById('idCameraCapturedImgEl');
+        thumbImg = document.getElementById('docPreviewThumbnail');
+        hiddenInput = document.getElementById('wizard_id_document_data');
+    } else if (target === 'gov_selfie') {
+        currentDataUrl = capturedSelfieDataUrl;
+        previewImg = document.getElementById('selfieCapturedImgEl');
+        thumbImg = document.getElementById('selfiePreviewThumbnail');
+        hiddenInput = document.getElementById('wizard_id_selfie_data');
+    } else if (target === 'alt_pose') {
+        previewImg = document.getElementById('altPoseCapturedImgEl');
+        hiddenInput = document.getElementById('altPoseImageData');
+        currentDataUrl = hiddenInput ? hiddenInput.value : '';
+    } else if (target === 'alt_selfie') {
+        previewImg = document.getElementById('altSelfieCapturedImgEl');
+        thumbImg = document.getElementById('altSelfiePreviewThumbnail');
+        hiddenInput = document.getElementById('altSelfieData');
+        currentDataUrl = hiddenInput ? hiddenInput.value : '';
+    }
+
+    if (!currentDataUrl && previewImg && previewImg.src) {
+        currentDataUrl = previewImg.src;
+    }
+    if (!currentDataUrl) return;
+
+    const img = new Image();
+    img.onload = function() {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (degrees === 90 || degrees === 270 || degrees === -90) {
+            canvas.width = img.height;
+            canvas.height = img.width;
+        } else {
+            canvas.width = img.width;
+            canvas.height = img.height;
+        }
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate((degrees * Math.PI) / 180);
+        ctx.drawImage(img, -img.width / 2, -img.height / 2);
+
+        const newDataUrl = canvas.toDataURL('image/jpeg', 0.95);
+        if (previewImg) previewImg.src = newDataUrl;
+        if (thumbImg) thumbImg.src = newDataUrl;
+        if (hiddenInput) hiddenInput.value = newDataUrl;
+
+        if (target === 'gov_doc') capturedIdDataUrl = newDataUrl;
+        if (target === 'gov_selfie') capturedSelfieDataUrl = newDataUrl;
+    };
+    img.src = currentDataUrl;
+}
+
+function flipCapturedImage(target) {
+    let currentDataUrl = '';
+    let previewImg = null;
+    let thumbImg = null;
+    let hiddenInput = null;
+
+    if (target === 'gov_selfie') {
+        currentDataUrl = capturedSelfieDataUrl;
+        previewImg = document.getElementById('selfieCapturedImgEl');
+        thumbImg = document.getElementById('selfiePreviewThumbnail');
+        hiddenInput = document.getElementById('wizard_id_selfie_data');
+    } else if (target === 'alt_pose') {
+        previewImg = document.getElementById('altPoseCapturedImgEl');
+        hiddenInput = document.getElementById('altPoseImageData');
+        currentDataUrl = hiddenInput ? hiddenInput.value : '';
+    } else if (target === 'alt_selfie') {
+        previewImg = document.getElementById('altSelfieCapturedImgEl');
+        thumbImg = document.getElementById('altSelfiePreviewThumbnail');
+        hiddenInput = document.getElementById('altSelfieData');
+        currentDataUrl = hiddenInput ? hiddenInput.value : '';
+    }
+
+    if (!currentDataUrl && previewImg && previewImg.src) {
+        currentDataUrl = previewImg.src;
+    }
+    if (!currentDataUrl) return;
+
+    const img = new Image();
+    img.onload = function() {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.translate(canvas.width, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(img, 0, 0);
+
+        const newDataUrl = canvas.toDataURL('image/jpeg', 0.95);
+        if (previewImg) previewImg.src = newDataUrl;
+        if (thumbImg) thumbImg.src = newDataUrl;
+        if (hiddenInput) hiddenInput.value = newDataUrl;
+
+        if (target === 'gov_selfie') capturedSelfieDataUrl = newDataUrl;
+    };
+    img.src = currentDataUrl;
+}
+
 function isMobileOrTabletDevice() {
     const ua = (navigator.userAgent || navigator.vendor || window.opera || '').toLowerCase();
     const isMobileUA = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua);
@@ -3715,6 +4195,14 @@ async function shouldShowCameraSwitch() {
 }
 
 async function startIdCamera() {
+    // Native mobile camera bridge for iOS/Android when WebRTC is not supported over HTTP
+    if (isMobileOrTabletDevice() || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        const nativeInp = document.getElementById('govDocNativeCamera');
+        if (nativeInp) {
+            nativeInp.click();
+            return;
+        }
+    }
     try {
         const video = document.getElementById('idCameraVideo');
         const placeholder = document.getElementById('idCameraIdlePlaceholder');
@@ -3757,6 +4245,11 @@ async function startIdCamera() {
             }
         }
     } catch (err) {
+        const nativeInp = document.getElementById('govDocNativeCamera');
+        if (nativeInp) {
+            nativeInp.click();
+            return;
+        }
         showWizardNotice('Could not open camera. Please ensure camera permissions are allowed, or use the file upload option below.', 'danger', 'idCameraAlert');
     }
 }
@@ -3829,10 +4322,21 @@ function retakeIdPhoto() {
     const readyCard = document.getElementById('docReadyPreviewCard');
     if (readyCard) readyCard.classList.add('d-none');
 
+    const nativeInp = document.getElementById('govDocNativeCamera');
+    if (nativeInp) nativeInp.value = '';
+
+    if (isMobileOrTabletDevice() || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        if (nativeInp) {
+            nativeInp.click();
+            return;
+        }
+    }
+
     startIdCamera();
 }
 
 /* ── Step 6: Live Selfie & Biometric Liveness Engine ── */
+let activeLivenessTarget = 'gov'; // 'gov' (Gov ID Step 6) or 'alt' (Alternative Step 5)
 let faceMeshDetector = null;
 let isFaceMeshActive = false;
 let livenessStage = 'idle'; // 'idle', 'aligning', 'challenge', 'ready_to_capture', 'verified'
@@ -3980,11 +4484,12 @@ function analyzeFaceQuality(video, faceBounds = null) {
 }
 
 function updateLivenessUI(message, icon = '👤', variant = 'warning') {
-    const badgeWrap = document.getElementById('selfieStatusBadgeWrap');
-    const badgeEl = document.getElementById('selfieOvalStatusBadge');
-    const iconEl = document.getElementById('selfieStatusIcon');
-    const msgEl = document.getElementById('selfieStatusMsg');
-    const ovalGuide = document.getElementById('selfieOvalGuide');
+    const isAlt = (activeLivenessTarget === 'alt');
+    const badgeWrap = document.getElementById(isAlt ? 'altSelfieStatusBadgeWrap' : 'selfieStatusBadgeWrap');
+    const badgeEl = document.getElementById(isAlt ? 'altSelfieOvalStatusBadge' : 'selfieOvalStatusBadge');
+    const iconEl = document.getElementById(isAlt ? 'altSelfieStatusIcon' : 'selfieStatusIcon');
+    const msgEl = document.getElementById(isAlt ? 'altSelfieStatusMsg' : 'selfieStatusMsg');
+    const ovalGuide = document.getElementById(isAlt ? 'altSelfieOvalGuide' : 'selfieOvalGuide');
 
     if (badgeWrap) badgeWrap.classList.remove('d-none');
     if (iconEl) iconEl.textContent = icon;
@@ -4032,7 +4537,8 @@ function updateLivenessStepBadge(stepNum) {
 }
 
 function onFaceMeshResults(results) {
-    if (livenessStage === 'verified' || !selfieCameraStream) return;
+    const activeStream = (activeLivenessTarget === 'alt') ? altSelfieCameraStream : selfieCameraStream;
+    if (livenessStage === 'verified' || !activeStream) return;
 
     // Quality Gate 1: Exactly 1 Human Face in Frame (High sensitivity to reject background people)
     if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
@@ -4070,7 +4576,7 @@ function onFaceMeshResults(results) {
     const faceBounds = { minX, maxX, minY, maxY };
 
     // Quality Gate 2: Real-time Facial Lighting & Sharpness (Blur Detection)
-    const video = document.getElementById('selfieCameraVideo');
+    const video = document.getElementById((activeLivenessTarget === 'alt') ? 'altSelfieCameraVideo' : 'selfieCameraVideo');
     const quality = analyzeFaceQuality(video, faceBounds);
     if (!quality.pass) {
         consecutiveCenteredFrames = 0;
@@ -4205,9 +4711,9 @@ function onFaceMeshResults(results) {
             }
         }
 
-        // If challenge takes more than 12 seconds, reveal manual capture button
-        if (Date.now() - livenessStartTime > 12000) {
-            const btnTake = document.getElementById('btnTakeSelfiePhoto');
+        // If challenge takes more than 10 seconds, reveal manual capture button
+        if (Date.now() - livenessStartTime > 10000) {
+            const btnTake = document.getElementById((activeLivenessTarget === 'alt') ? 'btnTakeAltSelfiePhoto' : 'btnTakeSelfiePhoto');
             if (btnTake) btnTake.classList.remove('d-none');
         }
         return;
@@ -4256,14 +4762,18 @@ function triggerLivenessVerified() {
     updateLivenessStepBadge(3);
     updateLivenessUI('✓ Liveness Verified! Capturing...', '✨', 'success');
 
-    const ovalGuide = document.getElementById('selfieOvalGuide');
+    const ovalGuide = document.getElementById((activeLivenessTarget === 'alt') ? 'altSelfieOvalGuide' : 'selfieOvalGuide');
     if (ovalGuide) {
         ovalGuide.style.borderStyle = 'solid !important';
         ovalGuide.style.boxShadow = '0 0 0 9999px rgba(0,0,0,0.4), 0 0 25px rgba(16, 185, 129, 0.8)';
     }
 
     // Capture immediately while eyes are confirmed open
-    takeSelfiePhoto();
+    if (activeLivenessTarget === 'alt') {
+        takeAltSelfiePhoto();
+    } else {
+        takeSelfiePhoto();
+    }
     stopLivenessProcessing();
 }
 
@@ -4279,7 +4789,8 @@ function startLivenessProcessing() {
     const challenges = ['blink', 'turn_left', 'turn_right'];
     currentChallenge = challenges[Math.floor(Math.random() * challenges.length)];
 
-    const badgeWrap = document.getElementById('selfieStatusBadgeWrap');
+    const isAlt = (activeLivenessTarget === 'alt');
+    const badgeWrap = document.getElementById(isAlt ? 'altSelfieStatusBadgeWrap' : 'selfieStatusBadgeWrap');
     if (badgeWrap) badgeWrap.classList.remove('d-none');
     updateLivenessStepBadge(1);
     updateLivenessUI('Center face inside oval', '👤', 'warning');
@@ -4302,11 +4813,12 @@ function startLivenessProcessing() {
             }
         }
 
-        const video = document.getElementById('selfieCameraVideo');
         let processingFrame = false;
 
         async function processLiveVideoFrame() {
-            if (!selfieCameraStream || livenessStage === 'verified' || !isFaceMeshActive) return;
+            const activeStream = (activeLivenessTarget === 'alt') ? altSelfieCameraStream : selfieCameraStream;
+            const video = document.getElementById((activeLivenessTarget === 'alt') ? 'altSelfieCameraVideo' : 'selfieCameraVideo');
+            if (!activeStream || livenessStage === 'verified' || !isFaceMeshActive) return;
             if (video && video.readyState >= 2 && !processingFrame && faceMeshDetector) {
                 processingFrame = true;
                 try {
@@ -4314,14 +4826,14 @@ function startLivenessProcessing() {
                 } catch (err) {}
                 processingFrame = false;
             }
-            if (selfieCameraStream && livenessStage !== 'verified' && isFaceMeshActive) {
+            if (activeStream && livenessStage !== 'verified' && isFaceMeshActive) {
                 livenessAnimFrameId = requestAnimationFrame(processLiveVideoFrame);
             }
         }
 
         livenessAnimFrameId = requestAnimationFrame(processLiveVideoFrame);
     } else {
-        const btnTake = document.getElementById('btnTakeSelfiePhoto');
+        const btnTake = document.getElementById(isAlt ? 'btnTakeAltSelfiePhoto' : 'btnTakeSelfiePhoto');
         if (btnTake) btnTake.classList.remove('d-none');
         updateLivenessUI('Position face & capture photo', '📸', 'success');
     }
@@ -4329,8 +4841,10 @@ function startLivenessProcessing() {
 
 function stopLivenessProcessing() {
     isFaceMeshActive = false;
-    const badgeWrap = document.getElementById('selfieStatusBadgeWrap');
-    if (badgeWrap) badgeWrap.classList.add('d-none');
+    const badgeWrap1 = document.getElementById('selfieStatusBadgeWrap');
+    if (badgeWrap1) badgeWrap1.classList.add('d-none');
+    const badgeWrap2 = document.getElementById('altSelfieStatusBadgeWrap');
+    if (badgeWrap2) badgeWrap2.classList.add('d-none');
     if (livenessAnimFrameId) {
         cancelAnimationFrame(livenessAnimFrameId);
         livenessAnimFrameId = null;
@@ -4338,6 +4852,14 @@ function stopLivenessProcessing() {
 }
 
 async function startSelfieCamera() {
+    activeLivenessTarget = 'gov';
+    if (isMobileOrTabletDevice() || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        const nativeInp = document.getElementById('govSelfieNativeCamera');
+        if (nativeInp) {
+            nativeInp.click();
+            return;
+        }
+    }
     try {
         const video = document.getElementById('selfieCameraVideo');
         const placeholder = document.getElementById('selfieIdlePlaceholder');
@@ -4361,7 +4883,14 @@ async function startSelfieCamera() {
             }
         };
 
-        selfieCameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+        try {
+            selfieCameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+        } catch (cErr) {
+            // Graceful fallback for devices that don't support HD constraints
+            selfieCameraStream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }
+            });
+        }
         if (video) {
             video.srcObject = selfieCameraStream;
             video.classList.remove('d-none');
@@ -4471,6 +5000,16 @@ function retakeSelfiePhoto() {
     const stepsEl = document.getElementById('selfieLivenessSteps');
     if (promptEl) promptEl.classList.add('d-none');
     if (stepsEl) stepsEl.classList.add('d-none');
+
+    const nativeInp = document.getElementById('govSelfieNativeCamera');
+    if (nativeInp) nativeInp.value = '';
+
+    if (isMobileOrTabletDevice() || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        if (nativeInp) {
+            nativeInp.click();
+            return;
+        }
+    }
 
     startSelfieCamera();
 }
@@ -4814,6 +5353,13 @@ let altSelfieCameraStream = null;
 function altWizardShowStep(stepNum) {
     if (stepNum < 1) stepNum = 1;
     if (stepNum > altTotalWizardSteps) stepNum = altTotalWizardSteps;
+
+    if (altCurrentWizardStep === 4 && stepNum !== 4) {
+        stopAltPoseCamera();
+    }
+    if (altCurrentWizardStep === 5 && stepNum !== 5) {
+        stopAltSelfieCamera();
+    }
     altCurrentWizardStep = stepNum;
 
     // Toggle step panes
@@ -4829,13 +5375,39 @@ function altWizardShowStep(stepNum) {
     }
 
     // Update progress bar & badge
+    stepNum = parseInt(stepNum, 10);
     const badge = document.getElementById('altWizardStepBadge');
     if (badge) {
-        badge.innerHTML = `Step ${stepNum} of ${altTotalWizardSteps} &bull; ${altStepTitles[stepNum]}`;
+        badge.innerHTML = `Step ${stepNum} of ${altTotalWizardSteps}`;
     }
     const bar = document.getElementById('altWizardProgressBar');
     const pVal = Math.round((stepNum / altTotalWizardSteps) * 100);
     if (bar) bar.style.width = `${pVal}%`;
+
+    // Update mobile dots & label
+    const altMobileLabel = document.getElementById('altMobileStepLabel');
+    if (altMobileLabel && altStepTitles[stepNum]) {
+        altMobileLabel.textContent = altStepTitles[stepNum];
+    }
+    const altMobileProgressPct = document.getElementById('altMobileProgressPct');
+    if (altMobileProgressPct) {
+        altMobileProgressPct.textContent = `${pVal}%`;
+    }
+    for (let i = 1; i <= altTotalWizardSteps; i++) {
+        const dot = document.getElementById(`altDot${i}`);
+        if (dot) {
+            if (i < stepNum) {
+                dot.className = 'badge rounded-circle p-1 bg-success text-white fw-bold shadow-xs';
+                dot.innerHTML = '✓';
+            } else if (i === stepNum) {
+                dot.className = 'badge rounded-circle p-1 bg-primary text-white fw-bold shadow';
+                dot.innerHTML = i;
+            } else {
+                dot.className = 'badge rounded-circle p-1 bg-secondary-subtle text-secondary';
+                dot.innerHTML = i;
+            }
+        }
+    }
 
     // Update stepper pills
     for (let i = 1; i <= altTotalWizardSteps; i++) {
@@ -4864,8 +5436,12 @@ function altWizardShowStep(stepNum) {
     }
 
     const container = document.getElementById('methodAlternativeContainer');
-    if (container && window.scrollY > container.offsetTop) {
-        container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (container) {
+        if (window.innerWidth < 768) {
+            container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else if (window.scrollY > container.offsetTop) {
+            container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
     }
 }
 
@@ -5120,6 +5696,13 @@ function selectAltPoseMode(mode) {
 }
 
 function startAltPoseCamera() {
+    if (isMobileOrTabletDevice() || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        const nativeInp = document.getElementById('altPoseNativeCamera');
+        if (nativeInp) {
+            nativeInp.click();
+            return;
+        }
+    }
     const video = document.getElementById('altPoseCameraVideo');
     const idlePlaceholder = document.getElementById('altPoseCameraIdlePlaceholder');
     const guide = document.getElementById('altPoseCardGuide');
@@ -5129,10 +5712,19 @@ function startAltPoseCamera() {
     if (!video) return;
 
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        navigator.mediaDevices.getUserMedia({
+        const hdConstraints = {
+            video: {
+                facingMode: activeAltPoseFacing,
+                width: { ideal: 1920, min: 1280 },
+                height: { ideal: 1080, min: 720 },
+                frameRate: { ideal: 30, min: 24 }
+            }
+        };
+        const standardConstraints = {
             video: { facingMode: activeAltPoseFacing, width: { ideal: 1280 }, height: { ideal: 720 } }
-        })
-        .then(stream => {
+        };
+
+        const attachStream = (stream) => {
             altPoseCameraStream = stream;
             video.srcObject = stream;
             video.classList.remove('d-none');
@@ -5142,7 +5734,11 @@ function startAltPoseCamera() {
             if (btnTake) btnTake.classList.remove('d-none');
             if (btnSwitch) btnSwitch.classList.remove('d-none');
             video.play();
-        })
+        };
+
+        navigator.mediaDevices.getUserMedia(hdConstraints)
+        .then(attachStream)
+        .catch(() => navigator.mediaDevices.getUserMedia(standardConstraints).then(attachStream))
         .catch(err => {
             showAltNotice('Could not access camera. Please use file upload instead.', 'danger');
             selectAltPoseMode('upload');
@@ -5177,34 +5773,76 @@ function takeAltPosePhoto() {
     const canvas = document.getElementById('altPoseCaptureCanvas');
     if (!video || !canvas) return;
 
-    canvas.width = video.videoWidth || 640;
-    canvas.height = video.videoHeight || 480;
-    const ctx = canvas.getContext('2d');
-    if (activeAltPoseFacing === 'user') {
-        ctx.translate(canvas.width, 0);
-        ctx.scale(-1, 1);
+    let w = video.videoWidth || 1920;
+    let h = video.videoHeight || 1080;
+    const maxDim = 1920;
+    if (w > maxDim || h > maxDim) {
+        if (w > h) {
+            h = Math.round((h * maxDim) / w);
+            w = maxDim;
+        } else {
+            w = Math.round((w * maxDim) / h);
+            h = maxDim;
+        }
     }
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d', { alpha: false });
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    // Raw camera feed is already oriented correctly from left to right; never mirror document handwriting
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
     const hiddenData = document.getElementById('altPoseImageData');
     if (hiddenData) hiddenData.value = dataUrl;
 
     const imgEl = document.getElementById('altPoseCapturedImgEl');
     const previewWrap = document.getElementById('altPoseCameraCapturedPreview');
+    const placeholder = document.getElementById('altPoseCameraIdlePlaceholder');
+    const btnStart = document.getElementById('btnStartAltPoseCamera');
+    const btnTake = document.getElementById('btnTakeAltPosePhoto');
+    const btnRetake = document.getElementById('btnRetakeAltPosePhoto');
+    const readyCard = document.getElementById('altPoseReadyPreviewCard');
+    const thumb = document.getElementById('altPosePreviewThumbnail');
+
     if (imgEl && previewWrap) {
         imgEl.src = dataUrl;
         previewWrap.classList.remove('d-none');
+        previewWrap.style.setProperty('display', 'block', 'important');
     }
-
-    video.classList.add('d-none');
+    if (placeholder) {
+        placeholder.classList.remove('d-flex');
+        placeholder.classList.add('d-none');
+        placeholder.style.setProperty('display', 'none', 'important');
+    }
+    if (video) {
+        video.classList.add('d-none');
+        video.style.setProperty('display', 'none', 'important');
+    }
     const guide = document.getElementById('altPoseCardGuide');
     if (guide) guide.classList.add('d-none');
 
-    const btnTake = document.getElementById('btnTakeAltPosePhoto');
-    const btnRetake = document.getElementById('btnRetakeAltPosePhoto');
-    if (btnTake) btnTake.classList.add('d-none');
-    if (btnRetake) btnRetake.classList.remove('d-none');
+    if (btnStart) {
+        btnStart.classList.add('d-none');
+        btnStart.style.setProperty('display', 'none', 'important');
+    }
+    if (btnTake) {
+        btnTake.classList.add('d-none');
+        btnTake.style.setProperty('display', 'none', 'important');
+    }
+    if (btnRetake) {
+        btnRetake.classList.remove('d-none');
+        btnRetake.style.setProperty('display', 'inline-block', 'important');
+    }
+    if (readyCard) {
+        readyCard.classList.remove('d-none');
+        readyCard.style.setProperty('display', 'block', 'important');
+    }
+    if (thumb) {
+        thumb.src = dataUrl;
+        thumb.style.setProperty('display', 'block', 'important');
+    }
 
     if (altPoseCameraStream) {
         altPoseCameraStream.getTracks().forEach(t => t.stop());
@@ -5216,9 +5854,47 @@ function retakeAltPosePhoto() {
     const hiddenData = document.getElementById('altPoseImageData');
     if (hiddenData) hiddenData.value = '';
     const previewWrap = document.getElementById('altPoseCameraCapturedPreview');
-    if (previewWrap) previewWrap.classList.add('d-none');
+    if (previewWrap) {
+        previewWrap.classList.add('d-none');
+        previewWrap.style.setProperty('display', 'none', 'important');
+    }
+    const readyCard = document.getElementById('altPoseReadyPreviewCard');
+    if (readyCard) {
+        readyCard.classList.add('d-none');
+        readyCard.style.setProperty('display', 'none', 'important');
+    }
+    const thumb = document.getElementById('altPosePreviewThumbnail');
+    if (thumb) {
+        thumb.src = '';
+        thumb.style.setProperty('display', 'none', 'important');
+    }
     const btnRetake = document.getElementById('btnRetakeAltPosePhoto');
-    if (btnRetake) btnRetake.classList.add('d-none');
+    if (btnRetake) {
+        btnRetake.classList.add('d-none');
+        btnRetake.style.setProperty('display', 'none', 'important');
+    }
+    const placeholder = document.getElementById('altPoseCameraIdlePlaceholder');
+    if (placeholder) {
+        placeholder.classList.remove('d-none');
+        placeholder.classList.add('d-flex');
+        placeholder.style.removeProperty('display');
+    }
+    const btnStart = document.getElementById('btnStartAltPoseCamera');
+    if (btnStart) {
+        btnStart.classList.remove('d-none');
+        btnStart.style.setProperty('display', 'inline-block', 'important');
+    }
+
+    const nativeInp = document.getElementById('altPoseNativeCamera');
+    if (nativeInp) nativeInp.value = '';
+
+    if (isMobileOrTabletDevice() || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        if (nativeInp) {
+            nativeInp.click();
+            return;
+        }
+    }
+
     startAltPoseCamera();
 }
 
@@ -5268,115 +5944,210 @@ function removeAltPoseFile() {
 }
 
 /* ── Path B Live Selfie Exercise (Matches Gov ID Step 6) ── */
-function startAltSelfieCamera() {
-    const video = document.getElementById('altSelfieCameraVideo');
-    const idlePlaceholder = document.getElementById('altSelfieIdlePlaceholder');
-    const guide = document.getElementById('altSelfieOvalGuide');
-    const badgeWrap = document.getElementById('altSelfieStatusBadgeWrap');
-    const btnStart = document.getElementById('btnStartAltSelfieCamera');
-    const btnTake = document.getElementById('btnTakeAltSelfiePhoto');
-    if (!video) return;
+async function startAltSelfieCamera() {
+    activeLivenessTarget = 'alt';
+    if (isMobileOrTabletDevice() || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        const nativeInp = document.getElementById('altSelfieNativeCamera');
+        if (nativeInp) {
+            nativeInp.click();
+            return;
+        }
+    }
+    try {
+        const video = document.getElementById('altSelfieCameraVideo');
+        const placeholder = document.getElementById('altSelfieIdlePlaceholder');
+        const guide = document.getElementById('altSelfieOvalGuide');
+        const preview = document.getElementById('altSelfieCapturedPreview');
+        const btnStart = document.getElementById('btnStartAltSelfieCamera');
+        const btnTake = document.getElementById('btnTakeAltSelfiePhoto');
+        const card = document.getElementById('altSelfieCardContainer');
+        const alertEl = document.getElementById('altSelfieCameraAlert');
+        if (alertEl) alertEl.classList.add('d-none');
 
-    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        navigator.mediaDevices.getUserMedia({
-            video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
-        })
-        .then(stream => {
-            altSelfieCameraStream = stream;
-            video.srcObject = stream;
+        if (altSelfieCameraStream) {
+            altSelfieCameraStream.getTracks().forEach(t => t.stop());
+        }
+
+        // High-Definition constraints: Full HD 1080p / 720p with 30fps
+        const constraints = {
+            video: {
+                facingMode: 'user',
+                width: { ideal: 1920, min: 1280 },
+                height: { ideal: 1080, min: 720 },
+                frameRate: { ideal: 30, min: 24 }
+            }
+        };
+
+        try {
+            altSelfieCameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+        } catch (cErr) {
+            // Graceful fallback for devices that don't support HD constraints
+            altSelfieCameraStream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }
+            });
+        }
+
+        if (video) {
+            video.srcObject = altSelfieCameraStream;
             video.classList.remove('d-none');
-            if (idlePlaceholder) idlePlaceholder.classList.add('d-none');
-            if (guide) guide.classList.remove('d-none');
-            if (badgeWrap) badgeWrap.classList.remove('d-none');
-            if (btnStart) btnStart.classList.add('d-none');
-            if (btnTake) btnTake.classList.remove('d-none');
-            video.play();
-        })
-        .catch(err => {
-            showAltNotice('Could not access front camera. Please check camera permissions.', 'danger');
-        });
+        }
+        if (placeholder) placeholder.classList.add('d-none');
+        if (guide) {
+            guide.classList.remove('d-none');
+            guide.style.borderStyle = 'dashed !important';
+            guide.style.boxShadow = '0 0 0 9999px rgba(0,0,0,0.55)';
+        }
+        if (preview) preview.classList.add('d-none');
+        if (btnStart) btnStart.classList.add('d-none');
+        if (btnTake) btnTake.classList.add('d-none');
+
+        // Activate Virtual Screen Ring Light: floods surrounding card area with clean, diffuse white light
+        if (card) {
+            card.style.background = '#FFFFFF';
+            card.style.color = '#0F172A';
+            card.style.boxShadow = '0 0 100px 50px rgba(255, 255, 255, 0.98), 0 20px 40px rgba(0, 0, 0, 0.15)';
+            card.style.borderColor = '#CBD5E1';
+        }
+
+        // Start automated real-time biometric liveness engine
+        startLivenessProcessing();
+    } catch (err) {
+        console.error('Error starting alt selfie camera:', err);
+        const alertEl = document.getElementById('altSelfieCameraAlert');
+        if (alertEl) {
+            alertEl.className = 'alert alert-danger py-2 px-3 small rounded-3 mt-3 mb-0';
+            alertEl.textContent = 'Could not open front camera. Please ensure camera permissions are allowed in your browser settings.';
+            alertEl.classList.remove('d-none');
+        }
     }
 }
 
 function stopAltSelfieCamera() {
+    stopLivenessProcessing();
+    const card = document.getElementById('altSelfieCardContainer');
+    if (card) {
+        card.style.background = '#0F172A';
+        card.style.color = '#FFFFFF';
+        card.style.boxShadow = '';
+        card.style.borderColor = '#1E293B';
+    }
     if (altSelfieCameraStream) {
         altSelfieCameraStream.getTracks().forEach(t => t.stop());
         altSelfieCameraStream = null;
     }
-    const video = document.getElementById('altSelfieCameraVideo');
-    const idlePlaceholder = document.getElementById('altSelfieIdlePlaceholder');
-    const guide = document.getElementById('altSelfieOvalGuide');
-    const badgeWrap = document.getElementById('altSelfieStatusBadgeWrap');
-    const btnStart = document.getElementById('btnStartAltSelfieCamera');
-    const btnTake = document.getElementById('btnTakeAltSelfiePhoto');
-    const btnRetake = document.getElementById('btnRetakeAltSelfiePhoto');
-
-    if (video) video.classList.add('d-none');
-    if (idlePlaceholder) idlePlaceholder.classList.remove('d-none');
-    if (guide) guide.classList.add('d-none');
-    if (badgeWrap) badgeWrap.classList.add('d-none');
-    if (btnStart) btnStart.classList.remove('d-none');
-    if (btnTake) btnTake.classList.add('d-none');
-    if (btnRetake) btnRetake.classList.add('d-none');
 }
 
 function takeAltSelfiePhoto() {
+    stopLivenessProcessing();
     const video = document.getElementById('altSelfieCameraVideo');
     const canvas = document.getElementById('altSelfieCaptureCanvas');
-    if (!video || !canvas) return;
-
-    canvas.width = video.videoWidth || 480;
-    canvas.height = video.videoHeight || 480;
-    const ctx = canvas.getContext('2d');
-    ctx.translate(canvas.width, 0);
-    ctx.scale(-1, 1);
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
-    const hiddenData = document.getElementById('altSelfieData');
-    if (hiddenData) hiddenData.value = dataUrl;
-
-    const imgEl = document.getElementById('altSelfieCapturedImgEl');
+    const previewImg = document.getElementById('altSelfieCapturedImgEl');
     const previewWrap = document.getElementById('altSelfieCapturedPreview');
-    if (imgEl && previewWrap) {
-        imgEl.src = dataUrl;
-        previewWrap.classList.remove('d-none');
-    }
-
-    video.classList.add('d-none');
     const guide = document.getElementById('altSelfieOvalGuide');
-    if (guide) guide.classList.add('d-none');
-    const badgeWrap = document.getElementById('altSelfieStatusBadgeWrap');
-    if (badgeWrap) badgeWrap.classList.add('d-none');
-
     const btnTake = document.getElementById('btnTakeAltSelfiePhoto');
     const btnRetake = document.getElementById('btnRetakeAltSelfiePhoto');
+    const card = document.getElementById('altSelfieCardContainer');
+
+    if (!video || !canvas) return;
+
+    // Use balanced resolution from the camera stream for fast, crisp submission
+    let w = video.videoWidth || 1920;
+    let h = video.videoHeight || 1080;
+    const maxDim = 1920;
+    if (w > maxDim || h > maxDim) {
+        if (w > h) {
+            h = Math.round((h * maxDim) / w);
+            w = maxDim;
+        } else {
+            w = Math.round((w * maxDim) / h);
+            h = maxDim;
+        }
+    }
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d', { alpha: false });
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    // Export ultra-clear JPEG at 0.88 quality
+    const capturedSelfieDataUrl = canvas.toDataURL('image/jpeg', 0.88);
+    const hiddenData = document.getElementById('altSelfieData');
+    if (hiddenData) hiddenData.value = capturedSelfieDataUrl;
+
+    if (previewImg) previewImg.src = capturedSelfieDataUrl;
+    if (previewWrap) previewWrap.classList.remove('d-none');
+    video.classList.add('d-none');
+    if (guide) guide.classList.add('d-none');
     if (btnTake) btnTake.classList.add('d-none');
     if (btnRetake) btnRetake.classList.remove('d-none');
 
+    // Reset card illumination background after snapshot
+    if (card) {
+        card.style.background = '#0F172A';
+        card.style.color = '#FFFFFF';
+        card.style.boxShadow = '';
+        card.style.borderColor = '#1E293B';
+    }
+
+    // Display selfie ready preview card
     const readyCard = document.getElementById('altSelfieReadyPreviewCard');
     const thumb = document.getElementById('altSelfiePreviewThumbnail');
     if (thumb) {
-        thumb.src = dataUrl;
+        thumb.src = capturedSelfieDataUrl;
         thumb.style.display = 'block';
     }
     if (readyCard) readyCard.classList.remove('d-none');
 
-    if (altSelfieCameraStream) {
-        altSelfieCameraStream.getTracks().forEach(t => t.stop());
-        altSelfieCameraStream = null;
-    }
+    stopAltSelfieCamera();
 }
 
 function retakeAltSelfiePhoto() {
+    stopLivenessProcessing();
     const hiddenData = document.getElementById('altSelfieData');
     if (hiddenData) hiddenData.value = '';
     const previewWrap = document.getElementById('altSelfieCapturedPreview');
-    if (previewWrap) previewWrap.classList.add('d-none');
+    if (previewWrap) {
+        previewWrap.classList.add('d-none');
+        previewWrap.style.setProperty('display', 'none', 'important');
+    }
     const readyCard = document.getElementById('altSelfieReadyPreviewCard');
-    if (readyCard) readyCard.classList.add('d-none');
+    if (readyCard) {
+        readyCard.classList.add('d-none');
+        readyCard.style.setProperty('display', 'none', 'important');
+    }
+    const thumb = document.getElementById('altSelfiePreviewThumbnail');
+    if (thumb) {
+        thumb.src = '';
+        thumb.style.setProperty('display', 'none', 'important');
+    }
     const btnRetake = document.getElementById('btnRetakeAltSelfiePhoto');
-    if (btnRetake) btnRetake.classList.add('d-none');
+    if (btnRetake) {
+        btnRetake.classList.add('d-none');
+        btnRetake.style.setProperty('display', 'none', 'important');
+    }
+    const placeholder = document.getElementById('altSelfieIdlePlaceholder');
+    if (placeholder) {
+        placeholder.classList.remove('d-none');
+        placeholder.classList.add('d-flex');
+        placeholder.style.removeProperty('display');
+    }
+    const btnStart = document.getElementById('btnStartAltSelfieCamera');
+    if (btnStart) {
+        btnStart.classList.remove('d-none');
+        btnStart.style.setProperty('display', 'inline-block', 'important');
+    }
+
+    const nativeInp = document.getElementById('altSelfieNativeCamera');
+    if (nativeInp) nativeInp.value = '';
+
+    if (isMobileOrTabletDevice() || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        if (nativeInp) {
+            nativeInp.click();
+            return;
+        }
+    }
+
     startAltSelfieCamera();
 }
 
@@ -5604,5 +6375,214 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+/* ── Mobile Verification Handoff (QR Code) ── */
+let mobileHandoffPollingInterval = null;
+let currentHandoffUrl = '';
+
+function openMobileHandoffModal(method) {
+    if (!method) {
+        method = '{{ selected_method|default:"alternative" }}';
+    }
+    const modalEl = document.getElementById('mobileHandoffModal');
+    if (!modalEl) return;
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    modal.show();
+
+    const spinner = document.getElementById('qrLoadingSpinner');
+    const qrImg = document.getElementById('mobileQrCodeImg');
+    const statusText = document.getElementById('qrStatusText');
+    if (spinner) spinner.classList.remove('d-none');
+    if (qrImg) qrImg.classList.add('d-none');
+    if (statusText) statusText.textContent = 'Generating QR code...';
+
+    fetch(`/users/verify-account/mobile-qr/?method=${encodeURIComponent(method)}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.success && data.qr_data_url) {
+                currentHandoffUrl = data.handoff_url;
+                if (qrImg) {
+                    qrImg.src = data.qr_data_url;
+                    qrImg.classList.remove('d-none');
+                }
+                if (spinner) spinner.classList.add('d-none');
+                if (statusText) statusText.textContent = 'Waiting for mobile submission...';
+                startDesktopStatusPolling();
+            } else {
+                if (statusText) statusText.textContent = 'Could not generate QR code. Please try again.';
+            }
+        })
+        .catch(err => {
+            console.error('QR code fetch error:', err);
+            if (statusText) statusText.textContent = 'Error loading QR. Check connection.';
+        });
+}
+
+function updateAllQrStatus(htmlContent) {
+    const statusText = document.getElementById('qrStatusText');
+    const desktopStatusText = document.getElementById('desktopQrStatusText');
+    if (statusText) statusText.innerHTML = htmlContent;
+    if (desktopStatusText) desktopStatusText.innerHTML = htmlContent;
+}
+
+function startDesktopStatusPolling() {
+    stopDesktopStatusPolling();
+    mobileHandoffPollingInterval = setInterval(() => {
+        fetch('/users/verify-account/status-check/')
+            .then(res => res.json())
+            .then(data => {
+                if (data.is_submitted) {
+                    stopDesktopStatusPolling();
+                    updateAllQrStatus('<span class="text-success fw-bold">✓ Submission received from phone! Updating...</span>');
+                    setTimeout(() => {
+                        window.location.href = '/users/verify-account/';
+                    }, 1200);
+                }
+            })
+            .catch(() => {});
+    }, 3500);
+}
+
+function stopDesktopStatusPolling() {
+    if (mobileHandoffPollingInterval) {
+        clearInterval(mobileHandoffPollingInterval);
+        mobileHandoffPollingInterval = null;
+    }
+}
+
+function copyMobileHandoffLink() {
+    if (!currentHandoffUrl) return;
+    navigator.clipboard.writeText(currentHandoffUrl).then(() => {
+        const btn = document.getElementById('btnCopyHandoffLink');
+        if (btn) {
+            const orig = btn.innerHTML;
+            btn.innerHTML = '✓ Copied!';
+            btn.classList.replace('btn-outline-secondary', 'btn-success');
+            setTimeout(() => {
+                btn.innerHTML = orig;
+                btn.classList.replace('btn-success', 'btn-outline-secondary');
+            }, 2000);
+        }
+    });
+}
+
+function copyDesktopHandoffLink() {
+    if (!currentHandoffUrl) {
+        openMobileHandoffModal();
+        return;
+    }
+    navigator.clipboard.writeText(currentHandoffUrl).then(() => {
+        const btn = document.getElementById('btnDesktopCopyLink');
+        if (btn) {
+            const orig = btn.innerHTML;
+            btn.innerHTML = '✓ Copied!';
+            btn.classList.replace('btn-outline-secondary', 'btn-success');
+            setTimeout(() => {
+                btn.innerHTML = orig;
+                btn.classList.replace('btn-success', 'btn-outline-secondary');
+            }, 2000);
+        }
+    });
+}
+
+function initDesktopQr() {
+    const desktopQrImg = document.getElementById('desktopQrImg');
+    const desktopQrSpinner = document.getElementById('desktopQrSpinner');
+    const desktopQrStatusText = document.getElementById('desktopQrStatusText');
+    if (!desktopQrImg) return;
+
+    fetch(`/users/verify-account/mobile-qr/?method={{ selected_method|default:"alternative" }}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.success && data.qr_data_url) {
+                currentHandoffUrl = data.handoff_url;
+                desktopQrImg.src = data.qr_data_url;
+                desktopQrImg.classList.remove('d-none');
+                if (desktopQrSpinner) desktopQrSpinner.classList.add('d-none');
+                const qrImg = document.getElementById('mobileQrCodeImg');
+                const qrSpinner = document.getElementById('qrLoadingSpinner');
+                if (qrImg) {
+                    qrImg.src = data.qr_data_url;
+                    qrImg.classList.remove('d-none');
+                }
+                if (qrSpinner) qrSpinner.classList.add('d-none');
+                startDesktopStatusPolling();
+            } else {
+                if (desktopQrStatusText) desktopQrStatusText.textContent = 'Could not load QR code.';
+            }
+        })
+        .catch(() => {
+            if (desktopQrStatusText) desktopQrStatusText.textContent = 'Error loading QR code.';
+        });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    initDesktopQr();
+});
 </script>
+
+<!-- Mobile Verification Handoff QR Code Modal -->
+<div class="modal fade" id="mobileHandoffModal" tabindex="-1" aria-labelledby="mobileHandoffModalLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 440px;">
+        <div class="modal-content shadow-lg border-0" style="border-radius: 16px; overflow: hidden;">
+            <div class="modal-header border-bottom py-3 px-4" style="background: #F8FAFC;">
+                <div class="d-flex align-items-center gap-2">
+                    <span style="font-size: 20px;">📱</span>
+                    <h5 class="modal-title fw-bold text-dark mb-0" id="mobileHandoffModalLabel" style="font-size: 1.05rem;">
+                        Complete Verification on Mobile
+                    </h5>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" onclick="stopDesktopStatusPolling()"></button>
+            </div>
+            <div class="modal-body p-4 text-center">
+                <p class="small text-muted mb-3" style="font-size: 13.5px;">
+                    Scan with your phone to start the verification process. No password needed.
+                </p>
+
+                <!-- QR Code Box -->
+                <div class="position-relative mx-auto p-3 bg-white rounded-3 mb-3 d-flex align-items-center justify-content-center"
+                     style="width: 220px; height: 220px; border: 2px dashed #CBD5E1; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+                    <div id="qrLoadingSpinner" class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Generating QR...</span>
+                    </div>
+                    <img id="mobileQrCodeImg" src="" alt="Mobile QR Code" class="w-100 h-100 d-none" style="object-fit: contain;">
+                </div>
+
+                <!-- 3 Steps Instructions -->
+                <div class="p-2.5 rounded-3 mb-3 text-start small" style="background: #F8FAFC; border: 1px solid #E2E8F0; font-size: 12.5px;">
+                    <div class="d-flex align-items-center gap-2 mb-1.5">
+                        <span class="badge bg-dark rounded-circle" style="width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; font-size: 10px;">1</span>
+                        <span>Open your phone's <strong>Camera</strong> app</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2 mb-1.5">
+                        <span class="badge bg-dark rounded-circle" style="width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; font-size: 10px;">2</span>
+                        <span>Point it at the QR code and tap the link</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-dark rounded-circle" style="width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; font-size: 10px;">3</span>
+                        <span>Follow the steps to complete the process and submit</span>
+                    </div>
+                </div>
+
+                <!-- Live Radar Status -->
+                <div class="d-flex align-items-center justify-content-center gap-2 py-1 mb-2">
+                    <span class="spinner-grow spinner-grow-sm text-success" role="status" style="width: 10px; height: 10px;"></span>
+                    <span class="small fw-semibold text-secondary" style="font-size: 12px;" id="qrStatusText">
+                        Waiting for mobile submission...
+                    </span>
+                </div>
+
+                <!-- Actions -->
+                <div class="d-flex align-items-center justify-content-center gap-2 pt-2 border-top">
+                    <button type="button" class="btn btn-outline-secondary btn-sm px-3 rounded-pill" onclick="copyMobileHandoffLink()" id="btnCopyHandoffLink">
+                        📋 Copy Link
+                    </button>
+                    <button type="button" class="btn btn-link btn-sm text-muted text-decoration-none" data-bs-dismiss="modal" onclick="stopDesktopStatusPolling()">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

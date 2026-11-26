@@ -55,8 +55,8 @@
 {# ══════════════════════════════════════════════════════════════════════════ #}
 {# PATH B: ALTERNATIVE PERSON VERIFICATION REVIEW DESK                        #}
 {# ══════════════════════════════════════════════════════════════════════════ #}
-<div class="adm-card shadow-sm p-4 mb-4" style="border-radius:16px; border:1px solid #BAE6FD; background:#FFFFFF;">
-    <div class="d-flex align-items-center justify-content-between pb-3 border-bottom flex-wrap gap-2 mb-3">
+<div class="adm-card shadow-sm mb-4" style="border-radius:16px; border:1px solid #BAE6FD; background:#FFFFFF; padding: 26px 28px !important;">
+    <div class="d-flex align-items-center justify-content-between pb-3 border-bottom flex-wrap gap-2 mb-4">
         <div class="d-flex align-items-center gap-2.5">
             <div class="rounded-circle d-flex align-items-center justify-content-center text-primary flex-shrink-0" style="width:40px; height:40px; background:#EFF6FF;">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
@@ -70,7 +70,7 @@
             {% if latest_path_b.status == 'approved' %}
                 <span class="badge rounded-pill fw-semibold" style="background:#E8F8F0; color:#16A34A; border:1px solid #C6F0D6; font-size:12px; padding:6px 12px;">✓ Approved</span>
             {% elif latest_path_b.status == 'rejected' %}
-                <span class="badge rounded-pill fw-semibold" style="background:#FEF2F2; color:#DC2626; border:1px solid #FECACA; font-size:12px; padding:6px 12px;">Declined</span>
+                <span class="badge rounded-pill fw-semibold" style="background:#FEF2F2; color:#DC2626; border:1px solid #FECACA; font-size:12px; padding:6px 12px;">✕ Declined</span>
             {% else %}
                 <span class="badge rounded-pill fw-semibold" style="background:#FEF3C7; color:#92400E; border:1px solid #FDE68A; font-size:12px; padding:6px 12px;">⏳ Pending Compliance Review</span>
             {% endif %}
@@ -80,52 +80,77 @@
     <div class="row g-4 mb-3">
         <!-- Applicant Details -->
         <div class="col-lg-5">
-            <div class="p-3.5 rounded-3 h-100" style="background:#F8FAFC; border:1px solid #E2E8F0;">
+            <div class="rounded-3 h-100" style="background:#F8FAFC; border:1px solid #E2E8F0; padding: 22px 24px !important;">
                 <div class="text-muted small fw-bold text-uppercase letter-spacing-1 mb-2" style="font-size:0.75rem;">Applicant Profile</div>
                 <h3 class="h5 fw-bold text-dark mb-3">{{ target_user.get_full_name|default:target_user.username }}</h3>
                 <table class="table table-sm table-borderless mb-0 small">
-                    <tr><td class="text-muted py-1.5 ps-2">Username:</td><td class="fw-bold">@{{ target_user.username }}</td></tr>
-                    <tr><td class="text-muted py-1.5 ps-2">Email:</td><td class="fw-bold">{{ target_user.email }}</td></tr>
-                    <tr><td class="text-muted py-1.5 ps-2">Phone:</td><td class="fw-bold">{{ target_user.phone_number|default:"—" }}</td></tr>
-                    <tr><td class="text-muted py-1.5 ps-2">Residence:</td><td class="fw-bold">{{ latest_path_b.residential_address|default:"—" }}</td></tr>
-                    <tr><td class="text-muted py-1.5 ps-2">Country:</td><td class="fw-bold">{{ latest_path_b.residential_country|default:"NG" }}</td></tr>
+                    <tr><td class="text-muted py-2 ps-1" style="width:110px;">Username:</td><td class="fw-bold py-2">@{{ target_user.username }}</td></tr>
+                    <tr><td class="text-muted py-2 ps-1">Email:</td><td class="fw-bold py-2">{{ target_user.email }}</td></tr>
+                    <tr><td class="text-muted py-2 ps-1">Phone:</td><td class="fw-bold py-2">{{ target_user.phone_number|default:"—" }}</td></tr>
+                    <tr><td class="text-muted py-2 ps-1">Residence:</td><td class="fw-bold py-2">{{ latest_path_b.residential_address|default:"—" }}</td></tr>
+                    <tr><td class="text-muted py-2 ps-1">Country:</td><td class="fw-bold py-2">{{ latest_path_b.residential_country|default:"NG" }}</td></tr>
                 </table>
             </div>
         </div>
 
         <!-- Evidence Previews -->
         <div class="col-lg-7">
-            <div class="p-3.5 rounded-3 h-100" style="background:#F8FAFC; border:1px solid #E2E8F0;">
-                <div class="text-muted small fw-bold text-uppercase letter-spacing-1 mb-2" style="font-size:0.75rem;">Submitted Personhood Evidence</div>
+            <div class="rounded-3 h-100" style="background:#F8FAFC; border:1px solid #E2E8F0; padding: 22px 24px !important;">
+                <div class="text-muted small fw-bold text-uppercase letter-spacing-1 mb-3" style="font-size:0.75rem;">Submitted Personhood Evidence</div>
                 <div class="row g-3">
-                    <div class="col-sm-6 text-center">
-                        <div class="small fw-semibold text-dark mb-1">Handwritten Card Pose Selfie</div>
+                    <!-- 1. Handwritten Card Pose Photo -->
+                    <div class="col-sm-4 text-center">
+                        <div class="small fw-semibold text-dark mb-1">Handwritten Note Pose</div>
                         {% if latest_path_b.selfie_image %}
-                        <a href="{% url 'admin_portal:alternative_verification_document' latest_path_b.id 'selfie_image' %}" target="_blank" class="d-block border rounded p-1 bg-white shadow-sm">
-                            <img src="{% url 'admin_portal:alternative_verification_document' latest_path_b.id 'selfie_image' %}" alt="Selfie" style="max-height:160px; width:auto; max-width:100%; object-fit:contain; border-radius:6px;">
+                        <a href="{% url 'admin_portal:alternative_verification_document' latest_path_b.id 'selfie_image' %}" target="_blank" class="d-block border rounded p-1.5 bg-white shadow-sm mb-1" style="min-height:130px; display:flex; align-items:center; justify-content:center;">
+                            <img src="{% url 'admin_portal:alternative_verification_document' latest_path_b.id 'selfie_image' %}" alt="Handwritten Note Pose Photo" style="max-height:120px; width:auto; max-width:100%; object-fit:contain; border-radius:6px;">
                         </a>
-                        <div class="mt-1">
-                            <a href="{% url 'admin_portal:alternative_verification_document' latest_path_b.id 'selfie_image' %}" target="_blank" class="small fw-semibold text-primary">Open Full Tab &rarr;</a>
+                        <div class="d-flex align-items-center justify-content-center gap-2 mt-1">
+                            <a href="{% url 'admin_portal:alternative_verification_document' latest_path_b.id 'selfie_image' %}" target="_blank" class="small fw-semibold text-primary text-decoration-none">Open Full &rarr;</a>
+                            <button type="button" class="btn btn-link p-0 small fw-semibold text-secondary text-decoration-none" data-bs-toggle="modal" data-bs-target="#viewPathBPoseModal">Inspect</button>
                         </div>
                         {% else %}
-                        <div class="p-4 bg-white border rounded text-muted small">No selfie file on record</div>
+                        <div class="p-3 bg-white border rounded text-muted small" style="min-height:130px; display:flex; align-items:center; justify-content:center; font-size:12px;">No note photo on record</div>
                         {% endif %}
                     </div>
-                    <div class="col-sm-6 text-center">
-                        <div class="small fw-semibold text-dark mb-1">Supporting Proof (Optional)</div>
-                        {% if latest_path_b.supporting_document %}
-                        <a href="{% url 'admin_portal:alternative_verification_document' latest_path_b.id 'supporting_document' %}" target="_blank" class="d-block border rounded p-3 bg-white shadow-sm text-center">
-                            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2" class="mb-2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                            <div class="small fw-semibold text-truncate text-primary">View Supporting Document</div>
+
+                    <!-- 2. Live Biometric Selfie -->
+                    <div class="col-sm-4 text-center">
+                        <div class="small fw-semibold text-dark mb-1">Live Camera Selfie</div>
+                        {% if target_user.has_selfie %}
+                        <a href="{% url 'admin_portal:alternative_verification_document' latest_path_b.id 'live_selfie' %}" target="_blank" class="d-block border rounded p-1.5 bg-white shadow-sm mb-1" style="min-height:130px; display:flex; align-items:center; justify-content:center;">
+                            <img src="{% url 'admin_portal:alternative_verification_document' latest_path_b.id 'live_selfie' %}" alt="Live Camera Selfie" style="max-height:120px; width:auto; max-width:100%; object-fit:contain; border-radius:6px;">
                         </a>
+                        <div class="d-flex align-items-center justify-content-center gap-2 mt-1">
+                            <a href="{% url 'admin_portal:alternative_verification_document' latest_path_b.id 'live_selfie' %}" target="_blank" class="small fw-semibold text-primary text-decoration-none">Open Full &rarr;</a>
+                            <button type="button" class="btn btn-link p-0 small fw-semibold text-secondary text-decoration-none" data-bs-toggle="modal" data-bs-target="#viewPathBSelfieModal">Inspect</button>
+                        </div>
                         {% else %}
-                        <div class="p-4 bg-white border rounded text-muted small">No supporting document uploaded</div>
+                        <div class="p-3 bg-white border rounded text-muted small" style="min-height:130px; display:flex; align-items:center; justify-content:center; font-size:12px;">No live selfie on record</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- 3. Supporting Document (Optional) -->
+                    <div class="col-sm-4 text-center">
+                        <div class="small fw-semibold text-dark mb-1">Supporting Proof <span class="text-muted fw-normal" style="font-size:11px;">(Opt)</span></div>
+                        {% if latest_path_b.supporting_document %}
+                        <a href="{% url 'admin_portal:alternative_verification_document' latest_path_b.id 'supporting_document' %}" target="_blank" class="d-block border rounded p-2.5 bg-white shadow-sm text-center mb-1" style="min-height:130px; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+                            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2" class="mb-1"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                            <div class="small fw-semibold text-truncate text-primary" style="max-width:110px;">View Document</div>
+                        </a>
+                        <div class="mt-1">
+                            <a href="{% url 'admin_portal:alternative_verification_document' latest_path_b.id 'supporting_document' %}?download=1" class="small fw-semibold text-secondary text-decoration-none">Download</a>
+                        </div>
+                        {% else %}
+                        <div class="p-3 bg-white border rounded text-muted small" style="min-height:130px; display:flex; align-items:center; justify-content:center; font-size:11.5px; line-height:1.4;">
+                            No supporting document uploaded
+                        </div>
                         {% endif %}
                     </div>
                 </div>
 
                 <!-- Compliance Checklist for Handwritten Card -->
-                <div class="mt-3 pt-3 border-top">
+                <div class="mt-3.5 pt-3 border-top">
                     <div class="d-flex align-items-center justify-content-between mb-2">
                         <span class="text-muted small fw-bold text-uppercase letter-spacing-1" style="font-size:0.75rem;">Required Handwritten Note Checklist</span>
                         <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size:0.75rem;">Verification Benchmark</span>
@@ -153,7 +178,7 @@
                     </div>
                     <div class="small text-muted mt-1.5" style="font-size:0.75rem;">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2.5" class="me-1"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-                        Confirm that all 4 handwritten items in the selfie photo above match this compliance benchmark before approving.
+                        Confirm that all 4 handwritten items in the pose photo match this compliance benchmark, and that the face in the live selfie matches before approving.
                     </div>
                 </div>
             </div>
@@ -162,7 +187,7 @@
 
     <!-- Actions for Alternative Verification -->
     {% if latest_path_b.status == 'pending' %}
-    <div class="d-flex align-items-center justify-content-between pt-3 border-top flex-wrap gap-2">
+    <div class="d-flex align-items-center justify-content-between pt-3.5 mt-2 border-top flex-wrap gap-2 px-1">
         <button type="button" class="btn btn-outline-secondary btn-sm px-3" data-bs-toggle="modal" data-bs-target="#requestMoreInfoModal">
             💬 Request Clarification
         </button>
@@ -174,6 +199,43 @@
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
                 <span>Approve Alternative Verification</span>
             </button>
+        </div>
+    </div>
+    {% elif latest_path_b.status == 'rejected' %}
+    <div class="d-flex align-items-center justify-content-between pt-3.5 mt-2 border-top flex-wrap gap-2 px-1">
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-3 py-1.5 fw-semibold">
+                ✕ Alternative Verification Declined
+            </span>
+            {% if latest_path_b.rejection_reason %}
+            <span class="small text-muted">Reason: <strong class="text-danger">{{ latest_path_b.rejection_reason }}</strong></span>
+            {% endif %}
+            {% if latest_path_b.reviewed_at %}
+            <span class="small text-muted">&bull; {{ latest_path_b.reviewed_at|date:"d M Y, H:i" }}</span>
+            {% endif %}
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-light text-secondary border fw-normal" style="font-size:11.5px;">All action buttons disabled (Declined)</span>
+            <a href="{% url 'admin_portal:user_detail' target_user.public_id %}" class="btn btn-outline-secondary btn-sm px-3 py-1 fw-semibold">
+                View User Profile &rarr;
+            </a>
+        </div>
+    </div>
+    {% elif latest_path_b.status == 'approved' %}
+    <div class="d-flex align-items-center justify-content-between pt-3.5 mt-2 border-top flex-wrap gap-2 px-1">
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1.5 fw-semibold">
+                ✓ Alternative Verification Approved
+            </span>
+            {% if latest_path_b.reviewed_at %}
+            <span class="small text-muted">Approved on {{ latest_path_b.reviewed_at|date:"d M Y, H:i" }}</span>
+            {% endif %}
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-light text-secondary border fw-normal" style="font-size:11.5px;">All action buttons disabled (Approved)</span>
+            <a href="{% url 'admin_portal:user_detail' target_user.public_id %}" class="btn btn-outline-secondary btn-sm px-3 py-1 fw-semibold">
+                Manage on User Profile &rarr;
+            </a>
         </div>
     </div>
     {% endif %}
@@ -383,10 +445,12 @@
                 </button>
             {% endif %}
 
+            {% if target_user.id_verification_status == 'pending' %}
             <button type="button" class="btn btn-outline-secondary btn-sm px-3 py-1.5 fw-semibold d-inline-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#requestMoreInfoModal">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                 <span>Request More Info</span>
             </button>
+            {% endif %}
         </div>
 
         <!-- Approval / Rejection Actions -->
@@ -397,6 +461,16 @@
                 </span>
                 <a href="{% url 'admin_portal:user_detail' target_user.public_id %}" class="btn btn-outline-secondary btn-sm px-3 py-1.5 fw-semibold">
                     Manage on User Profile &rarr;
+                </a>
+            {% elif target_user.id_verification_status == 'rejected' %}
+                <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-3 py-2 fw-semibold">
+                    ✕ Government ID Proof Declined
+                </span>
+                {% if target_user.id_rejection_reason %}
+                <span class="small text-muted">Reason: <strong class="text-danger">{{ target_user.id_rejection_reason }}</strong></span>
+                {% endif %}
+                <a href="{% url 'admin_portal:user_detail' target_user.public_id %}" class="btn btn-outline-secondary btn-sm px-3 py-1.5 fw-semibold">
+                    View on User Profile &rarr;
                 </a>
             {% elif target_user.id_verification_status == 'expired' %}
                 <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill px-3 py-2 fw-semibold">
@@ -412,7 +486,7 @@
                 <a href="{% url 'admin_portal:user_detail' target_user.public_id %}" class="btn btn-outline-secondary btn-sm px-3 py-1.5 fw-semibold">
                     Manage on User Profile &rarr;
                 </a>
-            {% else %}
+            {% elif target_user.id_verification_status == 'pending' %}
                 <!-- Approve as Basic Verified (Bootstrap Modal Trigger - NO JS Alert) -->
                 <button type="button" class="btn btn-primary btn-sm px-3.5 py-2 fw-semibold shadow-sm d-inline-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#approveBasicIdModal">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
@@ -430,6 +504,13 @@
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
                     <span>Decline ID Proof</span>
                 </button>
+            {% else %}
+                <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill px-3 py-2 fw-semibold">
+                    No Action Required
+                </span>
+                <a href="{% url 'admin_portal:user_detail' target_user.public_id %}" class="btn btn-outline-secondary btn-sm px-3 py-1.5 fw-semibold">
+                    View on User Profile &rarr;
+                </a>
             {% endif %}
         </div>
     </div>
@@ -440,7 +521,63 @@
 {# MODALS                                                                     #}
 {# ══════════════════════════════════════════════════════════════════════════ #}
 
+<!-- Path B: Inspect Handwritten Pose Modal -->
+{% if latest_path_b and latest_path_b.selfie_image %}
+<div class="modal fade" id="viewPathBPoseModal" tabindex="-1" aria-labelledby="viewPathBPoseModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content shadow-lg border-0" style="border-radius:14px;">
+            <div class="modal-header border-bottom py-3">
+                <h5 class="modal-title fw-bold mb-0 text-dark" id="viewPathBPoseModalLabel">
+                    Handwritten Challenge Note Pose Photo: {{ target_user.get_full_name|default:target_user.username }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0 text-center bg-dark overflow-hidden position-relative" style="min-height:420px; display:flex; align-items:center; justify-content:center;">
+                <img id="adminPathBPoseImg" src="{% url 'admin_portal:alternative_verification_document' latest_path_b.id 'selfie_image' %}" alt="Handwritten Note Pose Photo" style="max-height:580px; max-width:100%; object-fit:contain; transition: transform 0.25s ease;">
+            </div>
+            <div class="modal-footer border-top py-2 d-flex justify-content-between flex-wrap gap-2">
+                <span class="text-muted small">Issued Benchmark Code: <strong class="text-danger font-monospace">{{ latest_path_b.challenge_code|default:"—" }}</strong></span>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm px-3" onclick="rotateAdminModalImg('adminPathBPoseImg')">🔄 Rotate 90°</button>
+                    <a href="{% url 'admin_portal:alternative_verification_document' latest_path_b.id 'selfie_image' %}" target="_blank" class="btn btn-outline-primary btn-sm px-3">Open Full Tab</a>
+                    <a href="{% url 'admin_portal:alternative_verification_document' latest_path_b.id 'selfie_image' %}?download=1" class="btn btn-outline-secondary btn-sm px-3">Download</a>
+                    <button type="button" class="btn btn-secondary btn-sm px-3" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Path B: Inspect Live Selfie Modal -->
+{% if latest_path_b and target_user.has_selfie %}
+<div class="modal fade" id="viewPathBSelfieModal" tabindex="-1" aria-labelledby="viewPathBSelfieModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content shadow-lg border-0" style="border-radius:14px;">
+            <div class="modal-header border-bottom py-3">
+                <h5 class="modal-title fw-bold mb-0 text-dark" id="viewPathBSelfieModalLabel">
+                    Live Biometric Camera Selfie: {{ target_user.get_full_name|default:target_user.username }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0 text-center bg-dark overflow-hidden position-relative" style="min-height:420px; display:flex; align-items:center; justify-content:center;">
+                <img id="adminPathBSelfieImg" src="{% url 'admin_portal:alternative_verification_document' latest_path_b.id 'live_selfie' %}" alt="Live Camera Selfie" style="max-height:580px; max-width:100%; object-fit:contain; transition: transform 0.25s ease;">
+            </div>
+            <div class="modal-footer border-top py-2 d-flex justify-content-between flex-wrap gap-2">
+                <span class="text-muted small">Captured via live browser camera verification</span>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm px-3" onclick="rotateAdminModalImg('adminPathBSelfieImg')">🔄 Rotate 90°</button>
+                    <a href="{% url 'admin_portal:alternative_verification_document' latest_path_b.id 'live_selfie' %}" target="_blank" class="btn btn-outline-primary btn-sm px-3">Open Full Tab</a>
+                    <button type="button" class="btn btn-secondary btn-sm px-3" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <!-- 0. Approve as Basic Verified Modal (Bootstrap Modal) -->
+{% if target_user.id_verification_status == 'pending' %}
 <div class="modal fade" id="approveBasicIdModal" tabindex="-1" aria-labelledby="approveBasicIdModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content shadow-lg border-0" style="border-radius:14px;">
@@ -493,9 +630,10 @@
         </div>
     </div>
 </div>
+{% endif %}
 
 <!-- 0.1. Approve Alternative Verification Modal (Path B) -->
-{% if latest_path_b %}
+{% if latest_path_b and latest_path_b.status == 'pending' %}
 <div class="modal fade" id="approvePathBModal" tabindex="-1" aria-labelledby="approvePathBModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content shadow-lg border-0" style="border-radius:14px;">
@@ -552,16 +690,19 @@
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body p-0 text-center bg-dark" style="min-height:480px; display:flex; align-items:center; justify-content:center;">
+            <div class="modal-body p-0 text-center bg-dark overflow-hidden position-relative" style="min-height:480px; display:flex; align-items:center; justify-content:center;">
                 {% if target_user.id_document_is_pdf %}
                     <iframe src="{% url 'admin_portal:user_id_document' target_user.public_id %}" style="width:100%; height:620px; border:none;"></iframe>
                 {% else %}
-                    <img src="{% url 'admin_portal:user_id_document' target_user.public_id %}" alt="Government ID" style="max-height:600px; max-width:100%; object-fit:contain;">
+                    <img id="adminGovDocImg" src="{% url 'admin_portal:user_id_document' target_user.public_id %}" alt="Government ID" style="max-height:600px; max-width:100%; object-fit:contain; transition: transform 0.25s ease;">
                 {% endif %}
             </div>
-            <div class="modal-footer border-top py-2 d-flex justify-content-between">
+            <div class="modal-footer border-top py-2 d-flex justify-content-between flex-wrap gap-2">
                 <span class="text-muted small">Masked Number: <code>{{ target_user.masked_id_number }}</code></span>
                 <div class="d-flex gap-2">
+                    {% if not target_user.id_document_is_pdf %}
+                    <button type="button" class="btn btn-outline-secondary btn-sm px-3" onclick="rotateAdminModalImg('adminGovDocImg')">🔄 Rotate 90°</button>
+                    {% endif %}
                     <a href="{% url 'admin_portal:user_id_document' target_user.public_id %}" target="_blank" class="btn btn-outline-primary btn-sm px-3">Open Full Tab</a>
                     <a href="{% url 'admin_portal:user_id_document' target_user.public_id %}?download=1" class="btn btn-outline-secondary btn-sm px-3">Download</a>
                     <button type="button" class="btn btn-secondary btn-sm px-3" data-bs-dismiss="modal">Close</button>
@@ -583,12 +724,13 @@
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body p-0 text-center bg-dark" style="min-height:420px; display:flex; align-items:center; justify-content:center;">
-                <img src="{% url 'admin_portal:user_id_selfie' target_user.public_id %}" alt="Live Selfie" style="max-height:540px; max-width:100%; object-fit:contain;">
+            <div class="modal-body p-0 text-center bg-dark overflow-hidden position-relative" style="min-height:420px; display:flex; align-items:center; justify-content:center;">
+                <img id="adminGovSelfieImg" src="{% url 'admin_portal:user_id_selfie' target_user.public_id %}" alt="Live Selfie" style="max-height:540px; max-width:100%; object-fit:contain; transition: transform 0.25s ease;">
             </div>
-            <div class="modal-footer border-top py-2 d-flex justify-content-between">
+            <div class="modal-footer border-top py-2 d-flex justify-content-between flex-wrap gap-2">
                 <span class="text-muted small">Captured via live browser camera verification</span>
                 <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm px-3" onclick="rotateAdminModalImg('adminGovSelfieImg')">🔄 Rotate 90°</button>
                     <a href="{% url 'admin_portal:user_id_selfie' target_user.public_id %}" target="_blank" class="btn btn-outline-primary btn-sm px-3">Open Full Tab</a>
                     <button type="button" class="btn btn-secondary btn-sm px-3" data-bs-dismiss="modal">Close</button>
                 </div>
@@ -599,6 +741,7 @@
 {% endif %}
 
 <!-- 3. Decline ID Proof Modal -->
+{% if target_user.id_verification_status == 'pending' %}
 <div class="modal fade" id="rejectUserIdModal" tabindex="-1" aria-labelledby="rejectUserIdModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content shadow-lg border-0" style="border-radius:14px;">
@@ -650,8 +793,10 @@
         </div>
     </div>
 </div>
+{% endif %}
 
 <!-- 4. Approve as Enhanced Verified Modal -->
+{% if target_user.id_verification_status == 'pending' %}
 <div class="modal fade" id="approveEnhancedIdModal" tabindex="-1" aria-labelledby="approveEnhancedIdModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content shadow-lg border-0" style="border-radius:14px;">
@@ -709,6 +854,7 @@
         </div>
     </div>
 </div>
+{% endif %}
 
 <!-- 5. Request Clarification Modal -->
 <div class="modal fade" id="requestMoreInfoModal" tabindex="-1" aria-labelledby="requestMoreInfoModalLabel" aria-hidden="true">
@@ -796,6 +942,14 @@
 {% endif %}
 
 <script>
+let _adminRotations = {};
+function rotateAdminModalImg(imgId) {
+    const el = document.getElementById(imgId);
+    if (!el) return;
+    _adminRotations[imgId] = ((_adminRotations[imgId] || 0) + 90) % 360;
+    el.style.transform = `rotate(${_adminRotations[imgId]}deg)`;
+}
+
 function toggleRevealId(fullId, maskedId) {
     const el = document.getElementById('maskedIdDisplay');
     const btn = document.getElementById('revealIdBtnText');

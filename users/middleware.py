@@ -45,6 +45,17 @@ class SuspendedUserMiddleware:
         ):
             return redirect('users:account_suspended')
 
+        # If user navigates away from verification to any other page, clear the pending code
+        # so returning later generates a fresh code, while F5 reloads on the page stay stable
+        if (
+            hasattr(request, 'session')
+            and 'vng_path_b_code' in request.session
+            and not request.path.startswith(('/users/verify-account', '/users/profile/verify', '/static/', '/media/'))
+            and request.headers.get('x-requested-with') != 'XMLHttpRequest'
+        ):
+            request.session.pop('vng_path_b_code', None)
+            request.session.pop('vng_path_b_code_created_at', None)
+
         return self.get_response(request)
 
     

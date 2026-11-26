@@ -447,19 +447,12 @@ class VerifyAccountView(LoginRequiredMixin, View):
         import time
 
         now_ts = time.time()
-        referer = request.META.get('HTTP_REFERER', '')
-        # Check if the user is reloading the verification page or navigating from outside
-        is_same_page_reload = bool(referer and 'verify-account' in referer)
         code_created_at = request.session.get('vng_path_b_code_created_at', 0)
         is_expired = (now_ts - code_created_at) > 1800  # 30 minutes expiry
         force_refresh = request.GET.get('refresh_code') == '1'
 
-        if force_refresh or is_expired or (not is_same_page_reload and 'vng_path_b_code' in request.session):
-            # Navigated from outside, expired, or user explicitly requested refresh -> generate fresh code
-            request.session['vng_path_b_code'] = f"VNG-{random.randint(100000, 999999)}"
-            request.session['vng_path_b_code_created_at'] = now_ts
-        elif 'vng_path_b_code' not in request.session:
-            # First time load
+        # Stable during reload; refreshed if explicitly requested, expired (30m), or first visit
+        if force_refresh or is_expired or ('vng_path_b_code' not in request.session):
             request.session['vng_path_b_code'] = f"VNG-{random.randint(100000, 999999)}"
             request.session['vng_path_b_code_created_at'] = now_ts
 
@@ -1155,7 +1148,6 @@ class PathBVerificationSubmitView(LoginRequiredMixin, View):
         # Handle Live Selfie (5B)
         alt_selfie_doc = request.FILES.get('id_selfie_image')
         if not alt_selfie_doc and request.POST.get('id_selfie_data'):
-            from users.views import decode_base64_image
             alt_selfie_doc = decode_base64_image(request.POST.get('id_selfie_data'), prefix=f"alt_live_selfie_{user.pk}")
         if alt_selfie_doc:
             user.id_selfie_image = alt_selfie_doc
@@ -1430,3 +1422,124 @@ class RegisterCompanyView(LoginRequiredMixin, FormView):
             f"Welcome to the Employer Portal! Your organisation '{company_name}' is now registered. Please complete your CAC verification to unlock full screening services."
         )
         return HttpResponseRedirect(reverse('employer:dashboard'))
+
+
+class VerificationMobileQRCodeView(LoginRequiredMixin, View):
+    """
+    Generates a secure QR code data URL allowing desktop users to scan and seamlessly
+    hand off their verification process to their mobile smartphone camera.
+    """
+    def get(self, request):
+        import qrcode
+        import io
+        import base64
+        import socket
+        from django.conf import settings
+        from django.core.signing import TimestampSigner
+
+        user = request.user
+        method = request.GET.get('method', 'alternative').strip().lower()
+        if method not in ('alternative', 'government_id'):
+            method = 'alternative'
+
+        # Generate secure signed token valid for 30 minutes (1800s)
+        signer = TimestampSigner(salt='mobile-verification-handoff')
+        token = signer.sign(f"{user.pk}:{method}")
+
+        host = request.get_host()
+        # In development, ensure phones on local Wi-Fi resolve the machine's LAN IP rather than localhost
+        if settings.DEBUG and any(lh in host.lower() for lh in ('localhost', '127.0.0.1')):
+            try:
+                local_ips = socket.gethostbyname_ex(socket.gethostname())[2]
+                if local_ips:
+                    port = request.get_port()
+                    host = f"{local_ips[0]}:{port}" if port else local_ips[0]
+            except Exception:
+                pass
+
+        scheme = 'https' if request.is_secure() else 'http'
+        handoff_path = reverse('users:mobile_verification_handoff')
+        full_handoff_url = f"{scheme}://{host}{handoff_path}?token={token}"
+
+        # Generate high-contrast, clean QR code
+        qr = qrcode.QRCode(
+            version=None,
+            error_correction=qrcode.constants.ERROR_CORRECT_M,
+            box_size=8,
+            border=2,
+        )
+        qr.add_data(full_handoff_url)
+        qr.make(fit=True)
+        img = qr.make_image(fill_color="#0F172A", back_color="#FFFFFF")
+
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        qr_b64 = base64.b64encode(buf.getvalue()).decode('ascii')
+        qr_data_url = f"data:image/png;base64,{qr_b64}"
+
+        return JsonResponse({
+            'success': True,
+            'qr_data_url': qr_data_url,
+            'handoff_url': full_handoff_url,
+            'expires_in': 1800,
+            'method': method,
+        })
+
+
+class MobileVerificationHandoffView(View):
+    """
+    Public entrypoint for mobile devices scanning the verification QR code.
+    Validates token, signs the mobile device into the user's session without password prompts,
+    and forwards directly to the mobile-optimized verification wizard.
+    """
+    def get(self, request):
+        from django.core.signing import TimestampSigner, BadSignature, SignatureExpired
+        from django.contrib.auth import login
+        from users.models import User
+
+        token = request.GET.get('token', '').strip()
+        if not token:
+            messages.error(request, "Invalid or missing mobile verification link.")
+            return redirect('users:login')
+
+        signer = TimestampSigner(salt='mobile-verification-handoff')
+        try:
+            # 30-minute validity window
+            payload = signer.unsign(token, max_age=1800)
+            user_id_str, method = payload.split(':', 1)
+            target_user = User.objects.get(pk=user_id_str)
+        except (BadSignature, SignatureExpired, ValueError, User.DoesNotExist):
+            messages.error(request, "This verification QR code has expired or is invalid. Please scan a fresh code from your computer.")
+            return redirect('users:login')
+
+        # Log user into the mobile browser session seamlessly
+        if request.user != target_user:
+            login(request, target_user, backend='django.contrib.auth.backends.ModelBackend')
+
+        request.session['vng_mobile_handoff'] = True
+
+        target_url = reverse('users:verify_account') + f"?method={method}&from_qr=1"
+        return redirect(target_url)
+
+
+class VerificationStatusCheckView(LoginRequiredMixin, View):
+    """
+    AJAX polling endpoint called by the desktop QR code modal to detect
+    when the user has finished submitting their verification on their mobile device.
+    """
+    def get(self, request):
+        user = request.user
+        has_pending_path_b = user.alternative_verification_submissions.filter(status='pending').exists()
+        has_pending_gov_id = (user.id_verification_status == 'pending') or (
+            bool(user.id_document and hasattr(user.id_document, 'name') and user.id_document.name)
+            and user.id_verification_status not in ('rejected', 'verified', 'suspended', 'expired')
+        )
+        is_submitted = has_pending_path_b or has_pending_gov_id
+        active_method = 'alternative' if has_pending_path_b else ('government_id' if has_pending_gov_id else '')
+
+        return JsonResponse({
+            'is_submitted': is_submitted,
+            'method': active_method,
+            'status': 'pending' if is_submitted else 'idle',
+        })
+

@@ -886,7 +886,7 @@ class AdminUserSelfieDocumentView(SuperAdminRequiredMixin, View):
 class AdminAlternativeVerificationDocumentView(SuperAdminRequiredMixin, View):
     """
     Secure streaming proxy for compliance officers to view sensitive Path B private evidence
-    (selfie verification challenge, supporting address proof) directly from private storage.
+    (handwritten card pose photo, live biometric selfie, supporting document) directly from private storage.
     Zero public URLs, POSIX filesystem streaming, and strict compliance access controls.
     """
     section_name = "User Management"
@@ -896,13 +896,26 @@ class AdminAlternativeVerificationDocumentView(SuperAdminRequiredMixin, View):
         from users.models import AlternativeVerificationSubmission
         submission = get_object_or_404(AlternativeVerificationSubmission, id=submission_id)
 
-        file_field = submission.selfie_image if doc_field == 'selfie' else submission.supporting_document
+        doc_norm = (doc_field or '').lower()
+        if doc_norm in ('selfie', 'selfie_image', 'handwritten_note', 'pose', 'pose_photo'):
+            file_field = submission.selfie_image
+        elif doc_norm in ('live_selfie', 'id_selfie', 'user_selfie', 'biometric_selfie'):
+            file_field = getattr(submission, 'live_selfie_image', None) or submission.user.id_selfie_image
+        elif doc_norm in ('supporting_document', 'document', 'supporting'):
+            file_field = submission.supporting_document
+        else:
+            file_field = submission.selfie_image or submission.supporting_document
+
         if not file_field:
             raise Http404("Document not found.")
 
         try:
             opened_file = file_field.open('rb')
         except Exception:
+            # Fallback for Cloudinary or external storage redirect if available
+            url = getattr(file_field, 'url', None)
+            if url and str(url).startswith(('http://', 'https://')):
+                return HttpResponseRedirect(url)
             raise Http404("Could not access the private evidence file.")
 
         ext = file_field.name.split('.')[-1].lower() if '.' in file_field.name else 'jpg'
