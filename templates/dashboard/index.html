@@ -129,32 +129,48 @@
             </div>
         </div>
         {% elif request.user.id_verification_status == 'rejected' %}
-        <div class="alert d-flex align-items-start gap-3 mb-4"
+        <div class="alert alert-dismissible fade show d-flex align-items-start gap-3 mb-4 position-relative"
+             role="alert"
              style="background:#FEF2F2;border:1px solid #FECACA;border-radius:var(--vng-radius-md);">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2" class="flex-shrink-0 mt-1">
                 <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
             </svg>
-            <div>
+            <div class="flex-grow-1 pe-2">
                 <div class="fw-semibold" style="color:#991B1B;">Profile Verification Declined</div>
                 <div class="small" style="color:#991B1B;">
                     {{ request.user.id_rejection_reason|default:"Your credentials could not be authenticated." }}
                     <a href="{% url 'users:verify_account' %}" style="color:#991B1B;font-weight:600;text-decoration:underline;">Upload updated ID proof &rarr;</a>
                 </div>
             </div>
+            <button type="button"
+                    class="btn-close"
+                    data-bs-dismiss="alert"
+                    aria-label="Dismiss notification"
+                    onclick="const a = this.closest('.alert'); if (a) { a.style.transition = 'opacity 0.25s ease, transform 0.25s ease'; a.style.opacity = '0'; a.style.transform = 'translateY(-6px)'; setTimeout(() => a.remove(), 250); }"
+                    style="padding:0.75rem; margin-top:-2px; margin-right:-2px; opacity:0.6; cursor:pointer;"
+                    title="Dismiss"></button>
         </div>
         {% elif request.user.id_verification_status == 'pending' or request.user.has_id_document and request.user.id_verification_status not in 'verified,rejected,suspended,expired' %}
-        <div class="alert d-flex align-items-start gap-3 mb-4"
+        <div class="alert alert-dismissible fade show d-flex align-items-start gap-3 mb-4 position-relative"
+             role="alert"
              style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:var(--vng-radius-md);">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2" class="flex-shrink-0 mt-1">
                 <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
             </svg>
-            <div>
+            <div class="flex-grow-1 pe-2">
                 <div class="fw-semibold" style="color:#1E40AF;">Verification Under Compliance Review</div>
                 <div class="small" style="color:#1E40AF;">
                     Your account verification is being reviewed by compliance. You'll receive an update once your account is approved.
                     <a href="{% url 'users:verify_account' %}" style="color:#1E40AF;font-weight:600;text-decoration:underline;">Check status &rarr;</a>
                 </div>
             </div>
+            <button type="button"
+                    class="btn-close"
+                    data-bs-dismiss="alert"
+                    aria-label="Dismiss notification"
+                    onclick="const a = this.closest('.alert'); if (a) { a.style.transition = 'opacity 0.25s ease, transform 0.25s ease'; a.style.opacity = '0'; a.style.transform = 'translateY(-6px)'; setTimeout(() => a.remove(), 250); }"
+                    style="padding:0.75rem; margin-top:-2px; margin-right:-2px; opacity:0.6; cursor:pointer;"
+                    title="Dismiss"></button>
         </div>
         {% else %}
         <div class="alert d-flex align-items-start gap-3 mb-4"
