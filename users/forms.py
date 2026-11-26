@@ -364,6 +364,10 @@ class PathBAlternativeVerificationForm(forms.ModelForm):
         widget=forms.Select(attrs={'class': 'form-select', 'id': 'path_b_country'}),
         help_text="Country of current physical residence"
     )
+    challenge_code = forms.CharField(
+        widget=forms.HiddenInput(),
+        required=False
+    )
     residential_address = forms.CharField(
         widget=forms.TextInput(attrs={
             'class': 'form-control',
@@ -384,6 +388,7 @@ class PathBAlternativeVerificationForm(forms.ModelForm):
         model = AlternativeVerificationSubmission
         fields = [
             'evidence_type',
+            'challenge_code',
             'selfie_image',
             'supporting_document',
             'residential_country',

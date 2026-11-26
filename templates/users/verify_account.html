@@ -1491,6 +1491,7 @@
                         <form method="post" id="pathBVerificationForm" action="{% url 'users:verify_alternative_submit' %}" enctype="multipart/form-data" novalidate>
                             {% csrf_token %}
                             <input type="hidden" name="evidence_type" value="selfie_card">
+                            <input type="hidden" name="challenge_code" value="{{ path_b_code }}">
                             <input type="hidden" name="email_verified" id="altHiddenEmailVerified" value="{% if is_email_verified %}true{% else %}false{% endif %}">
                             <input type="hidden" name="phone_verified" id="altHiddenPhoneVerified" value="{% if is_phone_verified %}true{% else %}false{% endif %}">
 
@@ -1822,6 +1823,12 @@
                                                     <div class="fw-bold text-primary">2. {{ request.user.get_full_name|default:request.user.username }}</div>
                                                     <div class="fw-bold text-dark">3. {% now "d.m.Y" %} <span class="text-muted fw-normal" style="font-size:12px;">({% now "jS F Y" %})</span></div>
                                                     <div class="fw-bold text-danger">4. {{ path_b_code|default:"VNG-582914" }}</div>
+                                                </div>
+                                                <div class="d-flex justify-content-end mb-2">
+                                                    <a href="?method=alternative&refresh_code=1" class="text-decoration-none small text-muted d-inline-flex align-items-center gap-1" style="font-size:11.5px;" title="Click if you need to generate a new handwritten code">
+                                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                                                        Need a fresh code? Regenerate
+                                                    </a>
                                                 </div>
                                                 <ul class="small text-muted mb-0 ps-3" style="font-size:12.5px;line-height:1.6;">
                                                     <li>Write with dark marker or pen on blank paper.</li>

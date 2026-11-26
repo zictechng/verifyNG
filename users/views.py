@@ -442,10 +442,27 @@ class VerifyAccountView(LoginRequiredMixin, View):
         is_phone_verified = getattr(user, 'phone_verified', False) or bool(request.session.get('vng_verified_phone'))
         user_phone = getattr(user, 'phone_number', '') or request.session.get('vng_verified_phone', '')
 
-        # Generate or retrieve unique 6-digit verification code for Path B Pose Challenge
-        if 'vng_path_b_code' not in request.session:
-            import random
+        # Dynamic Verification Code for Path B Pose Challenge
+        import random
+        import time
+
+        now_ts = time.time()
+        referer = request.META.get('HTTP_REFERER', '')
+        # Check if the user is reloading the verification page or navigating from outside
+        is_same_page_reload = bool(referer and 'verify-account' in referer)
+        code_created_at = request.session.get('vng_path_b_code_created_at', 0)
+        is_expired = (now_ts - code_created_at) > 1800  # 30 minutes expiry
+        force_refresh = request.GET.get('refresh_code') == '1'
+
+        if force_refresh or is_expired or (not is_same_page_reload and 'vng_path_b_code' in request.session):
+            # Navigated from outside, expired, or user explicitly requested refresh -> generate fresh code
             request.session['vng_path_b_code'] = f"VNG-{random.randint(100000, 999999)}"
+            request.session['vng_path_b_code_created_at'] = now_ts
+        elif 'vng_path_b_code' not in request.session:
+            # First time load
+            request.session['vng_path_b_code'] = f"VNG-{random.randint(100000, 999999)}"
+            request.session['vng_path_b_code_created_at'] = now_ts
+
         path_b_code = request.session['vng_path_b_code']
 
         return render(request, self.template_name, {
@@ -1094,6 +1111,15 @@ class PathBVerificationSubmitView(LoginRequiredMixin, View):
         submission.user = user
         submission.status = 'pending'
 
+        # Persist the exact challenge code issued to the user
+        challenge_code = (
+            request.POST.get('challenge_code', '').strip()
+            or (request.session.get('vng_path_b_code') if hasattr(request, 'session') else '')
+            or ''
+        )
+        if challenge_code:
+            submission.challenge_code = challenge_code
+
         # Update contact credentials and verified standing
         session = getattr(request, 'session', None)
         sess_dict = session if hasattr(session, 'get') else {}
@@ -1137,6 +1163,11 @@ class PathBVerificationSubmitView(LoginRequiredMixin, View):
         user.save()
         submission.save()
 
+        # Clear active session challenge code so any future verification starts fresh
+        if hasattr(request, 'session'):
+            request.session.pop('vng_path_b_code', None)
+            request.session.pop('vng_path_b_code_created_at', None)
+
         # 5. Audit log entry
         AuditLog.objects.create(
             action="USER_ALTERNATIVE_VERIFICATION_SUBMITTED",
@@ -1145,6 +1176,7 @@ class PathBVerificationSubmitView(LoginRequiredMixin, View):
             details={
                 "submission_id": submission.pk,
                 "evidence_type": submission.evidence_type,
+                "challenge_code": submission.challenge_code,
                 "residential_country": submission.residential_country,
             }
         )

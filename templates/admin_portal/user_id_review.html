@@ -123,6 +123,39 @@
                         {% endif %}
                     </div>
                 </div>
+
+                <!-- Compliance Checklist for Handwritten Card -->
+                <div class="mt-3 pt-3 border-top">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <span class="text-muted small fw-bold text-uppercase letter-spacing-1" style="font-size:0.75rem;">Required Handwritten Note Checklist</span>
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size:0.75rem;">Verification Benchmark</span>
+                    </div>
+                    <div class="p-2.5 rounded-2" style="background:#FFFFFF; border:1px solid #CBD5E1; font-size:0.85rem;">
+                        <div class="row g-2">
+                            <div class="col-sm-6">
+                                <span class="text-muted">1. Platform:</span> <span class="fw-bold text-dark ms-1">VerifyNG</span>
+                            </div>
+                            <div class="col-sm-6">
+                                <span class="text-muted">2. Name:</span> <span class="fw-bold text-primary ms-1">{{ target_user.get_full_name|default:target_user.username }}</span>
+                            </div>
+                            <div class="col-sm-6">
+                                <span class="text-muted">3. Date:</span> <span class="fw-bold text-dark ms-1">{{ latest_path_b.submitted_at|date:"d.m.Y" }} <span class="text-muted fw-normal" style="font-size:0.75rem;">({{ latest_path_b.submitted_at|date:"jS F Y" }})</span></span>
+                            </div>
+                            <div class="col-sm-6">
+                                <span class="text-muted">4. Issued Code:</span>
+                                {% if latest_path_b.challenge_code %}
+                                <span class="badge bg-danger-subtle text-danger font-monospace border border-danger-subtle px-2 py-1 ms-1" style="font-size:0.875rem; letter-spacing:0.5px;">{{ latest_path_b.challenge_code }}</span>
+                                {% else %}
+                                <span class="text-muted fst-italic ms-1">Not captured (legacy)</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="small text-muted mt-1.5" style="font-size:0.75rem;">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2.5" class="me-1"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                        Confirm that all 4 handwritten items in the selfie photo above match this compliance benchmark before approving.
+                    </div>
+                </div>
             </div>
         </div>
     </div>

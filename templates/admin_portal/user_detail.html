@@ -993,6 +993,7 @@
                 </div>
                 <table class="table table-sm table-borderless mb-0 small" style="font-size:0.82rem;">
                   <tr><td class="text-muted ps-2 py-1" style="width:38%;">Challenge Type:</td><td class="fw-semibold text-dark py-1">{{ sub.get_evidence_type_display }}</td></tr>
+                  <tr><td class="text-muted ps-2 py-1">Challenge Code:</td><td class="fw-bold font-monospace text-danger py-1">{{ sub.challenge_code|default:"—" }}</td></tr>
                   <tr><td class="text-muted ps-2 py-1">Residence:</td><td class="fw-semibold text-dark py-1">{{ sub.residential_address }}, {{ sub.residential_country }}</td></tr>
                   <tr><td class="text-muted ps-2 py-1">Declaration:</td><td class="small text-muted py-1 fst-italic">"{{ sub.declaration_statement|truncatechars:50 }}"</td></tr>
                   <tr><td class="text-muted ps-2 py-1">Approved On:</td><td class="fw-semibold text-success py-1">{{ sub.reviewed_at|date:"d M Y, H:i"|default:sub.submitted_at|date:"d M Y, H:i" }}</td></tr>

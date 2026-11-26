@@ -435,6 +435,13 @@ class AlternativeVerificationSubmission(models.Model):
         default='selfie_card',
         help_text="Format of personhood evidence submitted (manual review baseline)"
     )
+    challenge_code = models.CharField(
+        max_length=25,
+        blank=True,
+        default='',
+        db_index=True,
+        help_text="Dynamic verification code issued to applicant for handwritten note challenge (e.g. VNG-624514)"
+    )
 
     # Evidence Uploads (Restricted private storage; no public URLs)
     selfie_image = models.FileField(
