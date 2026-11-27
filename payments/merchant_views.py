@@ -16,7 +16,14 @@ from django.views.generic import View, TemplateView
 from core.rate_limiting import get_client_ip
 from core.audit_utils import log_admin_action
 from dashboard.admin_views import SuperAdminRequiredMixin
-from notifications.email_templates import build_merchant_badge_approved, build_merchant_badge_rejected
+from notifications.email_templates import (
+    build_merchant_badge_approved,
+    build_merchant_badge_rejected,
+    build_merchant_badge_revoked,
+    build_merchant_dispute_resolved,
+    build_merchant_bank_approved,
+    build_merchant_bank_rejected,
+)
 from notifications.services import dispatch_notification
 from payments.models import MerchantProfile, NigerianBank, SiteSettings
 from payments.merchant_forms import MerchantApplicationForm
@@ -610,7 +617,6 @@ class AdminMerchantDetailView(SuperAdminRequiredMixin, View):
 
             # Dispatch notification & email to merchant
             try:
-                from notifications.email_templates import build_merchant_badge_revoked
                 subject, html_body, text_body = build_merchant_badge_revoked(
                     store_name=merchant.store_name,
                     username=merchant.user.get_full_name() or merchant.user.username,
@@ -641,8 +647,6 @@ class AdminMerchantDetailView(SuperAdminRequiredMixin, View):
             merchant.status = 'active'
             merchant.save()
             try:
-                from notifications.services import dispatch_notification
-                from notifications.email_templates import build_merchant_dispute_resolved
                 subj, html_b, txt_b = build_merchant_dispute_resolved(
                     store_name=merchant.store_name,
                     username=merchant.user.get_full_name() or merchant.user.username,
@@ -684,7 +688,6 @@ class AdminMerchantDetailView(SuperAdminRequiredMixin, View):
 
                 # Dispatch notification & email to merchant
                 try:
-                    from notifications.email_templates import build_merchant_bank_approved
                     subject, html_body, text_body = build_merchant_bank_approved(
                         store_name=merchant.store_name,
                         username=merchant.user.get_full_name() or merchant.user.username,
@@ -725,7 +728,6 @@ class AdminMerchantDetailView(SuperAdminRequiredMixin, View):
                 merchant.save()
 
                 try:
-                    from notifications.email_templates import build_merchant_bank_rejected
                     subject, html_body, text_body = build_merchant_bank_rejected(
                         store_name=merchant.store_name,
                         username=merchant.user.get_full_name() or merchant.user.username,
