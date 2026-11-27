@@ -375,7 +375,7 @@ def employer_profile(request):
                 }
             )
 
-        # ── Step 4: Live Verification Trigger via Pluggable Provider ──
+        # ── Step 4: Live Verification Submit (Payment/Subscription Gated & Sent to Compliance Desk) ──
         if is_live_submit or is_resubmit:
             if not profile.company_email_verified or not profile.representative_email_verified:
                 messages.error(
@@ -392,55 +392,80 @@ def employer_profile(request):
                 messages.error(request, 'Please complete the authorized representative details in Step 3.')
                 return redirect('employer:profile')
 
-            # Invoke pluggable verification provider
-            from verification.providers import get_verification_provider
-            provider = get_verification_provider()
-
-            biz_result = provider.verify_business(
-                country=profile.country or 'NG',
-                company_name=profile.company_name,
-                reg_number=profile.company_rc_number,
-                reg_type=profile.registration_type,
-                document_file=profile.cac_document,
-                tax_id=profile.tax_identification_number,
+            # ── Payment / Subscription Verification Gate ──
+            from payments.models import SiteSettings
+            from payments.services import (
+                get_active_subscription,
+                get_user_prepaid_balance,
+                deduct_user_prepaid_balance,
+                consume_user_entitlement,
             )
 
-            if biz_result.is_verified:
-                profile.is_verified = True
-                profile.verification_status = 'verified'
-                profile.verified_at = timezone.now()
-                profile.rejection_reason = ''
-                profile.save()
+            site_settings = SiteSettings.get()
+            is_free = (
+                site_settings.is_service_free('business_verification')
+                or profile.is_billing_exempt
+                or ('business_verification' in (profile.exempt_services or []))
+                or getattr(request.user, 'is_billing_exempt', False)
+                or ('business_verification' in (getattr(request.user, 'exempt_services', []) or []))
+            )
 
-                messages.success(
-                    request,
-                    f'🎉 Live Verification Successful! {profile.company_name} has been authenticated with {biz_result.provider_name.replace("_", " ").title()}. '
-                    'Your Verified Employer status is now active.'
-                )
-                return redirect('employer:profile')
-            elif biz_result.status == 'rejected':
-                profile.is_verified = False
-                profile.verification_status = 'rejected'
-                profile.rejection_reason = biz_result.error_message or 'Corporate records could not be authenticated against the national commercial registry.'
-                profile.save()
+            if not is_free:
+                active_sub = get_active_subscription(request.user)
+                if active_sub:
+                    consume_user_entitlement(request.user, service='business_verification')
+                else:
+                    req_price = site_settings.price_verification_business
+                    user_bal = get_user_prepaid_balance(request.user)
+                    if user_bal >= req_price:
+                        ok, rem_bal = deduct_user_prepaid_balance(
+                            request.user,
+                            req_price,
+                            f"Business Registration Verification: {profile.company_name}"
+                        )
+                        if not ok:
+                            messages.error(request, 'Failed to process wallet fee deduction. Please try again.')
+                            return redirect('employer:profile')
+                    else:
+                        topup_diff = req_price - user_bal
+                        messages.error(
+                            request,
+                            f'Payment Required: Corporate verification fee is ₦{req_price:,.0f}. '
+                            f'Your wallet balance is ₦{user_bal:,.0f} (₦{topup_diff:,.0f} top-up needed). '
+                            f'Please fund your wallet or activate an employer subscription before submitting your application.'
+                        )
+                        return redirect('employer:profile')
 
-                messages.error(
-                    request,
-                    f'Verification Unsuccessful: {profile.rejection_reason}'
-                )
-                return redirect('employer:profile')
-            else:
-                # Pending async gateway inspection
-                profile.is_verified = False
-                profile.verification_status = 'pending'
-                profile.rejection_reason = ''
-                profile.save()
+            # ── Transition Application to Pending Compliance Review (No Auto-Approval) ──
+            profile.is_verified = False
+            profile.verification_status = 'pending'
+            profile.rejection_reason = ''
+            profile.save()
 
-                messages.info(
-                    request,
-                    'Your business registration documents have been submitted for compliance verification. You will be updated once processed.'
-                )
-                return redirect('employer:profile')
+            from reports.models import AuditLog
+            AuditLog.objects.create(
+                action='EMPLOYER_VERIFICATION_APPLICATION_SUBMITTED',
+                action_type='VERIFICATION',
+                performed_by=request.user,
+                target_user=request.user,
+                details={
+                    'employer_profile_id': profile.id,
+                    'company_name': profile.company_name,
+                    'country': profile.country,
+                    'registration_type': profile.registration_type,
+                    'company_rc_number': profile.company_rc_number,
+                    'tax_identification_number': profile.tax_identification_number,
+                    'representative': profile.representative_name,
+                    'is_free_or_exempt': is_free,
+                }
+            )
+
+            messages.success(
+                request,
+                f'🎉 Verification Application Submitted! {profile.company_name} is now under compliance review. '
+                'Our verification officers will review your documents within 1 to 24 hours.'
+            )
+            return redirect('employer:profile')
 
         profile.save()
         if is_save_draft:
@@ -464,6 +489,21 @@ def employer_profile(request):
                 'authority': cfg.get('registration_authority', 'National Company Registry'),
             }
 
+    from payments.models import SiteSettings
+    from payments.services import get_user_prepaid_balance, get_active_subscription
+    site_settings = SiteSettings.get()
+    active_sub = get_active_subscription(request.user)
+    is_biz_verif_free = (
+        site_settings.is_service_free('business_verification')
+        or profile.is_billing_exempt
+        or ('business_verification' in (profile.exempt_services or []))
+        or getattr(request.user, 'is_billing_exempt', False)
+        or ('business_verification' in (getattr(request.user, 'exempt_services', []) or []))
+        or bool(active_sub)
+    )
+    user_balance = get_user_prepaid_balance(request.user)
+    biz_verif_price = site_settings.price_verification_business
+
     context = {
         'profile': profile,
         'page_title': 'Company Profile',
@@ -475,6 +515,10 @@ def employer_profile(request):
         'active_step': getattr(profile, 'current_step', 1) or 1,
         'is_locked': profile.is_verified or profile.verification_status == 'pending',
         'is_pending': profile.verification_status == 'pending',
+        'is_biz_verif_free': is_biz_verif_free,
+        'biz_verif_price': biz_verif_price,
+        'user_balance': user_balance,
+        'active_subscription': active_sub,
     }
     return render(request, 'employer/profile.html', context)
 
