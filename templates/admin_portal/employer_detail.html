@@ -75,6 +75,12 @@
     {% endif %}
     {# ── Verification Lifecycle Actions ── #}
     {% if not profile.is_verified %}
+    {% if profile.verification_status == 'rejected' %}
+    <span class="adm-badge adm-badge-red d-inline-flex align-items-center gap-1.5 py-1 px-2.5" style="font-size:0.8rem; font-weight:600;" title="Under compliance policy, declined applications cannot be directly approved. The employer must re-apply with updated documents.">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+      Application Declined (Locked)
+    </span>
+    {% else %}
     <button type="button" class="btn-adm-primary"
             data-confirm-action=""
             data-title="Approve Business Registration Verification"
@@ -91,6 +97,7 @@
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
       Decline Proof
     </button>
+    {% endif %}
     {% endif %}
     {% else %}
     <button type="button" class="btn-adm-outline-warning" data-bs-toggle="modal" data-bs-target="#suspendEmployerModal">
@@ -134,23 +141,39 @@
   </div>
 </div>
 
+{# ── Compliance Locked Banner for Declined Applications ── #}
+{% if profile.verification_status == 'rejected' %}
+<div class="alert alert-danger d-flex align-items-start gap-3 mt-3 mb-2 shadow-xs" style="border-radius:10px; border-left: 4px solid #DC2626; background:#FEF2F2;">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2.5" class="flex-shrink-0 mt-0.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+  <div>
+    <div class="fw-bold text-danger" style="font-size:0.92rem;">Application Declined &mdash; Direct Approval Prohibited</div>
+    <div class="text-dark small mt-0.5" style="font-size:0.84rem; line-height:1.45;">
+      Under compliance policy, a declined business registration application cannot be directly approved by any administrator. The employer must update their details and submit fresh proof documents to initiate a re-application and new review.
+    </div>
+    {% if profile.rejection_reason %}
+    <div class="mt-2 p-2 rounded bg-white border border-danger-subtle small text-danger" style="font-size:0.8rem;">
+      <strong>Grounds for Decline:</strong> {{ profile.rejection_reason }}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
 {# ── Info Cards Row ─────────────────────────────────────────────────────── #}
 <div class="row g-4 mt-1">
-  <div class="col-lg-6">
+  <div class="col-lg-6 d-flex flex-column gap-4">
+    {# Card 1: Company Legal Identity & Operations #}
     <div class="adm-card h-100">
-      <div class="adm-card-header"><h2 class="adm-card-title">Company Information</h2></div>
+      <div class="adm-card-header d-flex justify-content-between align-items-center">
+        <h2 class="adm-card-title">Company Information</h2>
+        <span class="adm-badge blue">{{ reg_country_name }} ({{ reg_country_code }})</span>
+      </div>
       <div class="px-4 py-3">
         <table class="w-100" style="border-collapse:collapse;">
           <tbody>
             <tr style="border-bottom:1px solid var(--adm-border);">
-              <td class="py-2 td-muted" style="width:40%;font-size:0.82rem;">Company Name</td>
+              <td class="py-2 td-muted" style="width:40%;font-size:0.82rem;">Legal Registered Name</td>
               <td class="py-2 fw-semibold" style="font-size:0.845rem;">{{ profile.company_name }}</td>
-            </tr>
-            <tr style="border-bottom:1px solid var(--adm-border);">
-              <td class="py-2 td-muted" style="font-size:0.82rem;">Registration Country</td>
-              <td class="py-2 fw-semibold" style="font-size:0.845rem;">
-                <span class="adm-badge blue">{{ reg_country_name }} ({{ reg_country_code }})</span>
-              </td>
             </tr>
             <tr style="border-bottom:1px solid var(--adm-border);">
               <td class="py-2 td-muted" style="font-size:0.82rem;">Registry Authority</td>
@@ -180,48 +203,46 @@
               </td>
             </tr>
             <tr style="border-bottom:1px solid var(--adm-border);">
-              <td class="py-2 td-muted" style="font-size:0.82rem;">Proof Document</td>
-              <td class="py-2" style="font-size:0.845rem;">
-                {% if profile.has_cac_document %}
-                  <div class="d-flex align-items-center gap-2 flex-wrap">
-                    <button type="button" class="btn btn-adm-sm btn-adm-primary d-inline-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#viewCacModal">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                      View Document
-                    </button>
-                    <a href="{% url 'admin_portal:employer_cac_document' profile.public_id %}" target="_blank" rel="noopener noreferrer" class="btn btn-adm-sm btn-adm-outline d-inline-flex align-items-center gap-1">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-                      Open in Tab
-                    </a>
-                  </div>
-                  <div class="text-muted mt-1" style="font-size:0.72rem;">
-                    Uploaded {{ profile.cac_uploaded_at|date:"d M Y, H:i"|default:"Recently" }}
-                    &bull; {% if profile.cac_document_is_pdf %}PDF Document{% else %}Image Document{% endif %}
-                  </div>
-                  {% if profile.verification_status == 'rejected' and profile.rejection_reason %}
-                  <div class="text-danger mt-1 small" style="font-size:0.75rem;">
-                    <strong>Declined reason:</strong> {{ profile.rejection_reason }}
-                  </div>
-                  {% elif profile.verification_status == 'suspended' and profile.rejection_reason %}
-                  <div class="text-warning mt-1 small" style="font-size:0.75rem;">
-                    <strong>Suspension note:</strong> {{ profile.rejection_reason }}
-                  </div>
+              <td class="py-2 td-muted" style="font-size:0.82rem;">Company Official Email</td>
+              <td class="py-2 mono" style="font-size:0.845rem;">
+                {{ profile.company_email|default:"Not provided" }}
+                {% if profile.company_email %}
+                  {% if profile.company_email_verified %}
+                    <span class="adm-badge adm-badge-green ms-1" style="font-size:0.68rem;">✓ Verified via OTP</span>
+                  {% else %}
+                    <span class="adm-badge adm-badge-amber ms-1" style="font-size:0.68rem;">Unverified</span>
                   {% endif %}
-                {% else %}
-                  <span class="text-muted">No document uploaded yet</span>
                 {% endif %}
               </td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--adm-border);">
+              <td class="py-2 td-muted" style="font-size:0.82rem;">Corporate Website</td>
+              <td class="py-2" style="font-size:0.845rem;">
+                {% if profile.company_website %}
+                  <a href="{{ profile.company_website }}" target="_blank" rel="noopener noreferrer" class="text-primary text-decoration-none d-inline-flex align-items-center gap-1">
+                    {{ profile.company_website }}
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                  </a>
+                {% else %}
+                  <span class="text-muted">—</span>
+                {% endif %}
+              </td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--adm-border);">
+              <td class="py-2 td-muted" style="font-size:0.82rem;">Corporate Phone</td>
+              <td class="py-2 mono" style="font-size:0.845rem;">{{ profile.contact_phone|default:"—" }}</td>
             </tr>
             <tr style="border-bottom:1px solid var(--adm-border);">
               <td class="py-2 td-muted" style="font-size:0.82rem;">Industry</td>
               <td class="py-2" style="font-size:0.845rem;">{{ profile.industry|default:"—" }}</td>
             </tr>
             <tr style="border-bottom:1px solid var(--adm-border);">
-              <td class="py-2 td-muted" style="font-size:0.82rem;">Address</td>
-              <td class="py-2" style="font-size:0.845rem;">{{ profile.company_address|default:"—" }}</td>
+              <td class="py-2 td-muted" style="font-size:0.82rem;">Nature of Business</td>
+              <td class="py-2" style="font-size:0.845rem;">{{ profile.business_nature|default:"—" }}</td>
             </tr>
             <tr style="border-bottom:1px solid var(--adm-border);">
-              <td class="py-2 td-muted" style="font-size:0.82rem;">Contact Phone</td>
-              <td class="py-2 mono" style="font-size:0.845rem;">{{ profile.contact_phone|default:"—" }}</td>
+              <td class="py-2 td-muted" style="font-size:0.82rem;">Registered Address</td>
+              <td class="py-2" style="font-size:0.845rem;">{{ profile.company_address|default:"—" }}</td>
             </tr>
             <tr style="border-bottom:1px solid var(--adm-border);">
               <td class="py-2 td-muted" style="font-size:0.82rem;">Verified At</td>
@@ -235,11 +256,132 @@
         </table>
       </div>
     </div>
+
+    {# Card 2: Official Business Registration Document #}
+    <div class="adm-card">
+      <div class="adm-card-header d-flex justify-content-between align-items-center">
+        <h2 class="adm-card-title">Official Business Registration Document</h2>
+        {% if profile.has_cac_document %}
+          <span class="adm-badge adm-badge-blue">Document On File</span>
+        {% else %}
+          <span class="adm-badge adm-badge-gray">No Document</span>
+        {% endif %}
+      </div>
+      <div class="px-4 py-3">
+        {% if profile.has_cac_document %}
+          <div class="d-flex align-items-center justify-content-between p-3 rounded-3 bg-light border gap-2 flex-wrap">
+            <div class="d-flex align-items-center gap-2.5">
+              <div class="rounded-2 d-flex align-items-center justify-content-center text-primary" style="width:36px;height:36px;background:#EFF6FF;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              </div>
+              <div>
+                <div class="fw-semibold text-truncate small" style="max-width:240px;">{{ profile.cac_filename }}</div>
+                <div class="text-muted" style="font-size:0.72rem;">Uploaded {{ profile.cac_uploaded_at|date:"d M Y, H:i"|default:"Recently" }} &bull; {% if profile.cac_document_is_pdf %}PDF{% else %}Image{% endif %}</div>
+              </div>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+              <button type="button" class="btn btn-adm-sm btn-adm-primary d-inline-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#viewCacModal">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                View Document
+              </button>
+              <a href="{% url 'admin_portal:employer_cac_document' profile.public_id %}" target="_blank" rel="noopener noreferrer" class="btn btn-adm-sm btn-adm-outline d-inline-flex align-items-center gap-1">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                Open in Tab
+              </a>
+            </div>
+          </div>
+          {% if profile.verification_status == 'rejected' and profile.rejection_reason %}
+          <div class="alert alert-danger py-2 px-3 mt-3 mb-0 small" style="font-size:0.78rem;">
+            <strong>Decline Reason:</strong> {{ profile.rejection_reason }}
+          </div>
+          {% endif %}
+        {% else %}
+          <div class="text-center py-4 text-muted small">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="1.8" class="mb-2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <div>No official registration document uploaded yet.</div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
   </div>
 
-  <div class="col-lg-6">
-    <div class="adm-card h-100">
-      <div class="adm-card-header">
+  <div class="col-lg-6 d-flex flex-column gap-4">
+    {# Card 3: Authorized Representative Particulars #}
+    <div class="adm-card">
+      <div class="adm-card-header d-flex justify-content-between align-items-center">
+        <h2 class="adm-card-title">Authorized Representative Particulars</h2>
+        {% if profile.representative_email_verified %}
+          <span class="adm-badge adm-badge-green">Email Verified</span>
+        {% else %}
+          <span class="adm-badge adm-badge-amber">Email Unverified</span>
+        {% endif %}
+      </div>
+      <div class="px-4 py-3">
+        <table class="w-100" style="border-collapse:collapse;">
+          <tbody>
+            <tr style="border-bottom:1px solid var(--adm-border);">
+              <td class="py-2 td-muted" style="width:40%;font-size:0.82rem;">Full Legal Name</td>
+              <td class="py-2 fw-semibold" style="font-size:0.845rem;">{{ profile.representative_name|default:"Not specified" }}</td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--adm-border);">
+              <td class="py-2 td-muted" style="font-size:0.82rem;">Job Title / Corporate Role</td>
+              <td class="py-2" style="font-size:0.845rem;">{{ profile.representative_title|default:"Not specified" }}</td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--adm-border);">
+              <td class="py-2 td-muted" style="font-size:0.82rem;">Official Work Email</td>
+              <td class="py-2 mono" style="font-size:0.845rem;">
+                {{ profile.representative_email|default:"Not provided" }}
+                {% if profile.representative_email %}
+                  {% if profile.representative_email_verified %}
+                    <span class="adm-badge adm-badge-green ms-1" style="font-size:0.68rem;">✓ Verified via OTP</span>
+                  {% else %}
+                    <span class="adm-badge adm-badge-amber ms-1" style="font-size:0.68rem;">Unverified</span>
+                  {% endif %}
+                {% endif %}
+              </td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--adm-border);">
+              <td class="py-2 td-muted" style="font-size:0.82rem;">Direct Phone</td>
+              <td class="py-2 mono" style="font-size:0.845rem;">{{ profile.representative_phone|default:"Not provided" }}</td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--adm-border);">
+              <td class="py-2 td-muted" style="font-size:0.82rem;">Government ID Type</td>
+              <td class="py-2" style="font-size:0.845rem;">{{ profile.representative_id_type|default:"Not specified" }}</td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--adm-border);">
+              <td class="py-2 td-muted" style="font-size:0.82rem;">ID Document Number</td>
+              <td class="py-2 mono" style="font-size:0.845rem;">{{ profile.representative_id_number|default:"—" }}</td>
+            </tr>
+            <tr>
+              <td class="py-2 td-muted" style="font-size:0.82rem;">Representative Photo ID</td>
+              <td class="py-2" style="font-size:0.845rem;">
+                {% if profile.has_representative_document %}
+                  <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <button type="button" class="btn btn-adm-sm btn-adm-primary d-inline-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#viewRepModal">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                      Preview Photo ID
+                    </button>
+                    <a href="{% url 'admin_portal:employer_rep_document' profile.public_id %}" target="_blank" rel="noopener noreferrer" class="btn btn-adm-sm btn-adm-outline d-inline-flex align-items-center gap-1">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                      Open in Tab
+                    </a>
+                  </div>
+                  <div class="text-muted mt-1" style="font-size:0.72rem;">
+                    File: {{ profile.representative_document_filename }} &bull; {% if profile.representative_document_is_pdf %}PDF{% else %}Image{% endif %}
+                  </div>
+                {% else %}
+                  <span class="text-muted">No ID document uploaded yet</span>
+                {% endif %}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    {# Card 4: Account Owner #}
+    <div class="adm-card">
+      <div class="adm-card-header d-flex justify-content-between align-items-center">
         <h2 class="adm-card-title">Account Owner</h2>
         <a href="{% url 'admin_portal:user_detail' profile.user.public_id %}" class="btn-adm-outline" style="font-size:0.78rem;">View User Profile</a>
       </div>
@@ -1116,6 +1258,49 @@
         </div>
         <div class="d-flex gap-2">
           <a href="{% url 'admin_portal:employer_cac_document' profile.public_id %}" target="_blank" rel="noopener noreferrer" class="btn btn-adm-sm btn-adm-outline">
+            Open in Full Tab
+          </a>
+          <button type="button" class="btn btn-adm-sm btn-adm-outline" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{# ── In-Browser Representative Photo ID Viewer Modal ── #}
+{% if profile.has_representative_document %}
+<div class="modal fade" id="viewRepModal" tabindex="-1" aria-labelledby="viewRepModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-xl">
+    <div class="modal-content shadow-lg border-0" style="border-radius:12px;">
+      <div class="modal-header border-bottom py-3">
+        <h5 class="modal-title fw-bold" id="viewRepModalLabel">
+          Representative Identification Document &mdash; {{ profile.representative_name|default:profile.company_name }}
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-2 p-md-3 bg-light text-center">
+        {% if profile.representative_document_is_pdf %}
+          <object data="{% url 'admin_portal:employer_rep_document' profile.public_id %}#toolbar=0" type="application/pdf" class="w-100 rounded border bg-white" style="height:75vh;min-height:550px;">
+            <iframe src="{% url 'admin_portal:employer_rep_document' profile.public_id %}#toolbar=0" class="w-100 h-100 border-0" style="height:75vh;min-height:550px;">
+              <div class="p-4 text-center bg-white rounded">
+                <p class="text-muted small mb-3">Your browser does not render inline PDF previews.</p>
+                <a href="{% url 'admin_portal:employer_rep_document' profile.public_id %}" target="_blank" class="btn btn-adm-primary">
+                  Open PDF in New Tab
+                </a>
+              </div>
+            </iframe>
+          </object>
+        {% else %}
+          <img src="{% url 'admin_portal:employer_rep_document' profile.public_id %}" alt="Representative Identification Proof" class="img-fluid rounded border shadow-sm" style="max-height:80vh;object-fit:contain;">
+        {% endif %}
+      </div>
+      <div class="modal-footer border-top py-2 d-flex justify-content-between">
+        <div class="small text-muted">
+          Representative: <strong>{{ profile.representative_name|default:"Not specified" }}</strong> ({{ profile.representative_title|default:"Representative" }}) &bull; ID: <strong>{{ profile.representative_id_type }} &ndash; {{ profile.representative_id_number }}</strong>
+        </div>
+        <div class="d-flex gap-2">
+          <a href="{% url 'admin_portal:employer_rep_document' profile.public_id %}" target="_blank" rel="noopener noreferrer" class="btn btn-adm-sm btn-adm-outline">
             Open in Full Tab
           </a>
           <button type="button" class="btn btn-adm-sm btn-adm-outline" data-bs-dismiss="modal">Close</button>

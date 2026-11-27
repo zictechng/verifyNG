@@ -2393,6 +2393,42 @@ class AdminEmployerCACDocumentView(SuperAdminRequiredMixin, View):
         doc_file.close()
         return response
 
+class AdminEmployerRepDocumentView(SuperAdminRequiredMixin, View):
+    section_name = "Agency & Employers"
+    required_permission = ("employer.view_employerprofile", "employer.change_employerprofile")
+    """
+    Secure document stream proxy for viewing employer representative ID documents.
+    Serves the uploaded representative ID document inline in browser without forced download.
+    """
+    def get(self, request, public_id):
+        profile = get_object_or_404(
+            EmployerProfile.objects.select_related('user'),
+            user__public_id=public_id
+        )
+        if not profile.representative_id_document:
+            raise Http404("No representative ID document has been uploaded for this employer.")
+
+        try:
+            doc_file = profile.representative_id_document.open('rb')
+        except Exception:
+            raise Http404("Could not open the requested representative ID document.")
+
+        ext = profile.representative_id_document.name.split('.')[-1].lower() if '.' in profile.representative_id_document.name else 'pdf'
+        content_type, _ = mimetypes.guess_type(profile.representative_id_document.name)
+        if not content_type:
+            content_type = 'application/pdf' if ext == 'pdf' else 'image/jpeg'
+
+        as_download = request.GET.get('download') == '1'
+        disposition = 'attachment' if as_download else 'inline'
+        safe_name = f"RepID_{slugify(profile.representative_name or profile.company_name) or 'document'}.{ext}"
+
+        response = HttpResponse(doc_file.read(), content_type=content_type)
+        response['Content-Disposition'] = f'{disposition}; filename="{safe_name}"'
+        response['X-Frame-Options'] = 'SAMEORIGIN'
+        doc_file.close()
+        return response
+
+
 class AdminEmployerActionView(SuperAdminRequiredMixin, View):
     section_name = "Agency & Employers"
     required_permission = ("employer.change_employerprofile", "employer.view_employerprofile")
@@ -2406,6 +2442,15 @@ class AdminEmployerActionView(SuperAdminRequiredMixin, View):
         action = request.POST.get('action', '')
 
         if action == 'verify':
+            if profile.verification_status == 'rejected':
+                messages.error(
+                    request,
+                    f"Action blocked: '{profile.company_name}' was previously declined. "
+                    "Under compliance policy, a declined application can never be directly approved. "
+                    "The employer must re-apply with updated credentials and documentation."
+                )
+                return redirect('admin_portal:employer_detail', public_id=public_id)
+
             selected_services = request.POST.getlist('exempt_services')
             if selected_services:
                 profile.exempt_services = selected_services

@@ -57,6 +57,7 @@
         <td>{{ ep.created_at|date:"d M Y" }}</td>
         <td class="d-flex gap-1 align-items-center">
           {% if not ep.is_verified %}
+          {% if ep.verification_status != 'rejected' %}
           <button type="button" class="btn btn-adm-sm btn-adm-success"
                   data-confirm-action=""
                   data-title="Approve Employer CAC Verification"
@@ -67,6 +68,9 @@
                   data-hidden-action="verify">
             Verify
           </button>
+          {% else %}
+          <span class="adm-badge adm-badge-red" style="font-size:0.72rem;padding:3px 7px;" title="Under compliance policy, declined applications cannot be directly approved. The employer must re-apply with fresh documentation.">Declined</span>
+          {% endif %}
           {% else %}
           <button type="button" class="btn btn-adm-sm btn-adm-outline"
                   data-confirm-action=""

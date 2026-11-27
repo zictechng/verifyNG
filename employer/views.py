@@ -377,6 +377,13 @@ def employer_profile(request):
 
         # ── Step 4: Live Verification Trigger via Pluggable Provider ──
         if is_live_submit or is_resubmit:
+            if not profile.company_email_verified or not profile.representative_email_verified:
+                messages.error(
+                    request,
+                    'Both Company Official Email and Authorized Representative Email must be verified with their confirmation codes before submitting your application.'
+                )
+                return redirect('employer:profile')
+
             if not profile.has_cac_document and not cac_file:
                 messages.error(request, 'Please upload your official business registration certificate before submitting.')
                 return redirect('employer:profile')
@@ -545,11 +552,14 @@ def send_corporate_email_otp(request):
     role_label = 'Company Official Email' if otp_type == 'business' else 'Authorized Representative Email'
 
     try:
-        html_body, text_body = render_email('otp_verification', {
+        html_body, text_body = render_email('generic_notification', {
             'user_name': request.user.get_full_name() or request.user.username,
-            'action': f'{role_label} verification',
-            'expiry_minutes': '10',
-            'otp_digits': list(otp_code),
+            'heading': f'Verify Your {role_label}',
+            'body_html': (
+                f'<p>You are verifying this email address for corporate verification on <strong>VerifyNG</strong>.</p>'
+                f'<p>Your 6-digit confirmation code is: <strong style="font-size:22px;letter-spacing:4px;color:#1E293B;">{otp_code}</strong></p>'
+                f'<p>This code is valid for 10 minutes. If you did not request this, please disregard this email.</p>'
+            ),
             'subject': f'VerifyNG — Your {role_label} Verification Code',
         }, request=request)
         send_email(
@@ -574,8 +584,6 @@ def send_corporate_email_otp(request):
         'success': True,
         'message': f'Verification code sent to {email}.',
     }
-    if settings.DEBUG:
-        resp_data['dev_code'] = otp_code
     return JsonResponse(resp_data)
 
 

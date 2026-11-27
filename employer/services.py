@@ -93,6 +93,12 @@ class BusinessVerificationLifecycleService:
           - rejection_reason = ''
           - default complimentary service access if unset
         """
+        if profile.verification_status == 'rejected':
+            raise ValueError(
+                f"Action blocked: '{profile.company_name}' was previously declined. "
+                "A declined application cannot be directly approved. The employer must update their particulars and submit fresh proof documents for a new review."
+            )
+
         profile.is_verified = True
         profile.verification_status = 'verified'
         profile.verified_at = timezone.now()

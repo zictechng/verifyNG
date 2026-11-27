@@ -250,18 +250,18 @@
                             </div>
                         </div>
 
-                        <div class="d-flex flex-column-reverse flex-sm-row justify-content-between align-items-stretch align-items-sm-center gap-2 pt-3 border-top">
-                            <div>
+                        <div class="vng-stepper-footer justify-content-end">
+                            <div class="stepper-actions-right">
                                 {% if not is_locked %}
-                                <button type="button" class="btn btn-outline-secondary px-3.5 py-2 rounded-pill fw-semibold w-100 w-sm-auto" onclick="saveDraftProgress(1)">
+                                <button type="button" class="btn btn-outline-secondary px-3.5 py-2 rounded-pill fw-semibold" onclick="saveDraftProgress(1)">
                                     Save Draft
                                 </button>
                                 {% endif %}
+                                <button type="button" class="btn btn-primary px-4 py-2 fw-semibold rounded-pill d-inline-flex align-items-center gap-1.5 shadow-xs" onclick="validateAndGoStep(2)">
+                                    <span>Continue to Business Nature</span>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                                </button>
                             </div>
-                            <button type="button" class="btn btn-primary px-4 py-2 fw-semibold rounded-pill d-inline-flex align-items-center justify-content-center gap-1.5 shadow-xs w-100 w-sm-auto" onclick="validateAndGoStep(2)">
-                                <span>Continue to Business Nature</span>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
-                            </button>
                         </div>
                     </div>
 
@@ -303,11 +303,11 @@
                                     {% endif %}
                                 </div>
                                 <div class="form-text small" id="bizEmailHelp">Official contact email for formal notifications and corporate correspondence.</div>
-                                <div id="bizOtpWrap" class="mt-2 p-2.5 bg-light rounded-3 border d-none">
-                                    <div class="small fw-semibold text-dark mb-1">Enter 6-digit confirmation code sent to this email:</div>
-                                    <div class="input-group input-group-sm" style="max-width:280px;">
-                                        <input type="text" id="bizOtpCode" class="form-control font-monospace text-center fw-bold" placeholder="123456" maxlength="6" style="letter-spacing:3px;">
-                                        <button type="button" class="btn btn-primary" onclick="confirmEmailOtp('business')">Confirm</button>
+                                <div id="bizOtpWrap" class="mt-3 mb-2 p-3 p-sm-3.5 bg-light rounded-3 border d-none" style="background:#F8FAFC !important;border-color:#E2E8F0 !important;">
+                                    <div class="small fw-semibold text-dark mb-2">Enter 6-digit confirmation code sent to this email:</div>
+                                    <div class="input-group input-group-sm mb-2" style="max-width:300px;">
+                                        <input type="text" id="bizOtpCode" class="form-control font-monospace text-center fw-bold" placeholder="123456" maxlength="6" style="letter-spacing:4px;font-size:15px;height:38px;">
+                                        <button type="button" class="btn btn-primary px-3 fw-semibold" style="height:38px;" onclick="confirmEmailOtp('business')">Confirm</button>
                                     </div>
                                     <div id="bizOtpFeedback" class="small mt-1 d-none"></div>
                                 </div>
@@ -342,21 +342,28 @@
                                       placeholder="Headquarters or operating office street address" style="font-size:16px;">{{ profile.company_address }}</textarea>
                         </div>
 
-                        <div class="d-flex flex-column-reverse flex-sm-row justify-content-between align-items-stretch align-items-sm-center gap-2 pt-3 border-top">
-                            <div class="d-flex gap-2 w-100 w-sm-auto justify-content-between justify-content-sm-start">
-                                <button type="button" class="btn btn-outline-secondary px-3.5 py-2 rounded-pill fw-semibold flex-fill flex-sm-grow-0" onclick="goToStep(1)">
+                        <div class="vng-stepper-footer">
+                            <div class="stepper-mobile-sub-row">
+                                <button type="button" class="btn btn-outline-secondary px-3.5 py-2 rounded-pill fw-semibold" onclick="goToStep(1)">
                                     &larr; Back
                                 </button>
                                 {% if not is_locked %}
-                                <button type="button" class="btn btn-outline-secondary px-3.5 py-2 rounded-pill fw-semibold flex-fill flex-sm-grow-0" onclick="saveDraftProgress(2)">
+                                <button type="button" class="btn btn-outline-secondary px-3.5 py-2 rounded-pill fw-semibold d-sm-none" onclick="saveDraftProgress(2)">
                                     Save Draft
                                 </button>
                                 {% endif %}
                             </div>
-                            <button type="button" class="btn btn-primary px-4 py-2 fw-semibold rounded-pill d-inline-flex align-items-center justify-content-center gap-1.5 shadow-xs w-100 w-sm-auto" onclick="validateAndGoStep(3)">
-                                <span>Continue to Authorized Representative</span>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
-                            </button>
+                            <div class="stepper-actions-right">
+                                {% if not is_locked %}
+                                <button type="button" class="btn btn-outline-secondary px-3.5 py-2 rounded-pill fw-semibold d-none d-sm-inline-block" onclick="saveDraftProgress(2)">
+                                    Save Draft
+                                </button>
+                                {% endif %}
+                                <button type="button" class="btn btn-primary px-4 py-2 fw-semibold rounded-pill d-inline-flex align-items-center gap-1.5 shadow-xs" onclick="validateAndGoStep(3)">
+                                    <span>Continue to Authorized Representative</span>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -437,11 +444,11 @@
                                     {% endif %}
                                 </div>
                                 <div class="form-text small" id="repEmailHelp">Representative's direct corporate or designated contact email.</div>
-                                <div id="repOtpWrap" class="mt-2 p-2.5 bg-light rounded-3 border d-none">
-                                    <div class="small fw-semibold text-dark mb-1">Enter 6-digit confirmation code sent to this email:</div>
-                                    <div class="input-group input-group-sm" style="max-width:280px;">
-                                        <input type="text" id="repOtpCode" class="form-control font-monospace text-center fw-bold" placeholder="123456" maxlength="6" style="letter-spacing:3px;">
-                                        <button type="button" class="btn btn-primary" onclick="confirmEmailOtp('representative')">Confirm</button>
+                                <div id="repOtpWrap" class="mt-3 mb-2 p-3 p-sm-3.5 bg-light rounded-3 border d-none" style="background:#F8FAFC !important;border-color:#E2E8F0 !important;">
+                                    <div class="small fw-semibold text-dark mb-2">Enter 6-digit confirmation code sent to this email:</div>
+                                    <div class="input-group input-group-sm mb-2" style="max-width:300px;">
+                                        <input type="text" id="repOtpCode" class="form-control font-monospace text-center fw-bold" placeholder="123456" maxlength="6" style="letter-spacing:4px;font-size:15px;height:38px;">
+                                        <button type="button" class="btn btn-primary px-3 fw-semibold" style="height:38px;" onclick="confirmEmailOtp('representative')">Confirm</button>
                                     </div>
                                     <div id="repOtpFeedback" class="small mt-1 d-none"></div>
                                 </div>
@@ -569,21 +576,28 @@
                             {% endif %}
                         </div>
 
-                        <div class="d-flex flex-column-reverse flex-sm-row justify-content-between align-items-stretch align-items-sm-center gap-2 pt-3 border-top">
-                            <div class="d-flex gap-2 w-100 w-sm-auto justify-content-between justify-content-sm-start">
-                                <button type="button" class="btn btn-outline-secondary px-3.5 py-2 rounded-pill fw-semibold flex-fill flex-sm-grow-0" onclick="goToStep(2)">
+                        <div class="vng-stepper-footer">
+                            <div class="stepper-mobile-sub-row">
+                                <button type="button" class="btn btn-outline-secondary px-3.5 py-2 rounded-pill fw-semibold" onclick="goToStep(2)">
                                     &larr; Back
                                 </button>
                                 {% if not is_locked %}
-                                <button type="button" class="btn btn-outline-secondary px-3.5 py-2 rounded-pill fw-semibold flex-fill flex-sm-grow-0" onclick="saveDraftProgress(3)">
+                                <button type="button" class="btn btn-outline-secondary px-3.5 py-2 rounded-pill fw-semibold d-sm-none" onclick="saveDraftProgress(3)">
                                     Save Draft
                                 </button>
                                 {% endif %}
                             </div>
-                            <button type="button" class="btn btn-primary px-4 py-2 fw-semibold rounded-pill d-inline-flex align-items-center justify-content-center gap-1.5 shadow-xs w-100 w-sm-auto" onclick="validateAndGoStep(4)">
-                                <span>Continue to Review &amp; Documents</span>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
-                            </button>
+                            <div class="stepper-actions-right">
+                                {% if not is_locked %}
+                                <button type="button" class="btn btn-outline-secondary px-3.5 py-2 rounded-pill fw-semibold d-none d-sm-inline-block" onclick="saveDraftProgress(3)">
+                                    Save Draft
+                                </button>
+                                {% endif %}
+                                <button type="button" class="btn btn-primary px-4 py-2 fw-semibold rounded-pill d-inline-flex align-items-center gap-1.5 shadow-xs" onclick="validateAndGoStep(4)">
+                                    <span>Continue to Review &amp; Documents</span>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -785,12 +799,19 @@
                         </div>
                         {% endif %}
 
-                        <div class="d-flex flex-column-reverse flex-sm-row justify-content-between align-items-stretch align-items-sm-center gap-2 pt-3 border-top">
-                            <button type="button" class="btn btn-outline-secondary px-3.5 py-2 rounded-pill fw-semibold w-100 w-sm-auto" onclick="goToStep(3)">
-                                &larr; Back
-                            </button>
+                        <div class="vng-stepper-footer">
+                            <div class="stepper-mobile-sub-row">
+                                <button type="button" class="btn btn-outline-secondary px-3.5 py-2 rounded-pill fw-semibold" onclick="goToStep(3)">
+                                    &larr; Back
+                                </button>
+                                {% if not is_locked and not profile.is_verified and profile.verification_status != 'pending' %}
+                                <button type="button" class="btn btn-outline-secondary px-3.5 py-2 rounded-pill fw-semibold d-sm-none" onclick="saveDraftProgress(4)">
+                                    Save Draft
+                                </button>
+                                {% endif %}
+                            </div>
                             {% if profile.is_verified %}
-                            <div class="d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center gap-2 w-100 w-sm-auto">
+                            <div class="stepper-actions-right">
                                 <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill fw-semibold text-center" style="font-size:13px;">
                                     ✓ Corporate Verification Active
                                 </span>
@@ -799,7 +820,7 @@
                                 </a>
                             </div>
                             {% elif profile.verification_status == 'pending' %}
-                            <div class="d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center gap-2 w-100 w-sm-auto">
+                            <div class="stepper-actions-right">
                                 <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 rounded-pill fw-semibold text-center" style="font-size:13px;">
                                     ⏳ Application Under Review
                                 </span>
@@ -808,12 +829,12 @@
                                 </a>
                             </div>
                             {% else %}
-                            <div class="d-flex gap-2 w-100 w-sm-auto justify-content-between justify-content-sm-end">
-                                <button type="button" class="btn btn-outline-secondary px-3.5 py-2 rounded-pill fw-semibold flex-fill flex-sm-grow-0" onclick="saveDraftProgress(4)">
+                            <div class="stepper-actions-right">
+                                <button type="button" class="btn btn-outline-secondary px-3.5 py-2 rounded-pill fw-semibold d-none d-sm-inline-block" onclick="saveDraftProgress(4)">
                                     Save Draft
                                 </button>
-                                <button type="button" id="triggerLiveVerifyBtn" class="btn btn-success px-4 py-2.5 fw-bold rounded-pill d-inline-flex align-items-center justify-content-center gap-2 shadow-sm flex-fill flex-sm-grow-0" style="font-size:14.5px;">
-                                    <span>⚡ Submit for Live Verification</span>
+                                <button type="button" id="triggerLiveVerifyBtn" class="btn btn-success px-4 py-2.5 fw-bold rounded-pill d-inline-flex align-items-center justify-content-center gap-2 shadow-sm" style="font-size:14.5px;">
+                                    <span>⚡ Submit for Verification</span>
                                 </button>
                             </div>
                             {% endif %}
@@ -950,11 +971,61 @@
         font-size: 12px !important;
     }
 }
+/* Stepper Bottom Navigation Responsive Bar */
+.vng-stepper-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 1.25rem;
+    border-top: 1px solid #E2E8F0;
+    gap: 0.75rem;
+}
+.vng-stepper-footer .stepper-actions-right {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.vng-stepper-footer .stepper-mobile-sub-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.vng-stepper-footer .btn {
+    white-space: nowrap;
+}
+
+/* Mobile viewport layout (< 576px) */
+@media (max-width: 575.98px) {
+    .vng-stepper-footer {
+        flex-direction: column-reverse;
+        align-items: stretch;
+        gap: 0.625rem;
+    }
+    .vng-stepper-footer .stepper-actions-right {
+        flex-direction: column-reverse;
+        width: 100%;
+        gap: 0.5rem;
+    }
+    .vng-stepper-footer .stepper-actions-right .btn {
+        width: 100%;
+        justify-content: center;
+    }
+    .vng-stepper-footer .stepper-mobile-sub-row {
+        width: 100%;
+        gap: 0.5rem;
+    }
+    .vng-stepper-footer .stepper-mobile-sub-row .btn {
+        flex: 1;
+        justify-content: center;
+    }
+}
 </style>
 
 <script>
 let currentStep = {{ active_step|default:1 }};
 const countryBizConfigs = {{ all_country_biz_configs_json|default:'{}'|safe }};
+let isBizEmailVerified = {% if profile.company_email_verified %}true{% else %}false{% endif %};
+let isRepEmailVerified = {% if profile.representative_email_verified %}true{% else %}false{% endif %};
 
 function updateStepperUI(targetStep) {
     for (let i = 1; i <= 4; i++) {
@@ -1051,6 +1122,23 @@ function updateStepperUI(targetStep) {
         setTxt('summaryRepEmail', document.getElementById('id_representative_email')?.value);
         setTxt('summaryRepPhone', document.getElementById('id_representative_phone')?.value);
         setTxt('summaryRepId', document.getElementById('id_representative_id_number')?.value);
+
+        const bizEmailBadge = document.getElementById('summaryBizEmailBadge');
+        if (bizEmailBadge) {
+            if (isBizEmailVerified) {
+                bizEmailBadge.innerHTML = '<span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size:10px;">✓ Verified</span>';
+            } else {
+                bizEmailBadge.innerHTML = '<span class="badge bg-warning-subtle text-dark border border-warning-subtle" style="font-size:10px;">Unverified (Verification Required)</span>';
+            }
+        }
+        const repEmailBadge = document.getElementById('summaryRepEmailBadge');
+        if (repEmailBadge) {
+            if (isRepEmailVerified) {
+                repEmailBadge.innerHTML = '<span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size:10px;">✓ Verified</span>';
+            } else {
+                repEmailBadge.innerHTML = '<span class="badge bg-warning-subtle text-dark border border-warning-subtle" style="font-size:10px;">Unverified (Verification Required)</span>';
+            }
+        }
 
         // Update file indicators
         const cacInput = document.getElementById('cacDocumentInput');
@@ -1176,6 +1264,10 @@ function validateStep(step) {
             showStepError(companyEmail, 'Please provide a valid company official email address.');
             return false;
         }
+        if (!isBizEmailVerified) {
+            showStepError(companyEmail, 'Please verify your Company Official Email using the confirmation code before proceeding.');
+            return false;
+        }
         if (address && !address.value.trim()) {
             showStepError(address, 'Please provide your registered physical office address.');
             return false;
@@ -1201,6 +1293,10 @@ function validateStep(step) {
         }
         if (repEmail && (!repEmail.value.trim() || !repEmail.value.includes('@'))) {
             showStepError(repEmail, 'Please enter a valid representative work email.');
+            return false;
+        }
+        if (!isRepEmailVerified) {
+            showStepError(repEmail, 'Please verify the Authorized Representative Official Email using the confirmation code before proceeding.');
             return false;
         }
         if (repPhone && !repPhone.value.trim()) {
@@ -1306,7 +1402,7 @@ function sendEmailOtp(type) {
             if (otpWrap) otpWrap.classList.remove('d-none');
             if (feedback) {
                 feedback.className = 'small mt-1 text-success fw-semibold';
-                feedback.textContent = data.message + (data.dev_code ? ` (Dev Code: ${data.dev_code})` : '');
+                feedback.textContent = data.message;
                 feedback.classList.remove('d-none');
             }
             const codeInput = document.getElementById(isBiz ? 'bizOtpCode' : 'repOtpCode');
@@ -1366,6 +1462,12 @@ function confirmEmailOtp(type) {
     .then(r => r.json())
     .then(data => {
         if (data.success) {
+            if (isBiz) {
+                isBizEmailVerified = true;
+            } else {
+                isRepEmailVerified = true;
+            }
+            hideStepperAlert();
             if (feedback) {
                 feedback.className = 'small mt-1 text-success fw-semibold';
                 feedback.textContent = '✓ Email address verified successfully!';
@@ -1477,6 +1579,31 @@ document.addEventListener('DOMContentLoaded', function () {
             hideStepperAlert();
         });
     });
+
+    // Invalidate email verified state if email input is modified
+    const companyEmailInput = document.getElementById('id_company_email');
+    if (companyEmailInput) {
+        let initialBizEmail = companyEmailInput.value.trim().toLowerCase();
+        companyEmailInput.addEventListener('input', function() {
+            if (this.value.trim().toLowerCase() !== initialBizEmail) {
+                isBizEmailVerified = false;
+                const badge = document.getElementById('bizEmailBadge');
+                if (badge) badge.innerHTML = '<span class="badge bg-warning-subtle text-dark border border-warning-subtle px-2 py-0.5 rounded-pill" style="font-size:11px;">Unverified</span>';
+            }
+        });
+    }
+
+    const repEmailInput = document.getElementById('id_representative_email');
+    if (repEmailInput) {
+        let initialRepEmail = repEmailInput.value.trim().toLowerCase();
+        repEmailInput.addEventListener('input', function() {
+            if (this.value.trim().toLowerCase() !== initialRepEmail) {
+                isRepEmailVerified = false;
+                const badge = document.getElementById('repEmailBadge');
+                if (badge) badge.innerHTML = '<span class="badge bg-warning-subtle text-dark border border-warning-subtle px-2 py-0.5 rounded-pill" style="font-size:11px;">Unverified</span>';
+            }
+        });
+    }
 
     // Dropzone setup for Step 3 (Representative ID Document)
     const repDropzone = document.getElementById('repDropzone');
@@ -1609,6 +1736,17 @@ document.addEventListener('DOMContentLoaded', function () {
                     validateStep(s);
                     return;
                 }
+            }
+
+            if (!isBizEmailVerified) {
+                goToStep(2);
+                showStepError(document.getElementById('id_company_email'), 'Please verify your Company Official Email before submitting.');
+                return;
+            }
+            if (!isRepEmailVerified) {
+                goToStep(3);
+                showStepError(document.getElementById('id_representative_email'), 'Please verify the Authorized Representative Official Email before submitting.');
+                return;
             }
 
             const hasExistingCac = {% if profile.has_cac_document %}true{% else %}false{% endif %};
