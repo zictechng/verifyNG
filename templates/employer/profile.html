@@ -144,6 +144,13 @@
                     <input type="hidden" name="current_step" id="hiddenCurrentStep" value="{{ active_step|default:1 }}">
                     <input type="hidden" name="live_verify_submit" id="hiddenLiveVerifySubmit" value="0">
 
+                    {# ── Stepper Inline Feedback Alert (replaces browser alerts) ── #}
+                    <div id="stepperAlertBox" class="alert alert-danger d-none align-items-center gap-2 py-2.5 px-3 rounded-3 shadow-xs mb-3" role="alert" style="font-size:13.5px;border-left:4px solid #DC2626;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="flex-shrink-0 text-danger"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        <div id="stepperAlertMsg" class="flex-grow-1 fw-medium"></div>
+                        <button type="button" class="btn-close btn-close-sm" aria-label="Close" onclick="hideStepperAlert()"></button>
+                    </div>
+
                     {# ══════════════════════════════════════════════════════════════ #}
                     {# STEP 1: Company Legal Identity                                  #}
                     {# ══════════════════════════════════════════════════════════════ #}
@@ -308,9 +315,30 @@
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold small">Job Title / Designation <span class="text-danger">*</span></label>
-                                <input type="text" name="representative_title" id="id_representative_title" class="form-control"
+                                <input type="text" name="representative_title" id="id_representative_title" list="repTitleSuggestions" class="form-control"
                                        value="{{ profile.representative_title }}" maxlength="100"
-                                       placeholder="e.g. Managing Director, Head of HR, Compliance Manager" style="font-size:16px;">
+                                       placeholder="e.g. Managing Director, Head of HR, Compliance Manager" style="font-size:16px;" autocomplete="organization-title">
+                                <datalist id="repTitleSuggestions">
+                                    <option value="Managing Director / CEO">
+                                    <option value="Executive Director">
+                                    <option value="Head of Human Resources">
+                                    <option value="HR Manager">
+                                    <option value="Operations Director">
+                                    <option value="Operations Manager">
+                                    <option value="Legal Counsel / Compliance Officer">
+                                    <option value="Company Secretary">
+                                    <option value="General Manager">
+                                    <option value="Chief Operating Officer (COO)">
+                                </datalist>
+                                <div class="mt-1.5 d-flex flex-wrap gap-1 align-items-center">
+                                    <span class="text-muted" style="font-size:11px;">Suggestions:</span>
+                                    <button type="button" class="btn btn-sm btn-light border py-0 px-2 rounded-pill rep-title-pill" style="font-size:11px;" onclick="selectRepTitle('Managing Director / CEO')">Managing Director</button>
+                                    <button type="button" class="btn btn-sm btn-light border py-0 px-2 rounded-pill rep-title-pill" style="font-size:11px;" onclick="selectRepTitle('Executive Director')">Director</button>
+                                    <button type="button" class="btn btn-sm btn-light border py-0 px-2 rounded-pill rep-title-pill" style="font-size:11px;" onclick="selectRepTitle('Head of Human Resources')">Head of HR</button>
+                                    <button type="button" class="btn btn-sm btn-light border py-0 px-2 rounded-pill rep-title-pill" style="font-size:11px;" onclick="selectRepTitle('Operations Manager')">Operations Lead</button>
+                                    <button type="button" class="btn btn-sm btn-light border py-0 px-2 rounded-pill rep-title-pill" style="font-size:11px;" onclick="selectRepTitle('Legal Counsel / Compliance Officer')">Legal / Compliance</button>
+                                    <button type="button" class="btn btn-sm btn-light border py-0 px-2 rounded-pill rep-title-pill" style="font-size:11px;" onclick="selectRepTitle('Company Secretary')">Secretary</button>
+                                </div>
                             </div>
                         </div>
 
@@ -669,99 +697,165 @@ function updateStepperUI(targetStep) {
     window.scrollTo({ top: 120, behavior: 'smooth' });
 }
 
+function showStepError(inputElement, message) {
+    hideStepperAlert();
+    if (inputElement) {
+        inputElement.classList.add('is-invalid');
+        try {
+            inputElement.focus({ preventScroll: false });
+        } catch(e) {}
+    }
+    const alertBox = document.getElementById('stepperAlertBox');
+    const alertMsg = document.getElementById('stepperAlertMsg');
+    if (alertBox && alertMsg) {
+        alertMsg.textContent = message;
+        alertBox.classList.remove('d-none');
+        alertBox.classList.add('d-flex');
+        alertBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+}
+
+function hideStepperAlert() {
+    const alertBox = document.getElementById('stepperAlertBox');
+    if (alertBox) {
+        alertBox.classList.add('d-none');
+        alertBox.classList.remove('d-flex');
+    }
+    document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+}
+
+function selectRepTitle(title) {
+    const titleInput = document.getElementById('id_representative_title');
+    if (titleInput) {
+        titleInput.value = title;
+        titleInput.classList.remove('is-invalid');
+    }
+    hideStepperAlert();
+    const summaryRepTitle = document.getElementById('summaryRepTitle');
+    if (summaryRepTitle) summaryRepTitle.textContent = title;
+    
+    // Highlight selected pill
+    document.querySelectorAll('.rep-title-pill').forEach(btn => {
+        if (btn.textContent.trim().toLowerCase() === title.trim().toLowerCase() ||
+            title.toLowerCase().includes(btn.textContent.trim().toLowerCase())) {
+            btn.classList.remove('btn-light');
+            btn.classList.add('btn-primary', 'text-white');
+        } else {
+            btn.classList.remove('btn-primary', 'text-white');
+            btn.classList.add('btn-light');
+        }
+    });
+}
+
 function goToStep(step) {
     if (step >= 1 && step <= 4) {
+        hideStepperAlert();
         updateStepperUI(step);
     }
 }
 
-function jumpToStep(targetStep) {
-    if (targetStep < currentStep) {
-        goToStep(targetStep);
-    } else {
-        validateAndGoStep(targetStep);
+function validateStep(step) {
+    hideStepperAlert();
+    if (step === 1) {
+        const companyName = document.getElementById('id_company_name');
+        const rcNumber = document.getElementById('id_company_rc_number');
+        if (companyName && !companyName.value.trim()) {
+            showStepError(companyName, 'Please enter your official legal registered company name.');
+            return false;
+        }
+        if (rcNumber && !rcNumber.value.trim()) {
+            showStepError(rcNumber, 'Please enter your company registration / incorporation number.');
+            return false;
+        }
+    } else if (step === 2) {
+        const industry = document.getElementById('id_industry');
+        const address = document.getElementById('id_company_address');
+        const phone = document.getElementById('id_contact_phone');
+        if (industry && !industry.value.trim()) {
+            showStepError(industry, 'Please specify your industry sector.');
+            return false;
+        }
+        if (address && !address.value.trim()) {
+            showStepError(address, 'Please provide your registered physical office address.');
+            return false;
+        }
+        if (phone && !phone.value.trim()) {
+            showStepError(phone, 'Please provide your corporate contact phone number.');
+            return false;
+        }
+    } else if (step === 3) {
+        const repName = document.getElementById('id_representative_name');
+        const repTitle = document.getElementById('id_representative_title');
+        const repEmail = document.getElementById('id_representative_email');
+        const repPhone = document.getElementById('id_representative_phone');
+        const repIdNum = document.getElementById('id_representative_id_number');
+
+        if (repName && !repName.value.trim()) {
+            showStepError(repName, 'Please enter the full legal name of the authorized representative.');
+            return false;
+        }
+        if (repTitle && !repTitle.value.trim()) {
+            showStepError(repTitle, 'Please specify the representative job title or role (e.g. Managing Director, Head of HR).');
+            return false;
+        }
+        if (repEmail && (!repEmail.value.trim() || !repEmail.value.includes('@'))) {
+            showStepError(repEmail, 'Please enter a valid representative work email.');
+            return false;
+        }
+        if (repPhone && !repPhone.value.trim()) {
+            showStepError(repPhone, 'Please enter the representative direct phone number.');
+            return false;
+        }
+        if (repIdNum && !repIdNum.value.trim()) {
+            showStepError(repIdNum, 'Please enter the representative government ID document number.');
+            return false;
+        }
     }
+    return true;
 }
 
 function validateAndGoStep(targetStep) {
-    if (targetStep > 1) {
-        // Validate Step 1
-        const companyName = document.getElementById('id_company_name')?.value.trim();
-        const rcNumber = document.getElementById('id_company_rc_number')?.value.trim();
-        if (!companyName) {
-            alert('Please enter your official legal registered company name.');
-            document.getElementById('id_company_name')?.focus();
-            return;
-        }
-        if (!rcNumber) {
-            alert('Please enter your company registration / incorporation number.');
-            document.getElementById('id_company_rc_number')?.focus();
+    // Validate current step before advancing
+    if (!validateStep(currentStep)) {
+        return;
+    }
+    goToStep(targetStep);
+}
+
+function jumpToStep(targetStep) {
+    hideStepperAlert();
+    if (targetStep <= currentStep) {
+        goToStep(targetStep);
+        return;
+    }
+    // Forward jump: validate steps sequentially
+    for (let s = currentStep; s < targetStep; s++) {
+        if (!validateStep(s)) {
+            // Stay at first invalid step
+            if (s !== currentStep) {
+                goToStep(s);
+                validateStep(s);
+            }
             return;
         }
     }
-
-    if (targetStep > 2) {
-        // Validate Step 2
-        const industry = document.getElementById('id_industry')?.value.trim();
-        const address = document.getElementById('id_company_address')?.value.trim();
-        const phone = document.getElementById('id_contact_phone')?.value.trim();
-        if (!industry) {
-            alert('Please specify your industry sector.');
-            document.getElementById('id_industry')?.focus();
-            return;
-        }
-        if (!address) {
-            alert('Please provide your registered physical office address.');
-            document.getElementById('id_company_address')?.focus();
-            return;
-        }
-        if (!phone) {
-            alert('Please provide your corporate contact phone number.');
-            document.getElementById('id_contact_phone')?.focus();
-            return;
-        }
-    }
-
-    if (targetStep > 3) {
-        // Validate Step 3
-        const repName = document.getElementById('id_representative_name')?.value.trim();
-        const repTitle = document.getElementById('id_representative_title')?.value.trim();
-        const repEmail = document.getElementById('id_representative_email')?.value.trim();
-        const repPhone = document.getElementById('id_representative_phone')?.value.trim();
-        const repIdNum = document.getElementById('id_representative_id_number')?.value.trim();
-
-        if (!repName) {
-            alert('Please enter the full legal name of the authorized representative.');
-            document.getElementById('id_representative_name')?.focus();
-            return;
-        }
-        if (!repTitle) {
-            alert('Please specify the representative job title or role.');
-            document.getElementById('id_representative_title')?.focus();
-            return;
-        }
-        if (!repEmail || !repEmail.includes('@')) {
-            alert('Please enter a valid representative work email.');
-            document.getElementById('id_representative_email')?.focus();
-            return;
-        }
-        if (!repPhone) {
-            alert('Please enter the representative direct phone number.');
-            document.getElementById('id_representative_phone')?.focus();
-            return;
-        }
-        if (!repIdNum) {
-            alert('Please enter the representative government ID document number.');
-            document.getElementById('id_representative_id_number')?.focus();
-            return;
-        }
-    }
-
     goToStep(targetStep);
 }
 
 document.addEventListener('DOMContentLoaded', function () {
     updateStepperUI(currentStep);
+
+    // Auto-clear invalid state on field edit
+    document.querySelectorAll('#companyProfileForm input, #companyProfileForm select, #companyProfileForm textarea').forEach(el => {
+        el.addEventListener('input', function() {
+            this.classList.remove('is-invalid');
+            hideStepperAlert();
+        });
+        el.addEventListener('change', function() {
+            this.classList.remove('is-invalid');
+            hideStepperAlert();
+        });
+    });
 
     // Dropzone setup for Step 4
     const dropzone = document.getElementById('cacDropzone');
@@ -772,6 +866,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const btnRemoveFile = document.getElementById('btnRemoveFile');
     const toggleReplaceBtn = document.getElementById('toggleReplaceDocBtn');
     const dropzoneWrapper = document.getElementById('dropzoneWrapper');
+    const dropzoneError = document.getElementById('dropzoneError');
 
     if (toggleReplaceBtn && dropzoneWrapper) {
         toggleReplaceBtn.addEventListener('click', function() {
@@ -786,16 +881,25 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         fileInput.addEventListener('change', function() {
+            if (dropzoneError) {
+                dropzoneError.textContent = '';
+                dropzoneError.classList.add('d-none');
+            }
             if (fileInput.files && fileInput.files.length > 0) {
                 const file = fileInput.files[0];
                 if (file.size > 8 * 1024 * 1024) {
-                    alert('The selected document exceeds the 8MB limit.');
+                    if (dropzoneError) {
+                        dropzoneError.textContent = 'The selected document exceeds the 8MB limit. Please choose a smaller file.';
+                        dropzoneError.classList.remove('d-none');
+                    }
+                    showStepError(dropzone, 'The selected document exceeds the 8MB limit. Please choose a smaller file.');
                     fileInput.value = '';
                     return;
                 }
                 previewFileName.textContent = file.name;
                 idleState.classList.add('d-none');
                 previewState.classList.remove('d-none');
+                hideStepperAlert();
             }
         });
 
@@ -805,6 +909,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 fileInput.value = '';
                 previewState.classList.add('d-none');
                 idleState.classList.remove('d-none');
+                if (dropzoneError) dropzoneError.classList.add('d-none');
             });
         }
     }
@@ -817,24 +922,37 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (triggerBtn && form) {
         triggerBtn.addEventListener('click', function() {
-            if (!declarationCheck || !declarationCheck.checked) {
-                alert('Please review and check the legal authorization declaration to proceed.');
-                declarationCheck?.focus();
-                return;
+            hideStepperAlert();
+
+            // Validate all previous steps first just in case
+            for (let s = 1; s <= 3; s++) {
+                if (!validateStep(s)) {
+                    goToStep(s);
+                    validateStep(s);
+                    return;
+                }
             }
 
             const hasExistingCac = {% if profile.has_cac_document %}true{% else %}false{% endif %};
             const hasNewCac = fileInput && fileInput.files && fileInput.files.length > 0;
             if (!hasExistingCac && !hasNewCac) {
-                alert('Please upload your official business registration certificate before submitting.');
+                showStepError(dropzone, 'Please upload your official business registration certificate before submitting.');
+                return;
+            }
+
+            if (!declarationCheck || !declarationCheck.checked) {
+                showStepError(declarationCheck, 'Please review and check the legal authorization declaration to proceed.');
                 return;
             }
 
             hiddenLiveSubmit.value = '1';
 
             // Show live progress modal
-            const liveModal = new bootstrap.Modal(document.getElementById('liveVerificationProcessingModal'));
-            liveModal.show();
+            const liveModalEl = document.getElementById('liveVerificationProcessingModal');
+            if (liveModalEl && window.bootstrap) {
+                const liveModal = new bootstrap.Modal(liveModalEl);
+                liveModal.show();
+            }
 
             const pBar = document.getElementById('liveProgressBar');
             const pText = document.getElementById('liveVerifyProgressText');
