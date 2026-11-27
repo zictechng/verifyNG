@@ -235,6 +235,7 @@ def employer_profile(request):
         # ── Step 2: Business Nature & Contact ──
         industry_input = request.POST.get('industry', '').strip()
         business_nature_input = request.POST.get('business_nature', '').strip()
+        company_email_input = request.POST.get('company_email', '').strip()
         company_address_input = request.POST.get('company_address', '').strip()
         company_website_input = request.POST.get('company_website', '').strip()
         contact_phone_input = request.POST.get('contact_phone', '').strip()
@@ -290,13 +291,24 @@ def employer_profile(request):
 
         profile.industry = industry_input
         profile.business_nature = business_nature_input
+        if company_email_input:
+            if company_email_input.lower() != (profile.company_email or '').lower():
+                profile.company_email = company_email_input
+                profile.company_email_verified = (
+                    request.session.get('corp_business_verified_email', '').lower() == company_email_input.lower()
+                )
         profile.company_address = company_address_input
         profile.company_website = company_website_input
         profile.contact_phone = contact_phone_input
 
         profile.representative_name = rep_name_input
         profile.representative_title = rep_title_input
-        profile.representative_email = rep_email_input
+        if rep_email_input:
+            if rep_email_input.lower() != (profile.representative_email or '').lower():
+                profile.representative_email = rep_email_input
+                profile.representative_email_verified = (
+                    request.session.get('corp_rep_verified_email', '').lower() == rep_email_input.lower()
+                )
         profile.representative_phone = rep_phone_input
         profile.representative_id_type = rep_id_type_input
         profile.representative_id_number = rep_id_num_input
@@ -494,6 +506,118 @@ def employer_rep_document_view(request):
     response['X-Frame-Options'] = 'SAMEORIGIN'
     doc_file.close()
     return response
+
+
+@login_required
+@employer_required
+@require_POST
+def send_corporate_email_otp(request):
+    """Dispatches a 6-digit confirmation OTP to verify corporate or representative email address."""
+    email = request.POST.get('email', '').strip()
+    otp_type = request.POST.get('otp_type', 'business').strip().lower()
+
+    if not email or '@' not in email:
+        return JsonResponse({'success': False, 'message': 'Please provide a valid email address.'}, status=400)
+
+    import secrets
+    import time
+    from notifications.email_service import send_email, render_email
+
+    otp_code = f"{secrets.randbelow(900000) + 100000:06d}"
+    role_label = 'Company Official Email' if otp_type == 'business' else 'Authorized Representative Email'
+
+    try:
+        html_body, text_body = render_email('generic_notification', {
+            'user_name': request.user.get_full_name() or request.user.username,
+            'heading': f'Verify Your {role_label}',
+            'body_html': (
+                f'<p>You are verifying this email address for corporate verification on <strong>VerifyNG</strong>.</p>'
+                f'<p>Your 6-digit confirmation code is:</p>'
+                f'<div style="text-align:center;margin:24px 0;">'
+                f'  <span style="font-size:32px;font-weight:700;letter-spacing:6px;color:#2563EB;background:#EFF6FF;padding:12px 24px;border-radius:8px;border:1.5px solid #BFDBFE;">{otp_code}</span>'
+                f'</div>'
+                f'<p>This code is valid for 10 minutes. If you did not request this, please disregard this email.</p>'
+            ),
+            'subject': f'VerifyNG — Your {role_label} Verification Code',
+        })
+        send_email(
+            to_email=email,
+            subject=f'VerifyNG — Your {role_label} Verification Code',
+            html_body=html_body,
+            text_body=text_body,
+        )
+    except Exception as exc:
+        logger.warning("Corporate email OTP delivery failed for %s: %s", email, exc)
+
+    session_key = f'corp_{otp_type}_email_otp'
+    request.session[session_key] = {
+        'code': otp_code,
+        'email': email,
+        'expires_at': time.time() + 600,
+        'attempts': 0,
+    }
+    request.session.modified = True
+
+    resp_data = {
+        'success': True,
+        'message': f'Verification code sent to {email}.',
+    }
+    if settings.DEBUG:
+        resp_data['dev_code'] = otp_code
+    return JsonResponse(resp_data)
+
+
+@login_required
+@employer_required
+@require_POST
+def verify_corporate_email_otp(request):
+    """Verifies the submitted 6-digit OTP against session and marks email verified."""
+    profile = _get_or_create_employer_profile(request.user)
+    email = request.POST.get('email', '').strip()
+    code = request.POST.get('code', '').strip().replace(' ', '').replace('-', '')
+    otp_type = request.POST.get('otp_type', 'business').strip().lower()
+
+    import time
+    session_key = f'corp_{otp_type}_email_otp'
+    otp_data = request.session.get(session_key)
+
+    if not otp_data:
+        return JsonResponse({'success': False, 'message': 'No verification code requested or code expired. Please request a new code.'}, status=400)
+
+    if time.time() > otp_data.get('expires_at', 0):
+        request.session.pop(session_key, None)
+        request.session.modified = True
+        return JsonResponse({'success': False, 'message': 'Verification code has expired. Please request a new code.'}, status=400)
+
+    if otp_data.get('email', '').lower() != email.lower():
+        return JsonResponse({'success': False, 'message': 'The email being verified has changed. Please request a new code.'}, status=400)
+
+    expected_code = str(otp_data.get('code', '')).strip()
+    if code != expected_code:
+        attempts = otp_data.get('attempts', 0) + 1
+        otp_data['attempts'] = attempts
+        if attempts >= 5:
+            request.session.pop(session_key, None)
+            request.session.modified = True
+            return JsonResponse({'success': False, 'message': 'Too many incorrect attempts. Please request a new code.'}, status=400)
+        request.session.modified = True
+        return JsonResponse({'success': False, 'message': 'Invalid verification code. Please check and try again.'}, status=400)
+
+    # Validated successfully
+    request.session.pop(session_key, None)
+    if otp_type == 'business':
+        profile.company_email = email
+        profile.company_email_verified = True
+        profile.save()
+        request.session['corp_business_verified_email'] = email
+    else:
+        profile.representative_email = email
+        profile.representative_email_verified = True
+        profile.save()
+        request.session['corp_rep_verified_email'] = email
+    request.session.modified = True
+
+    return JsonResponse({'success': True, 'message': f'{email} verified successfully!'})
 
 # ---------------------------------------------------------------------------
 # Bulk Checks — Upload list

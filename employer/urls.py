@@ -10,6 +10,8 @@ urlpatterns = [
     path('profile/', views.employer_profile, name='profile'),
     path('profile/cac-document/', views.employer_cac_document_view, name='cac_document_preview'),
     path('profile/representative-document/', views.employer_rep_document_view, name='rep_document_preview'),
+    path('profile/send-email-otp/', views.send_corporate_email_otp, name='send_email_otp'),
+    path('profile/verify-email-otp/', views.verify_corporate_email_otp, name='verify_email_otp'),
 
     # Workforce Clearance Certificate (DBS) Verification
     path('certificate/verify/', views.employer_certificate_verify, name='certificate_verify'),
