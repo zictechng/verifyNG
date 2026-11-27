@@ -470,7 +470,7 @@
                     {# ══════════════════════════════════════════════════════════════ #}
                     <div id="stepContainer4" class="step-section d-none">
                         <div class="mb-3">
-                            <h2 class="h6 fw-bold text-dark mb-1" style="font-size:16px;">Step 4: Business Proof &amp; Live Verification</h2>
+                            <h2 class="h6 fw-bold text-dark mb-1" style="font-size:16px;">Step 4: Business Proof &amp; Review</h2>
                             <p class="small text-muted mb-0">Upload official business registration documents and review your corporate application.</p>
                         </div>
 
@@ -552,7 +552,7 @@
                         <div class="card border mb-4" style="background:#F8FAFC;border-radius:12px;border-color:#E2E8F0 !important;">
                             <div class="card-body p-3.5">
                                 <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
-                                    <span class="fw-bold small text-uppercase text-muted" style="letter-spacing:0.4px;">Application Complete Overview</span>
+                                    <span class="fw-bold small text-uppercase text-muted" style="letter-spacing:0.4px;">Application Overview</span>
                                     <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-0.5 rounded-pill" style="font-size:11px;">
                                         {% if profile.is_verified %}Verified Entity{% elif profile.verification_status == 'pending' %}Under Compliance Review{% else %}Ready for Live Validation{% endif %}
                                     </span>
@@ -560,7 +560,7 @@
                                 <div class="row g-3 small">
                                     {# Section 1: Entity #}
                                     <div class="col-md-6 border-end-md pb-2">
-                                        <div class="text-uppercase text-muted fw-bold mb-1.5" style="font-size:10.5px;letter-spacing:0.3px;">Corporate Entity</div>
+                                        <div class="text-uppercase text-muted fw-bold mb-1.5" style="font-size:12.5px;letter-spacing:0.3px;">Corporate Entity</div>
                                         <div class="mb-1"><span class="text-muted">Legal Name:</span> <strong id="summaryCompanyName" class="text-dark">{{ profile.company_name }}</strong></div>
                                         <div class="mb-1"><span class="text-muted">Registration No:</span> <strong id="summaryRegNumber" class="font-monospace text-dark">{{ profile.company_rc_number }}</strong></div>
                                         <div class="mb-1"><span class="text-muted">Country / Registry:</span> <span id="summaryCountry" class="text-dark">{{ profile.country|default:'NG' }}</span> (<span id="summaryRegAuthority">{{ reg_authority }}</span>)</div>
@@ -569,7 +569,7 @@
 
                                     {# Section 2: Operations #}
                                     <div class="col-md-6 pb-2">
-                                        <div class="text-uppercase text-muted fw-bold mb-1.5" style="font-size:10.5px;letter-spacing:0.3px;">Operations &amp; Contact</div>
+                                        <div class="text-uppercase text-muted fw-bold mb-1.5" style="font-size:12.5px;letter-spacing:0.3px;">Operations &amp; Contact</div>
                                         <div class="mb-1"><span class="text-muted">Industry:</span> <span id="summaryIndustry" class="text-dark">{{ profile.industry|default:'Not provided' }}</span></div>
                                         <div class="mb-1"><span class="text-muted">Address:</span> <span id="summaryAddress" class="text-dark text-truncate d-inline-block" style="max-width:240px;vertical-align:bottom;">{{ profile.company_address|default:'Not provided' }}</span></div>
                                         <div class="mb-1"><span class="text-muted">Phone:</span> <span id="summaryPhone" class="text-dark">{{ profile.contact_phone|default:'Not provided' }}</span></div>
@@ -580,7 +580,7 @@
 
                                     {# Section 3: Representative #}
                                     <div class="col-md-6">
-                                        <div class="text-uppercase text-muted fw-bold mb-1.5" style="font-size:10.5px;letter-spacing:0.3px;">Accountable Representative</div>
+                                        <div class="text-uppercase text-muted fw-bold mb-1.5" style="font-size:12.5px;letter-spacing:0.3px;">Accountable Representative</div>
                                         <div class="mb-1"><span class="text-muted">Name &amp; Role:</span> <strong id="summaryRepName" class="text-dark">{{ profile.representative_name|default:request.user.get_full_name }}</strong> (<span id="summaryRepTitle">{{ profile.representative_title|default:'Officer' }}</span>)</div>
                                         <div class="mb-1"><span class="text-muted">Work Email:</span> <span id="summaryRepEmail" class="text-dark">{{ profile.representative_email|default:request.user.email }}</span></div>
                                         <div class="mb-1"><span class="text-muted">Direct Phone:</span> <span id="summaryRepPhone" class="text-dark">{{ profile.representative_phone|default:'Not provided' }}</span></div>
@@ -589,7 +589,7 @@
 
                                     {# Section 4: Document Proofs #}
                                     <div class="col-md-6">
-                                        <div class="text-uppercase text-muted fw-bold mb-1.5" style="font-size:10.5px;letter-spacing:0.3px;">Document Attachments</div>
+                                        <div class="text-uppercase text-muted fw-bold mb-1.5" style="font-size:12.5px;letter-spacing:0.3px;">Document Attachments</div>
                                         <div class="mb-1.5">
                                             <span class="text-muted">Business Certificate:</span>
                                             <span id="summaryCacBadge">
