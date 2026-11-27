@@ -185,6 +185,7 @@
             <label class="form-check p-3 rounded-3 border bg-light-subtle d-flex align-items-start gap-2.5 h-100 m-0"
                    for="srv_{{ code }}" style="cursor:pointer; transition: all 0.15s ease;">
               <input class="form-check-input mt-1 flex-shrink-0" type="checkbox" name="allowed_services" value="{{ code }}" id="srv_{{ code }}"
+                     @change="toggleServiceBullet('{{ label|escapejs }}', $event.target.checked)"
                      {% if plan and code in plan.allowed_services %}checked{% elif not plan and code in 'tenant_screening,record_lookup,staff_check_standard' %}checked{% endif %}>
               <div class="flex-grow-1">
                 <div class="small fw-semibold text-dark" style="line-height: 1.35; font-size: 0.84rem;">
@@ -222,12 +223,27 @@ function planFeatures() {
       const existing = {{ features_json|safe }};
       this.features = existing;
     },
-    addFeature() {
-      this.features.push({ text: '', is_included: true });
+    addFeature(text = '', is_included = true) {
+      this.features.push({ text: text, is_included: is_included });
     },
     removeFeature(idx) {
       this.features.splice(idx, 1);
     },
+    toggleServiceBullet(serviceLabel, isChecked) {
+      if (isChecked) {
+        // Check if already in features list
+        const exists = this.features.some(f => f.text.toLowerCase().trim() === serviceLabel.toLowerCase().trim());
+        if (!exists) {
+          this.addFeature(serviceLabel, true);
+        }
+      } else {
+        // Optional: when unticked, if exact bullet exists, mark unincluded or remove
+        const idx = this.features.findIndex(f => f.text.toLowerCase().trim() === serviceLabel.toLowerCase().trim());
+        if (idx !== -1) {
+          this.removeFeature(idx);
+        }
+      }
+    }
   };
 }
 </script>

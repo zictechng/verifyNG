@@ -630,6 +630,23 @@ def consume_user_entitlement(user, service: str = 'check', cost: int = 1) -> boo
         pass
     sub = get_active_subscription(user)
     if sub:
+        # ── Unlocked Platform Features Do Not Deduct / Consume Quota ──
+        # Features like Corporate Verification, Bulk CSV Tool, Merchant Badge, etc.
+        FEATURE_CAPABILITIES = (
+            'corporate_due_diligence',
+            'business_verification',
+            'verification',
+            'bulk_candidate_screening',
+            'bulk_upload',
+            'bulk_check',
+            'verify_workforce_certificate',
+            'certificate_verify',
+            'merchant_badge',
+            'seller_badge',
+        )
+        if service in FEATURE_CAPABILITIES:
+            return True
+
         if sub.plan.has_unlimited_checks:
             return True
         srv_price = site_settings.get_service_price(service)

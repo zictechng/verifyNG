@@ -437,6 +437,8 @@ class Plan(models.Model):
             aliases.extend(['trustpass_enhanced', 'certificate', 'trustpass'])
         elif service_code in ('police_dossier', 'dossier', 'evidence_dossier'):
             aliases.extend(['police_dossier', 'dossier', 'evidence_dossier'])
+        elif service_code in ('merchant_badge', 'seller_badge'):
+            aliases.extend(['merchant_badge', 'seller_badge'])
 
         return any(a in allowed for a in aliases)
 

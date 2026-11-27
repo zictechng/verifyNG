@@ -283,7 +283,7 @@ def get_compliance_review_queue(category_filter='all', search_query=''):
                 'submitted_at': emp.cac_uploaded_at or emp.updated_at or emp.created_at,
                 'status': 'pending',
                 'status_label': 'CAC Document Review',
-                'review_url': reverse('admin_portal:employer_detail', kwargs={'public_id': u.public_id}),
+                'review_url': reverse('admin_portal:employer_cac_review', kwargs={'public_id': u.public_id}),
                 'user': u,
             }
             if not q_str or (
@@ -5055,4 +5055,76 @@ class AdminUserIdReviewView(SuperAdminRequiredMixin, View):
 
         messages.error(request, "Unknown action.")
         return redirect('admin_portal:user_id_review', public_id=public_id)
+
+
+class AdminEmployerCACReviewView(SuperAdminRequiredMixin, View):
+    """
+    Dedicated Compliance Review Desk for Corporate & Business Verification (CAC).
+    Side-by-side comparison of Registered Business Particulars vs Official Uploaded Document,
+    with direct CAC / Corporate Registry Live Lookup tool, Approve, and Decline actions.
+    """
+    section_name = "Verifications"
+    required_permission = ("employer.view_employerprofile", "employer.change_employerprofile")
+    template_name = "admin_portal/employer_cac_review.html"
+
+    def get(self, request, public_id):
+        from employer.models import EmployerProfile
+        from users.country_config import get_country_business_config
+        profile = get_object_or_404(EmployerProfile.objects.select_related('user'), user__public_id=public_id)
+        country_code = profile.country or 'NG'
+        country_cfg = get_country_business_config(country_code) or {}
+        reg_authority = country_cfg.get('registration_authority', 'Corporate Affairs Commission (CAC)')
+
+        ctx = {
+            'profile': profile,
+            'target_user': profile.user,
+            'country_code': country_code,
+            'country_cfg': country_cfg,
+            'reg_authority': reg_authority,
+        }
+        return render(request, self.template_name, ctx)
+
+    def post(self, request, public_id):
+        from employer.models import EmployerProfile
+        from employer.services import EmployerVerificationService
+        profile = get_object_or_404(EmployerProfile.objects.select_related('user'), user__public_id=public_id)
+        action = request.POST.get('action', '').strip()
+
+        if action == 'verify_cac':
+            if profile.verification_status == 'rejected':
+                messages.error(
+                    request,
+                    f"Direct approval blocked: '{profile.company_name}' was previously declined. "
+                    "In compliance mode, a declined application cannot be directly approved. "
+                    "The employer must update their particulars and resubmit fresh documents."
+                )
+                return redirect('admin_portal:employer_cac_review', public_id=public_id)
+
+            notes = request.POST.get('verification_notes', '').strip()
+            registry_ref = request.POST.get('registry_reference', '').strip()
+            full_notes = f"Registry Ref: {registry_ref} | {notes}" if registry_ref else notes
+
+            EmployerVerificationService.transition_to_verified(
+                profile=profile,
+                officer=request.user,
+                notes=full_notes,
+                request=request
+            )
+            messages.success(request, f"🎉 Corporate verification approved successfully for '{profile.company_name}'.")
+            return redirect('admin_portal:review_queue')
+
+        elif action == 'reject_cac':
+            reason = request.POST.get('rejection_reason', '').strip() or 'Submitted corporate credentials or registration document could not be validated.'
+            EmployerVerificationService.transition_to_rejected(
+                profile=profile,
+                reason=reason,
+                officer=request.user,
+                request=request
+            )
+            messages.warning(request, f"Corporate verification declined for '{profile.company_name}'. Notification dispatched to applicant.")
+            return redirect('admin_portal:review_queue')
+
+        messages.error(request, "Unknown action.")
+        return redirect('admin_portal:employer_cac_review', public_id=public_id)
+
 

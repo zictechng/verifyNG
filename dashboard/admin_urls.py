@@ -42,6 +42,7 @@ from dashboard.admin_views import (
     AdminEmployerProfilesView,
     AdminEmployerActionView,
     AdminEmployerCACDocumentView,
+    AdminEmployerCACReviewView,
     AdminEmployerRepDocumentView,
     AdminEmployerDetailView,
     AdminEmployerActivityExportView,
@@ -135,6 +136,7 @@ urlpatterns = [
     # ── Employer Profiles ───────────────────────────────────────────────────
     path('employers/', AdminEmployerProfilesView.as_view(), name='employer_profiles'),
     path('employers/<uuid:public_id>/', AdminEmployerDetailView.as_view(), name='employer_detail'),
+    path('employers/<uuid:public_id>/cac-review/', AdminEmployerCACReviewView.as_view(), name='employer_cac_review'),
     path('employers/<uuid:public_id>/action/', AdminEmployerActionView.as_view(), name='employer_action'),
     path('employers/<uuid:public_id>/cac-document/', AdminEmployerCACDocumentView.as_view(), name='employer_cac_document'),
     path('employers/<uuid:public_id>/rep-document/', AdminEmployerRepDocumentView.as_view(), name='employer_rep_document'),
