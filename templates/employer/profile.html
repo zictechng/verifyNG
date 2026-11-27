@@ -174,7 +174,7 @@
                             <a href="{% url 'employer:dashboard' %}" class="btn btn-primary px-4 py-2 rounded-pill fw-semibold shadow-xs" style="font-size:13.5px;">
                                 Return to Dashboard
                             </a>
-                            <a href="{% url 'employer:check' %}" class="btn btn-outline-primary px-4 py-2 rounded-pill fw-semibold" style="font-size:13.5px;">
+                            <a href="{% url 'employer:staff_check_create' %}" class="btn btn-outline-primary px-4 py-2 rounded-pill fw-semibold" style="font-size:13.5px;">
                                 Run Candidate Checks
                             </a>
                         </div>
@@ -191,29 +191,9 @@
                     </div>
                     <h2 class="h5 fw-bold text-dark mb-1">Verification Under Compliance Review</h2>
                     <p class="small text-muted mb-4 mx-auto" style="max-width:540px;line-height:1.6;">
-                        Your corporate registration credentials and representative documentation have been securely submitted to our compliance desk for validation.
+                        Your corporate registration credentials and representative documentation have been securely submitted to compliance review.
                     </p>
 
-                    {# Review overview breakdown #}
-                    <div class="p-3.5 rounded-3 mb-4 text-start mx-auto border" style="max-width:620px;background:#F8FAFC;border-color:#E2E8F0 !important;">
-                        <div class="row g-2 small">
-                            <div class="col-sm-6">
-                                <span class="text-muted">Entity:</span> <strong>{{ profile.company_name }}</strong>
-                            </div>
-                            <div class="col-sm-6">
-                                <span class="text-muted">Registration No:</span> <strong class="font-monospace">{{ profile.company_rc_number|default:"On record" }}</strong>
-                            </div>
-                            <div class="col-sm-6">
-                                <span class="text-muted">Company Email:</span> <strong>{{ profile.company_email|default:request.user.email }}</strong> <span class="badge bg-success-subtle text-success border border-success-subtle ms-1" style="font-size:9.5px;">✓ OTP Verified</span>
-                            </div>
-                            <div class="col-sm-6">
-                                <span class="text-muted">Representative:</span> <strong>{{ profile.representative_name|default:request.user.get_full_name }}</strong> <span class="badge bg-success-subtle text-success border border-success-subtle ms-1" style="font-size:9.5px;">✓ OTP Verified</span>
-                            </div>
-                            <div class="col-12 mt-2 pt-2 border-top text-muted" style="font-size:0.78rem;">
-                                Submitted: {{ profile.cac_uploaded_at|date:"d M Y, H:i"|default:"Recently" }} &bull; Expected review turnaround: <strong>1 to 24 hours</strong>. You will receive an email update at <strong>{{ request.user.email }}</strong> as soon as the review concludes.
-                            </div>
-                        </div>
-                    </div>
 
                     <div class="d-flex justify-content-center align-items-center gap-2 flex-wrap">
                         <a href="{% url 'employer:dashboard' %}" class="btn btn-primary px-4 py-2 rounded-pill fw-semibold shadow-xs" style="font-size:13.5px;">
@@ -972,7 +952,7 @@
                                     </div>
                                 </div>
                                 {% if not is_biz_verif_free and user_balance < biz_verif_price %}
-                                <a href="{% url 'payments:checkout_service' 'business_verification' %}" target="_blank" class="btn btn-sm btn-outline-danger rounded-pill px-3 fw-semibold">
+                                <a href="{% url 'payments:service_checkout_review' 'business_verification' %}" target="_blank" class="btn btn-sm btn-outline-danger rounded-pill px-3 fw-semibold">
                                     Top Up Wallet
                                 </a>
                                 {% endif %}

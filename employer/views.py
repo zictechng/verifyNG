@@ -402,39 +402,50 @@ def employer_profile(request):
             )
 
             site_settings = SiteSettings.get()
+            active_sub = get_active_subscription(request.user)
+            # Plan includes business verification if active sub explicitly allows it
+            sub_covers_biz_verif = (
+                active_sub is not None 
+                and hasattr(active_sub.plan, 'includes_service') 
+                and active_sub.plan.includes_service('business_verification')
+            )
+
             is_free = (
                 site_settings.is_service_free('business_verification')
                 or profile.is_billing_exempt
                 or ('business_verification' in (profile.exempt_services or []))
                 or getattr(request.user, 'is_billing_exempt', False)
                 or ('business_verification' in (getattr(request.user, 'exempt_services', []) or []))
+                or sub_covers_biz_verif
             )
 
             if not is_free:
-                active_sub = get_active_subscription(request.user)
-                if active_sub:
-                    consume_user_entitlement(request.user, service='business_verification')
-                else:
-                    req_price = site_settings.price_verification_business
-                    user_bal = get_user_prepaid_balance(request.user)
-                    if user_bal >= req_price:
-                        ok, rem_bal = deduct_user_prepaid_balance(
-                            request.user,
-                            req_price,
-                            f"Business Registration Verification: {profile.company_name}"
-                        )
-                        if not ok:
-                            messages.error(request, 'Failed to process wallet fee deduction. Please try again.')
-                            return redirect('employer:profile')
-                    else:
-                        topup_diff = req_price - user_bal
-                        messages.error(
-                            request,
-                            f'Payment Required: Corporate verification fee is ₦{req_price:,.0f}. '
-                            f'Your wallet balance is ₦{user_bal:,.0f} (₦{topup_diff:,.0f} top-up needed). '
-                            f'Please fund your wallet or activate an employer subscription before submitting your application.'
-                        )
+                req_price = site_settings.price_verification_business
+                user_bal = get_user_prepaid_balance(request.user)
+                if user_bal >= req_price:
+                    ok, rem_bal = deduct_user_prepaid_balance(
+                        request.user,
+                        req_price,
+                        f"Business Registration Verification: {profile.company_name}"
+                    )
+                    if not ok:
+                        messages.error(request, 'Failed to process wallet fee deduction. Please try again.')
                         return redirect('employer:profile')
+                else:
+                    topup_diff = req_price - user_bal
+                    sub_note = ""
+                    if active_sub and not sub_covers_biz_verif:
+                        sub_note = f" (Note: Your current plan '{active_sub.plan.name}' does not include Corporate Due Diligence verification)."
+                    messages.error(
+                        request,
+                        f'Payment Required: Corporate verification fee is ₦{req_price:,.0f}.{sub_note} '
+                        f'Your wallet balance is ₦{user_bal:,.0f} (₦{topup_diff:,.0f} top-up needed). '
+                        f'Please fund your wallet or upgrade to a subscription that covers corporate business verification.'
+                    )
+                    return redirect('employer:profile')
+            else:
+                if sub_covers_biz_verif:
+                    consume_user_entitlement(request.user, service='business_verification')
 
             # ── Transition Application to Pending Compliance Review (No Auto-Approval) ──
             profile.is_verified = False
@@ -493,13 +504,18 @@ def employer_profile(request):
     from payments.services import get_user_prepaid_balance, get_active_subscription
     site_settings = SiteSettings.get()
     active_sub = get_active_subscription(request.user)
+    sub_covers_biz_verif = (
+        active_sub is not None
+        and hasattr(active_sub.plan, 'includes_service')
+        and active_sub.plan.includes_service('business_verification')
+    )
     is_biz_verif_free = (
         site_settings.is_service_free('business_verification')
         or profile.is_billing_exempt
         or ('business_verification' in (profile.exempt_services or []))
         or getattr(request.user, 'is_billing_exempt', False)
         or ('business_verification' in (getattr(request.user, 'exempt_services', []) or []))
-        or bool(active_sub)
+        or sub_covers_biz_verif
     )
     user_balance = get_user_prepaid_balance(request.user)
     biz_verif_price = site_settings.price_verification_business

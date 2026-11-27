@@ -267,27 +267,28 @@ def get_compliance_review_queue(category_filter='all', search_query=''):
             u = emp.user
             c_name = 'Nigeria' if emp.country == 'NG' else (emp.country or 'Nigeria')
             name = emp.company_name or (u.get_full_name() or u.username)
-            rc_info = f"RC: {emp.rc_number}" if emp.rc_number else "CAC Incorporation"
+            rc_val = getattr(emp, 'company_rc_number', '') or getattr(emp, 'rc_number', '')
+            rc_info = f"RC: {rc_val}" if rc_val else "CAC Incorporation"
             item = {
                 'id': f"emp_{emp.id}",
                 'category': 'employer_cac',
                 'category_label': 'Employer (CAC)',
                 'category_badge': 'badge bg-warning text-dark',
                 'title': emp.company_name or "Registered Company",
-                'subtitle': f"Rep: {u.get_full_name() or u.username} · {u.email}",
-                'document_type': f"CAC Incorporation ({rc_info})",
-                'id_number': emp.rc_number or '—',
+                'subtitle': f"Rep: {emp.representative_name or u.get_full_name() or u.username} · {u.email}",
+                'document_type': f"CAC Registration ({rc_info})",
+                'id_number': rc_val or '—',
                 'country': emp.country or 'NG',
                 'country_name': c_name,
-                'submitted_at': emp.updated_at or emp.created_at,
+                'submitted_at': emp.cac_uploaded_at or emp.updated_at or emp.created_at,
                 'status': 'pending',
                 'status_label': 'CAC Document Review',
-                'review_url': reverse('admin_portal:employer_detail', kwargs={'pk': emp.pk}),
+                'review_url': reverse('admin_portal:employer_detail', kwargs={'public_id': u.public_id}),
                 'user': u,
             }
             if not q_str or (
                 q_str in (emp.company_name or '').lower() or
-                q_str in (emp.rc_number or '').lower() or
+                q_str in str(rc_val).lower() or
                 q_str in u.username.lower() or
                 q_str in u.email.lower()
             ):
@@ -2801,6 +2802,22 @@ class AdminPlanCreateEditView(SuperAdminRequiredMixin, View):
     """Create or edit a Plan and its bullet-point features."""
     template_name = "admin_portal/plan_form.html"
 
+    AVAILABLE_SERVICES = (
+        ('bulk_candidate_screening', 'Bulk Candidate Screening (CSV Upload)'),
+        ('certificate_monitoring', 'Certificate Monitoring Services (TrustPass)'),
+        ('full_due_diligence', 'Full Comprehensive Due Diligence (Property, Land & Vehicles)'),
+        ('corporate_due_diligence', 'Corporate & Business Due Diligence Check'),
+        ('document_identity_verification', 'Document & Identity Verification'),
+        ('verify_workforce_certificate', 'Verify Workforce Certificate (TrustPass)'),
+        ('tenant_screening', 'Person Quick-Check / Tenant Screening'),
+        ('record_lookup', 'Public Trust & Safety Check / Record Lookup'),
+        ('staff_check_enhanced', 'Staff Background Investigation (Enhanced)'),
+        ('staff_check_standard', 'Staff Background Investigation (Standard)'),
+        ('trustpass_enhanced', 'Clearance Certificate (TrustPass, Enhanced)'),
+        ('trustpass_standard', 'Clearance Certificate (TrustPass, Standard)'),
+        ('police_dossier', 'Police Dossier Generation'),
+    )
+
     def _get_plan(self, pk):
         if pk:
             return get_object_or_404(Plan, pk=pk)
@@ -2816,6 +2833,7 @@ class AdminPlanCreateEditView(SuperAdminRequiredMixin, View):
         return render(request, self.template_name, {
             'plan': plan,
             'interval_choices': Plan.INTERVAL_CHOICES if Plan else [],
+            'available_services': self.AVAILABLE_SERVICES,
             'features_json': features_json,
         })
 
@@ -2881,6 +2899,9 @@ class AdminPlanCreateEditView(SuperAdminRequiredMixin, View):
         plan.is_featured   = is_featured
         plan.is_active     = is_active
         plan.display_order = display_order_int
+        # Allowed dynamic services
+        selected_services = request.POST.getlist('allowed_services')
+        plan.allowed_services = selected_services
         plan.save()
 
         # Replace features: delete all, re-create from POST

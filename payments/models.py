@@ -356,6 +356,15 @@ class Plan(models.Model):
         default=0,
         help_text="Lower numbers appear first."
     )
+
+    # Dynamic Service Entitlements (Services included/covered dynamically by this plan)
+    # Stored as JSON list of allowed service codes. If None or empty, defaults to general check limit services.
+    allowed_services = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="List of service keys permitted/included under this plan without separate pay-as-you-go charge."
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     is_active_record = models.BooleanField(default=True)
@@ -385,6 +394,51 @@ class Plan(models.Model):
         if self.credit_value_naira and self.credit_value_naira > 0:
             return self.credit_value_naira
         return int(self.price_naira)
+
+    def includes_service(self, service_code: str) -> bool:
+        """
+        Returns True if this plan explicitly grants entitlement to the requested service.
+        Normalizes aliases (e.g. 'bulk_upload' <-> 'bulk_candidate_screening').
+        If allowed_services is empty, defaults to standard check services (person_check, staff_check_standard, public_check).
+        """
+        allowed = self.allowed_services or []
+        if not allowed:
+            # Fallback for legacy plans before explicit service assignment
+            default_checks = [
+                'public_check', 'person_check', 'staff_check_standard'
+            ]
+            return service_code in default_checks
+
+        # Normalize aliases
+        aliases = [service_code]
+        if service_code in ('bulk_upload', 'bulk_check', 'bulk_screening', 'bulk_candidate_screening'):
+            aliases.extend(['bulk_upload', 'bulk_check', 'bulk_screening', 'bulk_candidate_screening'])
+        elif service_code in ('monitoring', 'certificate_monitoring'):
+            aliases.extend(['monitoring', 'certificate_monitoring'])
+        elif service_code in ('property_due_diligence', 'vehicle_due_diligence', 'full_due_diligence'):
+            aliases.extend(['property_due_diligence', 'vehicle_due_diligence', 'full_due_diligence'])
+        elif service_code in ('verification', 'business_verification', 'corporate_due_diligence'):
+            aliases.extend(['verification', 'business_verification', 'corporate_due_diligence'])
+        elif service_code in ('document_identity_verification', 'identity_verification'):
+            aliases.extend(['document_identity_verification', 'identity_verification', 'verification'])
+        elif service_code in ('certificate_verify', 'verify_workforce_certificate'):
+            aliases.extend(['certificate_verify', 'verify_workforce_certificate'])
+        elif service_code in ('quick_check', 'person_check', 'tenant_screening'):
+            aliases.extend(['quick_check', 'person_check', 'tenant_screening'])
+        elif service_code in ('public_check', 'check', 'record_lookup'):
+            aliases.extend(['public_check', 'check', 'record_lookup'])
+        elif service_code in ('staff_check', 'staff_check_enhanced'):
+            aliases.extend(['staff_check', 'staff_check_enhanced'])
+        elif service_code in ('staff_check_standard',):
+            aliases.extend(['staff_check_standard', 'staff_check'])
+        elif service_code in ('certificate', 'trustpass', 'trustpass_standard'):
+            aliases.extend(['certificate', 'trustpass', 'trustpass_standard'])
+        elif service_code in ('trustpass_enhanced',):
+            aliases.extend(['trustpass_enhanced', 'certificate', 'trustpass'])
+        elif service_code in ('police_dossier', 'dossier', 'evidence_dossier'):
+            aliases.extend(['police_dossier', 'dossier', 'evidence_dossier'])
+
+        return any(a in allowed for a in aliases)
 
 
 class PlanFeature(models.Model):

@@ -456,6 +456,27 @@ def check_user_entitlement(user, service: str = 'check', cost: int = 1) -> tuple
     # 7. Active Commercial Subscription Check
     sub = get_active_subscription(user)
     if sub:
+        # Check if the user's subscribed plan includes this specific service
+        if hasattr(sub.plan, 'includes_service') and not sub.plan.includes_service(service):
+            # The service is not included in this plan!
+            # Subscribers can still fall back to wallet credit if balance suffices
+            wallet_bal = get_user_prepaid_balance(user)
+            srv_price = site_settings.get_service_price(service)
+            if wallet_bal >= srv_price and srv_price > 0:
+                return True, 'subscribed_wallet_addon', {
+                    'plan': sub.plan.name,
+                    'remaining': wallet_bal,
+                    'is_wallet': True,
+                    'balance': wallet_bal,
+                    'note': f'{service} is not in {sub.plan.name} plan quota, but covered by wallet balance.',
+                }
+            return False, 'service_not_in_plan', {
+                'plan': sub.plan.name,
+                'service': service,
+                'message': f"The '{sub.plan.name}' plan does not include {service}. Please upgrade your plan or pay for this service individually.",
+                'remaining': 0,
+            }
+
         # Unlimited Plan
         if sub.plan.has_unlimited_checks:
             return True, 'unlimited', {
