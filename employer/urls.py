@@ -9,6 +9,7 @@ urlpatterns = [
     path('', views.employer_dashboard, name='dashboard'),
     path('profile/', views.employer_profile, name='profile'),
     path('profile/cac-document/', views.employer_cac_document_view, name='cac_document_preview'),
+    path('profile/representative-document/', views.employer_rep_document_view, name='rep_document_preview'),
 
     # Workforce Clearance Certificate (DBS) Verification
     path('certificate/verify/', views.employer_certificate_verify, name='certificate_verify'),

@@ -217,22 +217,39 @@ def employer_profile(request):
             DEFAULT_COUNTRY,
         )
 
+        # ── Step 1: Corporate Legal Identity ──
         company_name_input = request.POST.get('company_name', profile.company_name).strip()
         country_input = request.POST.get('country', '').strip().upper()
         reg_type_input = request.POST.get('registration_type', '').strip().lower()
         rc_number_input = request.POST.get('company_rc_number', '').strip()
         tin_input = request.POST.get('tax_identification_number', '').strip()
 
-        # Determine country: new submission requires country; legacy defaults to NG
-        country_to_use = country_input or profile.country
+        # ── Step 2: Business Nature & Contact ──
+        industry_input = request.POST.get('industry', '').strip()
+        business_nature_input = request.POST.get('business_nature', '').strip()
+        company_address_input = request.POST.get('company_address', '').strip()
+        company_website_input = request.POST.get('company_website', '').strip()
+        contact_phone_input = request.POST.get('contact_phone', '').strip()
+
+        # ── Step 3: Authorized Representative ──
+        rep_name_input = request.POST.get('representative_name', '').strip()
+        rep_title_input = request.POST.get('representative_title', '').strip()
+        rep_email_input = request.POST.get('representative_email', '').strip()
+        rep_phone_input = request.POST.get('representative_phone', '').strip()
+        rep_id_type_input = request.POST.get('representative_id_type', '').strip()
+        rep_id_num_input = request.POST.get('representative_id_number', '').strip()
+        rep_file = request.FILES.get('representative_id_document')
+
+        # ── Step 4: Documents & Stepper State ──
         cac_file = request.FILES.get('cac_document')
+        submitted_step = int(request.POST.get('current_step', 1) or 1)
+        is_live_submit = request.POST.get('live_verify_submit') == '1'
         is_resubmit = request.POST.get('resubmit_review') == '1'
 
-        if (cac_file or is_resubmit or rc_number_input) and not country_to_use:
-            country_to_use = DEFAULT_COUNTRY
+        country_to_use = country_input or profile.country or DEFAULT_COUNTRY
 
-        # Validate registration and tax numbers against country spec
-        if rc_number_input or cac_file or is_resubmit:
+        # Validate registration and tax numbers against country spec if provided
+        if rc_number_input or cac_file or is_live_submit or is_resubmit:
             reg_type_to_validate = reg_type_input or profile.registration_type or ''
             is_valid, err_msg, cleaned_data = validate_business_registration(
                 country_code=country_to_use,
@@ -240,7 +257,7 @@ def employer_profile(request):
                 reg_number=rc_number_input or profile.company_rc_number,
                 tin_number=tin_input or profile.tax_identification_number
             )
-            if not is_valid and (rc_number_input or cac_file or is_resubmit):
+            if not is_valid and (is_live_submit or is_resubmit):
                 messages.error(request, err_msg)
                 return redirect('employer:profile')
 
@@ -250,7 +267,9 @@ def employer_profile(request):
                 if cleaned_data.get('tin_number'):
                     tin_input = cleaned_data.get('tin_number')
 
-        profile.company_name = company_name_input
+        # Apply basic fields
+        if company_name_input:
+            profile.company_name = company_name_input
         if country_to_use:
             profile.country = country_to_use
         if reg_type_input:
@@ -259,30 +278,46 @@ def employer_profile(request):
             profile.company_rc_number = rc_number_input
         if tin_input:
             profile.tax_identification_number = tin_input
-        profile.industry = request.POST.get('industry', '').strip()
-        profile.company_address = request.POST.get('company_address', '').strip()
-        profile.contact_phone = request.POST.get('contact_phone', '').strip()
 
-        file_uploaded = False
+        profile.industry = industry_input
+        profile.business_nature = business_nature_input
+        profile.company_address = company_address_input
+        profile.company_website = company_website_input
+        profile.contact_phone = contact_phone_input
 
-        if cac_file:
-            if cac_file.size > 5 * 1024 * 1024:
-                messages.error(request, 'The uploaded business document exceeds the 5MB size limit. Please upload a smaller file.')
+        profile.representative_name = rep_name_input
+        profile.representative_title = rep_title_input
+        profile.representative_email = rep_email_input
+        profile.representative_phone = rep_phone_input
+        profile.representative_id_type = rep_id_type_input
+        profile.representative_id_number = rep_id_num_input
+        profile.current_step = max(1, min(4, submitted_step))
+
+        # Handle Representative Document Upload
+        if rep_file:
+            if rep_file.size > 8 * 1024 * 1024:
+                messages.error(request, 'Representative ID document exceeds the 8MB size limit.')
                 return redirect('employer:profile')
-            ext = cac_file.name.split('.')[-1].lower() if '.' in cac_file.name else ''
-            if ext not in ('pdf', 'jpg', 'jpeg', 'png'):
-                messages.error(request, 'Invalid file format. Please upload a PDF, JPG, or PNG document.')
+            rep_ext = rep_file.name.split('.')[-1].lower() if '.' in rep_file.name else ''
+            if rep_ext not in ('pdf', 'jpg', 'jpeg', 'png'):
+                messages.error(request, 'Invalid representative document format. Allowed: PDF, JPG, PNG.')
+                return redirect('employer:profile')
+            profile.representative_id_document = rep_file
+
+        # Handle Business Registration Certificate Upload
+        if cac_file:
+            if cac_file.size > 8 * 1024 * 1024:
+                messages.error(request, 'Business registration document exceeds the 8MB size limit.')
+                return redirect('employer:profile')
+            cac_ext = cac_file.name.split('.')[-1].lower() if '.' in cac_file.name else ''
+            if cac_ext not in ('pdf', 'jpg', 'jpeg', 'png'):
+                messages.error(request, 'Invalid business registration format. Allowed: PDF, JPG, PNG.')
                 return redirect('employer:profile')
 
             previous_doc = profile.cac_document.name if profile.cac_document else None
             profile.cac_document = cac_file
             profile.cac_uploaded_at = timezone.now()
-            file_uploaded = True
-            if not profile.is_verified:
-                profile.verification_status = 'pending'
-                profile.rejection_reason = ''
 
-            # Audit log submission preserving previous document evidence
             from reports.models import AuditLog
             AuditLog.objects.create(
                 action='EMPLOYER_BUSINESS_DOCUMENT_SUBMITTED',
@@ -296,27 +331,74 @@ def employer_profile(request):
                     'registration_type': profile.registration_type,
                     'company_rc_number': profile.company_rc_number,
                     'tax_identification_number': profile.tax_identification_number,
+                    'representative': profile.representative_name,
                     'previous_document': previous_doc,
                     'new_document': cac_file.name,
                 }
             )
 
-        if is_resubmit and not profile.is_verified and profile.has_cac_document:
-            profile.verification_status = 'pending'
-            profile.rejection_reason = ''
+        # ── Step 4: Live Verification Trigger via Pluggable Provider ──
+        if is_live_submit or is_resubmit:
+            if not profile.has_cac_document and not cac_file:
+                messages.error(request, 'Please upload your official business registration certificate before submitting.')
+                return redirect('employer:profile')
+
+            if not profile.representative_name or not profile.representative_title:
+                messages.error(request, 'Please complete the authorized representative details in Step 3.')
+                return redirect('employer:profile')
+
+            # Invoke pluggable verification provider
+            from verification.providers import get_verification_provider
+            provider = get_verification_provider()
+
+            biz_result = provider.verify_business(
+                country=profile.country or 'NG',
+                company_name=profile.company_name,
+                reg_number=profile.company_rc_number,
+                reg_type=profile.registration_type,
+                document_file=profile.cac_document,
+                tax_id=profile.tax_identification_number,
+            )
+
+            if biz_result.is_verified:
+                profile.is_verified = True
+                profile.verification_status = 'verified'
+                profile.verified_at = timezone.now()
+                profile.rejection_reason = ''
+                profile.save()
+
+                messages.success(
+                    request,
+                    f'🎉 Live Verification Successful! {profile.company_name} has been authenticated with {biz_result.provider_name.replace("_", " ").title()}. '
+                    'Your Verified Employer status is now active.'
+                )
+                return redirect('employer:profile')
+            elif biz_result.status == 'rejected':
+                profile.is_verified = False
+                profile.verification_status = 'rejected'
+                profile.rejection_reason = biz_result.error_message or 'Corporate records could not be authenticated against the national commercial registry.'
+                profile.save()
+
+                messages.error(
+                    request,
+                    f'Verification Unsuccessful: {profile.rejection_reason}'
+                )
+                return redirect('employer:profile')
+            else:
+                # Pending async gateway inspection
+                profile.is_verified = False
+                profile.verification_status = 'pending'
+                profile.rejection_reason = ''
+                profile.save()
+
+                messages.info(
+                    request,
+                    'Your business registration documents have been submitted for compliance verification. You will be updated once processed.'
+                )
+                return redirect('employer:profile')
 
         profile.save()
-
-        if file_uploaded:
-            if not profile.is_verified:
-                messages.success(request, 'Company profile updated and registration document submitted for compliance verification.')
-            else:
-                messages.success(request, 'Company profile and updated business document saved successfully.')
-        elif is_resubmit:
-            messages.success(request, 'Your company profile has been resubmitted for verification review.')
-        else:
-            messages.success(request, 'Company profile updated successfully.')
-
+        messages.success(request, 'Corporate profile saved successfully.')
         return redirect('employer:profile')
 
     from users.country_config import get_supported_countries, get_country_business_config, DEFAULT_COUNTRY
@@ -331,6 +413,7 @@ def employer_profile(request):
         'current_country_code': country_code,
         'country_business_config': country_cfg,
         'reg_authority': country_cfg.get('registration_authority', 'Corporate Registry') if country_cfg else 'Corporate Registry',
+        'active_step': getattr(profile, 'current_step', 1) or 1,
     }
     return render(request, 'employer/profile.html', context)
 
@@ -357,6 +440,32 @@ def employer_cac_document_view(request):
 
     response = HttpResponse(doc_file.read(), content_type=content_type)
     response['Content-Disposition'] = f'inline; filename="CAC_document.{ext}"'
+    response['X-Frame-Options'] = 'SAMEORIGIN'
+    doc_file.close()
+    return response
+
+
+@login_required
+@employer_required
+@xframe_options_sameorigin
+def employer_rep_document_view(request):
+    """In-browser document stream for the employer to preview representative ID document."""
+    profile = _get_or_create_employer_profile(request.user)
+    if not profile.representative_id_document:
+        raise Http404("No representative ID document on file.")
+
+    try:
+        doc_file = profile.representative_id_document.open('rb')
+    except Exception:
+        raise Http404("Document could not be accessed.")
+
+    ext = profile.representative_id_document.name.split('.')[-1].lower() if '.' in profile.representative_id_document.name else 'pdf'
+    content_type, _ = mimetypes.guess_type(profile.representative_id_document.name)
+    if not content_type:
+        content_type = 'application/pdf' if ext == 'pdf' else 'image/jpeg'
+
+    response = HttpResponse(doc_file.read(), content_type=content_type)
+    response['Content-Disposition'] = f'inline; filename="representative_id.{ext}"'
     response['X-Frame-Options'] = 'SAMEORIGIN'
     doc_file.close()
     return response

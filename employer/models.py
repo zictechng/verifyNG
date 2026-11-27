@@ -51,8 +51,27 @@ class EmployerProfile(models.Model):
         help_text="National Tax Identification Number (TIN/IFU/PIN)"
     )
     industry = models.CharField(max_length=100, blank=True)
+    business_nature = models.TextField(blank=True, default='', help_text="Summary of business operations and services")
     company_address = models.TextField(blank=True)
+    company_website = models.URLField(blank=True, default='', help_text="Official company website or domain")
     contact_phone = models.CharField(max_length=20, blank=True)
+
+    # ── Authorized Representative Particulars ──────────────────────────────
+    representative_name = models.CharField(max_length=200, blank=True, default='', help_text="Full legal name of authorized representative")
+    representative_title = models.CharField(max_length=100, blank=True, default='', help_text="Job title or role in organization (e.g. Director, HR Manager)")
+    representative_email = models.EmailField(blank=True, default='', help_text="Official work email address")
+    representative_phone = models.CharField(max_length=30, blank=True, default='', help_text="Direct phone number of representative")
+    representative_id_type = models.CharField(max_length=50, blank=True, default='', help_text="Type of official identification document")
+    representative_id_number = models.CharField(max_length=50, blank=True, default='', help_text="ID document number")
+    representative_id_document = models.FileField(
+        upload_to='rep_documents/%Y/%m/',
+        blank=True,
+        null=True,
+        help_text="Photo page or front view of representative's ID"
+    )
+
+    # ── Stepper Flow State ────────────────────────────────────────────────
+    current_step = models.PositiveSmallIntegerField(default=1, help_text="Current step in onboarding stepper wizard")
     VERIFICATION_STATUS_CHOICES = (
         ('unverified', 'Unverified'),
         ('pending', 'Pending Review'),
@@ -150,6 +169,23 @@ class EmployerProfile(models.Model):
             return ""
         import os
         return os.path.basename(self.cac_document.name)
+
+    @property
+    def has_representative_document(self):
+        return bool(self.representative_id_document and hasattr(self.representative_id_document, 'name') and self.representative_id_document.name)
+
+    @property
+    def representative_document_is_pdf(self):
+        if not self.has_representative_document:
+            return False
+        return self.representative_id_document.name.lower().endswith('.pdf')
+
+    @property
+    def representative_document_filename(self):
+        if not self.has_representative_document:
+            return ""
+        import os
+        return os.path.basename(self.representative_id_document.name)
 
 
 class TeamMember(models.Model):
