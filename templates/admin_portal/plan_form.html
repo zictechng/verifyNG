@@ -1,182 +1,215 @@
-
 {% extends "admin_portal/base_admin.html" %}
-{% block title %}{% if plan %}Edit Plan{% else %}New Plan{% endif %} — {{ site_config.site_name|default:"VerifyNG" }} Admin{% endblock %}
+{% block title %}{% if plan %}Edit Plan: {{ plan.name }}{% else %}New Plan{% endif %} — {{ site_config.site_name|default:"VerifyNG" }} Admin{% endblock %}
 
 {% block breadcrumb %}
   <li class="breadcrumb-item"><a href="{% url 'admin_portal:overview' %}">Admin</a></li>
-  <li class="breadcrumb-item"><a href="{% url 'admin_portal:plans' %}">Plans</a></li>
-  <li class="breadcrumb-item active">{% if plan %}Edit {{ plan.name }}{% else %}New Plan{% endif %}</li>
+  <li class="breadcrumb-item"><a href="{% url 'admin_portal:plans' %}">Subscription Plans</a></li>
+  <li class="breadcrumb-item active">{% if plan %}Edit {{ plan.name }}{% else %}Create Plan{% endif %}</li>
 {% endblock %}
 
 {% block admin_body %}
 {% include "admin_portal/_messages.html" %}
 
-<div class="mb-4">
-  <h1 class="adm-page-title mb-0">{% if plan %}Edit Plan: {{ plan.name }}{% else %}Create New Plan{% endif %}</h1>
-</div>
-
 <form method="post" x-data="planFeatures()" x-init="init()">
   {% csrf_token %}
+
+  <!-- Page Header & Action Bar -->
+  <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4 pb-2 border-bottom">
+    <div>
+      <h1 class="adm-page-title mb-1">{% if plan %}Edit Plan: {{ plan.name }}{% else %}Create New Subscription Plan{% endif %}</h1>
+      <p class="small mb-0 text-muted">Configure pricing tiers, service entitlements, and customer-facing feature bullets.</p>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <a href="{% url 'admin_portal:plans' %}" class="btn btn-adm-outline">Cancel</a>
+      <button type="submit" class="btn btn-adm-primary px-4 fw-semibold shadow-sm">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="me-1"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        {% if plan %}Save Changes{% else %}Create Plan{% endif %}
+      </button>
+    </div>
+  </div>
+
   <div class="row g-4">
 
-    <!-- Left: core fields -->
-    <div class="col-12 col-lg-7">
-      <div class="adm-card p-4">
-        <h6 class="fw-semibold mb-3" style="color:var(--adm-ink);">Plan Details</h6>
-
-        <div class="mb-3">
-          <label class="form-label small fw-semibold">Plan Name <span class="text-danger">*</span></label>
-          <input type="text" name="name" value="{{ plan.name|default:'' }}"
-                 class="form-control form-control-sm" required placeholder="e.g. Basic, Pro, Enterprise">
+    <!-- ── Left Column: Core Pricing & Commercial Rules ── -->
+    <div class="col-12 col-xl-5 col-lg-6">
+      <div class="adm-card p-4 mb-4 border shadow-xs rounded-3 bg-white">
+        <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
+          <h6 class="fw-bold mb-0 text-dark">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1.5 text-primary"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 18V6"/></svg>
+            Plan Configuration
+          </h6>
+          <span class="badge bg-light text-dark border small">Commercials</span>
         </div>
 
         <div class="mb-3">
-          <label class="form-label small fw-semibold">Description</label>
+          <label class="form-label small fw-semibold text-dark">Plan Name <span class="text-danger">*</span></label>
+          <input type="text" name="name" value="{{ plan.name|default:'' }}"
+                 class="form-control" required placeholder="e.g. Starter, Professional, Enterprise">
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label small fw-semibold text-dark">Marketing Tagline / Description</label>
           <textarea name="description" rows="2"
-                    class="form-control form-control-sm"
-                    placeholder="Short description shown on the pricing page">{{ plan.description|default:'' }}</textarea>
+                    class="form-control"
+                    placeholder="Short description displayed on public pricing page">{{ plan.description|default:'' }}</textarea>
         </div>
 
         <div class="row g-3 mb-3">
           <div class="col-6">
-            <label class="form-label small fw-semibold">Price (₦)</label>
+            <label class="form-label small fw-semibold text-dark">Subscriber Price (₦)</label>
             <input type="number" name="price_naira" min="0" step="0.01"
                    value="{% if plan %}{{ plan.price_naira|floatformat:2 }}{% else %}0{% endif %}"
-                   class="form-control form-control-sm">
-            <small style="color:var(--adm-muted);">What user pays (0 = free).</small>
+                   class="form-control">
+            <div class="form-text small text-muted" style="font-size:0.75rem;">Price user pays (0 = Free).</div>
           </div>
           <div class="col-6">
-            <label class="form-label small fw-semibold">Monthly Service Credit (₦)</label>
+            <label class="form-label small fw-semibold text-dark">Monthly Wallet Credit (₦)</label>
             <input type="number" name="credit_value_naira" min="0" step="1"
                    value="{% if plan %}{{ plan.credit_value_naira|default:0 }}{% else %}0{% endif %}"
-                   class="form-control form-control-sm">
-            <small style="color:var(--adm-muted);">Service value loaded to wallet (0 = equals price).</small>
+                   class="form-control">
+            <div class="form-text small text-muted" style="font-size:0.75rem;">Credit added to wallet (0 = equals price).</div>
           </div>
         </div>
 
         <div class="row g-3 mb-3">
           <div class="col-6">
-            <label class="form-label small fw-semibold">Billing Interval</label>
-            <select name="interval" class="form-select form-select-sm">
+            <label class="form-label small fw-semibold text-dark">Billing Interval</label>
+            <select name="interval" class="form-select">
               {% for val, label in interval_choices %}
               <option value="{{ val }}" {% if plan and plan.interval == val %}selected{% endif %}>{{ label }}</option>
               {% endfor %}
             </select>
           </div>
           <div class="col-6">
-            <label class="form-label small fw-semibold">Check Limit</label>
+            <label class="form-label small fw-semibold text-dark">Check Quota Limit</label>
             <input type="number" name="check_limit" min="-1"
                    value="{{ plan.check_limit|default:10 }}"
-                   class="form-control form-control-sm">
-            <small style="color:var(--adm-muted);">Use -1 for unlimited checks.</small>
+                   class="form-control">
+            <div class="form-text small text-muted" style="font-size:0.75rem;">-1 for unlimited checks.</div>
           </div>
         </div>
 
         <div class="row g-3 mb-3">
           <div class="col-6">
-            <label class="form-label small fw-semibold">Display Order</label>
+            <label class="form-label small fw-semibold text-dark">Display Order</label>
             <input type="number" name="display_order" min="0"
                    value="{{ plan.display_order|default:0 }}"
-                   class="form-control form-control-sm">
-            <small style="color:var(--adm-muted);">Lower = appears first.</small>
+                   class="form-control">
+            <div class="form-text small text-muted" style="font-size:0.75rem;">Lower numbers appear first.</div>
           </div>
           <div class="col-6">
-            <label class="form-label small fw-semibold">Paystack Plan Code</label>
+            <label class="form-label small fw-semibold text-dark">Paystack Plan Code</label>
             <input type="text" name="paystack_plan_code"
                    value="{{ plan.paystack_plan_code|default:'' }}"
-                   class="form-control form-control-sm"
-                   placeholder="PLN_xxxxxxxxxxxx">
-            <small style="color:var(--adm-muted);">Required for recurring subscriptions.</small>
+                   class="form-control font-monospace" placeholder="PLN_xxxxxxxxxx">
+            <div class="form-text small text-muted" style="font-size:0.75rem;">For automated recurring billing.</div>
           </div>
         </div>
 
-        <div class="d-flex gap-4 mb-2">
+        <div class="pt-3 border-top d-flex gap-4">
           <div class="form-check form-switch">
             <input class="form-check-input" type="checkbox" name="is_active" id="isActive"
                    {% if not plan or plan.is_active %}checked{% endif %}>
-            <label class="form-check-label small" for="isActive">Active (visible to users)</label>
+            <label class="form-check-label small fw-medium" for="isActive">Active (Visible)</label>
           </div>
           <div class="form-check form-switch">
             <input class="form-check-input" type="checkbox" name="is_featured" id="isFeatured"
                    {% if plan and plan.is_featured %}checked{% endif %}>
-            <label class="form-check-label small" for="isFeatured">Featured (highlighted)</label>
+            <label class="form-check-label small fw-medium" for="isFeatured">Featured (Highlight)</label>
           </div>
         </div>
       </div>
 
-      <!-- Included Dynamic Platform Services -->
-      <div class="adm-card p-4 mt-4">
+      <!-- Plan Features (Bullet points displayed on pricing cards) -->
+      <div class="adm-card p-4 border shadow-xs rounded-3 bg-white">
         <div class="d-flex align-items-center justify-content-between mb-2">
-          <h6 class="fw-semibold mb-0" style="color:var(--adm-ink);">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1 text-primary"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            Dynamic Service Entitlements
+          <h6 class="fw-bold mb-0 text-dark">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1.5 text-secondary"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+            Card Display Bullets
           </h6>
-          <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1 small">Platform Gating</span>
+          <button type="button" class="btn btn-outline-primary btn-sm px-2.5 py-1"
+                  @click="addFeature()">
+            <i class="bi bi-plus-lg me-1"></i> Add Bullet
+          </button>
         </div>
-        <p class="small mb-3" style="color:var(--adm-muted);">
-          Select which specific platform operations are <strong>covered / unlocked</strong> by this subscription plan. If a service is checked, subscribers can access and perform it without separate pay-as-you-go checkout.
+        <p class="small text-muted mb-3" style="font-size:0.8rem;">
+          Bullets shown on the public pricing table. Checkmark = included, unticked = crossed out.
         </p>
 
-        <div class="row g-2">
+        <div id="featuresList">
+          <template x-for="(feat, idx) in features" :key="idx">
+            <div class="d-flex align-items-center gap-2 mb-2 p-1.5 rounded border bg-light-subtle">
+              <input type="checkbox" :name="'feature_included'" :value="idx"
+                     :checked="feat.is_included"
+                     @change="feat.is_included = $event.target.checked"
+                     class="form-check-input mt-0 ms-1"
+                     title="Tick = included, untick = crossed out">
+              <input type="text" :name="'feature_text'" x-model="feat.text"
+                     class="form-control form-control-sm flex-grow-1 border-0 bg-transparent"
+                     placeholder="Feature bullet description...">
+              <button type="button" class="btn btn-sm btn-outline-danger border-0 py-0 px-2"
+                      @click="removeFeature(idx)" title="Remove bullet">✕</button>
+            </div>
+          </template>
+        </div>
+
+        <p x-show="features.length === 0" class="small text-muted mb-0 py-2 text-center" style="font-size:0.82rem;">
+          No marketing bullets yet — click <strong>"+ Add Bullet"</strong> to add.
+        </p>
+      </div>
+    </div>
+
+    <!-- ── Right Column: Dynamic Service Entitlements ── -->
+    <div class="col-12 col-xl-7 col-lg-6">
+      <div class="adm-card p-4 border shadow-xs rounded-3 bg-white h-100">
+        <div class="d-flex align-items-center justify-content-between mb-2 pb-2 border-bottom">
+          <div>
+            <h6 class="fw-bold mb-0 text-dark d-flex align-items-center gap-2">
+              <span class="p-1.5 rounded-2 bg-primary-subtle text-primary d-inline-flex">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              </span>
+              Dynamic Service Entitlements
+            </h6>
+          </div>
+          <span class="badge bg-primary text-white px-2.5 py-1.5 small fw-semibold">Platform Gating Engine</span>
+        </div>
+
+        <p class="small text-muted mb-3" style="font-size:0.845rem;">
+          Select the platform services that are <strong>covered / unlocked</strong> by this subscription plan.
+          When a subscriber initiates any checked service, it is granted under their subscription quota. Unchecked services require separate payment or wallet deduction.
+        </p>
+
+        <div class="row g-2.5">
           {% for code, label in available_services %}
           <div class="col-12 col-md-6">
-            <div class="form-check p-2 rounded border bg-light-subtle d-flex align-items-start gap-2 h-100">
-              <input class="form-check-input mt-1 ms-1" type="checkbox" name="allowed_services" value="{{ code }}" id="srv_{{ code }}"
+            <label class="form-check p-3 rounded-3 border bg-light-subtle d-flex align-items-start gap-2.5 h-100 m-0"
+                   for="srv_{{ code }}" style="cursor:pointer; transition: all 0.15s ease;">
+              <input class="form-check-input mt-1 flex-shrink-0" type="checkbox" name="allowed_services" value="{{ code }}" id="srv_{{ code }}"
                      {% if plan and code in plan.allowed_services %}checked{% elif not plan and code in 'tenant_screening,record_lookup,staff_check_standard' %}checked{% endif %}>
-              <label class="form-check-label small fw-medium" for="srv_{{ code }}" style="cursor:pointer; line-height: 1.35; color: var(--adm-ink);">
-                {{ label }}
-              </label>
-            </div>
+              <div class="flex-grow-1">
+                <div class="small fw-semibold text-dark" style="line-height: 1.35; font-size: 0.84rem;">
+                  {{ label }}
+                </div>
+                <div class="text-muted" style="font-size: 0.72rem; margin-top: 2px;">
+                  <code>{{ code }}</code>
+                </div>
+              </div>
+            </label>
           </div>
           {% endfor %}
         </div>
       </div>
     </div>
 
-    <!-- Right: features -->
-    <div class="col-12 col-lg-5">
-      <div class="adm-card p-4">
-        <div class="d-flex align-items-center justify-content-between mb-3">
-          <h6 class="fw-semibold mb-0" style="color:var(--adm-ink);">Plan Features</h6>
-          <button type="button" class="btn btn-outline-secondary btn-sm"
-                  @click="addFeature()">+ Add</button>
-        </div>
-        <p class="small mb-3" style="color:var(--adm-muted);">
-          Feature bullets shown on the plan card. Toggle the checkbox to mark a feature as included or excluded.
-        </p>
-
-        <div id="featuresList">
-          <template x-for="(feat, idx) in features" :key="idx">
-            <div class="d-flex align-items-center gap-2 mb-2">
-              <!-- included checkbox — value = index so POST gives list of included indexes -->
-              <input type="checkbox" :name="'feature_included'" :value="idx"
-                     :checked="feat.is_included"
-                     @change="feat.is_included = $event.target.checked"
-                     class="form-check-input mt-0"
-                     title="Tick = included, untick = excluded">
-              <input type="text" :name="'feature_text'" x-model="feat.text"
-                     class="form-control form-control-sm flex-grow-1"
-                     placeholder="Feature description">
-              <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2"
-                      @click="removeFeature(idx)" title="Remove">✕</button>
-            </div>
-          </template>
-        </div>
-
-        <p x-show="features.length === 0" class="small" style="color:var(--adm-muted);">
-          No features yet — click "+ Add" to add bullet points.
-        </p>
-      </div>
-    </div>
-
   </div>
 
-  <!-- Actions -->
-  <div class="d-flex gap-2 mt-4">
-    <button type="submit" class="btn btn-adm-primary">
+  <!-- Bottom Action Bar -->
+  <div class="d-flex justify-content-end align-items-center gap-3 p-3 bg-white border rounded-3 mt-4 mb-5 shadow-xs">
+    <a href="{% url 'admin_portal:plans' %}" class="btn btn-adm-outline">Discard Changes</a>
+    <button type="submit" class="btn btn-adm-primary px-4 fw-semibold shadow-xs">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="me-1"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
       {% if plan %}Save Changes{% else %}Create Plan{% endif %}
     </button>
-    <a href="{% url 'admin_portal:plans' %}" class="btn btn-outline-secondary">Cancel</a>
   </div>
 </form>
 

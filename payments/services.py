@@ -483,6 +483,29 @@ def check_user_entitlement(user, service: str = 'check', cost: int = 1) -> tuple
                 'plan': sub.plan.name,
                 'remaining': 'unlimited',
             }
+
+        # ── Unlocked Platform Capabilities (Non-Metering Features) ──
+        # Account-level badges and dashboard tool switches that DO NOT consume the candidate check limit counter.
+        FEATURE_CAPABILITIES = (
+            'corporate_due_diligence',
+            'business_verification',
+            'verification',
+            'bulk_candidate_screening',
+            'bulk_upload',
+            'bulk_check',
+            'verify_workforce_certificate',
+            'certificate_verify',
+            'merchant_badge',
+            'seller_badge',
+        )
+        if service in FEATURE_CAPABILITIES:
+            return True, 'plan_feature_unlocked', {
+                'plan': sub.plan.name,
+                'service': service,
+                'message': f"Platform capability '{service}' is fully unlocked under your {sub.plan.name} plan.",
+                'remaining': 'unlocked',
+            }
+
         # Dynamic Monthly Value Credit Wallet:
         # If user has available pre-paid balance, they can spend it across any service
         wallet_bal = get_user_prepaid_balance(user)
@@ -495,7 +518,7 @@ def check_user_entitlement(user, service: str = 'check', cost: int = 1) -> tuple
                 'balance': wallet_bal,
             }
 
-        # Capped Plan by count (fallback if wallet empty or using check limit)
+        # Capped Candidate Checks Quota (Volume checks: staff checks, person screening, dossiers)
         current_used = getattr(sub, 'checks_used', 0)
         limit = sub.plan.check_limit
         remaining = max(0, limit - current_used)

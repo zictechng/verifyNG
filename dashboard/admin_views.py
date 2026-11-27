@@ -2804,18 +2804,18 @@ class AdminPlanCreateEditView(SuperAdminRequiredMixin, View):
 
     AVAILABLE_SERVICES = (
         ('bulk_candidate_screening', 'Bulk Candidate Screening (CSV Upload)'),
-        ('certificate_monitoring', 'Certificate Monitoring Services (TrustPass)'),
-        ('full_due_diligence', 'Full Comprehensive Due Diligence (Property, Land & Vehicles)'),
-        ('corporate_due_diligence', 'Corporate & Business Due Diligence Check'),
-        ('document_identity_verification', 'Document & Identity Verification'),
-        ('verify_workforce_certificate', 'Verify Workforce Certificate (TrustPass)'),
-        ('tenant_screening', 'Person Quick-Check / Tenant Screening'),
-        ('record_lookup', 'Public Trust & Safety Check / Record Lookup'),
+        ('corporate_due_diligence', 'Corporate & Business Due Diligence Check (CAC)'),
+        ('verify_workforce_certificate', 'Verify Workforce Certificate (TrustPass Lookup)'),
         ('staff_check_enhanced', 'Staff Background Investigation (Enhanced)'),
         ('staff_check_standard', 'Staff Background Investigation (Standard)'),
+        ('document_identity_verification', 'Document & Identity Verification (NIN, DL, Passport)'),
+        ('tenant_screening', 'Person Quick-Check / Tenant Screening'),
+        ('record_lookup', 'Public Trust & Safety Check / Record Lookup'),
+        ('full_due_diligence', 'Full Comprehensive Due Diligence (Property, Land & Vehicles)'),
         ('trustpass_enhanced', 'Clearance Certificate (TrustPass, Enhanced)'),
         ('trustpass_standard', 'Clearance Certificate (TrustPass, Standard)'),
         ('police_dossier', 'Police Dossier Generation'),
+        ('merchant_badge', 'Verified Merchant / Seller Trust Badge (Tier 2)'),
     )
 
     def _get_plan(self, pk):
