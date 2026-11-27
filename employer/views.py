@@ -210,6 +210,14 @@ def employer_profile(request):
             )
             return redirect('employer:profile')
 
+        # If verification is currently in progress, do not allow changes
+        if profile.verification_status == 'pending':
+            messages.info(
+                request,
+                'Your company verification is currently under compliance review. Details are locked until the review is concluded.'
+            )
+            return redirect('employer:profile')
+
         from users.country_config import (
             get_supported_countries,
             get_country_business_config,
@@ -245,6 +253,7 @@ def employer_profile(request):
         submitted_step = int(request.POST.get('current_step', 1) or 1)
         is_live_submit = request.POST.get('live_verify_submit') == '1'
         is_resubmit = request.POST.get('resubmit_review') == '1'
+        is_save_draft = request.POST.get('save_draft') == '1'
 
         country_to_use = country_input or profile.country or DEFAULT_COUNTRY
 
@@ -398,13 +407,26 @@ def employer_profile(request):
                 return redirect('employer:profile')
 
         profile.save()
-        messages.success(request, 'Corporate profile saved successfully.')
+        if is_save_draft:
+            messages.success(request, f'Draft saved successfully! You can resume verification at Step {profile.current_step} anytime.')
+        else:
+            messages.success(request, 'Corporate profile saved successfully.')
         return redirect('employer:profile')
 
+    import json
     from users.country_config import get_supported_countries, get_country_business_config, DEFAULT_COUNTRY
     supported_countries = get_supported_countries()
     country_code = profile.country or DEFAULT_COUNTRY
     country_cfg = get_country_business_config(country_code)
+
+    all_country_biz_configs = {}
+    for code, name in supported_countries:
+        cfg = get_country_business_config(code)
+        if cfg:
+            all_country_biz_configs[code] = {
+                'name': cfg['name'],
+                'authority': cfg.get('registration_authority', 'National Company Registry'),
+            }
 
     context = {
         'profile': profile,
@@ -412,8 +434,11 @@ def employer_profile(request):
         'supported_countries': supported_countries,
         'current_country_code': country_code,
         'country_business_config': country_cfg,
+        'all_country_biz_configs_json': json.dumps(all_country_biz_configs),
         'reg_authority': country_cfg.get('registration_authority', 'Corporate Registry') if country_cfg else 'Corporate Registry',
         'active_step': getattr(profile, 'current_step', 1) or 1,
+        'is_locked': profile.is_verified or profile.verification_status == 'pending',
+        'is_pending': profile.verification_status == 'pending',
     }
     return render(request, 'employer/profile.html', context)
 

@@ -41,7 +41,7 @@
                 {% endif %}
             </div>
 
-            {# ── Status Banners ── #}
+            {# ── Status Banners & Review Card ── #}
             {% if profile.is_verified %}
             <div class="alert alert-dismissible fade show d-flex align-items-center justify-content-between gap-3 mb-4 p-3 p-sm-3.5"
                  style="background:#ECFDF5;border:1px solid #BBF7D0;border-left:4px solid #16A34A;border-radius:12px;">
@@ -52,27 +52,43 @@
                     <div>
                         <div class="fw-bold text-success" style="font-size:14.5px;">Verified Corporate Standing Active</div>
                         <div class="small text-muted" style="font-size:13px;">
-                            {{ profile.company_name }} is verified against authoritative corporate registries. All employer features are unlocked.
+                            {{ profile.company_name }} is officially authenticated against authoritative national corporate registries. All employer features are unlocked.
                         </div>
                     </div>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close" style="padding:0.75rem;opacity:0.6;"></button>
             </div>
             {% elif profile.verification_status == 'pending' %}
-            <div class="alert alert-dismissible fade show d-flex align-items-start justify-content-between gap-3 mb-4 p-3 p-sm-3.5"
-                 style="background:#EFF6FF;border:1px solid #BFDBFE;border-left:4px solid #2563EB;border-radius:12px;">
-                <div class="d-flex align-items-start gap-3">
-                    <div class="rounded-circle d-inline-flex align-items-center justify-content-center flex-shrink-0 mt-0.5" style="background:#DBEAFE;color:#2563EB;width:36px;height:36px;">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            {# ── Dedicated Under Compliance Review Card ── #}
+            <div class="card border mb-4 shadow-sm" style="border-radius:16px;background:#FFFFFF;border-color:#E2E8F0 !important;">
+                <div class="card-body p-4 p-md-5 text-center">
+                    <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width:58px;height:58px;background:#EFF6FF;color:#2563EB;">
+                        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                     </div>
-                    <div>
-                        <div class="fw-bold text-primary" style="font-size:14.5px;">Verification In Progress</div>
-                        <div class="small text-muted mt-0.5" style="font-size:13px;">
-                            Your company registration and representative proofs have been submitted. Corporate verification typically completes within a few moments to 24 hours.
+                    <h2 class="h5 fw-bold text-dark mb-1">Verification Under Compliance Review</h2>
+                    <p class="small text-muted mb-4 mx-auto" style="max-width:540px;line-height:1.6;">
+                        Your corporate registration credentials and representative documentation have been securely submitted to our compliance desk for validation.
+                    </p>
+
+                    {# What happens next box #}
+                    <div class="p-3.5 rounded-3 mb-4 text-start mx-auto border" style="max-width:580px;background:#F8FAFC;border-color:#E2E8F0 !important;">
+                        <div class="d-flex align-items-start gap-2.5">
+                            <span class="badge bg-primary text-white rounded-1 px-1.5 py-0.5 mt-0.5 flex-shrink-0" style="font-size:11px;font-weight:700;">i</span>
+                            <div class="small text-dark" style="line-height:1.6;">
+                                <strong>What happens next:</strong> Our compliance team typically reviews submissions within <strong>1 to 24 hours</strong>. You will receive an email update at <strong>{{ request.user.email }}</strong> as soon as your account verification status is updated. Platform features will activate automatically upon approval.
+                            </div>
                         </div>
                     </div>
+
+                    <div class="d-flex justify-content-center align-items-center gap-2 flex-wrap">
+                        <a href="{% url 'employer:dashboard' %}" class="btn btn-outline-primary px-4 py-2 rounded-pill fw-semibold" style="font-size:13.5px;">
+                            &larr; Return to Dashboard
+                        </a>
+                        <button type="button" class="btn btn-light border px-4 py-2 rounded-pill fw-semibold text-secondary" onclick="toggleStepperView()" id="btnToggleStepper" style="font-size:13.5px;">
+                            View Submitted Details
+                        </button>
+                    </div>
                 </div>
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close" style="padding:0.75rem;opacity:0.6;"></button>
             </div>
             {% elif profile.verification_status == 'rejected' %}
             <div class="alert alert-dismissible fade show d-flex align-items-start justify-content-between gap-3 mb-4 p-3 p-sm-3.5"
@@ -94,7 +110,7 @@
             {% endif %}
 
             {# ── Corporate Verification Stepper Card ── #}
-            <div class="vng-card p-3 p-sm-4 mb-5" style="border-radius:16px;box-shadow:0 2px 14px rgba(15,23,42,0.04);background:#FFFFFF;border:1px solid #E2E8F0;">
+            <div id="stepperCardContainer" class="vng-card p-3 p-sm-4 mb-5 {% if is_pending %}d-none{% endif %}" style="border-radius:16px;box-shadow:0 2px 14px rgba(15,23,42,0.04);background:#FFFFFF;border:1px solid #E2E8F0;">
 
                 {# ── Stepper Navigation Tabs ── #}
                 <div class="mb-4 pb-3 border-bottom">
@@ -143,6 +159,7 @@
                     {% csrf_token %}
                     <input type="hidden" name="current_step" id="hiddenCurrentStep" value="{{ active_step|default:1 }}">
                     <input type="hidden" name="live_verify_submit" id="hiddenLiveVerifySubmit" value="0">
+                    <input type="hidden" name="save_draft" id="hiddenSaveDraft" value="0">
 
                     {# ── Stepper Inline Feedback Alert (replaces browser alerts) ── #}
                     <div id="stepperAlertBox" class="alert alert-danger d-none align-items-center gap-2 py-2.5 px-3 rounded-3 shadow-xs mb-3" role="alert" style="font-size:13.5px;border-left:4px solid #DC2626;">
@@ -227,11 +244,19 @@
                             </div>
                         </div>
 
-                        <div class="d-flex justify-content-end pt-2 border-top">
-                            <button type="button" class="btn btn-primary px-4 py-2 fw-semibold rounded-pill d-inline-flex align-items-center gap-1.5 shadow-xs" onclick="validateAndGoStep(2)">
-                                <span>Continue to Business Nature</span>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
-                            </button>
+                        <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                            <div></div>
+                            <div class="d-flex gap-2">
+                                {% if not is_locked %}
+                                <button type="button" class="btn btn-outline-secondary px-3.5 py-2 rounded-pill fw-semibold" onclick="saveDraftProgress(1)">
+                                    Save Draft
+                                </button>
+                                {% endif %}
+                                <button type="button" class="btn btn-primary px-4 py-2 fw-semibold rounded-pill d-inline-flex align-items-center gap-1.5 shadow-xs" onclick="validateAndGoStep(2)">
+                                    <span>Continue to Business Nature</span>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -248,13 +273,13 @@
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold small">Industry / Sector <span class="text-danger">*</span></label>
                                 <input type="text" name="industry" id="id_industry" class="form-control"
-                                       value="{{ profile.industry }}" maxlength="100"
+                                       value="{{ profile.industry }}" maxlength="100" {% if is_locked %}readonly disabled{% endif %}
                                        placeholder="e.g. Financial Services, Logistics, Technology, Healthcare" style="font-size:16px;">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold small">Corporate Official Website</label>
                                 <input type="url" name="company_website" id="id_company_website" class="form-control"
-                                       value="{{ profile.company_website }}" maxlength="200"
+                                       value="{{ profile.company_website }}" maxlength="200" {% if is_locked %}readonly disabled{% endif %}
                                        placeholder="https://company.com" style="font-size:16px;">
                                 <div class="form-text small">Your official domain or website URL (optional).</div>
                             </div>
@@ -262,31 +287,38 @@
 
                         <div class="mb-3">
                             <label class="form-label fw-semibold small">Nature of Business Activities</label>
-                            <textarea name="business_nature" id="id_business_nature" class="form-control" rows="2"
+                            <textarea name="business_nature" id="id_business_nature" class="form-control" rows="2" {% if is_locked %}readonly disabled{% endif %}
                                       placeholder="Brief summary of services, goods, or operations provided by your organization" style="font-size:16px;">{{ profile.business_nature }}</textarea>
                         </div>
 
                         <div class="mb-3">
                             <label class="form-label fw-semibold small">Registered Physical Address <span class="text-danger">*</span></label>
-                            <textarea name="company_address" id="id_company_address" class="form-control" rows="2"
+                            <textarea name="company_address" id="id_company_address" class="form-control" rows="2" {% if is_locked %}readonly disabled{% endif %}
                                       placeholder="Headquarters or operating office street address" style="font-size:16px;">{{ profile.company_address }}</textarea>
                         </div>
 
                         <div class="mb-4">
                             <label class="form-label fw-semibold small">Corporate Contact Phone <span class="text-danger">*</span></label>
                             <input type="tel" name="contact_phone" id="id_contact_phone" class="form-control"
-                                   value="{{ profile.contact_phone }}" maxlength="30"
+                                   value="{{ profile.contact_phone }}" maxlength="30" {% if is_locked %}readonly disabled{% endif %}
                                    placeholder="+234 800 000 0000" style="font-size:16px;">
                         </div>
 
-                        <div class="d-flex justify-content-between pt-2 border-top">
+                        <div class="d-flex justify-content-between align-items-center pt-2 border-top">
                             <button type="button" class="btn btn-outline-secondary px-3.5 py-2 rounded-pill fw-semibold" onclick="goToStep(1)">
                                 &larr; Back
                             </button>
-                            <button type="button" class="btn btn-primary px-4 py-2 fw-semibold rounded-pill d-inline-flex align-items-center gap-1.5 shadow-xs" onclick="validateAndGoStep(3)">
-                                <span>Continue to Authorized Representative</span>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
-                            </button>
+                            <div class="d-flex gap-2">
+                                {% if not is_locked %}
+                                <button type="button" class="btn btn-outline-secondary px-3.5 py-2 rounded-pill fw-semibold" onclick="saveDraftProgress(2)">
+                                    Save Draft
+                                </button>
+                                {% endif %}
+                                <button type="button" class="btn btn-primary px-4 py-2 fw-semibold rounded-pill d-inline-flex align-items-center gap-1.5 shadow-xs" onclick="validateAndGoStep(3)">
+                                    <span>Continue to Authorized Representative</span>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -310,13 +342,13 @@
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold small">Representative Full Legal Name <span class="text-danger">*</span></label>
                                 <input type="text" name="representative_name" id="id_representative_name" class="form-control"
-                                       value="{{ profile.representative_name|default:request.user.get_full_name }}" maxlength="200"
+                                       value="{{ profile.representative_name|default:request.user.get_full_name }}" maxlength="200" {% if is_locked %}readonly disabled{% endif %}
                                        placeholder="e.g. Olawale Adeyemi, Kwame Mensah" style="font-size:16px;">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold small">Job Title / Designation <span class="text-danger">*</span></label>
                                 <input type="text" name="representative_title" id="id_representative_title" list="repTitleSuggestions" class="form-control"
-                                       value="{{ profile.representative_title }}" maxlength="100"
+                                       value="{{ profile.representative_title }}" maxlength="100" {% if is_locked %}readonly disabled{% endif %}
                                        placeholder="e.g. Managing Director, Head of HR, Compliance Manager" style="font-size:16px;" autocomplete="organization-title">
                                 <datalist id="repTitleSuggestions">
                                     <option value="Managing Director / CEO">
@@ -330,6 +362,7 @@
                                     <option value="General Manager">
                                     <option value="Chief Operating Officer (COO)">
                                 </datalist>
+                                {% if not is_locked %}
                                 <div class="mt-1.5 d-flex flex-wrap gap-1 align-items-center">
                                     <span class="text-muted" style="font-size:11px;">Suggestions:</span>
                                     <button type="button" class="btn btn-sm btn-light border py-0 px-2 rounded-pill rep-title-pill" style="font-size:11px;" onclick="selectRepTitle('Managing Director / CEO')">Managing Director</button>
@@ -339,6 +372,7 @@
                                     <button type="button" class="btn btn-sm btn-light border py-0 px-2 rounded-pill rep-title-pill" style="font-size:11px;" onclick="selectRepTitle('Legal Counsel / Compliance Officer')">Legal / Compliance</button>
                                     <button type="button" class="btn btn-sm btn-light border py-0 px-2 rounded-pill rep-title-pill" style="font-size:11px;" onclick="selectRepTitle('Company Secretary')">Secretary</button>
                                 </div>
+                                {% endif %}
                             </div>
                         </div>
 
@@ -346,13 +380,13 @@
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold small">Representative Official Email <span class="text-danger">*</span></label>
                                 <input type="email" name="representative_email" id="id_representative_email" class="form-control"
-                                       value="{{ profile.representative_email|default:request.user.email }}" maxlength="150"
+                                       value="{{ profile.representative_email|default:request.user.email }}" maxlength="150" {% if is_locked %}readonly disabled{% endif %}
                                        placeholder="representative@company.com" style="font-size:16px;">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold small">Representative Direct Phone <span class="text-danger">*</span></label>
                                 <input type="tel" name="representative_phone" id="id_representative_phone" class="form-control"
-                                       value="{{ profile.representative_phone }}" maxlength="30"
+                                       value="{{ profile.representative_phone }}" maxlength="30" {% if is_locked %}readonly disabled{% endif %}
                                        placeholder="+234 801 234 5678" style="font-size:16px;">
                             </div>
                         </div>
@@ -360,7 +394,7 @@
                         <div class="row g-3 mb-3">
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold small">Government Identification Document Type <span class="text-danger">*</span></label>
-                                <select name="representative_id_type" id="id_representative_id_type" class="form-select" style="font-size:16px;">
+                                <select name="representative_id_type" id="id_representative_id_type" class="form-select" style="font-size:16px;" {% if is_locked %}readonly disabled{% endif %}>
                                     <option value="national_id" {% if profile.representative_id_type == 'national_id' or not profile.representative_id_type %}selected{% endif %}>National Identity Card / Smart ID</option>
                                     <option value="passport" {% if profile.representative_id_type == 'passport' %}selected{% endif %}>International Passport</option>
                                     <option value="drivers_license" {% if profile.representative_id_type == 'drivers_license' %}selected{% endif %}>Driver's License</option>
@@ -370,7 +404,7 @@
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold small">Representative ID Document Number <span class="text-danger">*</span></label>
                                 <input type="text" name="representative_id_number" id="id_representative_id_number" class="form-control font-monospace"
-                                       value="{{ profile.representative_id_number }}" maxlength="50"
+                                       value="{{ profile.representative_id_number }}" maxlength="50" {% if is_locked %}readonly disabled{% endif %}
                                        placeholder="Enter ID number" style="font-size:16px;">
                             </div>
                         </div>
@@ -392,31 +426,42 @@
                                         </div>
                                     </div>
                                     <div class="d-flex gap-2">
-                                        <a href="{% url 'employer:rep_document_preview' %}" target="_blank" class="btn btn-sm btn-outline-primary py-0.5 px-2" style="font-size:12px;">
+                                        <button type="button" class="btn btn-sm btn-outline-primary py-0.5 px-2.5 rounded-pill" data-bs-toggle="modal" data-bs-target="#employerRepModal" style="font-size:12px;">
                                             Preview ↗
-                                        </a>
-                                        <button type="button" class="btn btn-sm btn-outline-secondary py-0.5 px-2" onclick="document.getElementById('repDocUploadWrap').classList.toggle('d-none')" style="font-size:12px;">
+                                        </button>
+                                        {% if not is_locked %}
+                                        <button type="button" class="btn btn-sm btn-outline-secondary py-0.5 px-2 rounded-pill" onclick="document.getElementById('repDocUploadWrap').classList.toggle('d-none')" style="font-size:12px;">
                                             Replace
                                         </button>
+                                        {% endif %}
                                     </div>
                                 </div>
                             </div>
                             {% endif %}
 
+                            {% if not is_locked %}
                             <div id="repDocUploadWrap" class="{% if profile.has_representative_document %}d-none{% endif %}">
                                 <input type="file" name="representative_id_document" id="id_representative_id_document" accept=".pdf,.png,.jpg,.jpeg" class="form-control" style="font-size:15px;">
                                 <div class="form-text small">Upload clear front view or photo page of representative's identity card or passport.</div>
                             </div>
+                            {% endif %}
                         </div>
 
-                        <div class="d-flex justify-content-between pt-2 border-top">
+                        <div class="d-flex justify-content-between align-items-center pt-2 border-top">
                             <button type="button" class="btn btn-outline-secondary px-3.5 py-2 rounded-pill fw-semibold" onclick="goToStep(2)">
                                 &larr; Back
                             </button>
-                            <button type="button" class="btn btn-primary px-4 py-2 fw-semibold rounded-pill d-inline-flex align-items-center gap-1.5 shadow-xs" onclick="validateAndGoStep(4)">
-                                <span>Continue to Review &amp; Documents</span>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
-                            </button>
+                            <div class="d-flex gap-2">
+                                {% if not is_locked %}
+                                <button type="button" class="btn btn-outline-secondary px-3.5 py-2 rounded-pill fw-semibold" onclick="saveDraftProgress(3)">
+                                    Save Draft
+                                </button>
+                                {% endif %}
+                                <button type="button" class="btn btn-primary px-4 py-2 fw-semibold rounded-pill d-inline-flex align-items-center gap-1.5 shadow-xs" onclick="validateAndGoStep(4)">
+                                    <span>Continue to Review &amp; Documents</span>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -458,14 +503,17 @@
                                                 data-bs-toggle="modal" data-bs-target="#employerCacModal">
                                             View Document
                                         </button>
+                                        {% if not is_locked %}
                                         <button type="button" class="btn btn-sm btn-outline-secondary" id="toggleReplaceDocBtn">
                                             Replace Document
                                         </button>
+                                        {% endif %}
                                     </div>
                                 </div>
                             </div>
                             {% endif %}
 
+                            {% if not is_locked %}
                             <div id="dropzoneWrapper" class="{% if profile.has_cac_document %}d-none{% endif %}">
                                 <div id="cacDropzone" class="vng-dropzone" tabindex="0" role="button" aria-label="Upload business registration document">
                                     <input type="file" name="cac_document" id="cacDocumentInput" accept=".pdf,.png,.jpg,.jpeg" class="d-none">
@@ -497,47 +545,118 @@
                                 </div>
                                 <div id="dropzoneError" class="text-danger small mt-2 fw-semibold d-none"></div>
                             </div>
+                            {% endif %}
                         </div>
 
-                        {# Summary Review Box #}
+                        {# Complete Summary Review Box #}
                         <div class="card border mb-4" style="background:#F8FAFC;border-radius:12px;border-color:#E2E8F0 !important;">
                             <div class="card-body p-3.5">
-                                <div class="d-flex align-items-center justify-content-between mb-2.5 pb-2 border-bottom">
-                                    <span class="fw-bold small text-uppercase text-muted" style="letter-spacing:0.4px;">Application Summary</span>
-                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-0.5 rounded-pill" style="font-size:11px;">Ready for Live Validation</span>
+                                <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
+                                    <span class="fw-bold small text-uppercase text-muted" style="letter-spacing:0.4px;">Application Complete Overview</span>
+                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-0.5 rounded-pill" style="font-size:11px;">
+                                        {% if profile.is_verified %}Verified Entity{% elif profile.verification_status == 'pending' %}Under Compliance Review{% else %}Ready for Live Validation{% endif %}
+                                    </span>
                                 </div>
-                                <div class="row g-2 small">
-                                    <div class="col-sm-6">
-                                        <span class="text-muted">Company:</span> <strong id="summaryCompanyName" class="text-dark">{{ profile.company_name }}</strong>
+                                <div class="row g-3 small">
+                                    {# Section 1: Entity #}
+                                    <div class="col-md-6 border-end-md pb-2">
+                                        <div class="text-uppercase text-muted fw-bold mb-1.5" style="font-size:10.5px;letter-spacing:0.3px;">Corporate Entity</div>
+                                        <div class="mb-1"><span class="text-muted">Legal Name:</span> <strong id="summaryCompanyName" class="text-dark">{{ profile.company_name }}</strong></div>
+                                        <div class="mb-1"><span class="text-muted">Registration No:</span> <strong id="summaryRegNumber" class="font-monospace text-dark">{{ profile.company_rc_number }}</strong></div>
+                                        <div class="mb-1"><span class="text-muted">Country / Registry:</span> <span id="summaryCountry" class="text-dark">{{ profile.country|default:'NG' }}</span> (<span id="summaryRegAuthority">{{ reg_authority }}</span>)</div>
+                                        <div><span class="text-muted">Tax ID (TIN):</span> <span id="summaryTin" class="font-monospace text-dark">{{ profile.tax_identification_number|default:'Not provided' }}</span></div>
                                     </div>
-                                    <div class="col-sm-6">
-                                        <span class="text-muted">Registration No:</span> <strong id="summaryRegNumber" class="font-monospace text-dark">{{ profile.company_rc_number }}</strong>
+
+                                    {# Section 2: Operations #}
+                                    <div class="col-md-6 pb-2">
+                                        <div class="text-uppercase text-muted fw-bold mb-1.5" style="font-size:10.5px;letter-spacing:0.3px;">Operations &amp; Contact</div>
+                                        <div class="mb-1"><span class="text-muted">Industry:</span> <span id="summaryIndustry" class="text-dark">{{ profile.industry|default:'Not provided' }}</span></div>
+                                        <div class="mb-1"><span class="text-muted">Address:</span> <span id="summaryAddress" class="text-dark text-truncate d-inline-block" style="max-width:240px;vertical-align:bottom;">{{ profile.company_address|default:'Not provided' }}</span></div>
+                                        <div class="mb-1"><span class="text-muted">Phone:</span> <span id="summaryPhone" class="text-dark">{{ profile.contact_phone|default:'Not provided' }}</span></div>
+                                        <div><span class="text-muted">Website:</span> <span id="summaryWebsite" class="text-dark">{{ profile.company_website|default:'None' }}</span></div>
                                     </div>
-                                    <div class="col-sm-6">
-                                        <span class="text-muted">Country / Registry:</span> <span id="summaryCountry" class="text-dark">{{ profile.country|default:'NG' }}</span>
+
+                                    <div class="col-12 border-top pt-2"></div>
+
+                                    {# Section 3: Representative #}
+                                    <div class="col-md-6">
+                                        <div class="text-uppercase text-muted fw-bold mb-1.5" style="font-size:10.5px;letter-spacing:0.3px;">Accountable Representative</div>
+                                        <div class="mb-1"><span class="text-muted">Name &amp; Role:</span> <strong id="summaryRepName" class="text-dark">{{ profile.representative_name|default:request.user.get_full_name }}</strong> (<span id="summaryRepTitle">{{ profile.representative_title|default:'Officer' }}</span>)</div>
+                                        <div class="mb-1"><span class="text-muted">Work Email:</span> <span id="summaryRepEmail" class="text-dark">{{ profile.representative_email|default:request.user.email }}</span></div>
+                                        <div class="mb-1"><span class="text-muted">Direct Phone:</span> <span id="summaryRepPhone" class="text-dark">{{ profile.representative_phone|default:'Not provided' }}</span></div>
+                                        <div><span class="text-muted">ID Number:</span> <span id="summaryRepId" class="font-monospace text-dark">{{ profile.representative_id_number|default:'Not provided' }}</span></div>
                                     </div>
-                                    <div class="col-sm-6">
-                                        <span class="text-muted">Representative:</span> <strong id="summaryRepName" class="text-dark">{{ profile.representative_name|default:request.user.get_full_name }}</strong> (<span id="summaryRepTitle">{{ profile.representative_title|default:'Officer' }}</span>)
+
+                                    {# Section 4: Document Proofs #}
+                                    <div class="col-md-6">
+                                        <div class="text-uppercase text-muted fw-bold mb-1.5" style="font-size:10.5px;letter-spacing:0.3px;">Document Attachments</div>
+                                        <div class="mb-1.5">
+                                            <span class="text-muted">Business Certificate:</span>
+                                            <span id="summaryCacBadge">
+                                                {% if profile.has_cac_document %}
+                                                <span class="badge bg-success-subtle text-success border border-success-subtle">✓ Uploaded</span>
+                                                {% else %}
+                                                <span class="badge bg-secondary-subtle text-secondary border">Pending upload</span>
+                                                {% endif %}
+                                            </span>
+                                        </div>
+                                        <div>
+                                            <span class="text-muted">Representative ID:</span>
+                                            <span id="summaryRepDocBadge">
+                                                {% if profile.has_representative_document %}
+                                                <span class="badge bg-success-subtle text-success border border-success-subtle">✓ Uploaded</span>
+                                                {% else %}
+                                                <span class="badge bg-light text-muted border">Optional / Pending</span>
+                                                {% endif %}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
                         {# Legal Attestation Checkbox #}
+                        {% if not is_locked %}
                         <div class="form-check mb-4 p-3 bg-light rounded-3 border">
                             <input class="form-check-input ms-0 me-2.5" type="checkbox" id="legalDeclarationCheck" required style="cursor:pointer;width:18px;height:18px;">
                             <label class="form-check-label small text-dark fw-medium" for="legalDeclarationCheck" style="cursor:pointer;line-height:1.5;">
                                 I confirm and declare under penalty of perjury that I am an authorized corporate officer of this entity with legal authorization to create, verify, and operate this account on VerifyNG. All credentials provided are genuine and unadulterated.
                             </label>
                         </div>
+                        {% endif %}
 
                         <div class="d-flex justify-content-between align-items-center pt-2 border-top">
                             <button type="button" class="btn btn-outline-secondary px-3.5 py-2 rounded-pill fw-semibold" onclick="goToStep(3)">
                                 &larr; Back
                             </button>
-                            <button type="button" id="triggerLiveVerifyBtn" class="btn btn-success px-4 py-2.5 fw-bold rounded-pill d-inline-flex align-items-center gap-2 shadow-sm" style="font-size:14.5px;">
-                                <span>⚡ Submit for Live Verification</span>
-                            </button>
+                            {% if profile.is_verified %}
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill fw-semibold" style="font-size:13px;">
+                                    ✓ Corporate Verification Active
+                                </span>
+                                <a href="{% url 'employer:dashboard' %}" class="btn btn-primary px-4 py-2 rounded-pill fw-semibold">
+                                    Return to Dashboard
+                                </a>
+                            </div>
+                            {% elif profile.verification_status == 'pending' %}
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 rounded-pill fw-semibold" style="font-size:13px;">
+                                    ⏳ Application Under Review
+                                </span>
+                                <a href="{% url 'employer:dashboard' %}" class="btn btn-outline-primary px-4 py-2 rounded-pill fw-semibold">
+                                    Return to Dashboard
+                                </a>
+                            </div>
+                            {% else %}
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-outline-secondary px-3.5 py-2 rounded-pill fw-semibold" onclick="saveDraftProgress(4)">
+                                    Save Draft
+                                </button>
+                                <button type="button" id="triggerLiveVerifyBtn" class="btn btn-success px-4 py-2.5 fw-bold rounded-pill d-inline-flex align-items-center gap-2 shadow-sm" style="font-size:14.5px;">
+                                    <span>⚡ Submit for Live Verification</span>
+                                </button>
+                            </div>
+                            {% endif %}
                         </div>
                     </div>
 
@@ -586,6 +705,42 @@
 </div>
 {% endif %}
 
+{# ── In-Browser Document Preview Modal (for Representative ID Document) ── #}
+{% if profile.has_representative_document %}
+<div class="modal fade" id="employerRepModal" tabindex="-1" aria-labelledby="employerRepModalLabel" aria-hidden="true" style="z-index:1070;">
+  <div class="modal-dialog modal-dialog-centered modal-lg" style="margin: 1rem auto; width: calc(100% - 1.5rem); max-width: 900px; z-index:1075;">
+    <div class="modal-content shadow-lg border-0" style="border-radius:16px; overflow:hidden;">
+      <div class="modal-header border-bottom py-3 px-3 px-sm-4">
+        <h5 class="modal-title fw-bold small text-uppercase letter-spacing-1 text-muted" id="employerRepModalLabel">
+          Representative Identity Document Preview
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-2 p-md-3 bg-light text-center">
+        {% if profile.representative_document_is_pdf %}
+          <object data="{% url 'employer:rep_document_preview' %}#toolbar=0" type="application/pdf" class="w-100 rounded border bg-white" style="height:65vh;min-height:360px;">
+            <iframe src="{% url 'employer:rep_document_preview' %}#toolbar=0" class="w-100 h-100 border-0" style="height:65vh;min-height:360px;">
+              <div class="p-3 text-center bg-white rounded">
+                <p class="text-muted small mb-3">Your browser does not render inline PDF previews.</p>
+                <a href="{% url 'employer:rep_document_preview' %}" target="_blank" class="btn btn-sm btn-primary">
+                  Open PDF in New Tab
+                </a>
+              </div>
+            </iframe>
+          </object>
+        {% else %}
+          <img src="{% url 'employer:rep_document_preview' %}" alt="Representative ID Document" class="img-fluid rounded border shadow-sm" style="max-height:72vh;object-fit:contain;">
+        {% endif %}
+      </div>
+      <div class="modal-footer border-top py-2 px-3 px-sm-4 d-flex justify-content-between flex-wrap gap-2">
+        <span class="small text-muted text-truncate" style="max-width:280px;">{{ profile.representative_name }} &bull; {{ profile.representative_id_type|upper }}</span>
+        <button type="button" class="btn btn-sm btn-outline-secondary px-3" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
 {# ── Live Verification Running Overlay Modal ── #}
 <div class="modal fade" id="liveVerificationProcessingModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true" style="z-index:1085;">
   <div class="modal-dialog modal-dialog-centered" style="max-width:440px;">
@@ -625,10 +780,21 @@
 .step-tab-btn:hover .step-circle:not(.active) {
     background: #E2E8F0 !important;
 }
+@media (max-width: 576px) {
+    .step-tab-btn span {
+        font-size: 10px !important;
+    }
+    .step-circle {
+        width: 32px !important;
+        height: 32px !important;
+        font-size: 12px !important;
+    }
+}
 </style>
 
 <script>
 let currentStep = {{ active_step|default:1 }};
+const countryBizConfigs = {{ all_country_biz_configs_json|default:'{}'|safe }};
 
 function updateStepperUI(targetStep) {
     for (let i = 1; i <= 4; i++) {
@@ -687,11 +853,57 @@ function updateStepperUI(targetStep) {
 
     // Refresh summary fields on Step 4
     if (targetStep === 4) {
-        document.getElementById('summaryCompanyName').textContent = document.getElementById('id_company_name')?.value || 'Not provided';
-        document.getElementById('summaryRegNumber').textContent = document.getElementById('id_company_rc_number')?.value || 'Not provided';
-        document.getElementById('summaryCountry').textContent = document.getElementById('id_country')?.value || 'NG';
-        document.getElementById('summaryRepName').textContent = document.getElementById('id_representative_name')?.value || 'Not provided';
-        document.getElementById('summaryRepTitle').textContent = document.getElementById('id_representative_title')?.value || 'Officer';
+        const countryVal = document.getElementById('id_country')?.value || 'NG';
+        const cfg = countryBizConfigs[countryVal];
+        const countryName = cfg ? `${cfg.name} (${countryVal})` : countryVal;
+        const regAuth = cfg ? cfg.authority : 'National Registry';
+
+        const setTxt = (id, val, fallback = 'Not provided') => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = val || fallback;
+        };
+
+        setTxt('summaryCompanyName', document.getElementById('id_company_name')?.value);
+        setTxt('summaryRegNumber', document.getElementById('id_company_rc_number')?.value);
+        setTxt('summaryCountry', countryName);
+        setTxt('summaryRegAuthority', regAuth);
+        setTxt('summaryTin', document.getElementById('id_tax_identification_number')?.value, 'Not provided');
+
+        setTxt('summaryIndustry', document.getElementById('id_industry')?.value);
+        setTxt('summaryAddress', document.getElementById('id_company_address')?.value);
+        setTxt('summaryPhone', document.getElementById('id_contact_phone')?.value);
+        setTxt('summaryWebsite', document.getElementById('id_company_website')?.value, 'None');
+
+        setTxt('summaryRepName', document.getElementById('id_representative_name')?.value);
+        setTxt('summaryRepTitle', document.getElementById('id_representative_title')?.value, 'Officer');
+        setTxt('summaryRepEmail', document.getElementById('id_representative_email')?.value);
+        setTxt('summaryRepPhone', document.getElementById('id_representative_phone')?.value);
+        setTxt('summaryRepId', document.getElementById('id_representative_id_number')?.value);
+
+        // Update file indicators
+        const cacInput = document.getElementById('cacDocumentInput');
+        const hasExistingCac = {% if profile.has_cac_document %}true{% else %}false{% endif %};
+        const hasNewCac = cacInput && cacInput.files && cacInput.files.length > 0;
+        const cacBadge = document.getElementById('summaryCacBadge');
+        if (cacBadge) {
+            if (hasExistingCac || hasNewCac) {
+                cacBadge.innerHTML = '<span class="badge bg-success-subtle text-success border border-success-subtle">✓ Uploaded</span>';
+            } else {
+                cacBadge.innerHTML = '<span class="badge bg-danger-subtle text-danger border border-danger-subtle">Missing Document</span>';
+            }
+        }
+
+        const repInput = document.getElementById('id_representative_id_document');
+        const hasExistingRepDoc = {% if profile.has_representative_document %}true{% else %}false{% endif %};
+        const hasNewRepDoc = repInput && repInput.files && repInput.files.length > 0;
+        const repDocBadge = document.getElementById('summaryRepDocBadge');
+        if (repDocBadge) {
+            if (hasExistingRepDoc || hasNewRepDoc) {
+                repDocBadge.innerHTML = '<span class="badge bg-success-subtle text-success border border-success-subtle">✓ Uploaded</span>';
+            } else {
+                repDocBadge.innerHTML = '<span class="badge bg-light text-muted border">Optional / Pending</span>';
+            }
+        }
     }
 
     window.scrollTo({ top: 120, behavior: 'smooth' });
@@ -815,7 +1027,6 @@ function validateStep(step) {
 }
 
 function validateAndGoStep(targetStep) {
-    // Validate current step before advancing
     if (!validateStep(currentStep)) {
         return;
     }
@@ -828,10 +1039,8 @@ function jumpToStep(targetStep) {
         goToStep(targetStep);
         return;
     }
-    // Forward jump: validate steps sequentially
     for (let s = currentStep; s < targetStep; s++) {
         if (!validateStep(s)) {
-            // Stay at first invalid step
             if (s !== currentStep) {
                 goToStep(s);
                 validateStep(s);
@@ -842,8 +1051,51 @@ function jumpToStep(targetStep) {
     goToStep(targetStep);
 }
 
+function saveDraftProgress(step) {
+    hideStepperAlert();
+    const form = document.getElementById('companyProfileForm');
+    const hiddenStep = document.getElementById('hiddenCurrentStep');
+    const hiddenLive = document.getElementById('hiddenLiveVerifySubmit');
+    const hiddenDraft = document.getElementById('hiddenSaveDraft');
+    if (form && hiddenStep && hiddenLive && hiddenDraft) {
+        hiddenStep.value = step;
+        hiddenLive.value = '0';
+        hiddenDraft.value = '1';
+        form.submit();
+    }
+}
+
+function toggleStepperView() {
+    const card = document.getElementById('stepperCardContainer');
+    const btn = document.getElementById('btnToggleStepper');
+    if (card) {
+        card.classList.toggle('d-none');
+        if (btn) {
+            btn.textContent = card.classList.contains('d-none') ? 'View Submitted Details' : 'Hide Submitted Details';
+        }
+        if (!card.classList.contains('d-none')) {
+            card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     updateStepperUI(currentStep);
+
+    // Dynamic Country Registry Selection
+    const countrySelect = document.getElementById('id_country');
+    if (countrySelect) {
+        countrySelect.addEventListener('change', function() {
+            const selCountry = this.value;
+            const cfg = countryBizConfigs[selCountry];
+            const regAuthDisplay = document.getElementById('id_reg_authority_display');
+            const regNumberHelp = document.getElementById('id_reg_number_help');
+            if (cfg) {
+                if (regAuthDisplay) regAuthDisplay.value = cfg.authority;
+                if (regNumberHelp) regNumberHelp.textContent = `Official corporate registration number issued by ${cfg.authority}.`;
+            }
+        });
+    }
 
     // Auto-clear invalid state on field edit
     document.querySelectorAll('#companyProfileForm input, #companyProfileForm select, #companyProfileForm textarea').forEach(el => {
