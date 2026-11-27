@@ -314,6 +314,23 @@ def employer_profile(request):
         profile.representative_id_number = rep_id_num_input
         profile.current_step = max(1, min(4, submitted_step))
 
+        # Handle Document Clear Requests
+        if request.POST.get('clear_cac_document') == '1':
+            if profile.cac_document:
+                try:
+                    profile.cac_document.delete(save=False)
+                except Exception:
+                    pass
+                profile.cac_document = None
+                profile.cac_uploaded_at = None
+        if request.POST.get('clear_rep_document') == '1':
+            if profile.representative_id_document:
+                try:
+                    profile.representative_id_document.delete(save=False)
+                except Exception:
+                    pass
+                profile.representative_id_document = None
+
         # Handle Representative Document Upload
         if rep_file:
             if rep_file.size > 8 * 1024 * 1024:
@@ -521,25 +538,20 @@ def send_corporate_email_otp(request):
 
     import secrets
     import time
-    from notifications.email_service import send_email, render_email
+    from core.email_utils import render_email
+    from notifications.email_service import send_email
 
     otp_code = f"{secrets.randbelow(900000) + 100000:06d}"
     role_label = 'Company Official Email' if otp_type == 'business' else 'Authorized Representative Email'
 
     try:
-        html_body, text_body = render_email('generic_notification', {
+        html_body, text_body = render_email('otp_verification', {
             'user_name': request.user.get_full_name() or request.user.username,
-            'heading': f'Verify Your {role_label}',
-            'body_html': (
-                f'<p>You are verifying this email address for corporate verification on <strong>VerifyNG</strong>.</p>'
-                f'<p>Your 6-digit confirmation code is:</p>'
-                f'<div style="text-align:center;margin:24px 0;">'
-                f'  <span style="font-size:32px;font-weight:700;letter-spacing:6px;color:#2563EB;background:#EFF6FF;padding:12px 24px;border-radius:8px;border:1.5px solid #BFDBFE;">{otp_code}</span>'
-                f'</div>'
-                f'<p>This code is valid for 10 minutes. If you did not request this, please disregard this email.</p>'
-            ),
+            'action': f'{role_label} verification',
+            'expiry_minutes': '10',
+            'otp_digits': list(otp_code),
             'subject': f'VerifyNG — Your {role_label} Verification Code',
-        })
+        }, request=request)
         send_email(
             to_email=email,
             subject=f'VerifyNG — Your {role_label} Verification Code',
@@ -618,6 +630,41 @@ def verify_corporate_email_otp(request):
     request.session.modified = True
 
     return JsonResponse({'success': True, 'message': f'{email} verified successfully!'})
+
+
+@login_required
+@employer_required
+@require_POST
+def clear_corporate_document(request):
+    """Clears an uploaded business registration or representative ID document."""
+    profile = _get_or_create_employer_profile(request.user)
+    if profile.is_verified:
+        return JsonResponse({'success': False, 'message': 'Verified corporate documents are locked.'}, status=403)
+    if profile.verification_status == 'pending':
+        return JsonResponse({'success': False, 'message': 'Documents cannot be removed while verification is under review.'}, status=403)
+
+    doc_type = request.POST.get('doc_type', '').strip().lower()
+    if doc_type == 'cac':
+        if profile.cac_document:
+            try:
+                profile.cac_document.delete(save=False)
+            except Exception:
+                pass
+            profile.cac_document = None
+            profile.cac_uploaded_at = None
+            profile.save(update_fields=['cac_document', 'cac_uploaded_at'])
+        return JsonResponse({'success': True, 'message': 'Business registration document removed.'})
+    elif doc_type == 'rep':
+        if profile.representative_id_document:
+            try:
+                profile.representative_id_document.delete(save=False)
+            except Exception:
+                pass
+            profile.representative_id_document = None
+            profile.save(update_fields=['representative_id_document'])
+        return JsonResponse({'success': True, 'message': 'Representative ID document removed.'})
+
+    return JsonResponse({'success': False, 'message': 'Invalid document type specified.'}, status=400)
 
 # ---------------------------------------------------------------------------
 # Bulk Checks — Upload list
