@@ -769,7 +769,7 @@
         {% endif %}
         {% if request.user.is_superuser or perms.employer.view_employerprofile %}
         <a href="{% url 'admin_portal:employer_profiles' %}"
-           class="adm-nav-link {% if request.resolver_match.url_name in 'employer_profiles,employer_detail' %}active{% endif %}">
+           class="adm-nav-link {% if request.resolver_match.url_name in 'employer_profiles,employer_detail,employer_cac_review' %}active{% endif %}">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
             Agency & Employers
         </a>
@@ -813,7 +813,7 @@
     <div class="adm-nav-label">Verifications</div>
     <nav class="adm-nav">
         <a href="{% url 'admin_portal:review_queue' %}"
-           class="adm-nav-link {% if request.resolver_match.url_name in 'review_queue,user_id_review' %}active{% endif %}">
+           class="adm-nav-link {% if request.resolver_match.url_name in 'review_queue,user_id_review,employer_cac_review' %}active{% endif %}">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
             Review Queue
             {% if pending_compliance_review_count > 0 %}
