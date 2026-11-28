@@ -90,17 +90,10 @@
                         <td class="text-dark py-2">
                             {{ profile.company_email|default:target_user.email }}
                             {% if profile.company_email_verified %}
-                                <span class="badge bg-success-subtle text-success small ms-1">✓ Verified</span>
+                                <span class="badge bg-success-subtle text-success small ms-1">✓ Email Verified</span>
                             {% else %}
-                                <span class="badge bg-warning-subtle text-dark small ms-1">Unconfirmed</span>
+                                <span class="badge bg-warning-subtle text-dark small ms-1">Unverified</span>
                             {% endif %}
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="text-muted small py-2">Authorized Representative</td>
-                        <td class="text-dark py-2">
-                            <span class="fw-semibold">{{ profile.representative_name|default:"Not Provided" }}</span>
-                            <div class="text-muted small" style="font-size:0.75rem;">{{ profile.representative_title|default:"Designation N/A" }} &bull; {{ profile.representative_email|default:"" }}</div>
                         </td>
                     </tr>
                     <tr>
@@ -108,6 +101,72 @@
                         <td class="text-dark py-2 small">
                             {{ profile.cac_uploaded_at|date:"d M Y, H:i"|default:profile.updated_at|date:"d M Y, H:i" }}
                             <span class="text-muted">({{ profile.cac_uploaded_at|naturaltime|default:profile.updated_at|naturaltime }})</span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ── Authorized Representative Card ── -->
+        <div class="adm-card shadow-sm p-4 border rounded-3 bg-white mb-4">
+            <div class="d-flex align-items-center justify-content-between pb-3 mb-3 border-bottom">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="p-1.5 rounded-2 bg-info-subtle text-info-emphasis d-inline-flex">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    </span>
+                    <h6 class="fw-bold mb-0 text-dark">Authorized Representative Particulars</h6>
+                </div>
+                {% if profile.representative_email_verified %}
+                    <span class="badge bg-success-subtle text-success border border-success-subtle small">✓ Identity OTP Verified</span>
+                {% else %}
+                    <span class="badge bg-warning-subtle text-dark border border-warning-subtle small">OTP Pending</span>
+                {% endif %}
+            </div>
+
+            <table class="table table-sm table-borderless mb-0">
+                <tbody>
+                    <tr>
+                        <td class="text-muted small py-2" style="width:38%;">Representative Name</td>
+                        <td class="fw-bold text-dark py-2">{{ profile.representative_name|default:"Not Provided" }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted small py-2">Corporate Designation / Title</td>
+                        <td class="fw-semibold text-dark py-2">{{ profile.representative_title|default:"Not Provided" }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted small py-2">Official Work Email</td>
+                        <td class="text-dark py-2">
+                            {{ profile.representative_email|default:"Not Provided" }}
+                            {% if profile.representative_email_verified %}
+                                <span class="badge bg-success-subtle text-success small ms-1">✓ Verified</span>
+                            {% else %}
+                                <span class="badge bg-danger-subtle text-danger small ms-1">Unconfirmed</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted small py-2">Direct Phone Number</td>
+                        <td class="font-monospace text-dark py-2">{{ profile.representative_phone|default:"—" }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted small py-2">Identification Document Type</td>
+                        <td class="text-dark py-2">{{ profile.representative_id_type|default:"Government Identification"|upper }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted small py-2">Representative ID Number</td>
+                        <td class="font-monospace text-dark py-2">{{ profile.representative_id_number|default:"—" }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted small py-2">Representative ID File</td>
+                        <td class="py-2">
+                            {% if profile.representative_id_document %}
+                                <a href="{% url 'admin_portal:employer_rep_document' profile.user.public_id %}" target="_blank" class="btn btn-sm btn-outline-primary py-0.5 px-2.5">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                    View Representative ID
+                                </a>
+                            {% else %}
+                                <span class="text-muted small">No ID file attached</span>
+                            {% endif %}
                         </td>
                     </tr>
                 </tbody>
@@ -186,53 +245,104 @@
         </div>
     </div>
 
-    <!-- ── Right Column: Official Uploaded Certificate Document Viewer ── -->
-    <div class="col-12 col-lg-6">
+    <!-- ── Right Column: Official Uploaded Certificate & Representative Document Viewer ── -->
+    <div class="col-12 col-lg-6" x-data="{ docTab: 'cac' }">
         <div class="adm-card shadow-sm p-4 border rounded-3 bg-white h-100 d-flex flex-column">
-            <div class="d-flex align-items-center justify-content-between pb-3 mb-3 border-bottom">
-                <div class="d-flex align-items-center gap-2">
-                    <span class="p-1.5 rounded-2 bg-warning-subtle text-dark d-inline-flex">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-                    </span>
-                    <h6 class="fw-bold mb-0 text-dark">Uploaded Incorporation Document</h6>
+            <!-- Document Switcher Header -->
+            <div class="d-flex align-items-center justify-content-between pb-3 mb-3 border-bottom flex-wrap gap-2">
+                <div class="btn-group btn-group-sm p-1 bg-light rounded-3 border" role="group">
+                    <button type="button" class="btn px-3 fw-semibold rounded-2"
+                            :class="docTab === 'cac' ? 'btn-primary shadow-xs' : 'btn-light text-muted'"
+                            @click="docTab = 'cac'">
+                        🏛️ CAC Certificate
+                    </button>
+                    <button type="button" class="btn px-3 fw-semibold rounded-2"
+                            :class="docTab === 'rep' ? 'btn-primary shadow-xs' : 'btn-light text-muted'"
+                            @click="docTab = 'rep'">
+                        🪪 Representative ID
+                    </button>
+                    {% if profile.authorization_letter %}
+                    <button type="button" class="btn px-3 fw-semibold rounded-2"
+                            :class="docTab === 'auth' ? 'btn-primary shadow-xs' : 'btn-light text-muted'"
+                            @click="docTab = 'auth'">
+                        📜 Board Letter
+                    </button>
+                    {% endif %}
                 </div>
-                {% if profile.cac_document %}
-                <a href="{% url 'admin_portal:employer_cac_document' profile.user.public_id %}" target="_blank" class="btn btn-outline-secondary btn-sm px-2.5 py-1">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-                    Open in New Tab
-                </a>
-                {% endif %}
-            </div>
 
-            {% if profile.cac_document %}
-            <div class="flex-grow-1 d-flex flex-column justify-content-center align-items-center p-3 rounded-3 border bg-light-subtle position-relative" style="min-height: 480px;">
-                {% if profile.cac_document.url|lower|slice:"-4:" == ".pdf" %}
-                <iframe src="{% url 'admin_portal:employer_cac_document' profile.user.public_id %}" style="width:100%; height:520px; border:none; border-radius:8px;"></iframe>
-                {% else %}
-                <div class="text-center w-100">
-                    <img src="{% url 'admin_portal:employer_cac_document' profile.user.public_id %}" alt="Incorporation Document"
-                         class="img-fluid rounded border shadow-xs" style="max-height: 500px; object-fit: contain;">
-                </div>
-                {% endif %}
-            </div>
-            {% else %}
-            <div class="flex-grow-1 d-flex flex-column justify-content-center align-items-center p-5 text-center bg-light rounded-3 border">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="1.5" class="mb-2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                <div class="fw-semibold text-dark">No Incorporation Document Uploaded</div>
-                <div class="text-muted small mt-1">Applicant has not attached an official registration certificate file.</div>
-            </div>
-            {% endif %}
-
-            <!-- Representative Authorization Document (if any) -->
-            {% if profile.authorization_letter %}
-            <div class="mt-4 pt-3 border-top d-flex align-items-center justify-content-between">
                 <div>
-                    <div class="small fw-semibold text-dark">Authorized Representative Letter</div>
-                    <div class="text-muted small" style="font-size:0.75rem;">Letter of authority from company director / board</div>
+                    <template x-if="docTab === 'cac' && '{{ profile.cac_document }}'">
+                        <a href="{% url 'admin_portal:employer_cac_document' profile.user.public_id %}" target="_blank" class="btn btn-outline-secondary btn-sm px-2.5 py-1">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                            Open CAC
+                        </a>
+                    </template>
+                    <template x-if="docTab === 'rep' && '{{ profile.representative_id_document }}'">
+                        <a href="{% url 'admin_portal:employer_rep_document' profile.user.public_id %}" target="_blank" class="btn btn-outline-secondary btn-sm px-2.5 py-1">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                            Open Rep ID
+                        </a>
+                    </template>
                 </div>
-                <a href="{% url 'admin_portal:employer_rep_document' profile.user.public_id %}" target="_blank" class="btn btn-sm btn-outline-primary">
-                    View Letter &rarr;
-                </a>
+            </div>
+
+            <!-- CAC Document Tab Pane -->
+            <div x-show="docTab === 'cac'" class="flex-grow-1 d-flex flex-column">
+                {% if profile.cac_document %}
+                <div class="flex-grow-1 d-flex flex-column justify-content-center align-items-center p-3 rounded-3 border bg-light-subtle position-relative" style="min-height: 480px;">
+                    {% if profile.cac_document.url|lower|slice:"-4:" == ".pdf" %}
+                    <iframe src="{% url 'admin_portal:employer_cac_document' profile.user.public_id %}" style="width:100%; height:520px; border:none; border-radius:8px;"></iframe>
+                    {% else %}
+                    <div class="text-center w-100">
+                        <img src="{% url 'admin_portal:employer_cac_document' profile.user.public_id %}" alt="Incorporation Document"
+                             class="img-fluid rounded border shadow-xs" style="max-height: 500px; object-fit: contain;">
+                    </div>
+                    {% endif %}
+                </div>
+                {% else %}
+                <div class="flex-grow-1 d-flex flex-column justify-content-center align-items-center p-5 text-center bg-light rounded-3 border">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="1.5" class="mb-2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    <div class="fw-semibold text-dark">No Incorporation Document Uploaded</div>
+                    <div class="text-muted small mt-1">Applicant has not attached an official CAC certificate file.</div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Representative ID Document Tab Pane -->
+            <div x-show="docTab === 'rep'" class="flex-grow-1 d-flex flex-column" style="display:none;">
+                {% if profile.representative_id_document %}
+                <div class="flex-grow-1 d-flex flex-column justify-content-center align-items-center p-3 rounded-3 border bg-light-subtle position-relative" style="min-height: 480px;">
+                    {% if profile.representative_document_is_pdf %}
+                    <iframe src="{% url 'admin_portal:employer_rep_document' profile.user.public_id %}" style="width:100%; height:520px; border:none; border-radius:8px;"></iframe>
+                    {% else %}
+                    <div class="text-center w-100">
+                        <img src="{% url 'admin_portal:employer_rep_document' profile.user.public_id %}" alt="Representative Identification Document"
+                             class="img-fluid rounded border shadow-xs" style="max-height: 500px; object-fit: contain;">
+                    </div>
+                    {% endif %}
+                </div>
+                {% else %}
+                <div class="flex-grow-1 d-flex flex-column justify-content-center align-items-center p-5 text-center bg-light rounded-3 border">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="1.5" class="mb-2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    <div class="fw-semibold text-dark">No Representative ID Uploaded</div>
+                    <div class="text-muted small mt-1">Representative identification document was not provided.</div>
+                </div>
+                {% endif %}
+            </div>
+
+            {% if profile.authorization_letter %}
+            <!-- Board Authorization Letter Tab Pane -->
+            <div x-show="docTab === 'auth'" class="flex-grow-1 d-flex flex-column" style="display:none;">
+                <div class="flex-grow-1 d-flex flex-column justify-content-center align-items-center p-3 rounded-3 border bg-light-subtle position-relative" style="min-height: 480px;">
+                    {% if profile.authorization_letter.url|lower|slice:"-4:" == ".pdf" %}
+                    <iframe src="{% url 'admin_portal:employer_rep_document' profile.user.public_id %}?type=auth" style="width:100%; height:520px; border:none; border-radius:8px;"></iframe>
+                    {% else %}
+                    <div class="text-center w-100">
+                        <img src="{% url 'admin_portal:employer_rep_document' profile.user.public_id %}?type=auth" alt="Board Authorization Letter"
+                             class="img-fluid rounded border shadow-xs" style="max-height: 500px; object-fit: contain;">
+                    </div>
+                    {% endif %}
+                </div>
             </div>
             {% endif %}
         </div>
