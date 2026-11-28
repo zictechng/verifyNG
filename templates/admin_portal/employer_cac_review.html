@@ -74,7 +74,8 @@
                     <tr>
                         <td class="text-muted small py-2">Incorporation Country</td>
                         <td class="text-dark py-2">
-                            <span class="flag-icon me-1">🇳🇬</span> {{ country_cfg.name|default:"Nigeria" }}
+                            <span class="fw-semibold text-dark">{{ country_cfg.name|default:profile.country|default:"Nigeria" }}</span>
+                            <span class="badge bg-secondary-subtle text-secondary font-monospace ms-1">{{ profile.country|default:"NG"|upper }}</span>
                         </td>
                     </tr>
                     <tr>
@@ -246,105 +247,111 @@
     </div>
 
     <!-- ── Right Column: Official Uploaded Certificate & Representative Document Viewer ── -->
-    <div class="col-12 col-lg-6" x-data="{ docTab: 'cac' }">
-        <div class="adm-card shadow-sm p-4 border rounded-3 bg-white h-100 d-flex flex-column">
-            <!-- Document Switcher Header -->
+    <div class="col-12 col-lg-6">
+        <div class="adm-card shadow-sm p-4 border rounded-3 bg-white d-flex flex-column" style="position: sticky; top: 85px;">
+            <!-- Bootstrap Document Switcher Tabs Header -->
             <div class="d-flex align-items-center justify-content-between pb-3 mb-3 border-bottom flex-wrap gap-2">
-                <div class="btn-group btn-group-sm p-1 bg-light rounded-3 border" role="group">
-                    <button type="button" class="btn px-3 fw-semibold rounded-2"
-                            :class="docTab === 'cac' ? 'btn-primary shadow-xs' : 'btn-light text-muted'"
-                            @click="docTab = 'cac'">
-                        🏛️ CAC Certificate
-                    </button>
-                    <button type="button" class="btn px-3 fw-semibold rounded-2"
-                            :class="docTab === 'rep' ? 'btn-primary shadow-xs' : 'btn-light text-muted'"
-                            @click="docTab = 'rep'">
-                        🪪 Representative ID
-                    </button>
+                <ul class="nav nav-pills gap-1 p-1 bg-light rounded-3 border" id="docViewerTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active px-3 py-1.5 fw-semibold rounded-2" id="cac-tab"
+                                data-bs-toggle="pill" data-bs-target="#cac-pane" type="button" role="tab" style="font-size:0.82rem;">
+                            🏛️ CAC Certificate
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link px-3 py-1.5 fw-semibold rounded-2" id="rep-tab"
+                                data-bs-toggle="pill" data-bs-target="#rep-pane" type="button" role="tab" style="font-size:0.82rem;">
+                            🪪 Representative ID
+                        </button>
+                    </li>
                     {% if profile.authorization_letter %}
-                    <button type="button" class="btn px-3 fw-semibold rounded-2"
-                            :class="docTab === 'auth' ? 'btn-primary shadow-xs' : 'btn-light text-muted'"
-                            @click="docTab = 'auth'">
-                        📜 Board Letter
-                    </button>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link px-3 py-1.5 fw-semibold rounded-2" id="auth-tab"
+                                data-bs-toggle="pill" data-bs-target="#auth-pane" type="button" role="tab" style="font-size:0.82rem;">
+                            📜 Board Letter
+                        </button>
+                    </li>
                     {% endif %}
-                </div>
+                </ul>
 
-                <div>
-                    <template x-if="docTab === 'cac' && '{{ profile.cac_document }}'">
-                        <a href="{% url 'admin_portal:employer_cac_document' profile.user.public_id %}" target="_blank" class="btn btn-outline-secondary btn-sm px-2.5 py-1">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-                            Open CAC
-                        </a>
-                    </template>
-                    <template x-if="docTab === 'rep' && '{{ profile.representative_id_document }}'">
-                        <a href="{% url 'admin_portal:employer_rep_document' profile.user.public_id %}" target="_blank" class="btn btn-outline-secondary btn-sm px-2.5 py-1">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-                            Open Rep ID
-                        </a>
-                    </template>
+                <div class="d-flex gap-2">
+                    {% if profile.cac_document %}
+                    <a href="{% url 'admin_portal:employer_cac_document' profile.user.public_id %}" target="_blank" class="btn btn-outline-secondary btn-sm px-2.5 py-1" title="Open CAC in new tab">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                        Full CAC
+                    </a>
+                    {% endif %}
+                    {% if profile.representative_id_document %}
+                    <a href="{% url 'admin_portal:employer_rep_document' profile.user.public_id %}" target="_blank" class="btn btn-outline-secondary btn-sm px-2.5 py-1" title="Open Rep ID in new tab">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                        Full Rep ID
+                    </a>
+                    {% endif %}
                 </div>
             </div>
 
-            <!-- CAC Document Tab Pane -->
-            <div x-show="docTab === 'cac'" class="flex-grow-1 d-flex flex-column">
-                {% if profile.cac_document %}
-                <div class="flex-grow-1 d-flex flex-column justify-content-center align-items-center p-3 rounded-3 border bg-light-subtle position-relative" style="min-height: 480px;">
-                    {% if profile.cac_document.url|lower|slice:"-4:" == ".pdf" %}
-                    <iframe src="{% url 'admin_portal:employer_cac_document' profile.user.public_id %}" style="width:100%; height:520px; border:none; border-radius:8px;"></iframe>
+            <!-- Tab Content Panes -->
+            <div class="tab-content" id="docViewerTabContent">
+                <!-- 1. CAC Document Tab Pane -->
+                <div class="tab-pane fade show active" id="cac-pane" role="tabpanel" tabindex="0">
+                    {% if profile.cac_document %}
+                    <div class="d-flex flex-column justify-content-center align-items-center p-3 rounded-3 border bg-light-subtle position-relative">
+                        {% if profile.cac_document.url|lower|slice:"-4:" == ".pdf" %}
+                        <iframe src="{% url 'admin_portal:employer_cac_document' profile.user.public_id %}" style="width:100%; height:450px; border:none; border-radius:8px;"></iframe>
+                        {% else %}
+                        <div class="text-center w-100 py-2">
+                            <img src="{% url 'admin_portal:employer_cac_document' profile.user.public_id %}" alt="CAC Certificate"
+                                 class="img-fluid rounded border shadow-xs" style="max-height: 420px; width: auto; object-fit: contain;">
+                        </div>
+                        {% endif %}
+                    </div>
                     {% else %}
-                    <div class="text-center w-100">
-                        <img src="{% url 'admin_portal:employer_cac_document' profile.user.public_id %}" alt="Incorporation Document"
-                             class="img-fluid rounded border shadow-xs" style="max-height: 500px; object-fit: contain;">
+                    <div class="d-flex flex-column justify-content-center align-items-center p-5 text-center bg-light rounded-3 border">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="1.5" class="mb-2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        <div class="fw-semibold text-dark">No Incorporation Document Uploaded</div>
+                        <div class="text-muted small mt-1">Applicant has not attached an official CAC certificate file.</div>
                     </div>
                     {% endif %}
                 </div>
-                {% else %}
-                <div class="flex-grow-1 d-flex flex-column justify-content-center align-items-center p-5 text-center bg-light rounded-3 border">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="1.5" class="mb-2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                    <div class="fw-semibold text-dark">No Incorporation Document Uploaded</div>
-                    <div class="text-muted small mt-1">Applicant has not attached an official CAC certificate file.</div>
+
+                <!-- 2. Representative ID Document Tab Pane -->
+                <div class="tab-pane fade" id="rep-pane" role="tabpanel" tabindex="0">
+                    {% if profile.representative_id_document %}
+                    <div class="d-flex flex-column justify-content-center align-items-center p-3 rounded-3 border bg-light-subtle position-relative">
+                        {% if profile.representative_document_is_pdf %}
+                        <iframe src="{% url 'admin_portal:employer_rep_document' profile.user.public_id %}" style="width:100%; height:450px; border:none; border-radius:8px;"></iframe>
+                        {% else %}
+                        <div class="text-center w-100 py-2">
+                            <img src="{% url 'admin_portal:employer_rep_document' profile.user.public_id %}" alt="Representative Identification Document"
+                                 class="img-fluid rounded border shadow-xs" style="max-height: 420px; width: auto; object-fit: contain;">
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <div class="d-flex flex-column justify-content-center align-items-center p-5 text-center bg-light rounded-3 border">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="1.5" class="mb-2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        <div class="fw-semibold text-dark">No Representative ID Uploaded</div>
+                        <div class="text-muted small mt-1">Representative identification document was not provided.</div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                {% if profile.authorization_letter %}
+                <!-- 3. Board Authorization Letter Tab Pane -->
+                <div class="tab-pane fade" id="auth-pane" role="tabpanel" tabindex="0">
+                    <div class="d-flex flex-column justify-content-center align-items-center p-3 rounded-3 border bg-light-subtle position-relative">
+                        {% if profile.authorization_letter.url|lower|slice:"-4:" == ".pdf" %}
+                        <iframe src="{% url 'admin_portal:employer_rep_document' profile.user.public_id %}?type=auth" style="width:100%; height:450px; border:none; border-radius:8px;"></iframe>
+                        {% else %}
+                        <div class="text-center w-100 py-2">
+                            <img src="{% url 'admin_portal:employer_rep_document' profile.user.public_id %}?type=auth" alt="Board Authorization Letter"
+                                 class="img-fluid rounded border shadow-xs" style="max-height: 420px; width: auto; object-fit: contain;">
+                        </div>
+                        {% endif %}
+                    </div>
                 </div>
                 {% endif %}
             </div>
-
-            <!-- Representative ID Document Tab Pane -->
-            <div x-show="docTab === 'rep'" class="flex-grow-1 d-flex flex-column" style="display:none;">
-                {% if profile.representative_id_document %}
-                <div class="flex-grow-1 d-flex flex-column justify-content-center align-items-center p-3 rounded-3 border bg-light-subtle position-relative" style="min-height: 480px;">
-                    {% if profile.representative_document_is_pdf %}
-                    <iframe src="{% url 'admin_portal:employer_rep_document' profile.user.public_id %}" style="width:100%; height:520px; border:none; border-radius:8px;"></iframe>
-                    {% else %}
-                    <div class="text-center w-100">
-                        <img src="{% url 'admin_portal:employer_rep_document' profile.user.public_id %}" alt="Representative Identification Document"
-                             class="img-fluid rounded border shadow-xs" style="max-height: 500px; object-fit: contain;">
-                    </div>
-                    {% endif %}
-                </div>
-                {% else %}
-                <div class="flex-grow-1 d-flex flex-column justify-content-center align-items-center p-5 text-center bg-light rounded-3 border">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="1.5" class="mb-2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                    <div class="fw-semibold text-dark">No Representative ID Uploaded</div>
-                    <div class="text-muted small mt-1">Representative identification document was not provided.</div>
-                </div>
-                {% endif %}
-            </div>
-
-            {% if profile.authorization_letter %}
-            <!-- Board Authorization Letter Tab Pane -->
-            <div x-show="docTab === 'auth'" class="flex-grow-1 d-flex flex-column" style="display:none;">
-                <div class="flex-grow-1 d-flex flex-column justify-content-center align-items-center p-3 rounded-3 border bg-light-subtle position-relative" style="min-height: 480px;">
-                    {% if profile.authorization_letter.url|lower|slice:"-4:" == ".pdf" %}
-                    <iframe src="{% url 'admin_portal:employer_rep_document' profile.user.public_id %}?type=auth" style="width:100%; height:520px; border:none; border-radius:8px;"></iframe>
-                    {% else %}
-                    <div class="text-center w-100">
-                        <img src="{% url 'admin_portal:employer_rep_document' profile.user.public_id %}?type=auth" alt="Board Authorization Letter"
-                             class="img-fluid rounded border shadow-xs" style="max-height: 500px; object-fit: contain;">
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-            {% endif %}
         </div>
     </div>
 
